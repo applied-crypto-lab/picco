@@ -1,3 +1,3 @@
-1,cse-mbws-00.cse.nd.edu,9647,key1.pem
-2,cse-mbws-02.cse.nd.edu,9646,key2.pem
-3,cse-mbws-03.cse.nd.edu,9645,key3.pem
+1,host1.buffalo.edu,9647,pubkey1.pem
+2,host2.buffalo.edu,9646,pubkey2.pem
+3,host3.buffalo.edu,9645,pubkey3.pem

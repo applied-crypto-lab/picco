@@ -39,7 +39,8 @@ public:
 	std::string getPeerIP(int id);
 	int getPeerPort(int id);
 	virtual ~NodeConfiguration();
-
+	std::string getPubKey();
+	std::string getPeerPubKey(int id);
 private:
 	int id;
 	int bits; 
@@ -49,6 +50,8 @@ private:
 	std::vector<int> peerPort;
 	std::vector<int> peerID;
 	void loadConfig(std::string configFile);
+	std::string pubKey;
+	std::vector<std::string> peerPubKey;
 };
 
 #endif /* NODECONFIGURATION_H_ */

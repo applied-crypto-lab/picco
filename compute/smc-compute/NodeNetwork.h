@@ -35,13 +35,13 @@ using boost::asio::ip::tcp;
 
 class NodeNetwork {
 public:
-	NodeNetwork(NodeConfiguration *nodeConfig, int num_threads);
+	NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads);
 	NodeNetwork();
 	virtual ~NodeNetwork();
 
 	//Send round data to a specific peer
 	void sendDataToPeer(int, mpz_t*, int, int, int);
-    	void sendDataToPeer(int, int, int*);
+        void sendDataToPeer(int, int, int*);
 	void sendDataToPeer(int, int, unsigned char*);
 	void sendDataToPeer(int, int, mpz_t*); 
 	void sendDataToPeer(int, int, long long*); 
@@ -50,8 +50,8 @@ public:
 	void getDataFromPeer(int, mpz_t*, int, int, int);
 	void getDataFromPeer(int, int, int*);
 	void getDataFromPeer(int, int, unsigned char*);
-    	void getDataFromPeer(int, int, mpz_t*);
-    	void getDataFromPeer(int, int, long long*);
+        void getDataFromPeer(int, int, mpz_t*);
+        void getDataFromPeer(int, int, long long*);
 	//Broadcast identical data to peers
 	void broadcastToPeers(mpz_t*, int, mpz_t**);
 	void broadcastToPeers(long long*, int, long long**); 
@@ -67,7 +67,9 @@ public:
 	void closeAllConnections();
 
 	//Encryption and Decryption
-	void init_keys();
+	void init_keys(int peer, int nRead);
+	void gen_keyiv();
+	void get_keyiv(char* key_iv);
 	unsigned char *aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len);
 	unsigned char *aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
 	

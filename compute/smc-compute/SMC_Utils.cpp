@@ -23,17 +23,18 @@
 #include <string>
 #include <cmath>
 
+
 //Constructors
-SMC_Utils::SMC_Utils(int id, std::string runtime_config, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int  threshold, int bits, int num_threads){
+SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int  threshold, int bits, int num_threads){
 	base = 10;
 	std::cout << "SMC_Utils constructor\n";
 	nodeConfig = new NodeConfiguration(id, runtime_config, bits);
 	peers = numOfPeers; 
 	ss = new SecretShare(numOfPeers, threshold, bits);
 	std::cout << "Creating the NodeNetwork\n";
-	
-	NodeNetwork* nodeNet = new NodeNetwork(nodeConfig, num_threads);
-        nNet = *nodeNet;
+
+	NodeNetwork* nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);    
+	nNet = *nodeNet;
 
 	clientConnect();
 	receivePolynomials();

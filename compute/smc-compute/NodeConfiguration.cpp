@@ -81,6 +81,22 @@ int NodeConfiguration::getPeerIndex(int id){
 
 }
 
+std::string NodeConfiguration::getPubKey(){
+	return pubKey;
+}
+
+std::string NodeConfiguration::getPeerPubKey(int id){
+	//Get the index of the id;
+	int index=-1;
+	for(int i=0; i<peerID.size(); ++i){
+		if(peerID[i] == id){
+			index = i;
+			break;
+		}
+	}
+	return peerPubKey[index];
+}
+
 /*
  * Loads the network configuration from the file.
  * Assumes that the config file is sorted
@@ -101,11 +117,13 @@ void NodeConfiguration::loadConfig(std::string configFile){
 		if(id == atoi(tokens[0].c_str())){
 			ip = tokens[1];
 			port = atoi(tokens[2].c_str());
+			pubKey = tokens[3];
 		}
 		else{
 			peerID.push_back(atoi(tokens[0].c_str()));
 			peerIP.push_back(tokens[1]);
 			peerPort.push_back(atoi(tokens[2].c_str()));
+			peerPubKey.push_back(tokens[3]);
 		}
 	}
 	configIn.close();
