@@ -1,6 +1,7 @@
 
 public int K=32;
-//private int A[K]; 
+//private int A[K]; // currently global private variable don't work properly
+
 public void swap(int* A, int* B)
 {
         private int temp;
@@ -11,12 +12,11 @@ public void swap(int* A, int* B)
          }
 }
 
-public int mergesort(public int l, public int r) {
+public int mergesort(public int l, public int r, private int* A) {
 
-   private int A[K];    
    public int i, j, k, m, size;
    size = r - l + 1;
-   int tmp;
+
    private int* temp1; 
    private int* temp2;
   
@@ -39,11 +39,9 @@ public int mergesort(public int l, public int r) {
 public int main() {
    
    public int median = K/2;
-   public int i;
    private int A[K]; 
-   for(i = 0; i < K; i++)
-  	 smcinput(A[i], 1);
-   
+
+   smcinput(A, 1, K);
    mergesort(0, K-1);
    smcoutput(A[median], 1);
    

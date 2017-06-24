@@ -85,16 +85,16 @@ void append_new_main(){
 	
 	//Check the input parameters
 	str_printf(strA(),
-		"\n if(argc < 7){\n"
+		"\n if(argc < 8){\n"
 		"fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-		"fprintf(stderr,\"Usage: <id> <runtime-config> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
+		"fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
 		"exit(1);\n}\n");
 
 	str_printf(strA(),
-		"\n std::string IO_files[atoi(argv[3]) + atoi(argv[4])];\n"
-		"for(int i = 0; i < argc-5; i++)\n"
-		"   IO_files[i] = argv[5+i];\n"
-		"\n__s = new SMC_Utils(atoi(argv[1]), argv[2], atoi(argv[3]), atoi(argv[4]), IO_files, %d, %d, %d, %d);\n"
+		"\n std::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
+		"for(int i = 0; i < argc-6; i++)\n"
+		"   IO_files[i] = argv[6+i];\n"
+		"\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, %d);\n"
         "\nstruct timeval tv1;"
         "\nstruct timeval tv2;", peers, threshold, bits, total_threads);
 

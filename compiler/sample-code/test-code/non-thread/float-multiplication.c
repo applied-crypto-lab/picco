@@ -1,16 +1,14 @@
 #include<math.h>
 
-public int K=20; // length of array / number of input elements
-public int M = 5; 
-public int N = 4; 
+public int K=20; // length of input arrays
 
 public int main()
 {
-	public int i, j, s;
-	private int<32> ind[K], A[K], B[K], C[M][N];
+	public int i;
+	private int<32> A[K], B[K];
 	private float<32, 9> FA[K], FB[K], FC[K];
 	public float<32, 9> FD[K];  
-	private float<32, 9> FE[M][N]; 	
+
 	smcinput(A, 1, K); 
 	smcinput(B, 1, K); 
 	
@@ -19,51 +17,41 @@ public int main()
 		FA[i] = (private float<32, 9>)A[i]; 
 		FB[i] = (private float<32, 9>)B[i]; 
 	}
-	for(i = 0; i < M; i++)
-		for(j = 0; j < N; j++){
-			FE[i][j] = FB[i*N+j];
-			C[i][j] = B[i*N+j]; 
-		}
-	 
-	for(i = 0; i < K; i++)
-		ind[i] = (private int<32>)FA[i]; 
 	
-	/************************************** MULTIPLICATION *******************************************/
 	printf("********************************* INDIVIDUAL MULTIPLICATION ************************************\n\n\n");       
-	/* private float + private float */
 	printf("PRIV FLOAT + PRIV FLOAT...\n"); 
 	for(i = 0; i < K; i++)
 		FC[i] = FA[i] * FB[i];  
 	smcoutput(FC, 1, K); 
-	printf("\n\n\n"); 
+	printf("\n\n\n");
+	
 	printf("PRIV FLOAT + PUB FLOAT...\n"); 
 	for(i = 0; i < K; i++)
 		FC[i] = FA[i] * (public float)i; 
 	smcoutput(FC, 1, K); 
 	printf("\n\n\n"); 
-	/* public float + private float */
+
 	printf("PUB FLOAT + PRIV FLOAT...\n"); 
 	for(i = 0; i < K; i++)
 		FC[i] = (public float)i * FA[i]; 
 	smcoutput(FC, 1, K); 
 	printf("\n\n\n"); 
 
-	printf("********************************* BATCH ADDITION ************************************\n\n\n"); 
-        /* private float + private float */
+	printf("********************************* BATCH MULTIPLICATION ************************************\n\n\n"); 
         printf("PRIV FLOAT + PRIV FLOAT...\n"); 
         for(i = 0; i < K; i++)[ 
                 FC[i] = FA[i] * FB[i]; 
 	] 
         smcoutput(FC, 1, K); 
         printf("\n\n\n"); 
-        /* private float + public float */
+
         printf("PRIV FLOAT + PUB FLOAT...\n"); 
         for(i = 0; i < K; i++)[
                 FC[i] = FA[i] * (public float)i; 
 	]
         smcoutput(FC, 1, K); 
         printf("\n\n\n"); 
-        /* public float + private float */
+
         printf("PUB FLOAT + PRIV FLOAT...\n"); 
         for(i = 0; i < K; i++)[
                 FC[i] = (public float)i * FA[i]; 
@@ -71,7 +59,7 @@ public int main()
         smcoutput(FC, 1, K); 
         printf("\n\n\n"); 
 
-	printf("************************************ ARRAY OPERATION **************************************\n"); 
+	printf("************************************ ARRAY MULTIPLICATION **************************************\n"); 
 	printf("PRIV FLOAT ARRAY + PRIV FLOAT ARRAY...\n");
         FC = FA * FB;
         smcoutput(FC, 1, K);
@@ -80,10 +68,12 @@ public int main()
 	for(i = 0; i < K; i++)
 		FD[i] = (public float<32, 9>)i; 
 	
+	printf("PRIV FLOAT ARRAY + PUB FLOAT ARRAY...\n");
 	FC = FA * FD; 
 	smcoutput(FC, 1, K);
         printf("\n\n\n");
 	
+	printf("PUB FLOAT ARRAY + PRIV FLOAT ARRAY...\n");
 	FC = FD * FA; 
 	smcoutput(FC, 1, K);
         printf("\n\n\n");

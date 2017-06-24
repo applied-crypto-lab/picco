@@ -1,16 +1,12 @@
 #include<math.h>
 
-public int K=20; // length of array / number of input elements
-public int M = 5; 
-public int N = 4; 
+public int K=20; // length of input arrays
 
 public int main()
 {
-	public int i, j, s;
+	public int i;
 	private int<32> A[K], B[K], C[K];
-	private float<32, 9> FA[K], FB[K], FC[K];
-	public float<32, 9> FD[K];  
-	private float<32, 9> FE[M][N]; 	
+	private float<32, 9> FA[K], FB[K];
 	smcinput(A, 1, K); 
 	smcinput(B, 1, K); 
 	
@@ -20,8 +16,7 @@ public int main()
 		FB[i] = (private float<32, 9>)B[i]; 
 	}
 	
-	/************************************** ADDITION *******************************************/
-	printf("********************************* INDIVIDUAL ADDITION ************************************\n\n\n");       
+	printf("********************************* INDIVIDUAL COMPARISON ************************************\n\n\n");       
 	printf("PRIV FLOAT ==  PRIV FLOAT...\n"); 
 	for(i = 0; i < K; i++)
 		C[i] = FA[i] == FB[i];  

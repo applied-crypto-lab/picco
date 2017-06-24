@@ -15,8 +15,8 @@ public int main() {
    private int A[K];
    private int* temp1; 
    private int* temp2; 
-   for (i = 0; i < K; i++)
-     smcinput(A[i], 1);
+
+   smcinput(A, 1, K);
    
    for (i = K - 1; i > 0; i--) { 
       for (j = 0; j < i; j++) { 
@@ -26,7 +26,7 @@ public int main() {
       }
    }
 
-   
+   smcoutput(A, 1, K);
    return 0;
 }
 

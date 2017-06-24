@@ -10,23 +10,22 @@ public int main() {
 
    struct node *head = 0;
    public int i;
-   private int a, c, output, difference, tmp;
+   private int a[count], c, output;
    private int array[count]; 
    private int result[count]; 
  
    struct node *ptr;
    // build the linked list
+   smcinput(a, 1, count);
    for (i = 0; i < count; i++) {
       ptr = pmalloc(1, struct node);
-      smcinput(a, 1);
-      ptr->data = a;
+      ptr->data = a[i];
       ptr->next = head;
       head = ptr;
    }
    // traverse the linked list searching for the element closest to the
    // the given value
-  
-   a = 10; 
+   c = 10; 
    ptr = head;
    for(i = 0; i < count; i++)
    {
@@ -36,7 +35,7 @@ public int main() {
 
    for(i = 0; i < count; i++)
    [ 
-      if(array[i] == a)
+      if(array[i] == c)
 	result[i] = 1; 
    ]
    

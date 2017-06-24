@@ -5,7 +5,7 @@ public int main() {
    int B[S][S];
    int C[S][S];
    /*******************/
-   public int i, j, k;
+   public int i, j;
 
    smcinput(A, 1, S, S);
    smcinput(B, 1, S, S);

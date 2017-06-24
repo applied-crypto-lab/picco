@@ -47,8 +47,8 @@ public int main()
  	]
 	smcoutput(B, 1, K1); 
 	for(i = 0; i < K1; i++)[
-		FA[i] = (public float)(2 * i + 3); 
-		FB[i] = (public float)(i+1); 
+		FA[i] = 2 * i + 3; 
+		FB[i] = i+1; 
 		FB[i] = FA[i]/FB[i]; 
 	]
 	smcoutput(FB, 1, K1); 
