@@ -33,7 +33,7 @@
 class SMC_Utils {
 public:
 	//Constructors
-	SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string* IO_files, int numOfPeers, int threshold, int bits, int num_threads);
+	SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string* IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads);
 	//Share a secret between	
 	int smc_open(mpz_t var, int threadID);
 	float smc_open(mpz_t* var, int threadID); 
@@ -530,7 +530,7 @@ public:
 	void smc_process_operands(mpz_t** a, mpz_t** b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int* len_sig, int* len_exp, int size); 
 	void smc_process_results(mpz_t** result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID); 
 	
-	std::map<long, std::vector<int> > polynomials; //temporarily public
+	std::map<std::string, std::vector<int> > polynomials; //temporarily public
 	mpz_t coef[9]; //temporarily public
 	int id; //temporarily public;
 
@@ -565,7 +565,7 @@ private:
 	Pow2* P; 	
 	//Handle client connections and polynomail stuff
 	void clientConnect();
-	void receivePolynomials();
+	void receivePolynomials(std::string privatekey_filename);
 	void setCoef();
 	int peers;
 	int newsockfd;

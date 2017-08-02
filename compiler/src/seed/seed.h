@@ -19,17 +19,21 @@
 
 #ifndef SEED_H_
 #define SEED_H_
+#include <gmp.h> //armk
 
 class seed {
 
 public:
 	seed();
 	void run();
-	void init(char*);
+	void init(char*, char*); //
 	int parseConfigFile(char*);
-	void sendPolynomials();
+	void parseUtilConfigFile(char*); //
+	void sendPolynomials(mpz_t); //
 	static double time_diff(struct timeval *t1, struct timeval *t2);
+	std::string mpz2string(mpz_t, int); //
 private: 
-	int peers; 
+	int peers;
+	mpz_t modulus; //
 };
 #endif /* SEED_H_ */

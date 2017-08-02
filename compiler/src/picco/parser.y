@@ -4428,12 +4428,14 @@ void compute_modulus_for_declaration(astspec spec){
 void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 	if(e1->ftype == 0 && e2->ftype == 0){
 		int len = fmax(e1->size, e2->size); 
-		if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq || opid == BOP_eqeq || opid == BOP_neq)
-			modulus = fmax(modulus, len+48); 
-		else if(opid == BOP_div)
-			modulus = fmax(modulus, 2*len+48+8);
-		else if(opid == RIGHT_OP && e2->flag == PRI)
-			modulus = fmax(modulus, e2->size+48); 		
+		if(e1->flag == PRI || e2->flag == PRI){
+			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq || opid == BOP_eqeq || opid == BOP_neq)
+				modulus = fmax(modulus, len+48); 
+			else if(opid == BOP_div)
+				modulus = fmax(modulus, 2*len+48+8);
+			else if(opid == RIGHT_OP && e2->flag == PRI)
+				modulus = fmax(modulus, e2->size+48);
+		}		
 	}else if(e1->ftype == 1 && e2->ftype == 1){
 		int len = 0, k = 0; 
 		if(e1->size == e2->size && e1->sizeexp == e2->sizeexp){

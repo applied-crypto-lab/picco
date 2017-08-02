@@ -19,7 +19,7 @@
 #include "FPDiv.h"
 
 
-FPDiv::FPDiv(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+FPDiv::FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
     
 	Mul = new Mult(nodeNet, nodeID, s);
 	App = new AppRcr(nodeNet,poly,nodeID,s,coeficients);

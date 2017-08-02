@@ -27,7 +27,7 @@
 class EQZ : public Operation{
     
 public:
-	EQZ(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+	EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
 	virtual ~EQZ();
 	void doOperation(mpz_t* shares, mpz_t* result, int K, int size, int threaID);
 private:

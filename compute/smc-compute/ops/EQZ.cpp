@@ -21,7 +21,7 @@
 #include "EQZ.h"
 
 
-EQZ::EQZ(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int NodeID, SecretShare *s, mpz_t coefficients[]) {
+EQZ::EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int NodeID, SecretShare *s, mpz_t coefficients[]) {
     
 	PreMul = new PrefixMultiplication(nodeNet,poly,NodeID,s,coefficients);
 	Rand = new Random(nodeNet, poly, NodeID, s);

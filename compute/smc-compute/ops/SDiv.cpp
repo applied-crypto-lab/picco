@@ -18,7 +18,7 @@
 */
 #include "SDiv.h"
 
-SDiv::SDiv(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
     
 	Mul = new Mult(nodeNet, nodeID, s);
 	Mod = new Mod2M(nodeNet, poly, nodeID, s, coefficients);

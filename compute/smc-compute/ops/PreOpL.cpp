@@ -19,7 +19,7 @@
 #include "PreOpL.h"
 
 
-PreOpL::PreOpL(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]) {
+PreOpL::PreOpL(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]) {
 	M = new Mult(nodeNet, nodeID, s);
 	net = nodeNet;
 	id = nodeID;

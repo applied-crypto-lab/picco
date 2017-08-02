@@ -18,7 +18,7 @@
 */
 #include "Mod2MS.h"
 
-Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
+Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
 	B2u = new B2U(nodeNet,poly,nodeID, s, coeficients);
 	Iv = new Inv(nodeNet, poly, nodeID, s, coeficients);
 	Mul = new Mult(nodeNet, nodeID, s);

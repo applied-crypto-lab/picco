@@ -18,7 +18,7 @@
 */
 #include "CarryBit.h"
 
-CarryBit::CarryBit(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+CarryBit::CarryBit(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
     
 	M = new Mult(nodeNet, nodeID, s);
     	ss = s;

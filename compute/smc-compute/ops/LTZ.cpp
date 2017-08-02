@@ -19,7 +19,7 @@
 
 #include "LTZ.h"
 
-LTZ::LTZ(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]){
+LTZ::LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]){
     	ss = s;
 	T = new Trunc(nodeNet,poly,nodeID,s,coefficients);    
 	net = nodeNet;

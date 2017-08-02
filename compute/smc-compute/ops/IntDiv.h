@@ -28,7 +28,7 @@
 
 class IntDiv: public Operation {
 public:
-	IntDiv(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]);
+	IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]);
 	virtual ~IntDiv();
 	void doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int size, int threadID);
 	void doOperationPub(mpz_t* result, mpz_t* a, mpz_t* b, int k, int size, int threadID); 

@@ -28,7 +28,7 @@
 
 class B2U : public Operation{
 public:
-	B2U(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
+	B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
 	virtual ~B2U();
 	void doOperation(mpz_t* A, int L, mpz_t** result, int size, int threadID);
 private:

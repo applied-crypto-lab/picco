@@ -19,7 +19,7 @@
 
 #include "AddBitwise.h"
 
-AddBitwise::AddBitwise(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
+AddBitwise::AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
 	Pre = new PreOpL(nodeNet, poly, nodeID, s, coeficients);
 	ss = s;
 }

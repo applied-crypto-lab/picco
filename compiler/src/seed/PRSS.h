@@ -25,9 +25,10 @@
 #include <vector>
 #include <iostream>
 #include <cstdlib>
+#include <gmp.h>
 class PRSS {
 public:
-	PRSS(int);
+	PRSS(int, mpz_t); 
 	virtual ~PRSS();
 	void setKeysAndPoints();
 	void setPeers(int);
@@ -36,36 +37,22 @@ public:
 	int getPeers();
 	int getThreshold();
 	long getFieldSize();
-	std::vector<long> getKeys();
-	std::map<long, std::vector<int> > getPolynomials();
-	std::map<long, std::vector<int> > getPoints();
-	std::vector<long> packKeys(std::map<long, std::vector<int> >);
-	std::vector<std::vector<int> > packPolynomials(std::map<long, std::vector<int> >);
-	long generateRandValue(long, int);
-	std::vector<long> generateRandValues(long);
-	long PRandInt(int, int);
-	long PRandBit(std::vector<long>, int);
-	std::vector<long> PRandM(int, int, int);
-	long Mod2(std::vector<long> A, int K);
-	long BitLTC(long, std::vector<long>);
-	std::vector<std::vector<long> > preMul(std::vector<std::vector<long> >);
-	long EQZ(std::vector<long>, int);
-	// helper functions
-	std::vector<long> binarySplit(long, int);
+	mpz_t* getKeys(); 
+	int getKeysize(); 
+	std::map<std::string, std::vector<int> > getPolynomials(); 
+	std::map<std::string, std::vector<int> > getPoints(); 
 	int computePolynomials(std::vector<int>, int);
-	// test functions.
-	void testKeysAndPoints();
-	void testPolynomials();
-	void testPacking();
+	std::string mpz2string(mpz_t, int); 
 private:
-	std::map<long, std::vector<int> > polynomials;
-	std::map<long, std::vector<int> > points;
-	std::vector<long> keys;
+	std::map<std::string, std::vector<int> > polynomials;
+	std::map<std::string, std::vector<int> > points;
+	mpz_t* keys; 
+	int keysize; 
 	void getCombinations(std::vector<int> &, int, std::vector<int> &, int, int, std::vector<std::vector<int> > &);
 	int peers;
 	int threshold;
-	long fieldsize;
-	long fieldsize8;
+	mpz_t modulus; 
+	int mpz_t_size; 
 };
 
 #endif /* PRSS_H_ */

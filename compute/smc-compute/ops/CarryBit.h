@@ -25,7 +25,7 @@
 
 class CarryBit : public Operation{
 public:
-	CarryBit(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, int field, mpz_t coeficients[]);
+	CarryBit(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, int field, mpz_t coeficients[]);
 	virtual ~CarryBit();
 	void doOperation(mpz_t* D1, mpz_t* D2, mpz_t* D3, mpz_t* D4, int size, int threadID);
 private:

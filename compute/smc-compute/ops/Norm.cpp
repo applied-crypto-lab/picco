@@ -23,7 +23,7 @@ Norm::Norm() {
 
 }
 
-Norm::Norm(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
 	Mul = new Mult(nodeNet, nodeID, s);
 	Lt = new LTZ(nodeNet,poly,nodeID,s,coefficients);
 	Bt = new BitDec(nodeNet,poly,nodeID,s,coefficients);

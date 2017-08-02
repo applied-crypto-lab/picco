@@ -20,7 +20,7 @@
 #include "Inv.h"
 
 
-Inv::Inv(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]){
+Inv::Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]){
     
 	Rand = new Random(nodeNet, poly, nodeID, s);
 	net = nodeNet;
@@ -51,7 +51,11 @@ void Inv::doOperation(mpz_t* shares, mpz_t* results, int size, int threadID){
 	}
 
 	//start computation
-	Rand->generateRandValue(id, ss->getBits(), size, R, threadID);
+	//Rand->generateRandValue(id, ss->getBits(), size, R, threadID);
+	mpz_t field; //
+	mpz_init(field); 
+	ss->getFieldSize(field);
+	Rand->generateRandValue(id, field, size, R, threadID); //
 	ss->modMul(temp, shares, R, size);
 	net.broadcastToPeers(temp, size, buffer, threadID);
 	ss->reconstructSecret(results, buffer, size, true);

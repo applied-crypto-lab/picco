@@ -18,7 +18,7 @@
 */
 #include "Pow2.h"
 
-Pow2::Pow2(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+Pow2::Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
     
 	Bd = new BitDec(nodeNet, poly, nodeID, s, coeficients);
 	PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s, coeficients);

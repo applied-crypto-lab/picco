@@ -24,7 +24,7 @@
 
 class DotProduct : public Operation{
 public:
-	DotProduct(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+	DotProduct(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
 	virtual ~DotProduct();
 	void doOperation(mpz_t* a, mpz_t* b, mpz_t result, int size, int threadID);
 	void doOperation(mpz_t** a, mpz_t** b, mpz_t* result, int num_vec, int size_vec, int threadID); 

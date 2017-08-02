@@ -31,10 +31,9 @@
 class SecretShare{
 
 public:
-	SecretShare(int, int, int);
+	SecretShare(int, int, mpz_t);
 
 	//Set the number of peers
-	int getBits(); 
 	void setPeers(int p);
 	int getPeers(); 
 	int getThreshold(); 
@@ -93,7 +92,7 @@ public:
 
 	//Miscellaneous Functions
 	void modSum(mpz_t, mpz_t*, int);
-	void getPrime(mpz_t prime, int bits);
+	//void getPrime(mpz_t prime, int bits);
 	void copy(mpz_t* src, mpz_t* des, int size);
 	void mod(mpz_t* result, mpz_t* a, mpz_t* m, int size);
 	void mod(mpz_t* result, mpz_t* a, mpz_t m, int size); 

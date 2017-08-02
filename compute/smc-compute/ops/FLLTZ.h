@@ -26,7 +26,7 @@
 
 class FLLTZ: public Operation {
 public:
-	FLLTZ(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
+	FLLTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
 	virtual ~FLLTZ();
 	void doOperation(mpz_t** A, mpz_t** B, mpz_t* result, int K, int L, int size, int threadID);
 private:

@@ -18,7 +18,7 @@
 */
 #include "BitOps.h"
 
-BitOps::BitOps(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int NodeID, SecretShare *s, mpz_t coeficients[]){
+BitOps::BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int NodeID, SecretShare *s, mpz_t coeficients[]){
 	Mul = new Mult(nodeNet, NodeID, s);
 	net = nodeNet;
 	id = NodeID;

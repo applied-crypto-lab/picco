@@ -32,19 +32,29 @@
 #include "SecretShare.h"
 #include "seed.h"
 #include "PRSS.h"
+#include <openssl/rand.h> 
+#include "unistd.h" 
+#include <openssl/rsa.h> 
+#include <openssl/pem.h>
+#include "openssl/bio.h"
+#include <gmp.h> 
 using boost::asio::ip::tcp;
 
 std::vector<int> computeNodes;
 std::vector<std::string> computeIPs;
 std::vector<int> computePorts;
+std::vector<std::string> computePubkeys; 
 
 int main(int argc, char* argv[])
 {
-	if(argc < 1)
-		std::cout << "Missing input parameters";
+	if(argc < 2){ 
+		fprintf(stderr,"Incorrect input parameters \n");
+		fprintf(stderr,"Usage: picco-seed <runtime-config> <utility-config> \n");
+		exit(1);
+	}
 
 	seed c;
-	c.init(argv[1]);
+	c.init(argv[1], argv[2]); 
 }
 
 seed::seed(){
@@ -52,72 +62,104 @@ seed::seed(){
 }
 
 
-void seed::sendPolynomials(){
-		PRSS prss(peers);
-		srand(1000);
-		prss.setKeysAndPoints();
-		prss.setPolynomials();
-		std::cout<<"set polynomials"<<std::endl; 
-		// for each compute node, send the corresponding coefficients.
-		for(int i = 0; i < peers; i++){
-            std::vector<int> indices;
-			std::vector<long> keys;
-            std::map<long, std::vector<int> > polys;
-            int size =  prss.getKeys().size();
-			std::vector<int> coefficients;
+void seed::sendPolynomials(mpz_t mod){
+	PRSS prss(peers, mod); 
+	char strkey[64] = {0,};
+	mpz_get_str(strkey, 10, modulus);
+	int mpz_t_size = strlen(strkey);
+
+	prss.setKeysAndPoints();
+	prss.setPolynomials();
+	std::cout<<"set polynomials"<<std::endl; 
+	// for each compute node, send the corresponding coefficients.
+	for(int i = 0; i < peers; i++){
+		std::vector<int> indices;
+		std::map<std::string, std::vector<int> > polys; 
+		int size = prss.getKeysize(); 
+		std::vector<int> coefficients;
+		int keyssize = 0; 
+		mpz_t* tempKey = (mpz_t*)malloc(sizeof(mpz_t) * size); 
+	        tempKey = prss.getKeys(); 
+		for(int k = 0; k < size; k++)
+		{
+			std::string Strkey = mpz2string(tempKey[k], mpz_t_size); 
+			std::vector<int> pts = (prss.getPoints().find(Strkey)->second); 
+			for(int j = 0; j < pts.size(); j++)
+			{
+			    if(pts.at(j) == i+1)
+			    {
+				indices.push_back(k);
+				break;
+			    }
+			}
+		}
             
-            for(int k = 0; k < size; k++)
-            {
-                std::vector<int> pts = (prss.getPoints().find(prss.getKeys().at(k))->second);
-                for(int j = 0; j < pts.size(); j++)
-                {
-                    if(pts.at(j) == i+1)
-                    {
-                        indices.push_back(k);
-                        break;
-                    }
-                }
-            }
+		for(int k = 0; k < size; k++)
+		{
+			std::string Strkey = mpz2string(tempKey[k], mpz_t_size); 
+			int flag = 0;
+			for(int j = 0; j < indices.size(); j++)
+			{
+			    if(indices.at(j) == k)
+			    {
+				flag = 1;
+				break;
+			    }
+			}
+			if(flag == 0)
+			{
+				std::string Strkey = mpz2string(tempKey[k], mpz_t_size); 
+				polys.insert(std::pair<std::string, std::vector<int> >(Strkey, prss.getPolynomials().find(Strkey)->second)); 
+				keyssize += 1; 
+				for(int j = 0; j < (peers+1)/2; j++)
+					coefficients.push_back(polys.find(Strkey)->second.at(j)); 
+			}
+		}
             
-            for(int k = 0; k < size; k++)
-            {
-                int flag = 0;
-                for(int j = 0; j < indices.size(); j++)
-                {
-                    if(indices.at(j) == k)
-                    {
-                        flag = 1;
-                        break;
-                    }
-                }
-                if(flag == 0)
-                {
-                    keys.push_back(prss.getKeys().at(k));
-                    polys.insert(std::pair<long, std::vector<int> >(prss.getKeys().at(k), prss.getPolynomials().find(prss.getKeys().at(k))->second));
-                }
-            }
-            
-			std::map<long, std::vector<int> >::iterator it;
-            for(int k = 0; k < keys.size(); k++)
-            {
-                    for(int j = 0; j < (peers+1)/2; j++)
-                        coefficients.push_back(polys.find(keys.at(k))->second.at(j));
-            }
-			long* Keys = &keys[0];
-			int* Coefficients = &coefficients[0];
-            int keysize = keys.size();
-            int coefsize = coefficients.size();
-            write(computeNodes[i], &keysize, sizeof(int));
-            write(computeNodes[i], &coefsize, sizeof(int));
-	    write(computeNodes[i], Keys, sizeof(long) * keys.size());
-	    write(computeNodes[i], Coefficients, sizeof(int) * coefficients.size()); 
-	    printf("Secret seeds have been successfully sent to each of computational parties...\n"); 
+		int* Coefficients = &coefficients[0];
+		int coefsize = coefficients.size();
+		FILE *pubkeyfp = fopen(computePubkeys[i].c_str(), "r");
+		if( pubkeyfp == NULL ) printf("File Open %s error \n", computePubkeys[i].c_str());
+		RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
+		if( publicRkey == NULL) printf("Read Public Key for RSA Error\n");
+		char *encrypt = (char*)malloc(RSA_size(publicRkey));
+		memset(encrypt, 0x00, RSA_size(publicRkey));
+		int buf_size = sizeof(int)*(3+coefficients.size()) + mpz_t_size*keyssize + 1; 
+		char *buf = (char*)malloc(buf_size);
+		memset(buf, 0x00, buf_size);
+		memcpy(buf, &keyssize, sizeof(int));
+		memcpy(buf+sizeof(int), &coefsize, sizeof(int));
+		memcpy(buf+sizeof(int)*2, &mpz_t_size, sizeof(int));
+		int position = 0;
+		for(int l = 0; l < size; l++){
+			int flag = 0;
+			for(int j = 0; j < indices.size(); j++)
+			{
+			    if(indices.at(j) == l)
+			    {
+				flag = 1;
+				break;
+			    }
+			}
+			if(flag == 0)
+			{
+				char strkey[mpz_t_size+1] = {0,}; 
+				mpz_get_str(strkey, 10, tempKey[l]); 
+				memcpy(buf+sizeof(int)*3+position, strkey, mpz_t_size);
+				position += mpz_t_size;
+			}
+		}
+		memcpy(buf+sizeof(int)*3+position, Coefficients, sizeof(int)*coefficients.size()); 
+		int enc_len = RSA_public_encrypt(buf_size, (unsigned char*)buf, (unsigned char*)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+		if(enc_len < 1) printf("RSA public encrypt error\n");
+ 		write(computeNodes[i], encrypt, enc_len); 
+		printf("Secret seeds have been successfully sent to each of computational parties...\n"); 
 	}
 }
-void seed::init(char* config){
+void seed::init(char* config, char* util_config){ 
 	//Parse the configuration file to get network information
 	peers = parseConfigFile(config);
-	
+	parseUtilConfigFile(util_config); 
 	std::cout << "Config file parsed successfully\n" << peers << std::endl;
 	try
 	{
@@ -147,8 +189,8 @@ void seed::init(char* config){
 		std::cout << "An exception was caught: " << e.what() << "\n";
 	}
 	std::cout<<"Connect to compute nodes\n";
-	// send the polynomials to compute nodes for random value generation.
-	sendPolynomials();
+	// send the polynomials to compute nodes for random value generation.	
+	sendPolynomials(modulus); 
 }
 
 
@@ -171,7 +213,7 @@ int seed::parseConfigFile(char* config){
 	int peers = 0; 
 	//Make sure the file exists and can be opened
 	if(!configIn){
-		std::cout << "File could not be opened";
+		std::cout << "File could not be opened \n";
 		std::exit(1);
 	}
 
@@ -184,9 +226,37 @@ int seed::parseConfigFile(char* config){
 		boost::split(tokens, line, boost::is_any_of(","));
 		computeIPs.push_back(tokens[1]);
 		computePorts.push_back(atoi(tokens[2].c_str()));
+		computePubkeys.push_back(tokens[3]); 
 	}
 	configIn.close();
 	return peers; 
 }
 
+void seed::parseUtilConfigFile(char* util_config){
+	std::ifstream configIn(util_config, std::ios::in);
+	if(!configIn){
+		std::cout << "Utility Config File could not be opened \n";
+		std::exit(1);
+	}
+	std::string line;
+	std::vector<std::string> tokens;
+	for(int i = 0; i < 2; i++)
+	{
+		std::getline(configIn, line);
+		boost::split(tokens, line, boost::is_any_of(":"));
+		if(i == 1)
+		{
+			mpz_init(modulus);
+ 			mpz_set_str(modulus, tokens[1].c_str(), 10);
+		}
+	}
+	configIn.close();
+}
 
+std::string seed::mpz2string(mpz_t value, int buf_size)
+{
+	char str[buf_size+1] = {0,};
+	mpz_get_str(str, 10, value);
+	std::string Str = str;
+	return Str;
+} 

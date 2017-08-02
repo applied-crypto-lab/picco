@@ -18,7 +18,7 @@
 */
 #include "IntDiv.h"
 #include <math.h>
-IntDiv::IntDiv(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
     
 	Mul = new Mult(nodeNet, nodeID, s);
 	App = new IntAppRcr(nodeNet,poly,nodeID,s,coefficients);

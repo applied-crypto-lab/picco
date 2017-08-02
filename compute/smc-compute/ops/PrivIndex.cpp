@@ -19,7 +19,7 @@
 #include "PrivIndex.h"
 
 
-PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
     
 	Mul = new Mult(nodeNet, nodeID, s); 
 	Bd = new BitDec(nodeNet, poly, nodeID, s, coefficients);

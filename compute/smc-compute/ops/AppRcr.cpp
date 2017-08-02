@@ -19,7 +19,7 @@
 #include "AppRcr.h"
 
 
-AppRcr::AppRcr(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+AppRcr::AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
 	
 	Mul = new Mult(nodeNet, nodeID, s);
 	T = new TruncPr(nodeNet,poly,nodeID,s,coeficients);

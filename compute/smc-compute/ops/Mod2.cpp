@@ -19,7 +19,7 @@
 
 #include "Mod2.h"
 
-Mod2::Mod2(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s) {
+Mod2::Mod2(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s) {
     
 	Rand = new Random(nodeNet, poly, nodeID, s);
 	net = nodeNet;

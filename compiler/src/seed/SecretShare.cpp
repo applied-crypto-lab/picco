@@ -25,13 +25,11 @@
 #include <cstdlib>
 #include <gmp.h>
 
-SecretShare::SecretShare(int p, int t, int b){
+SecretShare::SecretShare(int p, int t, mpz_t mod){
 	peers = p;
 	threshold = t;
-	bits = b;
 	mpz_init(fieldSize);
-	getPrime(fieldSize, bits);
-	//gmp_printf("%Zd\n", fieldSize); 
+	mpz_set(fieldSize, mod);
 	computeSharingMatrix();
 	computeLagrangeWeight();
 	gmp_randinit_mt(rstate); 
@@ -52,9 +50,6 @@ void SecretShare::setThreshold(int t){
 }
 int SecretShare::getThreshold(){
 	return threshold; 
-}
-int SecretShare::getBits(){
-	return bits; 
 }
 
 void SecretShare::getShares(mpz_t* shares, mpz_t secret){
@@ -100,7 +95,7 @@ void SecretShare::getShares(mpz_t* shares, mpz_t secret){
 		if(degree == 0)
 			mpz_set(coefficient,secret);
 		else{
-			mpz_urandomb(coefficient, rstate, bits);
+			mpz_urandomm(coefficient, rstate, fieldSize);
 			if(degree == threshold && mpz_sgn(coefficient) == 0)
 				mpz_add_ui(coefficient, coefficient, 1); 
 			/*mpz_set_ui(temp,rand());
@@ -127,7 +122,7 @@ void SecretShare::getShares(mpz_t** shares, mpz_t* secrets, int size){
 			if(degree == 0)
 				mpz_set(coefficient,secrets[i]);
 			else{
-				mpz_urandomb(coefficient, rstate, bits); 
+				mpz_urandomm(coefficient, rstate, fieldSize);  
 				if(degree == threshold && mpz_sgn(coefficient) == 0)
 					mpz_add_ui(coefficient, coefficient, 1); 
 			}
@@ -434,19 +429,5 @@ void SecretShare::reconstructSecret(mpz_t* result, mpz_t** y, int size, bool isM
 		}
 	}
 	mpz_clear(temp); 
-}
-
-void SecretShare::getPrime(mpz_t result, int bits){
-	mpz_ui_pow_ui(result,2,bits);
-	mpz_t m;
-	mpz_init(m);
-	int isPrime;
-	do{
-		mpz_nextprime(result,result);
-		isPrime = mpz_probab_prime_p(result,50);
-		mpz_mod_ui(m,result,4);
-	}while(isPrime < 1 || mpz_cmp_si(m, 3) != 0);
-	//gmp_printf("%Zd\n", result);
-	mpz_clear(m); 
 }
 

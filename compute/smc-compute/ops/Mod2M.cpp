@@ -18,7 +18,7 @@
 */
 #include "Mod2M.h"
 
-Mod2M::Mod2M(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
+Mod2M::Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
     ss = s;
 	B = new BitLTC(nodeNet,poly,nodeID,s,coeficients);
 	net = nodeNet;

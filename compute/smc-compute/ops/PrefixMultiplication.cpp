@@ -18,7 +18,7 @@
 */
 #include "PrefixMultiplication.h"
 
-PrefixMultiplication::PrefixMultiplication(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
+PrefixMultiplication::PrefixMultiplication(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
     
     	net = nodeNet;
 	polynomials = poly;
@@ -69,8 +69,14 @@ void PrefixMultiplication::doOperation(mpz_t** B, mpz_t** result, int length, in
 		}
 	}
 
-	Rand->generateRandValue(id, ss->getBits(), length, R, threadID);
-	Rand->generateRandValue(id, ss->getBits(), length, S, threadID);
+	//Rand->generateRandValue(id, ss->getBits(), length, R, threadID);
+	//Rand->generateRandValue(id, ss->getBits(), length, S, threadID);
+	mpz_t field; //
+	mpz_init(field); 
+	ss->getFieldSize(field);
+	Rand->generateRandValue(id, field, length, R, threadID); //
+	Rand->generateRandValue(id, field, length, S, threadID); //
+
 
 	ss->modMul(temp, R, S, length);
 	net.broadcastToPeers(temp, length, buffer1, threadID);

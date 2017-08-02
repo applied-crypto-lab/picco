@@ -41,6 +41,7 @@
 #include "str.h"
 #include "math.h"
 //#include "config.h"
+#include <gmp.h>
 
 static aststmt ast;          /* The AST we use as our original */
 symtab         stab;         /* Our symbol table */
@@ -89,14 +90,17 @@ void append_new_main(){
 		"fprintf(stderr,\"Incorrect input parameters\\n\");\n"
 		"fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
 		"exit(1);\n}\n");
-
+	mpz_t modulus2; 
+	mpz_init(modulus2);
+	getPrime(modulus2, bits);
+	char* res = mpz_get_str(NULL, 10, modulus2);
 	str_printf(strA(),
 		"\n std::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
 		"for(int i = 0; i < argc-6; i++)\n"
 		"   IO_files[i] = argv[6+i];\n"
-		"\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, %d);\n"
+		"\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n"
         "\nstruct timeval tv1;"
-        "\nstruct timeval tv2;", peers, threshold, bits, total_threads);
+        "\nstruct timeval tv2;", peers, threshold, bits, res, total_threads);
 
      
 	str_printf(strA(),
@@ -223,7 +227,7 @@ int main(int argc, char *argv[])
     symtab_put(stab, Symbol("__func__"), IDNAME);
     
     time(&now);  /* Advertise us */
-    sprintf(tmp, "/* File generated from [%s] by OMPi %s */", filename, ctime(&now));
+    sprintf(tmp, "/* File generated from [%s] by PICCO %s */", filename, ctime(&now));
     
     /*
      * 2. Parse & get the AST
@@ -249,8 +253,15 @@ int main(int argc, char *argv[])
 	FILE *fp = fopen(final_list, "w+"); 
 	FILE *vfp = fopen(var_list, "r"); 
 	char* line = (char*)malloc(sizeof(char) * 256); 
-	
+
+	mpz_t modulus2; 
+	mpz_init(modulus2);
+	getPrime(modulus2, bits);
+	//gmp_printf("%Zd\n", modulus2);
+	char* res = mpz_get_str(NULL, 10, modulus2);
+
 	fprintf(fp, "%s:%d\n", "bits", bits); 
+	fprintf(fp, "%s:%s\n", "modulus", res); 
 	fprintf(fp, "%s:%d\n", "peers", peers); 
 	fprintf(fp, "%s:%d\n", "threshold", threshold); 
 	fprintf(fp, "%s:%d\n", "inputs", inputs); 
@@ -404,3 +415,15 @@ void warning(char *format, ...)
     va_end(ap);
 }
 
+void getPrime(mpz_t result, int bits){
+	mpz_ui_pow_ui(result,2,bits-1);
+	mpz_t m;
+	mpz_init(m);
+	int isPrime;
+	do{
+		mpz_nextprime(result,result);
+		isPrime = mpz_probab_prime_p(result,50);
+		mpz_mod_ui(m,result,4);
+	}while(isPrime < 1 || mpz_cmp_si(m, 3) != 0);
+	mpz_clear(m); 
+}

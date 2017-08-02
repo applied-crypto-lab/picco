@@ -24,6 +24,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <gmp.h> 
 using namespace std; 
 // these will be eventually read from the config files;
 int numOfComputeNodes;
@@ -33,11 +34,12 @@ int party;
 int bits;
 int threshold;
 
+
 std::ifstream var_list;
 
 SecretShare* ss;
 
-void loadConfig();
+void loadConfig(mpz_t);
 void produceOutputs(std::ifstream[], std::ofstream[], std::string, std::string, int, int, int); 
 void produceInputs(std::ifstream[], std::ofstream[], std::string, std::string, int, int, int, int, int); 
 void openInputOutputFiles(std::string, std::string, std::ifstream*, std::ofstream*, int); 
@@ -70,7 +72,9 @@ int main(int argc, char** argv){
         std::cout << "Variable list cannot be opened...\n";
         std::exit(1);
     }
-    loadConfig();
+    mpz_t modulus;
+    mpz_init(modulus);
+    loadConfig(modulus);
     int numOfInput, numOfOutput; 
     if(mode == 0)
     {
@@ -86,7 +90,7 @@ int main(int argc, char** argv){
     std::ifstream inputFiles[numOfInput];
     std::ofstream outputFiles[numOfOutput];
     
-    ss = new SecretShare(numOfComputeNodes, threshold, bits);
+    ss = new SecretShare(numOfComputeNodes, threshold, modulus);
     /******************************************************/
     //open all input and output files
     std::string file(argv[3]);
@@ -519,22 +523,28 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     free(shares); 
 }
 
-void loadConfig()
+void loadConfig(mpz_t mod)
 {
     std::string line;
     std::vector<std::string> tokens;
-    int results[5];
-    for(int i = 0; i < 5; i++)
+    int results[6]; 
+    for(int i = 0; i < 6; i++) 
     {
         std::getline(var_list, line);
         boost::split(tokens, line, boost::is_any_of(":"));
-        results[i] = atoi(tokens[1].c_str());
+        if(i == 1) 
+	{ 
+ 		mpz_set_str(mod, tokens[1].c_str(), 10);
+		//gmp_printf("%Zd\n", mod);	
+	}
+	else
+		results[i] = atoi(tokens[1].c_str());
     }
     bits = results[0];
-    numOfComputeNodes = results[1];
-    threshold = results[2];
-    numOfInputNodes = results[3];
-    numOfOutputNodes = results[4];
+    numOfComputeNodes = results[2]; 
+    threshold = results[3]; 
+    numOfInputNodes = results[4]; 
+    numOfOutputNodes = results[5]; 
 }
 
 

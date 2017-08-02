@@ -26,7 +26,7 @@
 
 class FPDiv: public Operation {
 public:
-	FPDiv(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
+	FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
 	virtual ~FPDiv();
 	void doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int size, int threadID);
 private:

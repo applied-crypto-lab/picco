@@ -19,7 +19,7 @@
 
 #include "B2U.h"
 
-B2U::B2U(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
+B2U::B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
 	Pw2 = new Pow2(nodeNet, poly, nodeID, s, coeficients);
 	Mul = new Mult(nodeNet, nodeID, s);
 	Por = new PreOr(nodeNet, poly, nodeID, s, coeficients);

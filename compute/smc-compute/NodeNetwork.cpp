@@ -850,7 +850,7 @@ void NodeNetwork::requestConnection(int numOfPeers){
 			sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
 			if(sockfd[i] < 0)
 				fprintf(stderr, "ERROR, opening socket\n");
- 			fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
+ 			//fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
 			int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)); 
 			rc = setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char*)&on, sizeof(on));
 			server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
@@ -922,7 +922,7 @@ void NodeNetwork::acceptPeers(int numOfPeers){
 			
 		fd_set master_set, working_set; 
 		sockfd = socket(AF_INET, SOCK_STREAM, 0);
-		fcntl(sockfd, F_SETFL, O_NONBLOCK);  
+		//fcntl(sockfd, F_SETFL, O_NONBLOCK);  
 		if(sockfd < 0)
 			fprintf(stderr, "ERROR, opening socket\n"); 
 		int rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)); 
@@ -951,11 +951,12 @@ void NodeNetwork::acceptPeers(int numOfPeers){
 				newsockfd[i] = accept(sockfd, (struct sockaddr*) &cli_addr[i], &clilen[i]); 
 				if(newsockfd[i] < 0)
 					fprintf(stderr, "ERROR, on accept\n"); 
- 				fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
+ 				//fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
 				peer2sock.insert(std::pair<int, int>(config->getID() - (i+1), newsockfd[i]));
 				sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i+1)));
 
 				unsigned char key_iv[32]; 
+				RAND_status();
 				if( !RAND_bytes(key_iv, 32) )
 					printf("Key, iv generation error\n");
 				memcpy(KeyIV, key_iv, 32);

@@ -19,7 +19,7 @@
 
 #include "BitLTC.h"
 
-BitLTC::BitLTC(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
+BitLTC::BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
     
 	PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s, coeficients);
 	Mod = new Mod2(nodeNet, poly, nodeID, s);

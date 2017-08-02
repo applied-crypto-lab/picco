@@ -26,7 +26,7 @@
 
 class AppRcr:public Operation{
 public:
-	AppRcr(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+	AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
 	virtual ~AppRcr();
 	void doOperation(mpz_t* w, mpz_t* b, int k, int f, int size, int threadID);
 private:

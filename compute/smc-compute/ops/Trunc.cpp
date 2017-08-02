@@ -18,7 +18,7 @@
 */
 #include "Trunc.h"
 
-Trunc::Trunc(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
+Trunc::Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]){
     
     ss = s;
 	Mod = new Mod2M(nodeNet,poly,nodeID,s,coeficients);

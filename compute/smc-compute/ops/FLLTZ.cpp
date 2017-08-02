@@ -18,7 +18,7 @@
 */
 #include "FLLTZ.h"
 
-FLLTZ::FLLTZ(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
+FLLTZ::FLLTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
 	Mul = new Mult(nodeNet, nodeID, s);
 	Lt = new LTZ(nodeNet, poly, nodeID, s, coeficients);
 	Eq = new EQZ(nodeNet, poly, nodeID, s, coeficients);

@@ -29,7 +29,7 @@
 class Norm: public Operation {
 public:
 	Norm();
-	Norm(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+	Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
 	virtual ~Norm();
 	void doOperation(mpz_t* c, mpz_t* vp, mpz_t* b, int k, int f, int size, int threadID);
     

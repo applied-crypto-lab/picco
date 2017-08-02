@@ -1,7 +1,7 @@
 all: picco	
 
 picco: picco.o ast.o ast_show.o symtab.o parser.tab.o lex.yy.o str.o ast_vars.o ast_copy.o ast_print.o ast_free.o ast_types.o ast_xform.o x_types.o x_clauses.o x_parallel.o x_arith.o x_task.o x_single.o x_sections.o x_for.o x_thrpriv.o x_shglob.o ox_xform.o ast_renlabs.o  
-	gcc -o picco picco.o parser.tab.o lex.yy.o ast.o ast_show.o symtab.o str.o ast_vars.o ast_copy.o ast_print.o ast_free.o ast_types.o ast_xform.o x_types.o x_clauses.o x_parallel.o x_arith.o x_task.o x_single.o x_sections.o x_for.o x_thrpriv.o x_shglob.o ox_xform.o ast_renlabs.o -lm 
+	gcc -o picco picco.o parser.tab.o lex.yy.o ast.o ast_show.o symtab.o str.o ast_vars.o ast_copy.o ast_print.o ast_free.o ast_types.o ast_xform.o x_types.o x_clauses.o x_parallel.o x_arith.o x_task.o x_single.o x_sections.o x_for.o x_thrpriv.o x_shglob.o ox_xform.o ast_renlabs.o -lm -lgmp
 
 picco.o: picco.c 
 	gcc -c picco.c 

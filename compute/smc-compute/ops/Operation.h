@@ -38,7 +38,7 @@ public:
     
 	SecretShare *ss;
 	mpz_t coef[9];
-	std::map<long, std::vector<int> > polynomials;
+	std::map<std::string, std::vector<int> > polynomials; //
 	NodeNetwork net;
 	int id;
 };

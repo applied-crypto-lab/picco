@@ -22,22 +22,28 @@
 #include "SecretShare.h"
 #include <string>
 #include <cmath>
-
+#include <openssl/rsa.h> 
+#include <openssl/rand.h> 
+#include <openssl/pem.h>
+#include "openssl/bio.h"
 
 //Constructors
-SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int  threshold, int bits, int num_threads){
+SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads){ 
 	base = 10;
 	std::cout << "SMC_Utils constructor\n";
+	mpz_t modulus;
+	mpz_init(modulus);
+	mpz_set_str(modulus, mod.c_str(), 10);
 	nodeConfig = new NodeConfiguration(id, runtime_config, bits);
 	peers = numOfPeers; 
-	ss = new SecretShare(numOfPeers, threshold, bits);
+	ss = new SecretShare(numOfPeers, threshold, modulus);
 	std::cout << "Creating the NodeNetwork\n";
 
 	NodeNetwork* nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);    
 	nNet = *nodeNet;
 
 	clientConnect();
-	receivePolynomials();
+	receivePolynomials(privatekey_filename);
 
 	//initialize input and output streams
 	inputStreams = new std::ifstream[numOfInputPeers]; 
@@ -3998,27 +4004,53 @@ void SMC_Utils::clientConnect(){
 	printf("Client connected\n");
 }
 
-void SMC_Utils::receivePolynomials(){
+void SMC_Utils::receivePolynomials(std::string privatekey_filename){ 
+	FILE *prikeyfp = fopen(privatekey_filename.c_str(), "r");
+	if( prikeyfp == NULL ) printf("File Open %s error\n", privatekey_filename.c_str());
+	RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
+	if( priRkey == NULL) printf("Read Private Key for RSA Error\n"); 
+	char *buffer = (char*)malloc(RSA_size(priRkey));
+	int n = read(newsockfd, buffer, RSA_size(priRkey));
+	if (n < 0) printf("ERROR reading from socket \n");
+	char *decrypt = (char*)malloc(n);
+	memset(decrypt, 0x00, n); 
+	int dec_len = RSA_private_decrypt(n, (unsigned char*)buffer, (unsigned char*)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
+	if(dec_len < 1) printf("RSA private decrypt error\n");
+	if(dec_len < 1)
+	{
+		printf("RSA private decrypt error\n");
+	} 
 
 	int keysize = 0; 
-	int coefsize = 0; 
-	read(newsockfd, &keysize, sizeof(int)); 
-	read(newsockfd, &coefsize, sizeof(int)); 
-	long* Keys = (long*)malloc(sizeof(long) * keysize); 
+	int coefsize = 0;
+	int mpz_t_size = 0; 
+	memcpy(&keysize, decrypt, sizeof(int)); 
+	memcpy(&mpz_t_size, decrypt+sizeof(int), sizeof(int)); 
+	memcpy(&coefsize, decrypt+sizeof(int)*2, sizeof(int));
+	mpz_t* Keys = (mpz_t*)malloc(sizeof(mpz_t) * keysize); 
+    	for(int k = 0; k < keysize; k++)
+    		mpz_init(Keys[k]);
 	int* Coefficients = (int*)malloc(sizeof(int) * coefsize); 
-	
-	read(newsockfd, Keys, keysize * sizeof(long)); 
-	read(newsockfd, Coefficients, coefsize * sizeof(int));
+	int position = 0; 
+	for(int i = 0; i < keysize; i++){ 
+		char strkey[mpz_t_size+1] = {0,}; 
+		memcpy(strkey, decrypt+sizeof(int)*3+position, mpz_t_size); 
+		mpz_set_str(Keys[i], strkey, 10);		
+		position += mpz_t_size; 
+	}
+	memcpy(Coefficients, decrypt+sizeof(int)*3+mpz_t_size*keysize, sizeof(int)*coefsize); 
+	free(buffer); 
+	free(decrypt); 
 
 	for(int i = 0; i < keysize; i++){
+		char strkey[mpz_t_size+1] = {0,}; 
+		mpz_get_str(strkey, 10, Keys[i]); 
+		std::string Strkey = strkey; 
 		std::vector<int> temp;
-		//printf("key: %d ", Keys[i]); 
 		for(int k = 0; k < coefsize/keysize; k++){
-			//printf("%d ", Coefficients[i * coefsize/keysize + k]); 
 			temp.push_back(Coefficients[i * coefsize/keysize + k]);
 		}
-		//printf("\n"); 
-		polynomials.insert(std::pair<long, std::vector<int> >(Keys[i], temp));
+		polynomials.insert(std::pair<std::string, std::vector<int> >(Strkey, temp));
 	}
 	//printf("Polynomials received... \n"); 
 }
@@ -4272,3 +4304,4 @@ double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2){
 
 	return elapsed;
 }
+	

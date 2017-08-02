@@ -21,43 +21,83 @@
 #include "math.h"
 #include "time.h"
 #include "SecretShare.h"
+#include <gmp.h> 
+#include <unistd.h>  
+#include <fcntl.h> 
+#include <sys/stat.h>  
+#include <sys/types.h>  
+#include <stdlib.h>  
+#include <stdio.h> 
+#include <string.h> 
 
-PRSS::PRSS(int p) {
+PRSS::PRSS(int p, mpz_t mod) {
 	// TODO Auto-generated constructor stub
-		fieldsize = 2147483647L; //  31 bit modulus
-		fieldsize8 = 251;
-		peers = p;
-		threshold = (p-1)/2;
+	mpz_init(modulus);
+	mpz_set(modulus, mod);
+	peers = p;
+	threshold = (p-1)/2;
+
+	char strkey[256] = {0,}; 
+	mpz_get_str(strkey, 10, modulus);
+	mpz_t_size = strlen(strkey);
 }
 
 PRSS::~PRSS() {
 	// TODO Auto-generated destructor stub
 }
 
-void PRSS:: setPeers(int p){
+void PRSS::setPeers(int p){
 	peers = p;
 }
 
-void PRSS:: setKeysAndPoints(){
+void PRSS::setKeysAndPoints(){
 	std::vector<int> elements;
 	std::vector<int> pos(threshold);
 	std::vector<std::vector<int> > result;
-	long key;
-
+	
+	int fd;
+	char seed[4], temp[13], strSeed[13] = {0,};
+	if ((fd = open("/dev/random", O_RDONLY)) == -1)
+	{
+		perror("open error");
+		exit(1);
+	}
+	if ((read(fd, seed, 4)) == -1)
+	{
+		perror("read error");
+		exit(1);
+	}
+	for (int i = 0; i < 4; i++)
+	{
+		sprintf(temp+(i*3), "%03d", seed[i] & 0xff);
+		memcpy(strSeed+(i*3), temp+(i*3), 3);
+	}
+	mpz_t randSeed, randNum; 
+	mpz_init(randSeed);
+	mpz_set_str(randSeed, strSeed, 12);
+	mpz_init(randNum);           
+	gmp_randstate_t gmpRandState; 
+	gmp_randinit_default(gmpRandState); 
+	gmp_randseed(gmpRandState, randSeed); 
 	for(int i = 1; i <= getPeers(); i++)
 		elements.push_back(i);
 	getCombinations(elements, threshold, pos, 0, 0, result);
+	keysize = result.size();
+	keys = (mpz_t*)malloc(sizeof(mpz_t) * keysize);
 	/*points contain the maximum unqualified set*/
 	for(unsigned int i = 0; i < result.size(); i++){
 	  //	long key = (rand() % fieldsize/3)+1;
 	  // mb: I changed the key to be just random field element
-	        key = rand() % fieldsize;
-		keys.push_back(key);
-		points.insert(std::pair<long, std::vector<int> >(key, result.at(i)));
+	        //key = rand() % fieldsize;
+		mpz_urandomm(randNum, gmpRandState, modulus); 
+		mpz_init(keys[i]); 
+		mpz_set(keys[i], randNum); 
+		std::string Strkey = mpz2string(randNum, mpz_t_size); 
+		points.insert(std::pair<std::string, std::vector<int> >(Strkey, result.at(i))); 
 	}
 }
 
-void PRSS:: getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int> > &result){
+void PRSS::getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int> > &result){
 	if(depth >= reqLen){
 		std::vector<int> temp;
 		for(unsigned int i = 0; i < pos.size(); i++)
@@ -77,15 +117,17 @@ void PRSS:: getCombinations(std::vector<int> &elements, int reqLen, std::vector<
 /* these polynomials are as described in section 3.1 of Cramer et al. TCC'05 
  * paper; one polynomial for maximum unqualified set.
  */
-void PRSS:: setPolynomials(){
-	std::map<long, std::vector<int> > poly;
+void PRSS::setPolynomials(){
+	std::map<std::string, std::vector<int> > poly; 
 	int degree = getThreshold();
 	std::vector<int>::iterator it;
 	//	SecretShare ss(peers, fieldsize);
-
-	for(unsigned int i = 0; i < getKeys().size(); i++){
+	mpz_t* tempKey = (mpz_t*)malloc(sizeof(mpz_t) * (keysize)); 
+	tempKey = getKeys(); 
+	for(unsigned int i = 0; i < keysize; i++){ 
+		std::string Strkey = mpz2string(tempKey[i], mpz_t_size); 
 		std::vector<int> coefficients;
-		std::vector<int> pts = (getPoints().find(getKeys().at(i))->second);
+		std::vector<int> pts = (getPoints().find(Strkey)->second); 
 		std::vector<int> elements;
 
 		/*computing coefficients for each polynomial*/
@@ -109,7 +151,7 @@ void PRSS:: setPolynomials(){
 			}
 			coefficients.push_back(coef);
 		}
-		poly.insert(std::pair<long, std::vector<int> >(getKeys().at(i), coefficients));
+		poly.insert(std::pair<std::string, std::vector<int> >(Strkey, coefficients)); 
 	}
 	polynomials = poly;
 }
@@ -121,49 +163,34 @@ int PRSS::computePolynomials(std::vector<int> polys, int point){
 	return result;
 }
 
-int PRSS:: getPeers(){
+int PRSS::getPeers(){
 	return peers;
 }
 
-int PRSS:: getThreshold(){
+int PRSS::getThreshold(){
 	return threshold;
 }
 
-long PRSS:: getFieldSize(){
-	return fieldsize;
-}
-
-std::vector<long> PRSS:: getKeys(){
+mpz_t* PRSS::getKeys(){ 
 	return keys;
 }
 
-std::map<long, std::vector<int> > PRSS::getPolynomials(){
+int PRSS::getKeysize(){ 
+	return keysize;
+}
+
+std::map<std::string, std::vector<int> > PRSS::getPolynomials(){ 
 	return polynomials;
 }
 
-std::map<long, std::vector<int> > PRSS::getPoints(){
+std::map<std::string, std::vector<int> > PRSS::getPoints(){ 
 	return points;
 }
 
-
-void PRSS::testKeysAndPoints(){
-	for(unsigned int i = 0; i < keys.size(); i++){
-		std::cout<< keys.at(i)<<std::endl;
-		for(unsigned int j = 0; j < (points.find(keys.at(i))->second).size(); j++)
-			std::cout<< (points.find(keys.at(i))->second).at(j) <<std::endl;
-	}
-}
-
-void PRSS:: testPolynomials(){
-	long seed;
-	std::vector<int> polys;
-	std::map<long, std::vector<int> >::iterator it;
-	for(it = polynomials.begin(); it != polynomials.end(); it++){
-				seed = (*it).first;
-				polys = (*it).second;
-		std::cout<< seed <<" ";
-		for(unsigned int i = 0; i < polys.size(); i++)
-			std::cout<< polys.at(i) <<" ";
-		std::cout<<std::endl;
-	}
-}
+std::string PRSS::mpz2string(mpz_t value, int buf_size)
+{
+	char str[buf_size+1] = {0,};
+	mpz_get_str(str, 10, value);
+	std::string Str = str;
+	return Str;
+} 

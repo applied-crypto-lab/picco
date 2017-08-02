@@ -18,7 +18,7 @@
 */
 #include "FLRound.h"
 
-FLRound::FLRound(NodeNetwork nodeNet, std::map<long, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]) {
+FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]) {
     
 	Lt = new LTZ(nodeNet, poly, nodeID, s, coefficients);
 	Mod = new Mod2M(nodeNet, poly, nodeID, s, coefficients);
