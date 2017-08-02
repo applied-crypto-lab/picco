@@ -1,7 +1,7 @@
 
 public int main() {
    public int S=2; // size of matrices 
-   /*******************/
+
    int A1; 
    float FA1; 
    int A2[S]; 
@@ -58,7 +58,6 @@ public int main() {
    smcoutput(PFA2, 2, S); 
    smcoutput(PA3, 1, S, S);  
    smcoutput(PFA3, 2, S, S);
-
 
    return 0;
 }

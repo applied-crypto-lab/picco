@@ -1,45 +1,52 @@
+// Implementation of sorted linked list using data update
 
 struct node {
    int data;
    struct node *next;
 };
 
-public int count = 16; 
+public int count = 16;
+
 public int main() {
 
-   struct node *head = 0;
    public int i, j;
-   private int a, c, tmpdata, output;
-   private int<1> found;
-   struct node *ptr, *tmpptr;
+   private int a[count], c, tmp, output;
+   struct node *ptr1, *ptr2, *head;
+   
+   smcinput(a, 1, count);
    
    // build the linked list
-   for (i = 0; i < count; i++) {
-      ptr = pmalloc(1, struct node);
-      smcinput(a, 1);
+   head = pmalloc(1, struct node);
+   head->data = a[0];
+   
+   for (i = 1; i < count; i++) {
+      ptr1 = pmalloc(1, struct node);
+
       // place the pointer in the beginning
-      ptr->data = a;
-      ptr->next = head;
-      head = ptr;
+      ptr1->data = a[i];
+      ptr1->next = head;
+      head = ptr1;
+      
       // move the data if necessary
-      tmpptr = head;
+      ptr2 = head;
       for (j = 0; j < i; j++) {
-	 if (tmpptr->data > tmpptr->next->data) {
-	    tmpdata = tmpptr->data;
-	    tmpptr->data = tmpptr->next->data;
-	    tmpptr->next->data = tmpdata;
+	 if (ptr2->data > ptr2->next->data) {
+	    tmp = ptr2->data;
+	    ptr2->data = ptr2->next->data;
+	    ptr2->next->data = tmp;
 	 }
-         tmpptr = tmpptr->next; 
+         ptr2 = ptr2->next; 
       }
    }
    // traverse the linked list searching for the first element greater than
    // the given value
-   a = 5;  
-   ptr = head;
+   c = 5;  
+   ptr1 = head;
+   output = 0;
    for (i = 0; i < count; i++) {
-      if (ptr->data == a) 
+      if (ptr1->data == c) 
 	 output = output+1;
-      ptr = ptr->next;
+      ptr1 = ptr1->next;
    }
    smcoutput(output, 1);
    

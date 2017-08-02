@@ -1,10 +1,14 @@
 
 public int main() {
-   private int a = 1, b = 2, c = 3, d; 
-   private float fa = 1, fb = 2, fc = 3, fd;  
-   
-   public int i, j, k;
+   private int a, b, d; 
+   private float fa, fb, fc, fd;  
 
+   smcinput(a, 1);
+   smcinput(b, 1);
+   smcinput(fa, 1);
+   smcinput(fb, 1);
+   smcinput(fc, 1);
+   
    printf("INT PRIVATE CONDITION...\n"); 
    if(a > b)
    	d = 1; 

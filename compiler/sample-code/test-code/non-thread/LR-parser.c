@@ -1,3 +1,20 @@
+
+public int K = 100; // the maximum number of variables in the expression
+                    // this defines integer representation of symbols
+// + = K
+// * = K+1
+// ( = K+2
+// ) = K+3 
+// EOF = K+4
+public int M = 10; // the number of variables in the expression
+public int S = 30; // the length of the expression
+
+struct token{
+	private int val; 
+	public int type;
+	struct token* next; 
+}; 
+
 // type == 0 --- id
 // type == 1 --- F 
 // type == 2 --- T			
@@ -7,13 +24,6 @@
 // type == 6 --- (
 // type == 7 --- )
 
-struct token{
-	private int val; 
-	public int type;
-	struct token* next; 
-}; 
-
-public int K = 10;
 // another problem is that it is not possible to pass the array as parameters to a sub-protocol
 struct token *pop(struct token** header)
 {
@@ -204,33 +214,17 @@ public void eof_routine(struct token** header)
 	}
 }
 public int main() {
-	private int ids[K]; 
-	public int expr[3*K];
-	public int length; //denote the length of expr 
+	private int ids[M]; 
+	public int expr[S];
+
 	struct token *header = 0; //header of the stack
 	public int index = 0;
 	public int symbol = 0; 
-	public int i, j, k = 0;
-	private int value = 0;  
-	/*******populate expr******/
-	// + = K
-	// * = K+1
-	// ( = K+2
-	// ) = K+3 
-	// EOF = K+4
-	smcinput(value, 1);
-	ids[0] = value;  
-	for(i = 0; i < 2*K-1; i++)
-	{
-		if(i % 2 == 0)
-			expr[i] = 0; 	
-		else
-			expr[i] = K; 
-	}
-	expr[2*K-1] = K+4;
-	length = 2*K;  
-	/*****************************/
-	while(index < length)
+
+	smcinput(expr, 1, S);
+	smcinput(ids, 1, M);
+
+	while(index < S)
 	{
 		symbol = expr[index]; 
 		if(symbol < K) //id

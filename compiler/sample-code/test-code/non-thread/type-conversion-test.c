@@ -1,12 +1,12 @@
 #include<math.h>
 
-public int K=20; // length of array / number of input elements
+public int K = 20; // length of input arrays 
 public int M = 4;
 public int N = 5; 
 
 public int main()
 {
-	public int i, j, s;
+	public int i, j;
 	private int<32> IA[K], IB[K];
 	private int<32> IC[M][N]; 
 	public int ID[M][N]; 
@@ -14,7 +14,9 @@ public int main()
 	private float<32, 9> FA[K], FB[K]; 
 	private float<32, 9> FC[M][N]; 
 	public float<32, 9> FD[K]; 
-	public float<32, 9> FE[M][N]; 
+	public float<32, 9> FE[M][N];
+
+	// initializing
 	smcinput(IA, 1, K); 
 	smcinput(IB, 1, K); 
 	smcinput(FD, 1, K); 
@@ -24,10 +26,11 @@ public int main()
 			IC[i][j] = IB[i*N+j];
 			ID[i][j] = i * N + j;
 			FE[i][j] = FD[i*N+j];  
-		} 
-        //INT2FL
-        /* private to private assignments */
+		}
+	
+        /* integer to float conversion */
 	printf("******************* INT2FL ***********************\n"); 
+        /* private to private assignments */
         printf("priv-2-priv, one-2-one...\n"); 
 	for(i = 0; i < K; i++){
 		FA[i] = (private float<32, 9>)IA[i]; 
@@ -78,13 +81,12 @@ public int main()
         smcoutput(FB, 1, K);
         printf("\n\n");
 
-        printf("priv-2-priv, two-2-two...\n");
+        printf("pub-2-priv, two-2-two...\n");
         for(i = 0; i < M; i++)
                 for(j = 0; j < N; j++)
                         FC[i][j] = (private float<32, 9>)ID[i][j];
         smcoutput(FC, 1, M, N);
         printf("\n\n");
-
 	
 	/* private to private assignments */
         printf("BATCH VERSION...\n"); 
@@ -122,7 +124,7 @@ public int main()
         smcoutput(FC, 1, M, N);
         printf("\n\n");
 
-	 /* public to private assignments */
+	/* public to private assignments */
         printf("pub-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++)[
                 FA[i] = (private float<32, 9>)i;
@@ -149,7 +151,7 @@ public int main()
         smcoutput(FB, 1, K);
         printf("\n\n");
 
-        printf("priv-2-priv, two-2-two...\n");
+        printf("pub-2-priv, two-2-two...\n");
         for(i = 0; i < M; i++)[
                 for(j = 0; j < N; j++)[
                         FC[i][j] = (private float<32, 9>)ID[i][j];
@@ -158,8 +160,10 @@ public int main()
         smcoutput(FC, 1, M, N);
         printf("\n\n");
 
+	/* float to integer conversion */ 
 	printf("\n\n\n\n\n"); 
-	printf("***************** FL2INT ******************\n"); 
+	printf("***************** FL2INT ******************\n");
+	/* private to private assignment */
 	printf("priv-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++){
                 IA[i] = (private int<32>)FA[i];
@@ -210,14 +214,16 @@ public int main()
         smcoutput(IB, 1, K);
         printf("\n\n");
 
-        printf("priv-2-priv, two-2-two...\n");
+        printf("pub-2-priv, two-2-two...\n");
         for(i = 0; i < M; i++)
                 for(j = 0; j < N; j++)
                        	IC[i][j] = (private int<32>)FE[i][j];
         smcoutput(IC, 1, M, N);
+	
         printf("\n\n");
-	printf("BATCH...\n"); 	
-	 printf("priv-2-priv, one-2-one...\n");
+	printf("BATCH...\n");
+	/* private to private assignment */
+	printf("priv-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++)[
                 IA[i] = (private int<32>)FA[i];
         ]
@@ -250,7 +256,6 @@ public int main()
 	]
         smcoutput(IC, 1, M, N);
         printf("\n\n");
-
 	
   	/* public to private assignments */
         printf("pub-2-priv, one-2-one...\n");
@@ -278,7 +283,7 @@ public int main()
         smcoutput(IB, 1, K);
         printf("\n\n");
 
-        printf("priv-2-priv, two-2-two...\n");
+        printf("pub-2-priv, two-2-two...\n");
         for(i = 0; i < M; i++)[
                 for(j = 0; j < N; j++)[
                         IC[i][j] = (private int<32>)FE[i][j];
@@ -286,14 +291,14 @@ public int main()
 	]
         smcoutput(IC, 1, M, N);
         printf("\n\n");
-
 	
-        /* private to private assignments */
 	private int<50> IIA[K], IIB[K];
         private int<50> IIC[M][N];
         private int IID[M][N];
 
+	/* integer to integer conversion */
 	printf("******************* INT2INT ***********************\n"); 
+        /* private to private assignments */
         printf("priv-2-priv, one-2-one...\n"); 
 	for(i = 0; i < K; i++){
 		IIA[i] = (private int<50>)IA[i]; 
@@ -344,16 +349,15 @@ public int main()
         smcoutput(IIB, 1, K);
         printf("\n\n");
 
-        printf("priv-2-priv, two-2-two...\n");
+        printf("pub-2-priv, two-2-two...\n");
         for(i = 0; i < M; i++)
                 for(j = 0; j < N; j++)
                         IID[i][j] = (private int<50>)ID[i][j];
         smcoutput(IID, 1, M, N);
         printf("\n\n");
-
 	
-	/* private to private assignments */
         printf("BATCH VERSION...\n"); 
+	/* private to private assignments */
 	printf("priv-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++)[
                 IIA[i] = (private int<50>)IA[i];
@@ -388,7 +392,6 @@ public int main()
         smcoutput(IID, 1, M, N);
         printf("\n\n");
 	
-	
 	/* public to private assignments */
         printf("pub-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++)[
@@ -415,7 +418,7 @@ public int main()
         smcoutput(IIB, 1, K);
         printf("\n\n");
 
-        printf("priv-2-priv, two-2-two...\n");
+        printf("pub-2-priv, two-2-two...\n");
         for(i = 0; i < M; i++)[
                 for(j = 0; j < N; j++)[
                         IID[i][j] = (private int<50>)ID[i][j];
@@ -424,15 +427,16 @@ public int main()
         smcoutput(IID, 1, M, N);
         printf("\n\n");
 
+	/* float to float conversion */
 	printf("\n\n\n\n\n"); 
-	
         printf("***************** FL2FL ******************\n");
         
         private float<40, 9> FFA[K];
 	private float<20, 9> FFB[K];
         private float<40, 9> FFC[M][N];
 	private float<20, 9> FFD[M][N]; 
-	
+
+	/* private to private assignment */
 	printf("priv-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++){
                 FFA[i] = (private float<40, 9>)FA[i];
@@ -474,7 +478,6 @@ public int main()
         smcoutput(FFC, 1, M, N);
 	smcoutput(FFD, 1, M, N); 
         printf("\n\n");
-	
 	
         /* public to private assignments */
 	 printf("pub-2-priv, one-2-one...\n");
@@ -520,7 +523,8 @@ public int main()
         printf("\n\n");
 
 	
-	printf("BATCH...\n"); 
+	printf("BATCH...\n");
+	/* private to private assignment */
 	printf("priv-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++)[
                 FFA[i] = (private float<40, 9>)FA[i];
@@ -563,8 +567,7 @@ public int main()
         smcoutput(FFD, 1, M, N);
         printf("\n\n");
 
-	
-	  /* public to private assignments */
+	/* public to private assignments */
         printf("pub-2-priv, one-2-one...\n");
         for(i = 0; i < K; i++)[
                 FFA[i] = (private float<40, 9>)FD[i];
