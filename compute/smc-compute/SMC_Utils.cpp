@@ -4025,8 +4025,8 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename){
 	int coefsize = 0;
 	int mpz_t_size = 0; 
 	memcpy(&keysize, decrypt, sizeof(int)); 
-	memcpy(&mpz_t_size, decrypt+sizeof(int), sizeof(int)); 
-	memcpy(&coefsize, decrypt+sizeof(int)*2, sizeof(int));
+	memcpy(&coefsize, decrypt+sizeof(int), sizeof(int)); 
+	memcpy(&mpz_t_size, decrypt+sizeof(int)*2, sizeof(int));
 	mpz_t* Keys = (mpz_t*)malloc(sizeof(mpz_t) * keysize); 
     	for(int k = 0; k < keysize; k++)
     		mpz_init(Keys[k]);
