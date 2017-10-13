@@ -11,7 +11,7 @@ public int main()
 {
 	public int i, j, k;
 	private int match[K-L+1][L];	//counter for matching elements 
-	private int<4> match_index = 0; // counts the current number of matches
+	private int<5> match_index = 0; // counts the current number of matches
 	private int<8> total_match[K-L+1]; 
 	private int<1> m[K-L+1];
 	private int<8> A[K]; // array that holds party 1's input

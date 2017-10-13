@@ -69,7 +69,7 @@ void FLEQZ::doOperation(mpz_t** A1, mpz_t** B1, mpz_t* result, int K, int L, int
 	}
 	//compute b1 = v_a == v_b
 	ss->modSub(temp1, A[0], B[0], size);
-	Eq->doOperation(temp1, b1, L, size, threadID);
+	Eq->doOperation(temp1, b1, K, size, threadID);
 	//compute b2 = p_a == p_b
 	ss->modSub(temp1, A[1], B[1], size); 
 	Eq->doOperation(temp1, b2, L, size, threadID);
