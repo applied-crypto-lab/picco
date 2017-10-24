@@ -284,10 +284,6 @@ int main(int argc, char *argv[])
 	p = BlockList(p,verbit("#include \"smc-compute/SMC_Utils.h\""));
 	p = BlockList(p,verbit("#include <gmp.h>"));
 	p = BlockList(p,verbit("#include <omp.h>")); 
-	p = BlockList(p,verbit("#include <boost/asio.hpp>"));
-	p = BlockList(p,verbit("#include <boost/shared_ptr.hpp>"));
-	p = BlockList(p,verbit("#include <boost/bind.hpp>"));
-
 	p = BlockList(p,verbit("\nSMC_Utils *__s;\n"));
 
 	ast = BlockList(p,ast);

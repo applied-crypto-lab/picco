@@ -20,16 +20,11 @@
 
 #ifndef HEADERS_H_
 #define HEADERS_H_
-#include <boost/shared_ptr.hpp>
-#include <boost/asio.hpp>
 #include <gmp.h>
 #include <iostream>
 #include <string>
 #include <map>
 #include <cstdlib>
-#include <boost/asio.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>

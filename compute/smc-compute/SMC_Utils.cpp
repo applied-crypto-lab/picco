@@ -17,8 +17,6 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 #include "SecretShare.h"
 #include <string>
 #include <cmath>
@@ -26,6 +24,8 @@
 #include <openssl/rand.h> 
 #include <openssl/pem.h>
 #include "openssl/bio.h"
+#include <netinet/in.h> 
+#include "unistd.h" 
 
 //Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads){ 
@@ -59,7 +59,10 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 	
 	for(int i = 0; i < numOfOutputPeers; i++)
 	{ 
-		IO_files[numOfInputPeers+i] = IO_files[numOfInputPeers+i] + boost::lexical_cast<std::string>(id); 
+		std::stringstream c;
+		c << id;
+        	std::string s = c.str();
+		IO_files[numOfInputPeers+i] = IO_files[numOfInputPeers+i] + s;
 		outputStreams[i].open(IO_files[numOfInputPeers+i].c_str(), std::ofstream::out); 
 		if(!outputStreams[i])
 		{
@@ -211,7 +214,7 @@ void SMC_Utils::smc_input(int id, int* var, std::string type, int threadID){
 	std::string line;
 	std::vector<std::string> tokens;
 	std::getline(inputStreams[id-1], line);
-	boost::split(tokens, line, boost::is_any_of("="));
+	tokens = splitfunc(line.c_str(), "=");
 	*var = atoi(tokens[1].c_str());
 }
 
@@ -219,7 +222,7 @@ void SMC_Utils::smc_input(int id, mpz_t* var, std::string type, int threadID){
 	std::string line;
 	std::vector<std::string> tokens;
 	std::getline(inputStreams[id-1], line);
-	boost::split(tokens, line, boost::is_any_of("="));
+	tokens = splitfunc(line.c_str(), "=");
 	mpz_set_str(*var, tokens[1].c_str(), base);
 }
 
@@ -243,7 +246,7 @@ void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID){
         std::string line;
         std::vector<std::string> tokens;
         std::getline(inputStreams[id-1], line);
-        boost::split(tokens, line, boost::is_any_of("="));
+	tokens = splitfunc(line.c_str(), "=");
         *var = atof(tokens[1].c_str());
 }
 
@@ -252,9 +255,8 @@ void SMC_Utils::smc_input(int id, mpz_t** var, std::string type, int threadID){
         std::vector<std::string> temp;
         std::vector<std::string> tokens;
         std::getline(inputStreams[id-1], line);
-        boost::split(temp, line, boost::is_any_of("="));
-	boost::split(tokens, temp[1], boost::is_any_of(",")); 
-
+	temp = splitfunc(line.c_str(), "=");
+	tokens = splitfunc(temp[1].c_str(), ",");
         for(int i=0; i<4; i++)
            mpz_set_str((*var)[i], tokens[i].c_str(), base);
 }
@@ -288,9 +290,8 @@ void SMC_Utils::smc_input(int id, mpz_t* var, int size, std::string type, int th
 	std::vector<std::string> tokens; 
 	std::vector<std::string> temp; 
 	std::getline(inputStreams[id-1], line); 
-	boost::split(temp, line, boost::is_any_of("=")); 
-	boost::split(tokens, temp[1], boost::is_any_of(",")); 
-
+	temp = splitfunc(line.c_str(), "=");
+	tokens = splitfunc(temp[1].c_str(), ",");
 	for(int i=0; i<size; i++)
 		mpz_set_str(var[i], tokens[i].c_str(), base);
 }
@@ -315,8 +316,8 @@ void SMC_Utils::smc_input(int id, int* var, int size, std::string type, int thre
 	std::vector<std::string> tokens; 
 	std::vector<std::string> temp; 
 	std::getline(inputStreams[id-1], line); 
-	boost::split(temp, line, boost::is_any_of("=")); 
-	boost::split(tokens, temp[1], boost::is_any_of(",")); 
+	temp = splitfunc(line.c_str(), "=");
+	tokens = splitfunc(temp[1].c_str(), ",");
 	for(int i=0; i<size; i++)
 		var[i] = atoi(tokens[i].c_str()); 
 }
@@ -343,8 +344,8 @@ void SMC_Utils::smc_input(int id, mpz_t** var, int size, std::string type, int t
 	for(int i = 0; i < size; i++)
 	{
 		std::getline(inputStreams[id-1], line); 
-		boost::split(temp, line, boost::is_any_of("=")); 
-		boost::split(tokens, temp[1], boost::is_any_of(",")); 
+		temp = splitfunc(line.c_str(), "=");
+		tokens = splitfunc(temp[1].c_str(), ",");
 		for(int j=0; j<4; j++)
 			mpz_set_str(var[i][j], tokens[j].c_str(), base);
 	}
@@ -374,8 +375,8 @@ void SMC_Utils::smc_input(int id, float* var, int size, std::string type, int th
         std::vector<std::string> tokens;
         std::vector<std::string> temp;
         std::getline(inputStreams[id-1], line);
-        boost::split(temp, line, boost::is_any_of("="));
-        boost::split(tokens, temp[1], boost::is_any_of(","));
+	temp = splitfunc(line.c_str(), "=");
+	tokens = splitfunc(temp[1].c_str(), ",");
         for(int i=0; i<size; i++)
                 var[i] = atof(tokens[i].c_str());
 	
@@ -4303,5 +4304,18 @@ double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2){
 	elapsed = (t2->tv_sec-t1->tv_sec) + (t2->tv_usec - t1->tv_usec)/1000000.0;
 
 	return elapsed;
+}
+
+std::vector<std::string> SMC_Utils::splitfunc(const char* str, const char* delim)
+{
+    char* saveptr;
+    char* token = strtok_r((char*)str, delim, &saveptr);
+    std::vector<std::string> result;
+    while(token != NULL)
+    {
+        result.push_back(token);
+        token = strtok_r(NULL,delim,&saveptr);
+    }
+    return result;
 }
 	

@@ -22,16 +22,13 @@
 
 #include "NodeConfiguration.h"
 #include "stdint.h"
+#include <cstring>
 #include <vector>
 #include <cstdlib>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/asio.hpp>
+#include <map> 
 #include <gmp.h>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
-
-using boost::asio::ip::tcp;
 
 class NodeNetwork {
 public:
@@ -74,7 +71,6 @@ public:
 	unsigned char *aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
 	
 	//Close
-	void run();
 	void mpzFromString(char*, mpz_t*, int*, int);
 	double time_diff(struct timeval *, struct timeval *);
 

@@ -18,13 +18,12 @@
 */
 
 #include "../seed/SecretShare.h"
-#include <boost/algorithm/string.hpp>
-#include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cmath>
-#include <gmp.h> 
+#include <gmp.h>
+#include <string.h>
 using namespace std; 
 // these will be eventually read from the config files;
 int numOfComputeNodes;
@@ -46,6 +45,7 @@ void openInputOutputFiles(std::string, std::string, std::ifstream*, std::ofstrea
 void readVarList(std::ifstream&, std::ifstream[], std::ofstream[], int); 
 void writeToOutputFile(std::ofstream&, std::string, std::string, int, int, int); 
 void convertFloat(float value, int K, int L, mpz_t** elements); 
+std::vector<std::string> splitfunc(const char* str, const char* delim);
 
 int main(int argc, char** argv){
     
@@ -120,10 +120,10 @@ void readVarList(std::ifstream& var_list, std::ifstream inputFiles[], std::ofstr
     if(mode == 0)
     {
     	while(std::getline(var_list, line)){
-		boost::split(temp, line, boost::is_any_of(":")); 
+		temp = splitfunc(line.c_str(), ":");
 		if(!temp[0].compare("I"))
 		{
-        		boost::split(tokens, temp[1], boost::is_any_of(","));
+			tokens = splitfunc(temp[1].c_str(), ",");
         		secrecy = atoi(tokens[0].c_str()); 
 			name = tokens[1];
         		type = tokens[2];
@@ -153,10 +153,10 @@ void readVarList(std::ifstream& var_list, std::ifstream inputFiles[], std::ofstr
     else 
     {
 	  while(std::getline(var_list, line)){
-		boost::split(temp, line, boost::is_any_of(":"));
+		temp = splitfunc(line.c_str(), ":");
           	if(!temp[0].compare("O"))
                 {
-                        boost::split(tokens, temp[1], boost::is_any_of(","));
+			tokens = splitfunc(temp[1].c_str(), ",");
                         secrecy = atoi(tokens[0].c_str()); 
 			name = tokens[1];
                         type = tokens[2];
@@ -267,7 +267,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
 		for(int k = 0; k < numOfComputeNodes; k++)
 		{
 			std::getline(inputFiles[k], line);
-        		boost::split(tokens, line, boost::is_any_of(","));
+			tokens = splitfunc(line.c_str(), ",");
 			if(secrecy == 1)
 				for(int j = 0; j < tokens.size(); j++)
 					mpz_set_str(shares[k][j], tokens[j].c_str(), 10); 
@@ -321,7 +321,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
 		for(int k = 0; k < numOfComputeNodes; k++)
                 {
 			std::getline(inputFiles[k], line);
-        		boost::split(tokens, line, boost::is_any_of(","));
+			tokens = splitfunc(line.c_str(), ",");
 		}
         	for(int j = 0; j < tokens.size(); j++)
         	{
@@ -357,7 +357,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
 			for(int k = 0; k < numOfComputeNodes; k++)
 			{
 				std::getline(inputFiles[k], line);
-        			boost::split(tokens, line, boost::is_any_of(","));
+				tokens = splitfunc(line.c_str(), ",");
 				for(int l = 0; l < 4; l++)
 					mpz_set_str(shares[k][l], tokens[l].c_str(), 10); 
 			}
@@ -435,8 +435,8 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
 	for(int i = 0; i < dim; i++)
 	{
 		std::getline(inputFiles[0], line);
-        	boost::split(temp, line, boost::is_any_of("="));
-        	boost::split(tokens, temp[1], boost::is_any_of(","));
+		temp = splitfunc(line.c_str(), "=");
+		tokens = splitfunc(temp[1].c_str(), ",");
 	
         	for(int j = 0; j < tokens.size(); j++)
         	{
@@ -460,8 +460,8 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
 	 for(int i = 0; i < dim; i++)
         {
                 std::getline(inputFiles[0], line);
-                boost::split(temp, line, boost::is_any_of("="));
-                boost::split(tokens, temp[1], boost::is_any_of(","));
+		temp = splitfunc(line.c_str(), "=");
+		tokens = splitfunc(temp[1].c_str(), ",");
 		
                 for(int j = 0; j < tokens.size(); j++)
                 {
@@ -480,8 +480,8 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
 	for(int i = 0; i < dim; i++)
        	{
 		std::getline(inputFiles[0], line);
-       		boost::split(temp, line, boost::is_any_of("="));
-       		boost::split(tokens, temp[1], boost::is_any_of(","));
+		temp = splitfunc(line.c_str(), "=");
+		tokens = splitfunc(temp[1].c_str(), ",");
 		
 		for(int j = 0; j < tokens.size(); j++)
 		{
@@ -531,7 +531,7 @@ void loadConfig(mpz_t mod)
     for(int i = 0; i < 6; i++) 
     {
         std::getline(var_list, line);
-        boost::split(tokens, line, boost::is_any_of(":"));
+	tokens = splitfunc(line.c_str(), ":");
         if(i == 1) 
 	{ 
  		mpz_set_str(mod, tokens[1].c_str(), 10);
@@ -620,3 +620,16 @@ void convertFloat(float value, int K, int L, mpz_t** elements)
         mpz_clear(significant);
 }
 
+
+std::vector<std::string> splitfunc(const char* str, const char* delim)
+{
+    char* saveptr;
+    char* token = strtok_r((char*)str, delim, &saveptr);
+    std::vector<std::string> result;
+    while(token != NULL)
+    {
+        result.push_back(token);
+        token = strtok_r(NULL,delim,&saveptr);
+    }
+    return result;
+}

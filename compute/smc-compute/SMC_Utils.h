@@ -535,6 +535,7 @@ public:
 	int id; //temporarily public;
 
 	double time_diff(struct timeval *, struct timeval *);
+	std::vector<std::string> splitfunc(const char* str, const char* delim);
 private:
 	SecretShare *ss;
 	FILE* inputFile; 

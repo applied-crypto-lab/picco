@@ -21,7 +21,8 @@
 #include <string>
 #include <fstream>
 #include <iostream>
-#include <boost/algorithm/string.hpp>
+#include <string.h>
+#include <cstdlib>
 
 NodeConfiguration::NodeConfiguration() {}
 
@@ -112,8 +113,17 @@ void NodeConfiguration::loadConfig(std::string configFile){
 	std::vector<std::string> tokens;
 	//Read each line of the configuration file
 	while(std::getline(configIn, line)){
-		boost::split(tokens, line, boost::is_any_of(","));
-
+		tokens.clear();
+		char* tok = strdup(line.c_str());
+		tok = strdup(line.c_str());
+		tok = strtok(tok, ",");
+		std::string str;
+		while(tok != NULL){
+		    str = tok;
+		    tokens.push_back(str);
+		    tok = strtok(NULL, ",");
+		}
+		free(tok);
 		if(id == atoi(tokens[0].c_str())){
 			ip = tokens[1];
 			port = atoi(tokens[2].c_str());

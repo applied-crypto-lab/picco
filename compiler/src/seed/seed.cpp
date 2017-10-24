@@ -18,13 +18,8 @@
 */
 
 #include <iostream>
-#include <string>
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
+#include <string.h>
+#include <netdb.h> 
 #include <fstream>
 #include <iostream>
 #include <sys/time.h>
@@ -38,7 +33,6 @@
 #include <openssl/pem.h>
 #include "openssl/bio.h"
 #include <gmp.h> 
-using boost::asio::ip::tcp;
 
 std::vector<int> computeNodes;
 std::vector<std::string> computeIPs;
@@ -63,8 +57,8 @@ seed::seed(){
 
 
 void seed::sendPolynomials(mpz_t mod){
-	PRSS prss(peers, mod); 
-	char strkey[64] = {0,};
+	PRSS prss(peers, mod);
+	char *strkey = (char*)malloc(64);
 	mpz_get_str(strkey, 10, modulus);
 	int mpz_t_size = strlen(strkey);
 
@@ -143,7 +137,7 @@ void seed::sendPolynomials(mpz_t mod){
 			}
 			if(flag == 0)
 			{
-				char strkey[mpz_t_size+1] = {0,}; 
+				char *strkey = (char*)malloc(mpz_t_size+1);
 				mpz_get_str(strkey, 10, tempKey[l]); 
 				memcpy(buf+sizeof(int)*3+position, strkey, mpz_t_size);
 				position += mpz_t_size;
@@ -223,7 +217,16 @@ int seed::parseConfigFile(char* config){
 	//Read each line of the configuration file
 	while(std::getline(configIn, line)){
 		peers++; 
-		boost::split(tokens, line, boost::is_any_of(","));
+		tokens.clear();
+		char* tok = strdup(line.c_str());
+		tok = strtok(tok, ",");
+		std::string str;
+		while(tok != NULL){
+		    str = tok;
+		    tokens.push_back(str);
+		    tok = strtok(NULL, ",");
+		}
+		free(tok);
 		computeIPs.push_back(tokens[1]);
 		computePorts.push_back(atoi(tokens[2].c_str()));
 		computePubkeys.push_back(tokens[3]); 
@@ -243,11 +246,13 @@ void seed::parseUtilConfigFile(char* util_config){
 	for(int i = 0; i < 2; i++)
 	{
 		std::getline(configIn, line);
-		boost::split(tokens, line, boost::is_any_of(":"));
 		if(i == 1)
 		{
+			char* tok = strdup(line.c_str());
+			tok = strtok(tok, ":");
+			tok = strtok(NULL, ":");
 			mpz_init(modulus);
- 			mpz_set_str(modulus, tokens[1].c_str(), 10);
+			mpz_set_str(modulus, tok, 10);
 		}
 	}
 	configIn.close();
@@ -255,7 +260,7 @@ void seed::parseUtilConfigFile(char* util_config){
 
 std::string seed::mpz2string(mpz_t value, int buf_size)
 {
-	char str[buf_size+1] = {0,};
+	char *str = (char*)malloc(buf_size+1);
 	mpz_get_str(str, 10, value);
 	std::string Str = str;
 	return Str;

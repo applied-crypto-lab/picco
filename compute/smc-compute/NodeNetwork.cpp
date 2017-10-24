@@ -22,13 +22,6 @@
 #include <cstdlib>
 #include "NodeConfiguration.h"
 #include <string>
-#include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include "time.h"
 #include <openssl/evp.h>
 #include <openssl/aes.h>
@@ -38,16 +31,17 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netdb.h> 
+#include <sys/time.h> 
+#include <errno.h> 
 #include <openssl/rsa.h>
 #include <openssl/rand.h>
 #include <openssl/pem.h>
 #include "openssl/bio.h"
 #include "unistd.h"
-using boost::asio::ip::tcp;
-
 
 NodeConfiguration *config;
-boost::asio::io_service io_service;
 EVP_CIPHER_CTX en, de;
 int base = 36;
 int MAX_BUFFER_SIZE = 229376; // in bytes 
@@ -663,6 +657,7 @@ void NodeNetwork::sendModeToPeers(int id){
           continue;
       	  sendDataToPeer(j, 1, &msg);
    }
+   //sleep(1);
 }
 void NodeNetwork::multicastToPeers(mpz_t** data, mpz_t** buffers, int size, int threadID){
     test_flags[threadID]++;
@@ -855,7 +850,7 @@ void NodeNetwork::requestConnection(int numOfPeers){
 			// same VM. it is not used for single-threaded programs
 			// and thus be commented out or replaced with an
 			// equivalent function otherwise.
- 			fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
+ 			//fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
 			int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)); 
 			rc = setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char*)&on, sizeof(on));
 			server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
@@ -928,7 +923,7 @@ void NodeNetwork::acceptPeers(int numOfPeers){
 		fd_set master_set, working_set; 
 		sockfd = socket(AF_INET, SOCK_STREAM, 0);
 		// see comment for fcntl above
-		fcntl(sockfd, F_SETFL, O_NONBLOCK);  
+		//fcntl(sockfd, F_SETFL, O_NONBLOCK);  
 		if(sockfd < 0)
 			fprintf(stderr, "ERROR, opening socket\n"); 
 		int rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)); 
@@ -958,7 +953,7 @@ void NodeNetwork::acceptPeers(int numOfPeers){
 				if(newsockfd[i] < 0)
 					fprintf(stderr, "ERROR, on accept\n");
 				// see comment for fcntl above
- 				fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
+ 				//fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
 				peer2sock.insert(std::pair<int, int>(config->getID() - (i+1), newsockfd[i]));
 				sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i+1)));
 
@@ -1075,8 +1070,4 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 }
 
 void NodeNetwork::closeAllConnections(){
-}
-
-void NodeNetwork::run(){
-	io_service.run();
 }
