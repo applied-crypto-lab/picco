@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
     final_list = argv[4];
     var_list = "var_list"; 
 
-    output_filename = (char*)malloc(sizeof(char) * 30); 
+    output_filename = (char*)malloc(sizeof(char) * strlen(argv[3])+5); 
     sprintf(output_filename, "%s.cpp", argv[3]);
     
     if (!processmode) threadmode = 1;  /* By default */
