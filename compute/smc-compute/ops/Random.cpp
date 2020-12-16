@@ -484,55 +484,45 @@ void Random::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t* results, 
 	}*/
 }
 
+/*
+ * this assumes that M is <= 64
+ */
 void Random::PRandM(int K, int M, int size, mpz_t** result){
 	mpz_t* tempResult = (mpz_t*) malloc(sizeof(mpz_t)  * size * M);
-	mpz_t* constPow2 = (mpz_t*)malloc(sizeof(mpz_t) * M);
 	mpz_t* temp = (mpz_t*)malloc(sizeof(mpz_t) * size);
-	mpz_t const2, power;
+	unsigned long pow = 1;
+	unsigned long i, j;
 	
 	//do initialization
-	mpz_init_set_ui(const2, 2);
-	mpz_init(power);
-
-	for(int i = 0; i < size * M; i++)
+	for (i = 0; i < size * M; i++)
 		mpz_init(tempResult[i]);
 
-	for(int i = 0; i < size; i++)
+	for (i = 0; i < size; i++)
 		mpz_init(temp[i]);
-
-	for(int i = 0; i < M; i++){
-		mpz_init(constPow2[i]);
-		mpz_set_ui(power, i);
-		ss->modPow(constPow2[i], const2, power);
-	}
 
 	PRandBit(size*M, tempResult);
 	
-	for(int i = 0; i < size; i++)
-		mpz_set_ui(result[M][i], 0); 
+	for (i = 0; i < size; i++)
+		mpz_set(result[M][i], tempResult[i]); 
 
-	for(int i = 0; i < M; i++){
-		for(int j = 0; j < size; j++)
-			mpz_set(result[i][j], tempResult[i * size + j]);
-		ss->modMul(temp, result[i], constPow2[i], size);
-		ss->modAdd(result[M], result[M], temp, size);
+	for (i = 1; i < M; i++) {
+	  pow = pow << 1;
+	  for (j = 0; j < size; j++) {
+	    mpz_set(result[i][j], tempResult[i * size + j]);
+	    mpz_mul_ui(temp[j], result[i][j], pow);
+	  }
+	  ss->modAdd(result[M], result[M], temp, size);
 	}
 	
 	//free the memory
-	mpz_clear(const2);
-	mpz_clear(power);
-	
-	for(int i = 0; i < size * M; i++)
+	for (i = 0; i < size * M; i++)
 		mpz_clear(tempResult[i]);
 	free(tempResult);
  
-	for(int i = 0; i < size; i++)
+	for (i = 0; i < size; i++)
 		mpz_clear(temp[i]);
 	free(temp); 
 
-	for(int i = 0; i < M; i++)
-		mpz_clear(constPow2[i]);
-	free(constPow2); 
 }
 
 void Random::PRandM(int K, int M, int size, mpz_t** result, int threadID){
@@ -541,48 +531,39 @@ void Random::PRandM(int K, int M, int size, mpz_t** result, int threadID){
 		return; 
 	} 
 	mpz_t* tempResult = (mpz_t*) malloc(sizeof(mpz_t)  * size * M);
-	mpz_t* constPow2 = (mpz_t*)malloc(sizeof(mpz_t) * M);
 	mpz_t* temp = (mpz_t*)malloc(sizeof(mpz_t) * size);
-	mpz_t const2, power;
+	unsigned long pow = 1;
+	unsigned long i, j;
 	
 	//do initialization
-	mpz_init_set_ui(const2, 2);
-	mpz_init(power);
-
-	for(int i = 0; i < size * M; i++)
+	for(i = 0; i < size * M; i++)
 		mpz_init(tempResult[i]);
 
-	for(int i = 0; i < size; i++)
+	for(i = 0; i < size; i++)
 		mpz_init(temp[i]);
 
-	for(int i = 0; i < M; i++){
-		mpz_init(constPow2[i]);
-		mpz_set_ui(power, i);
-		ss->modPow(constPow2[i], const2, power);
-	}
 	PRandBit(size*M, tempResult, threadID);
-	for(int i = 0; i < size; i++)
-		mpz_set_ui(result[M][i], 0); 
-	for(int i = 0; i < M; i++){
-		for(int j = 0; j < size; j++)
-			mpz_set(result[i][j], tempResult[i * size + j]);
-		ss->modMul(temp, result[i], constPow2[i], size);
-		ss->modAdd(result[M], result[M], temp, size);
+	
+	for (i = 0; i < size; i++)
+		mpz_set(result[M][i], tempResult[i]); 
+
+	for (i = 1; i < M; i++) {
+	  pow = pow << 1;
+	  for (j = 0; j < size; j++) {
+	    mpz_set(result[i][j], tempResult[i * size + j]);
+	    mpz_mul_ui(temp[j], result[i][j], pow);
+	  }
+	  ss->modAdd(result[M], result[M], temp, size);
 	}
-
+	
 	//free the memory
-	mpz_clear(const2);
-	mpz_clear(power);
-
-	for(int i = 0; i < size * M; i++)
+	for (i = 0; i < size * M; i++)
 		mpz_clear(tempResult[i]);
 	free(tempResult);
-	for(int i = 0; i < size; i++)
+ 
+	for (i = 0; i < size; i++)
 		mpz_clear(temp[i]);
 	free(temp); 
-	for(int i = 0; i < M; i++)
-		mpz_clear(constPow2[i]);
-	free(constPow2); 
 }
 
 void Random::PRandInt(int K, int M, int size, mpz_t* result)
