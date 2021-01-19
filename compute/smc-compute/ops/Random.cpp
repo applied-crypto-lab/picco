@@ -502,9 +502,11 @@ void Random::PRandM(int K, int M, int size, mpz_t** result){
 
 	PRandBit(size*M, tempResult);
 	
-	for (i = 0; i < size; i++)
-		mpz_set(result[M][i], tempResult[i]); 
-
+	for (i = 0; i < size; i++) {
+	  mpz_set(result[M][i], tempResult[i]); 
+	  mpz_set(result[0][i], tempResult[i]); 
+	}
+	
 	for (i = 1; i < M; i++) {
 	  pow = pow << 1;
 	  for (j = 0; j < size; j++) {
