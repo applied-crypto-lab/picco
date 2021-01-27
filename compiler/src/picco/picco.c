@@ -74,6 +74,8 @@ int  inputs 	     = 0;    /* Number of input parties */
 int  outputs 	     = 0;    /* Number of ouput parties */
 int  total_threads   = 0; 
 
+void getPrime(mpz_t, int);
+
 void append_new_main(){
 	
 	total_threads = (num_threads == 0) ? 1 : num_threads; 
@@ -156,7 +158,7 @@ void loadConfig(char *config)
 {
 	FILE *fp; 
 	fp = fopen(config, "r"); 
-	int line[10]; 
+	char line[10]; 
 	fscanf(fp, "%[^:]:%d", line, &bits);
 	fscanf(fp, "%[^:]:%d", line, &peers);
 	fscanf(fp, "%[^:]:%d", line, &threshold);
@@ -268,7 +270,7 @@ int main(int argc, char *argv[])
 	fprintf(fp, "%s:%d\n", "outputs", outputs); 
 	
 	while(fgets(line, sizeof(line), vfp) != NULL)
-		fprintf(fp, line); 
+		fprintf(fp, "%s", line); 
 		
 	fclose(fp); 
 	fclose(vfp); 

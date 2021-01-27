@@ -385,7 +385,7 @@ string_literal:
     {
       /* Or we could leave it as is (as a SpaceList) */
       if (($1 = realloc($1, strlen($1) + strlen($2))) == NULL)
-        parse_error(-1, "string out of memory\n");
+        parse_error(-1, "String memory allocation error.\n");
       strcpy(($1)+(strlen($1)-1),($2)+1);  /* Catenate on the '"' */
       $$ = $1;
     }
@@ -477,7 +477,7 @@ postfix_expression:
     {
       /* Catch calls to "main()" (unlikely but possible) */
       if (check_func_param(Identifier(Symbol($1)), $3))
-          parse_error(1, "The provided arguments do not match function parameters\n");
+          parse_error(1, "The provided arguments do not match function parameters.\n");
       $$ = strcmp($1, "main") ?
              FunctionCall(Identifier(Symbol($1)), $3) :
              FunctionCall(Identifier(Symbol(MAIN_NEWNAME)), $3);
@@ -1870,7 +1870,7 @@ selection_statement:
     {
         $$ = If($3, $6, NULL);            
         if($3->flag == PRI && $6->flag == PUB)
-           parse_error(1, "public assignment is not allowd within the private condition\n");
+           parse_error(1, "Public variable assignment is not allowed within a private condition.\n");
         if($3->flag == PRI)
             contain_priv_if_flag = 1; 
         $$->flag = $6->flag;
@@ -1881,7 +1881,7 @@ selection_statement:
     {
         $$ = If($3, $6, $8);
         if(($3->flag == PRI && $6->flag == PUB) || ($3->flag == PRI && $8->flag == PUB))
-           parse_error(1, "public assignment is not allowd within the private condition\n");
+           parse_error(1, "Public variableassignment is not allowed within a private condition.\n");
         if($3->flag == PRI)
             contain_priv_if_flag = 1; 
         if($6->flag == PUB || $8->flag == PUB)
@@ -2006,7 +2006,7 @@ jump_statement:
         if(($2->flag == PRI && func_return_flag == 0)
            || ($2->flag == PUB && func_return_flag == 1))
 	{
-		parse_error(-1, "return type does not match.\n");
+		parse_error(-1, "Incorrect return type.\n");
         }
         $$ = Return($2);
         
@@ -2272,7 +2272,7 @@ normal_function_definition:
       contain_priv_if_flag = 0;
         
       if (isTypedef || $2->decl->type != DFUNC)
-        parse_error(1, "function definition cannot be parsed.\n");
+        parse_error(1, "Function definition cannot be parsed.\n");
       if (symtab_get(stab, decl_getidentifier_symbol($2), FUNCNAME) == NULL)
         symtab_put_funcname(stab, decl_getidentifier_symbol($2), FUNCNAME, $1, $2);
         symbol e = decl_getidentifier_symbol($2);
@@ -2380,7 +2380,7 @@ normal_function_definition:
       cond_index = 0;
       contain_priv_if_flag = 0;
       if (isTypedef || $1->decl->type != DFUNC)
-        parse_error(1, "function definition cannot be parsed.\n");
+        parse_error(1, "Function definition cannot be parsed.\n");
       if (symtab_get(stab, decl_getidentifier_symbol($1), FUNCNAME) == NULL)
         symtab_put_funcname(stab, decl_getidentifier_symbol($1), FUNCNAME, NULL, $1);
         symbol e = decl_getidentifier_symbol($1);
@@ -2664,7 +2664,7 @@ unique_for_clause:
             if (er) n = 0;
         }
         if (n <= 0)
-        parse_error(1, "invalid number in collapse() clause.\n");
+        parse_error(1, "Invalid number in collapse() clause.\n");
         $$ = CollapseClause(n);
     }
 ;
@@ -2690,7 +2690,7 @@ schedule_kind:
     {
         $$ = OC_auto;
     }
-    | error { parse_error(1, "invalid openmp schedule type.\n"); }
+    | error { parse_error(1, "Invalid openmp schedule type.\n"); }
 
 ;
 
@@ -3177,14 +3177,14 @@ variable_list:
     {
         if (checkDecls)
         if (symtab_get(stab, Symbol($1), IDNAME) == NULL)
-            parse_error(-1, "unknown identifier `%s'.\n", $1);
+            parse_error(-1, "Unknown identifier `%s'.\n", $1);
         $$ = IdentifierDecl( Symbol($1) );
     }
     | variable_list ',' IDENTIFIER
     {
         if (checkDecls)
         if (symtab_get(stab, Symbol($3), IDNAME) == NULL)
-            parse_error(-1, "unknown identifier `%s'.\n", $3);
+            parse_error(-1, "Unknown identifier `%s'.\n", $3);
         $$ = IdList($1, IdentifierDecl( Symbol($3) ));
     }
 ;
@@ -3201,7 +3201,7 @@ thrprv_variable_list:
         {
             stentry e = symtab_get(stab, Symbol($1), IDNAME);
             if (e == NULL)
-                parse_error(-1, "unknown identifier `%s'.\n", $1);
+                parse_error(-1, "Unknown identifier `%s'.\n", $1);
             if (e->scopelevel != stab->scopelevel)
                 parse_error(-1, "threadprivate directive appears at different "
                     "scope level\nfrom the one `%s' was declared.\n", $1);
@@ -3219,7 +3219,7 @@ thrprv_variable_list:
         {
             stentry e = symtab_get(stab, Symbol($3), IDNAME);
             if (e == NULL)
-                parse_error(-1, "unknown identifier `%s'.\n", $3);
+                parse_error(-1, "Unknown identifier `%s'.\n", $3);
             if (e->scopelevel != stab->scopelevel)
                 parse_error(-1, "threadprivate directive appears at different "
                 "scope level\nfrom the one `%s' was declared.\n", $3);
@@ -3538,7 +3538,7 @@ void check_uknown_var(char *name)
   if (symtab_get(stab, s, IDNAME) == NULL &&
       symtab_get(stab, s, LABELNAME) == NULL &&
       symtab_get(stab, s, FUNCNAME) == NULL)
-    parse_error(-1, "unknown identifier `%s'.\n", name);
+    parse_error(-1, "Unknown identifier `%s'.\n", name);
 }
 
 void check_for_main_and_declare(astspec s, astdecl d)
@@ -3921,7 +3921,7 @@ void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 	{
 		if(e1->ftype != e2->ftype)
 		{
-			parse_error(-1, "operators should have the same type...\n"); 
+			parse_error(-1, "Operators should have the same type...\n"); 
 		}
 		if(e1->ftype == 0)
 		{
@@ -3987,7 +3987,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, "security type mismatch in the assignment\n");
+		parse_error(-1, "Security type mismatch in assignment.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){
@@ -4019,7 +4019,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                     flag2 = 1;
             }
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "A: security type mismatch in the assignment\n");
+                parse_error(-1, "A: Security type mismatch in assignment.\n");
             decl = decl->u.next;
         }
         
@@ -4029,7 +4029,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                 flag2 = 1;
             
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "B: security type mismatch in the assignment\n");
+                parse_error(-1, "B: Security type mismatch in assignment.\n");
         }
     
     }
@@ -4039,7 +4039,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
             if(decl->u.expr->flag == PRI)
                 flag2 = 1;
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "C: security type mismatch in the assignment\n");
+                parse_error(-1, "C: Security type mismatch in assignment.\n");
         }
     }
   
@@ -4183,7 +4183,7 @@ void security_check_for_condition(astexpr e){
         }
            
         if(flag == 1)
-            parse_error(-1, "please open the private condition before computation\n");
+            parse_error(-1, "Public condition is expected; open private condition prior its use.\n");
     
 }
 
@@ -4274,7 +4274,7 @@ int check_func_param(astexpr funcname, astexpr arglist){
         }
         // for the leftmost var
         if((decl->type == DLIST && arglist->type != COMMALIST) || (decl->type == DPARAM && arglist->type == COMMALIST)){
-            parse_error(1, "The provided arguments do not match function parameters\n");
+            parse_error(1, "The provided arguments do not match function parameters.\n");
         }
         else{
             spec = decl->spec;

@@ -667,7 +667,7 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
         {
             (*narray_element_index)++;
             str_printf(leftop, "_picco_batch_tmp_array%d", *narray_element_index);
-            sprintf(op, ASS_symbols[tree->u.expr->opid]); 
+            sprintf(op, " %s ", ASS_symbols[tree->u.expr->opid]); 
         }
         else if(tree->u.expr->right->flag == PRI)
         {
@@ -679,13 +679,13 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
                 {
 		    ast_batch_print_stmt_operator(leftop, batch_index, private_index, tree1);
                     ast_batch_print_stmt_dimension(leftdim, tree1);
-            	    sprintf(op, ASS_symbols[tree->u.expr->opid]); 
+            	    sprintf(op, " %s ", ASS_symbols[tree->u.expr->opid]); 
                 }
                 else if(tree1->type != ARRAYIDX)
                 {
 		    (*narray_element_index)++;
                     str_printf(leftop, "_picco_batch_tmp_array%d", *narray_element_index);
-            	    sprintf(op, ASS_symbols[tree->u.expr->opid]); 
+            	    sprintf(op, " %s ", ASS_symbols[tree->u.expr->opid]); 
                 }
             }
             else if(tree->u.expr->right->type == BOP)
@@ -845,12 +845,12 @@ void ast_batch_print_private_condition(aststmt tree, int* narray_element_index, 
     if(!strcmp(str_string(leftop), ""))
         sprintf(leftop_name, "_picco_private_indexed_outputarray%d", *private_index);
     else
-        sprintf(leftop_name, str_string(leftop));
+        sprintf(leftop_name, " %s ", str_string(leftop));
     
     if(!strcmp(str_string(rightop), ""))
         sprintf(rightop_name, "_picco_private_indexed_outputarray%d", *private_index);
     else
-        sprintf(rightop_name, str_string(rightop));
+        sprintf(rightop_name, " %s ", str_string(rightop));
     
     if(current->key == 0)
        fprintf(output, "__s->smc_batch(%s, %s, _picco_batch_array%d, %s, %s, %s, 0, %s, %s, %s, _picco_batch_index_array%d, _picco_batch_counter%d, \"%s\", \"%s\", %d); \n", leftop_name, rightop_name, private_selection_index, var_size, str_string(leftdim), str_string(rightdim), buf1, buf2, buf3, statement_index, batch_index, op, type, tree->u.expr->thread_id);

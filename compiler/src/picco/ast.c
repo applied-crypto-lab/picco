@@ -1181,7 +1181,7 @@ astexpr if_pop(condstack stack){
 }
 
 
- if_isEmpty(condstack stack){
+int if_isEmpty(condstack stack){
     if(stack->head == NULL)
         return 1;
     else

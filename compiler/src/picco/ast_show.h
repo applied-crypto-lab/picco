@@ -51,6 +51,7 @@ extern void ast_expr_show_stderr(astexpr tree);
 extern void ast_oxclause_show(oxclause t);
 extern void ast_oxdir_show(oxdir tree);
 extern void ast_oxcon_show(oxcon tree, branchnode current);
+extern void batch_statement_popAll(batch_statement_stack stack);
 
 
 /* PICCO-implementation
@@ -112,5 +113,7 @@ void ast_declare_temp_for_struct_field(char**, int, int, int);
 void ast_init_temp_for_struct_field(char**, int, int);
 void ast_expr_pmalloc_show(astexpr);
 int  ast_compute_expression_type(astexpr);
+int ast_compute_ptr_level(astdecl);
+int is_private_indexed(astexpr);
 
 #endif

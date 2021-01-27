@@ -646,7 +646,7 @@ extern ltable ltable_new();
 extern void ltable_free(ltable); 
 extern void ltablelist_push(ltablelist); 
 extern ltable ltablelist_pop(ltablelist); 
-extern ltablelist_length(ltablelist); 
+extern int ltablelist_length(ltablelist); 
 extern ltablelist ltablelist_new(); 
 extern void ltablelist_free(ltablelist); 
 
