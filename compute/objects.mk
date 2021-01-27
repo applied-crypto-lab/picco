@@ -1,1 +1,1 @@
-LIBS := -lboost_system -lgmp -lpthread -lcrypto -lssl -ldl
+LIBS := -lgmp -lpthread -lcrypto -lssl -ldl
