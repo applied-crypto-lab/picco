@@ -158,7 +158,7 @@ void loadConfig(char *config)
 {
 	FILE *fp; 
 	fp = fopen(config, "r"); 
-	char line[10]; 
+	int line[10]; 
 	fscanf(fp, "%[^:]:%d", line, &bits);
 	fscanf(fp, "%[^:]:%d", line, &peers);
 	fscanf(fp, "%[^:]:%d", line, &threshold);
