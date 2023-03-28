@@ -27,4 +27,11 @@ public:
 	void doOperation(mpz_t* C, mpz_t* A, mpz_t* B, int size, int threadID); 
 };
 
+class Mult_3pc : public Operation{
+public:
+	Mult_3pc(NodeNetwork nodeNet, int nodeID, SecretShare *s); 
+	virtual ~Mult_3pc();
+	void doOperation(mpz_t* C, mpz_t* A, mpz_t* B, int size, int threadID); 
+};
+
 #endif /* MULT_H_ */

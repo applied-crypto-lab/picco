@@ -6,6 +6,7 @@ CPP_SRCS += \
 ../smc-compute/ops/Mod2M.cpp \
 ../smc-compute/ops/Mod2MS.cpp \
 ../smc-compute/ops/Mult.cpp \
+../smc-compute/ops/Mult_3pc.cpp \
 ../smc-compute/ops/Operation.cpp \
 ../smc-compute/ops/EQZ.cpp \
 ../smc-compute/ops/PrefixMultiplication.cpp \
@@ -45,6 +46,7 @@ OBJS += \
 ./smc-compute/ops/Mod2M.o \
 ./smc-compute/ops/Mod2MS.o \
 ./smc-compute/ops/Mult.o \
+./smc-compute/ops/Mult_3pc.o \
 ./smc-compute/ops/Operation.o \
 ./smc-compute/ops/EQZ.o \
 ./smc-compute/ops/PrefixMultiplication.o \
@@ -86,6 +88,7 @@ CPP_DEPS += \
 ./smc-compute/ops/Mod2M.d \
 ./smc-compute/ops/Mod2MS.d \
 ./smc-compute/ops/Mult.d \
+./smc-compute/ops/Mult_3pc.d \
 ./smc-compute/ops/Operation.d \
 ./smc-compute/ops/EQZ.d \
 ./smc-compute/ops/PrefixMultiplication.d \

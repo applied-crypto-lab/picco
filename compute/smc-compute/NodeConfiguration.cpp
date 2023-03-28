@@ -79,7 +79,7 @@ int NodeConfiguration::getPeerIndex(int id){
 		if(peerID[i] == id)
 			return i;
 	}
-
+	return -1;
 }
 
 std::string NodeConfiguration::getPubKey(){
