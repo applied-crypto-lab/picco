@@ -5,10 +5,10 @@
 
 #Add test program to the build variables
 CPP_SRCS += \
-#test-code.cpp 
+#int_mult.cpp 
 
 OBJS += \
-#test-code.o 
+#int_mult.o 
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(strip $(C++_DEPS)),)
@@ -34,16 +34,16 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 # All Target
-test-code: $(OBJS) $(USER_OBJS) 
-	g++ -c -w test-code.cpp 
-	g++ -o test-code test-code.o $(OBJS) $(USER_OBJS) $(LIBS) 
+int_mult: $(OBJS) $(USER_OBJS) 
+	g++ -c -w int_mult.cpp 
+	g++ -o int_mult int_mult.o $(OBJS) $(USER_OBJS) $(LIBS) 
 # replace the line above with this one for multi-threaded programs
-#	g++ -o test-code test-code.o -I ./ompi/include/ompi $(OBJS) $(USER_OBJS) $(LIBS) -L ./ompi/lib/ompi -L ./ompi/lib/ompi/default -lort -lrt -lboost_thread 
+#	g++ -o int_mult int_mult.o -I ./ompi/include/ompi $(OBJS) $(USER_OBJS) $(LIBS) -L ./ompi/lib/ompi -L ./ompi/lib/ompi/default -lort -lrt -lboost_thread 
 
 clean:
-	-$(RM) *.o test-code
+	-$(RM) *.o int_mult
 
 #Clean-Everything
 clean-all:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) *.o test-code 
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) *.o int_mult 
 

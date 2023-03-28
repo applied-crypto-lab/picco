@@ -950,6 +950,28 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
     }
 }
 
+
+// void NodeNetwork::init_keys(int peer, int nRead) {
+//     unsigned char key[16], iv[16];
+//     memset(key, 0x00, 16);
+//     memset(iv, 0x00, 16);
+//     if (0 == nRead) // useKey KeyIV
+//     {
+//         memcpy(key, KeyIV, 16);
+//         memcpy(iv, KeyIV + 16, 16);
+//     } else // getKey from peers
+//     {
+//         memcpy(key, peerKeyIV, 16);
+//         memcpy(iv, peerKeyIV + 16, 16);
+//     }
+//     en = EVP_CIPHER_CTX_new();
+//     EVP_EncryptInit_ex(en, EVP_aes_128_cbc(), NULL, key, iv);
+//     de = EVP_CIPHER_CTX_new();
+//     EVP_DecryptInit_ex(de, EVP_aes_128_cbc(), NULL, key, iv);
+//     peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
+//     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
+// }
+
 void NodeNetwork::init_keys(int peer, int nRead) {
     unsigned char key[16], iv[16];
     memset(key, 0x00, 16);
@@ -963,6 +985,27 @@ void NodeNetwork::init_keys(int peer, int nRead) {
         memcpy(key, peerKeyIV, 16);
         memcpy(iv, peerKeyIV + 16, 16);
     }
+
+    int peers = config->getPeerCount();
+    if (peers == 3) {
+        int id_p1, id_m1;
+        int myid = getID();
+        id_p1 = (myid + 1) % (peers + 2);
+        if (id_p1 == 0)
+            id_p1 = 1;
+
+        id_m1 = (myid - 1) % (peers + 2);
+        if (id_m1 == 0)
+            id_m1 = peers + 1;
+
+        if (peer == id_p1) {
+            memcpy(&key_1, key, 16);
+
+        } else if (peer == id_m1) {
+            memcpy(&key_0, key, 16);
+        }
+    }
+
     en = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(en, EVP_aes_128_cbc(), NULL, key, iv);
     de = EVP_CIPHER_CTX_new();
@@ -1036,6 +1079,78 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
     *len = p_len + f_len;
     return plaintext;
 }
+
+void NodeNetwork::getRandOfPeer(int id, mpz_t *rand_id, int size) {
+    int length = 16;
+    char *buffer = (char *)malloc(sizeof(char) * 16);
+    memset(buffer, 0, 16);
+    int i;
+    EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+    for (i = 0; i < size; i++) {
+        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &length);
+        memcpy(buffer, encrypted, 16);
+        mpz_import(rand_id[i], 16, -1, 1, -1, 0, encrypted);
+    }
+    free(buffer);
+    // free(encrypted);
+}
+
+void NodeNetwork::multicastToPeers_Mul(mpz_t **data, int size, int threadID) {
+    test_flags[threadID]++;
+    int id = getID();
+    int peers = config->getPeerCount();
+    if (size == 0)
+        return;
+    if (threadID == -1) {
+        if (mode != -1) {
+            sendModeToPeers(id);
+            pthread_mutex_lock(&buffer_mutex);
+            while (numOfChangedNodes < peers)
+                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
+            pthread_mutex_unlock(&buffer_mutex);
+            numOfChangedNodes = 0;
+            mode = -1;
+        }
+        multicastToPeers_Mul2(data, size);
+        return;
+    } else {
+        if (mode != 0) {
+            pthread_mutex_lock(&buffer_mutex);
+            pthread_cond_signal(&manager_conditional_variable);
+            pthread_mutex_unlock(&buffer_mutex);
+            mode = 0;
+        }
+    }
+}
+
+void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
+    int myid = getID();
+    int peers = config->getPeerCount();
+    int id_p1;
+    int id_m1;
+    id_p1 = (myid + 1) % (peers + 2);
+    if (id_p1 == 0)
+        id_p1 = 1;
+
+    id_m1 = (myid - 1) % (peers + 2);
+    if (id_m1 == 0)
+        id_m1 = peers + 1;
+
+    int sendIdx = 0, getIdx = 0;
+    // compute the maximum size of data that can be communicated
+    int count = 0, rounds = 0;
+    getRounds(size, &count, &rounds);
+    for (int k = 0; k <= rounds; k++) {
+        sendDataToPeer(id_m1, data[id_m1 - 1], k * count, count, size);
+        getDataFromPeer(id_p1, data[id_p1 - 1], k * count, count, size);
+    }
+}
+
+// void NodeNetwork::Returnkey() {
+
+//     memcpy(key1, key_1, 16);
+//     memcpy(key0, key_0, 16);
+// }
 
 void NodeNetwork::closeAllConnections() {
 }
