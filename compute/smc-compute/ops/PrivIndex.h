@@ -19,23 +19,29 @@
 #ifndef PRIVINDEX_H_
 #define PRIVINDEX_H_
 
-#include "Mult.h"
-#include "EQZ.h"
 #include "BitDec.h"
+#include "EQZ.h"
+#include "Mult.h"
 #include "Operation.h"
+#include "Random.h"
+#include <sys/time.h>
 
-class PrivIndex: public Operation {
-    
+class PrivIndex : public Operation {
+
 public:
-	PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~PrivIndex();
-	void compute_private_conditions(mpz_t*, mpz_t, mpz_t*, int, int); 
-	void doOperationRead(mpz_t* index, mpz_t* array, mpz_t* result, int dim, int size, int threadID, int type);
-	void doOperationWrite(mpz_t* index, mpz_t* array, mpz_t* value, int dim, int size, mpz_t out_cond, mpz_t* priv_cond, int counter, int threadID, int type);
+    PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~PrivIndex();
+    void compute_private_conditions(mpz_t *, mpz_t, mpz_t *, int, int);
+    void doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type);
+    void doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID);
+    double time_diff(struct timeval *, struct timeval *);
+
 private:
-	Mult *Mul;
-	BitDec *Bd;
-    	EQZ *Eq; 
+    Mult *Mul;
+    BitDec *Bd;
+    EQZ *Eq;
+    Random *Rand;
 };
 
 #endif /* PRIVINDEX_H_ */
