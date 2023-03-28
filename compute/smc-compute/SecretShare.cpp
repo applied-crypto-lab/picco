@@ -24,6 +24,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <gmp.h>
+#include <cstring>
 
 SecretShare::SecretShare(int p, int t, mpz_t mod){
 	peers = p;
@@ -436,6 +437,78 @@ void SecretShare::reconstructSecret(mpz_t* result, mpz_t** y, int size, bool isM
 	mpz_clear(temp); 
 }
 
+void SecretShare::Seed(unsigned char * key_0,unsigned char * key_1){
+ 
+	gmp_randinit_mt(rstate_0); //m1
+	gmp_randinit_mt(rstate_1); //p1	
+
+	mpz_t seed;
+	mpz_init(seed);
+
+	mpz_import(seed, 16, 1, sizeof(key_0[0]), 0, 0, key_0);
+	gmp_randseed(rstate_0, seed);
+
+	mpz_import(seed, 16, 1, sizeof(key_1[0]), 0, 0, key_1);
+	gmp_randseed(rstate_1, seed);
+	
+	seeded=1;
+	mpz_clear(seed);
+}
+
+void SecretShare::getShares2(mpz_t* temp, mpz_t* rand, mpz_t** data, int size){
+
+//	printf("threshold is %d and seed %d and myiid %d\n",threshold, seeded, myiid);
+
+//	printf("fine here \n");
+	mpz_t coefficient;
+	mpz_init(coefficient);
+	for(int i=0;i<size;i++)
+	{
+		mpz_urandomm(rand[i], rstate_1, fieldSize);
+	}
+//	printf("fine here \n");
+	for(int i = 0; i < size; i++){
+		mpz_sub(coefficient,rand[i],temp[i]);
+		mpz_mul(coefficient,coefficient,id_p1_inv);
+		mpz_mul_ui(data[myid-1][i],coefficient,myid);	//for id
+		mpz_add(data[myid-1][i],data[myid-1][i],temp[i]);
+		mpz_mod(data[myid-1][i],data[myid-1][i],fieldSize);
+		mpz_mul_ui(data[id_m1-1][i],coefficient,id_m1);	//for id-1
+		mpz_add(data[id_m1-1][i],data[id_m1-1][i],temp[i]);
+		mpz_mod(data[id_m1-1][i],data[id_m1-1][i],fieldSize);
+	}
+//	printf("fine here \n");
+	mpz_clear(coefficient);
+	for(int i=0;i<size;i++)
+	{
+		mpz_urandomm(temp[i], rstate_0, fieldSize);
+	}
+}
+void SecretShare::checkSeed(){
+ 	if(seeded==0)
+	{
+		printf("not seeded\n");
+	}
+	else
+	{
+		printf("seeded\n");
+	}
+}
+
+void SecretShare::getCoef(int id){
+	myid=id;
+	id_p1 = (myid+1)%(peers+1);
+	if(id_p1 == 0)
+		id_p1 = 1;
+
+	id_m1 = (myid-1)%(peers+1);
+	if(id_m1 == 0)
+		id_m1 = peers;
+
+	mpz_init(id_p1_inv);
+	mpz_set_ui(id_p1_inv,id_p1);
+	mpz_invert(id_p1_inv,id_p1_inv,fieldSize);
+}
 /*void SecretShare::getPrime(mpz_t result, int bits){
 	mpz_ui_pow_ui(result,2,bits);
 	mpz_t m;
