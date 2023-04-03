@@ -1,6 +1,6 @@
 /*   
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) 2013 PICCO Team
+   ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
 
    PICCO is free software: you can redistribute it and/or modify
