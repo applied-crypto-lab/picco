@@ -1,8 +1,20 @@
 # PICCO: A General-Purpose Compiler for Private Distributed Computation
 
+PICCO is a suite of programs for compiling general-purpose programs into their secure implementations, and running it in a distributed setting. The complete motivation, design, and analysis of PICCO can be found in our [2013 CCS paper](https://doi.org/10.1145/2508859.2516752). This work can be cited as follows:
+
+```
+@inproceedings{picco,
+  author = "Zhang, Yihua and Steele, Aaron and Blanton, Marina",
+  year = 2013,
+  title = "{PICCO}: A general-purpose compiler for private distributed computation",
+  booktitle = "ACM Conference on Computer and Communications Security (CCS)",
+  pages = "813--826"
+}
+```
+
 The source code of PICCO mainly consists of two directories: *compiler* and *compute*. The compiler directory contains the source code of the PICCO compiler whose functionality is to translate a user's program into its secure implementation. The `compute` directory contains the source code of the computational framework that will be used to securely execute the user's translated program in a distributed setting.
 
-## Source Code Dependencies
+## Source code dependencies
 
 To compile or run user programs using PICCO code, a machine should have the following libraries installed:
 
