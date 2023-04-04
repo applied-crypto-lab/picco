@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,51 +20,117 @@
 #include "Mult.h"
 
 Mult::Mult(NodeNetwork nodeNet, int nodeID, SecretShare *s) {
-	net = nodeNet;
-	id = nodeID;
-	ss = s;
+    net = nodeNet;
+    id = nodeID;
+    ss = s;
 }
 
 Mult::~Mult() {
-	// TODO Auto-generated destructor stub
+    // TODO Auto-generated destructor stub
 }
 
-void Mult::doOperation(mpz_t* C, mpz_t* A, mpz_t* B, int size, int threadID){
-	int peers = ss->getPeers(); 
-	mpz_t* temp = (mpz_t*)malloc(sizeof(mpz_t) * size);
-	mpz_t** data = (mpz_t**)malloc(sizeof(mpz_t*) * peers);
-	mpz_t** buffer = (mpz_t**)malloc(sizeof(mpz_t*) * peers);
-	
-	for(int i = 0; i < peers; i++){
-		data[i] = (mpz_t*)malloc(sizeof(mpz_t) * size);
-		buffer[i] = (mpz_t*)malloc(sizeof(mpz_t) * size);
-	}
-	//initialziation
-	for(int i = 0; i < peers; i++){
-		for(int j = 0; j < size; j++){
-			mpz_init(data[i][j]);
-			mpz_init(buffer[i][j]);
-		}
-	}
-	for(int i = 0; i < size; i++)
-		mpz_init(temp[i]);
-	//start computation
-	ss->modMul(temp, A, B, size);
-	ss->getShares(data, temp, size);
-	net.multicastToPeers(data, buffer, size, threadID);
-	ss->reconstructSecret(C, buffer, size, true);
-	//free memory 
-	for(int i = 0; i < peers; i++){
-		for(int j = 0; j < size; j++){
-			mpz_clear(data[i][j]);
-			mpz_clear(buffer[i][j]);
-		}
-		free(data[i]); 
-		free(buffer[i]); 
-	}
-	free(data); 
-	free(buffer); 
-	for(int i = 0; i < size; i++)
-		mpz_clear(temp[i]);
-	free(temp); 
+// This protocol performs integer multiplication as defined by Gennaro, Rabin, and Rabin (PODC 1998)
+// In the 3-party setting, the program switches to the optimized multiplication proposed by Blanton, Kang, and Yuan (ACNS 2020)
+void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
+    int peers = ss->getPeers();
+    if (peers == 3) {
+        // printf("Using optimized multiplication...\n");
+        int id_p1;
+        int id_m1;
+        mpz_t *rand_id = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
+        mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
+
+        for (int i = 0; i < peers; i++) {
+            data[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+            buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        }
+        // initialziation
+        for (int i = 0; i < peers; i++) {
+            for (int j = 0; j < size; j++) {
+                mpz_init(data[i][j]);
+                mpz_init(buffer[i][j]);
+            }
+        }
+        for (int i = 0; i < size; i++) {
+            mpz_init(temp[i]);
+            mpz_init(rand_id[i]);
+        }
+        // start computation
+        ss->modMul(temp, A, B, size);
+
+        id_p1 = (id + 1) % (peers + 1);
+        if (id_p1 == 0)
+            id_p1 = 1;
+
+        id_m1 = (id - 1) % (peers + 1);
+        if (id_m1 == 0)
+            id_m1 = peers;
+
+        ss->getShares2(temp, rand_id, data, size);
+
+        net.multicastToPeers_Mul(data, size, threadID);
+
+        for (int i = 0; i < size; i++) {
+            mpz_set(data[id_m1 - 1][i], temp[i]);
+        }
+
+        ss->reconstructSecret(C, data, size, true);
+        // free memory
+        for (int i = 0; i < peers; i++) {
+            for (int j = 0; j < size; j++) {
+                mpz_clear(data[i][j]);
+                mpz_clear(buffer[i][j]);
+            }
+            free(data[i]);
+            free(buffer[i]);
+        }
+        free(data);
+        free(buffer);
+        for (int i = 0; i < size; i++) {
+            mpz_clear(temp[i]);
+            mpz_clear(rand_id[i]);
+        }
+        free(temp);
+        free(rand_id);
+    } else {
+
+        mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
+        mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
+
+        for (int i = 0; i < peers; i++) {
+            data[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+            buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        }
+        // initialziation
+        for (int i = 0; i < peers; i++) {
+            for (int j = 0; j < size; j++) {
+                mpz_init(data[i][j]);
+                mpz_init(buffer[i][j]);
+            }
+        }
+        for (int i = 0; i < size; i++)
+            mpz_init(temp[i]);
+        // start computation
+        ss->modMul(temp, A, B, size);
+        ss->getShares(data, temp, size);
+        net.multicastToPeers(data, buffer, size, threadID);
+        ss->reconstructSecret(C, buffer, size, true);
+        // free memory
+        for (int i = 0; i < peers; i++) {
+            for (int j = 0; j < size; j++) {
+                mpz_clear(data[i][j]);
+                mpz_clear(buffer[i][j]);
+            }
+            free(data[i]);
+            free(buffer[i]);
+        }
+        free(data);
+        free(buffer);
+        for (int i = 0; i < size; i++)
+            mpz_clear(temp[i]);
+        free(temp);
+    }
 }

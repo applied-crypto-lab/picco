@@ -952,6 +952,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
 }
 
 
+// original version used for setting up keys for secure communication
 // void NodeNetwork::init_keys(int peer, int nRead) {
 //     unsigned char key[16], iv[16];
 //     memset(key, 0x00, 16);
@@ -973,6 +974,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
 //     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
 // }
 
+// updated version 
 void NodeNetwork::init_keys(int peer, int nRead) {
     unsigned char key[16], iv[16];
     memset(key, 0x00, 16);

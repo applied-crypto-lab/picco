@@ -72,7 +72,10 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 		}
 	}
 
-	
+    if (peers == 3) {
+		ss->getCoef(id);
+		ss->Seed(&(nodeNet->key_0),&(nodeNet->key_1));
+	}
 	setCoef(); 
 	Mul = new Mult(*nodeNet, id, ss);
 	Lt = new LTZ(*nodeNet, polynomials, id, ss, coef);	
