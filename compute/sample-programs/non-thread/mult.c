@@ -8,16 +8,16 @@ public int main()
   public int i;
 
   // measuring performance of a large number of multiplications
-  for(i = 0; i < 10000000; i++)
+  for(i = 0; i < 100; i++)
     C = A * B;  
   printf("first done...\n"); 
-  for(i = 0; i < 10000000; i++)
+  for(i = 0; i < 100; i++)
     C = A * B;  
   printf("second done...\n"); 
-  for(i = 0; i < 10000000; i++)
+  for(i = 0; i < 100; i++)
     C = A * B;  
   printf("third done...\n"); 
-  for(i = 0; i < 10000000; i++)
+  for(i = 0; i < 100; i++)
     C = A * B;  
   printf("fourth done...\n");
 

@@ -42,3 +42,6 @@ comparison/*
 .vscode
 output_*
 input_*
+result_*
+*.txt
+runtime-config-*

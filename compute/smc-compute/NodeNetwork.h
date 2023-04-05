@@ -91,8 +91,8 @@ public:
 
     void Returnkey();
 
-    unsigned char key_0;
-    unsigned char key_1;
+    unsigned char key_0[16];
+    unsigned char key_1[16]; 
 
 
 private:

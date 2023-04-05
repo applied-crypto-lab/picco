@@ -990,7 +990,9 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     }
 
     int peers = config->getPeerCount();
-    if (peers == 3) {
+    // this is DIFFERENT from peers elsewhere - this corresponds to the N-1 parties which party i is connected to
+    // so if we want the following block to execute in the 3-party setting, we check if there are TWO OTHER peers
+    if (peers == 2) {
         int id_p1, id_m1;
         int myid = getID();
         id_p1 = (myid + 1) % (peers + 2);
@@ -1002,10 +1004,10 @@ void NodeNetwork::init_keys(int peer, int nRead) {
             id_m1 = peers + 1;
 
         if (peer == id_p1) {
-            memcpy(&key_1, key, 16);
+            memcpy(key_1, key, 16);
 
         } else if (peer == id_m1) {
-            memcpy(&key_0, key, 16);
+            memcpy(key_0, key, 16);
         }
     }
 
