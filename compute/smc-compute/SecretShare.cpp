@@ -31,60 +31,27 @@ SecretShare::SecretShare(int p, int t, mpz_t mod){
 	peers = p;
 	threshold = t;
 	mpz_init(fieldSize);
-	//getPrime(fieldSize, bits);
-	//gmp_printf("%Zd\n", fieldSize);
 	mpz_set(fieldSize, mod);
 	computeSharingMatrix();
 	computeLagrangeWeight();
 	gmp_randinit_mt(rstate); 
 }
 
-void SecretShare::setPeers(int p){
-	peers = p;
-}
-
 int SecretShare::getPeers(){
 	return peers; 
 }
+
 void SecretShare::getFieldSize(mpz_t field){
 	mpz_set(field, fieldSize); 
 }
-void SecretShare::setThreshold(int t){
-	threshold = t;
-}
+
 int SecretShare::getThreshold(){
 	return threshold; 
 }
-//int SecretShare::getBits(){
-//	return bits; 
-//}
 
-void SecretShare::getShares(mpz_t* shares, mpz_t secret){
-	/*mpz_t coefficient, temp;
-	mpz_init(coefficient);
-	mpz_init(temp);
-	int peer; 
-	for(peer = 0; peer < peers; peer++)
-		mpz_set_ui(shares[peer], 0); 
+/* the function creates n=peers shares of the second argument */
+void SecretShare::getShares(mpz_t* shares, mpz_t secret) {
 
-	for(int degree = 0; degree < threshold+1; degree++){
-		if(degree == 0)
-			mpz_set(coefficient,secret);
-
-		else{
-			mpz_urandomb(coefficient, rstate, bits); 
-			if(degree == threshold && mpz_sgn(coefficient) == 0)
-				mpz_add_ui(coefficient, coefficient, 1); 
-		}
-
-		for(int peer = 0; peer < peers; peer++){
-			modMul(temp, sharingMatrix[peer][degree], coefficient);
-			modAdd(shares[peer],shares[peer], temp);
-		}
-	}
-	mpz_clear(temp); 
-	mpz_clear(coefficient); */
-        srand(time(NULL));
 	mpz_t coefficient;
 	mpz_init(coefficient);
 	mpz_t temp;
@@ -93,58 +60,69 @@ void SecretShare::getShares(mpz_t* shares, mpz_t secret){
 	mpz_t random;
 	mpz_init(random);
     
-	for(int i = 0; i < peers; i++)
-        mpz_set_ui(shares[i], 0);
-	if(mpz_cmp_si(secret, 0) < 0){
-		mpz_mod(secret, secret, fieldSize);
-	}
-	for(int degree = 0; degree < threshold+1; degree++){
-		if(degree == 0)
-			mpz_set(coefficient,secret);
-		else{
-			mpz_urandomm(coefficient, rstate, fieldSize); //
-			if(degree == threshold && mpz_sgn(coefficient) == 0)
-				mpz_add_ui(coefficient, coefficient, 1); 
-			/*mpz_set_ui(temp,rand());
-			mpz_set(temp, random);
-			mpz_mod(coefficient, temp, fieldSize);
-			mpz_add_ui(coefficient, coefficient, 1);*/
-		}
-		for(int peer = 0; peer < peers; peer++){
-			modMul(temp, sharingMatrix[peer][degree], coefficient);
-			modAdd(shares[peer],shares[peer], temp);
-		}
-	}
+	for (int i = 0; i < peers; i++)
+	  mpz_set_ui(shares[i], 0);
+	
+	if (mpz_cmp_si(secret, 0) < 0)
+	  mpz_mod(secret, secret, fieldSize);
 
+	for (int degree = 0; degree < threshold+1; degree++) {
+	  // set the free coefficient to the secret; otherwise generate a
+	  // random field element
+	  if (degree == 0)
+	    mpz_set(coefficient, secret);
+	  else {
+	    mpz_urandomm(coefficient, rstate, fieldSize);
+
+	    //the coefficient of the highest degree has to be non-zer to
+	    // guarantee that this is a polynomial of degree t
+	    if(degree == threshold && mpz_sgn(coefficient) == 0)
+	      mpz_add_ui(coefficient, coefficient, 1); 
+	  }
+
+	  // add the contribution of the current coefficient to each share
+	  for (int peer = 0; peer < peers; peer++){
+	    modMul(temp, sharingMatrix[peer][degree], coefficient);
+	    modAdd(shares[peer],shares[peer], temp);
+	  }
+	}
 }
 
-void SecretShare::getShares(mpz_t** shares, mpz_t* secrets, int size){
+/* 
+ * this function is similar to the above, but generates shares for a number of
+ *  secrets specified by the last argument 
+ */
+void SecretShare::getShares(mpz_t** shares, mpz_t* secrets, int size) {
+  
 	mpz_t coefficient;
 	mpz_init(coefficient);
 	mpz_t temp;
 	mpz_init_set_ui(temp, 0);
-	int peer; 
-	for(int i = 0; i < size; i++){
-		for(int degree = 0; degree < threshold+1; degree++){
-			if(degree == 0)
-				mpz_set(coefficient,secrets[i]);
-			else{
-				mpz_urandomm(coefficient, rstate, fieldSize); // 
-				if(degree == threshold && mpz_sgn(coefficient) == 0)
-					mpz_add_ui(coefficient, coefficient, 1); 
-			}
+	int degree, peer;
+	
+	for (int i = 0; i < size; i++) {
+	  for(degree = 0; degree < threshold+1; degree++) {
+	    // generate coefficients one at a time
+	    if(degree == 0)
+	      mpz_set(coefficient,secrets[i]);
+	    else {
+	      mpz_urandomm(coefficient, rstate, fieldSize);
 
-			for(int peer = 0; peer < peers; peer++){
-				modMul(temp, sharingMatrix[peer][degree], coefficient);
-				modAdd(shares[peer][i],shares[peer][i], temp);
-			}
-		}
+	      // the most significant coefficient must be non-zero
+	      if(degree == threshold && mpz_sgn(coefficient) == 0)
+		mpz_add_ui(coefficient, coefficient, 1); 
+	    }
+
+	    // incorporate the coefficient into the shares
+	    for (peer = 0; peer < peers; peer++) {
+	      modMul(temp, sharingMatrix[peer][degree], coefficient);
+	      modAdd(shares[peer][i],shares[peer][i], temp);
+	    }
+	  }
 	}
 	mpz_clear(coefficient); 
 	mpz_clear(temp); 
 }
-
-
 
 void SecretShare::modMul(mpz_t result, mpz_t x, mpz_t y){
 	mpz_mul(result,x,y);
@@ -212,7 +190,6 @@ void SecretShare::modSub(mpz_t* result, mpz_t* x, mpz_t* y, int size){
 		modSub(result[i],x[i],y[i]);
 }
 
-
 void SecretShare::modSub(mpz_t result, mpz_t x, long y){
 	mpz_t y1; 
 	mpz_init_set_si(y1, y); 
@@ -238,7 +215,6 @@ void SecretShare::modSub(mpz_t* result, long x, mpz_t* y, int size){
 	for(int i=0; i<size; ++i)
 		modSub(result[i],x,y[i]);
 }
-
 
 void SecretShare::modSub(mpz_t* result, mpz_t* x, mpz_t y, int size){
 	for(int i=0; i<size; ++i)
@@ -271,7 +247,6 @@ void SecretShare::modPow(mpz_t* result, mpz_t* base, long exponent, int size){
 	for(int i=0; i<size; ++i)
 		modPow(result[i],base[i],exponent);
 }
-
 
 void SecretShare::modInv(mpz_t result, mpz_t value){
 	mpz_t temp;
@@ -307,7 +282,6 @@ void SecretShare::modSqrt(mpz_t* result, mpz_t* x, int size){
 	for(int i = 0; i < size; i++)
 		mpz_clear(power[i]); 
 }
-
 
 void SecretShare::modSum(mpz_t result, mpz_t* x, int size){
 	mpz_set_ui(result,0);
@@ -352,29 +326,43 @@ void SecretShare::copy(mpz_t* src, mpz_t* des, int size)
 	for(int i = 0; i < size; i++)
 		mpz_set(des[i], src[i]);
 }
+
+/* 
+ * this function initializes a two-dimensional array called sharingMatrix. 
+ * sharingMatrix is used during computation of shares, i.e., evaluating a 
+ * polynomial at different points. It basically stores different powers of 
+ * points on which a polynomial will need to be evaluated.
+ */
 void SecretShare::computeSharingMatrix(){
-	// initialize the shairngMatrix
+
 	mpz_t t1, t2; 
 	mpz_init(t1); 
-	mpz_init(t2); 
+	mpz_init(t2);
+	int i;
+	
 	sharingMatrix = (mpz_t**)malloc(sizeof(mpz_t*) * peers);
-	for(int i = 0; i < peers; i++)
-		sharingMatrix[i] = (mpz_t*)malloc(sizeof(mpz_t) * peers);
-	for(int i = 0; i < peers; i++)
-		for(int j = 0; j < peers; j++)
-			mpz_init(sharingMatrix[i][j]);
-	for(int i = 0; i < peers; i++){
-		for(int j = 0; j < 2*threshold+1; j++){
-			mpz_set_ui(t1,i+1);
-			mpz_set_ui(t2,j);
-			modPow(sharingMatrix[i][j], t1, t2);
-		}
+	for (i = 0; i < peers; i++)
+	  sharingMatrix[i] = (mpz_t*)malloc(sizeof(mpz_t) * peers);
+	for (i = 0; i < peers; i++)
+	  for (int j = 0; j < peers; j++)
+	    mpz_init(sharingMatrix[i][j]);
+	
+	for (int i = 0; i < peers; i++){
+	  for(int j = 0; j < 2*threshold+1; j++){
+	    mpz_set_ui(t1,i+1);
+	    mpz_set_ui(t2,j);
+	    modPow(sharingMatrix[i][j], t1, t2);
+	  }
 	}
 	mpz_clear(t1); 
 	mpz_clear(t2);
 }
 
-
+/* 
+ * this function pre-computed Largrange coefficients for reconstructing a 
+ * secret from n=peer shares, which corresponds to evaluating the polynomial
+ * at point 0.
+ */
 void SecretShare::computeLagrangeWeight(){
 	mpz_t nom, denom, t1, t2, temp;
 	mpz_init(nom);
@@ -413,6 +401,7 @@ void SecretShare::computeLagrangeWeight(){
 	mpz_clear(temp); 
 }
 
+/* reconstruction of a secret from n=peers shares */
 void SecretShare::reconstructSecret(mpz_t result, mpz_t* y, bool isMultiply){
 	mpz_t temp;
 	mpz_init(temp);
@@ -424,6 +413,7 @@ void SecretShare::reconstructSecret(mpz_t result, mpz_t* y, bool isMultiply){
 	mpz_clear(temp); 
 }
 
+/* reconstruction of a number of secrets from n=peers shares each */
 void SecretShare::reconstructSecret(mpz_t* result, mpz_t** y, int size, bool isMultiply){
 	mpz_t temp;
 	mpz_init(temp);
@@ -460,15 +450,13 @@ void SecretShare::getShares2(mpz_t* temp, mpz_t* rand, mpz_t** data, int size){
 
 //	printf("threshold is %d and seed %d and myiid %d\n",threshold, seeded, myiid);
 
-//	printf("fine here \n");
 	mpz_t coefficient;
 	mpz_init(coefficient);
 	for(int i=0;i<size;i++)
 	{
 		mpz_urandomm(rand[i], rstate_1, fieldSize); // step 2
 	}
-//	printf("fine here \n");
-	for(int i = 0; i < size; i++){ // reconstruction of polynomial step 3 and evlaution step 4
+	for(int i = 0; i < size; i++){
 		mpz_sub(coefficient,rand[i],temp[i]);
 		mpz_mul(coefficient,coefficient,id_p1_inv);
 		mpz_mul_ui(data[myid-1][i],coefficient,myid);	//for id
@@ -478,13 +466,13 @@ void SecretShare::getShares2(mpz_t* temp, mpz_t* rand, mpz_t** data, int size){
 		mpz_add(data[id_m1-1][i],data[id_m1-1][i],temp[i]);
 		mpz_mod(data[id_m1-1][i],data[id_m1-1][i],fieldSize);
 	}
-//	printf("fine here \n");
 	mpz_clear(coefficient);
 	for(int i=0;i<size;i++)
 	{
 		mpz_urandomm(temp[i], rstate_0, fieldSize); //step 5, the "or" condition
 	}
 }
+
 void SecretShare::checkSeed(){
  	if(seeded==0)
 	{
@@ -510,17 +498,4 @@ void SecretShare::getCoef(int id){
 	mpz_set_ui(id_p1_inv,id_p1);
 	mpz_invert(id_p1_inv,id_p1_inv,fieldSize);
 }
-/*void SecretShare::getPrime(mpz_t result, int bits){
-	mpz_ui_pow_ui(result,2,bits);
-	mpz_t m;
-	mpz_init(m);
-	int isPrime;
-	do{
-		mpz_nextprime(result,result);
-		isPrime = mpz_probab_prime_p(result,50);
-		mpz_mod_ui(m,result,4);
-	}while(isPrime < 1 || mpz_cmp_si(m, 3) != 0);
-	//gmp_printf("%Zd\n", result);
-	mpz_clear(m); 
-}*/
 
