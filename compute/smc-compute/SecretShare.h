@@ -34,23 +34,18 @@ class SecretShare {
 public:
     SecretShare(int, int, mpz_t);
 
-    // Set the number of peers
-    // int getBits();
-    void setPeers(int p);
     int getPeers();
     int getThreshold();
     void getFieldSize(mpz_t);
-    // Set the privacy threshold
-    void setThreshold(int t);
 
-    // Divide a secret into n shares
+    // Create n shares of a secret or multiple secrets
     void getShares(mpz_t *, mpz_t);
     void getShares(mpz_t **, mpz_t *, int);
 
     void computeLagrangeWeight();
     void computeSharingMatrix();
 
-    // Reconstruct a secret from shares
+    // Reconstruct a secret from n shares
     void reconstructSecret(mpz_t, mpz_t *, bool);
     void reconstructSecret(mpz_t *, mpz_t **, int, bool);
 
@@ -94,7 +89,6 @@ public:
 
     // Miscellaneous Functions
     void modSum(mpz_t, mpz_t *, int);
-    // void getPrime(mpz_t prime, int bits);
     void copy(mpz_t *src, mpz_t *des, int size);
     void mod(mpz_t *result, mpz_t *a, mpz_t *m, int size);
     void mod(mpz_t *result, mpz_t *a, mpz_t m, int size);
