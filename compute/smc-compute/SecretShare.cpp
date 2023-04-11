@@ -465,10 +465,10 @@ void SecretShare::getShares2(mpz_t* temp, mpz_t* rand, mpz_t** data, int size){
 	mpz_init(coefficient);
 	for(int i=0;i<size;i++)
 	{
-		mpz_urandomm(rand[i], rstate_1, fieldSize);
+		mpz_urandomm(rand[i], rstate_1, fieldSize); // step 2
 	}
 //	printf("fine here \n");
-	for(int i = 0; i < size; i++){
+	for(int i = 0; i < size; i++){ // reconstruction of polynomial step 3 and evlaution step 4
 		mpz_sub(coefficient,rand[i],temp[i]);
 		mpz_mul(coefficient,coefficient,id_p1_inv);
 		mpz_mul_ui(data[myid-1][i],coefficient,myid);	//for id
@@ -482,7 +482,7 @@ void SecretShare::getShares2(mpz_t* temp, mpz_t* rand, mpz_t** data, int size){
 	mpz_clear(coefficient);
 	for(int i=0;i<size;i++)
 	{
-		mpz_urandomm(temp[i], rstate_0, fieldSize);
+		mpz_urandomm(temp[i], rstate_0, fieldSize); //step 5, the "or" condition
 	}
 }
 void SecretShare::checkSeed(){

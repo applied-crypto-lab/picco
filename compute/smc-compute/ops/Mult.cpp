@@ -58,7 +58,7 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
             mpz_init(rand_id[i]);
         }
         // start computation
-        ss->modMul(temp, A, B, size);
+        ss->modMul(temp, A, B, size); // step 1 
 
         id_p1 = (id + 1) % (peers + 1);
         if (id_p1 == 0)
@@ -68,15 +68,17 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         if (id_m1 == 0)
             id_m1 = peers;
 
+        //secret stored in temp
+        //create polynomial, stored in data
         ss->getShares2(temp, rand_id, data, size);
 
-        net.multicastToPeers_Mul(data, size, threadID);
+        net.multicastToPeers_Mul(data, size, threadID); // step 4 and step 5
 
         for (int i = 0; i < size; i++) {
             mpz_set(data[id_m1 - 1][i], temp[i]);
         }
 
-        ss->reconstructSecret(C, data, size, true);
+        ss->reconstructSecret(C, data, size, true); //step 5 
         // free memory
         for (int i = 0; i < peers; i++) {
             for (int j = 0; j < size; j++) {
