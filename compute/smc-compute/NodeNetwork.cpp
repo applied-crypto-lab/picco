@@ -82,8 +82,16 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
     connectToPeers();
+
+    // here number of peers is n-1 instead of n
+    int peers = config->getPeerCount();    
+    // allocate space for prgSeeds
+    int threshold = peers/2;
+    prgSeeds = (unsigned char **)malloc(threshold*sizeof(unsigned char*));
+    for (unsigned int i = 0; i < threshold; i++)
+      prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char)*KEYSIZE);
+
     numOfThreads = num_threads; // it should be read from parsing
-    int peers = config->getPeerCount();
     int numb = 8 * sizeof(char);
     int temp_buffer_size = MAX_BUFFER_SIZE / (peers + 1) / ((config->getBits() + numb - 1) / numb);
 
@@ -354,6 +362,7 @@ void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, in
     }
 }
 
+/* unlike what the name suggests, this function sends different data to each peer and receives different data from each peer */
 void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer, int size) {
     int peers = config->getPeerCount();
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
@@ -378,6 +387,7 @@ void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer,
     }
 }
 
+/* the function sends different data to each peer and receives data from each peer */
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     int id = getID();
     int peers = config->getPeerCount();
@@ -407,6 +417,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
         mpz_set(buffers[id - 1][i], data[id - 1][i]);
 }
 
+/* this function sends identical data (stored in variable 'data') to all other peers and receives data from all of them as well (stored in variable 'beffers') */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
     int id = getID();
     int peers = config->getPeerCount();
@@ -433,6 +444,7 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
     }
 }
 
+/* this function sends identical data to all other peers and receives data from all of them */
 void NodeNetwork::broadcastToPeers(long long *data, int size, long long **result) {
     int id = getID();
     int peers = config->getPeerCount();
@@ -622,6 +634,7 @@ void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
     free(info);
     return;
 }
+
 void NodeNetwork::sendModeToPeers(int id) {
     int peers = config->getPeerCount();
     int msg = -2;
@@ -632,6 +645,8 @@ void NodeNetwork::sendModeToPeers(int id) {
     }
     // sleep(1);
 }
+
+/* the function sends different data to each peer and receive data from each peer */
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
@@ -698,6 +713,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
         mpz_set(buffers[id - 1][i], data[id - 1][i]);
 }
 
+/* the function sends the same data to each peer and receives data from each peer */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int threadID) {
     test_flags[threadID]++;
     if (size == 0)
@@ -798,7 +814,7 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
 }
 
 void NodeNetwork::requestConnection(int numOfPeers) {
-    peerKeyIV = (unsigned char *)malloc(32);
+    peerKeyIV = (unsigned char *)malloc(KEYSIZE+AES_BLOCK_SIZE);
     int *sockfd = (int *)malloc(sizeof(int) * numOfPeers);
     int *portno = (int *)malloc(sizeof(int) * numOfPeers);
     struct sockaddr_in *serv_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
@@ -873,7 +889,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
         int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
         if (dec_len < 1)
             printf("RSA private decrypt error\n");
-        memcpy(peerKeyIV, decrypt, 32);
+        memcpy(peerKeyIV, decrypt, KEYSIZE+AES_BLOCK_SIZE);
         init_keys(ID, 1);
         free(buffer);
         free(decrypt);
@@ -881,7 +897,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
 }
 
 void NodeNetwork::acceptPeers(int numOfPeers) {
-    KeyIV = (unsigned char *)malloc(32);
+    KeyIV = (unsigned char *)malloc(KEYSIZE+AES_BLOCK_SIZE);
     int sockfd, maxsd, portno, on = 1;
     int *newsockfd = (int *)malloc(sizeof(int) * numOfPeers);
     socklen_t *clilen = (socklen_t *)malloc(sizeof(socklen_t) * numOfPeers);
@@ -925,11 +941,11 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
             sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
 
-            unsigned char key_iv[32];
+            unsigned char key_iv[KEYSIZE+AES_BLOCK_SIZE];
             RAND_status();
-            if (!RAND_bytes(key_iv, 32))
+            if (!RAND_bytes(key_iv, KEYSIZE+AES_BLOCK_SIZE))
                 printf("Key, iv generation error\n");
-            memcpy(KeyIV, key_iv, 32);
+            memcpy(KeyIV, key_iv, KEYSIZE+AES_BLOCK_SIZE);
             int peer = config->getID() - (i + 1);
             FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
             if (pubkeyfp == NULL)
@@ -939,7 +955,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
                 printf("Read Public Key for RSA Error\n");
             char *encrypt = (char *)malloc(RSA_size(publicRkey));
             memset(encrypt, 0x00, RSA_size(publicRkey));
-            int enc_len = RSA_public_encrypt(32, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+            int enc_len = RSA_public_encrypt(KEYSIZE+AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
             if (enc_len < 1)
                 printf("RSA public encrypt error\n");
             int n = write(newsockfd[i], encrypt, enc_len);
@@ -950,7 +966,6 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
         }
     }
 }
-
 
 // original version used for setting up keys for secure communication
 // void NodeNetwork::init_keys(int peer, int nRead) {
@@ -974,27 +989,35 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
 //     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
 // }
 
-// updated version 
+
 void NodeNetwork::init_keys(int peer, int nRead) {
-    unsigned char key[16], iv[16];
-    memset(key, 0x00, 16);
-    memset(iv, 0x00, 16);
+    unsigned char key[KEYSIZE], iv[AES_BLOCK_SIZE];
+    memset(key, 0x00, KEYSIZE);
+    memset(iv, 0x00, AES_BLOCK_SIZE);
     if (0 == nRead) // useKey KeyIV
     {
-        memcpy(key, KeyIV, 16);
-        memcpy(iv, KeyIV + 16, 16);
+        memcpy(key, KeyIV, KEYSIZE);
+        memcpy(iv, KeyIV + KEYSIZE, AES_BLOCK_SIZE);
     } else // getKey from peers
     {
-        memcpy(key, peerKeyIV, 16);
-        memcpy(iv, peerKeyIV + 16, 16);
+        memcpy(key, peerKeyIV, KEYSIZE);
+        memcpy(iv, peerKeyIV + KEYSIZE, AES_BLOCK_SIZE);
     }
 
+    // populate the prgSeeds array which stores keys for parties myid-threshold through myid-1
     int peers = config->getPeerCount();
-    // this is DIFFERENT from peers elsewhere - this corresponds to the N-1 parties which party i is connected to
-    // so if we want the following block to execute in the 3-party setting, we check if there are TWO OTHER peers
+    // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties 
+    int threshold = peers/2;
+    int myid = getID();
+    int index = myid - peer;
+    if (index < 0)
+      index = index + peers + 1;
+    if (1 <= index <= threshold)
+      memcpy(prgSeeds[threshold-index], key, KEYSIZE*sizeof(unsigned char));
+
+    // 3-party version which will be removed after implementing general optimized multiplication
     if (peers == 2) {
         int id_p1, id_m1;
-        int myid = getID();
         id_p1 = (myid + 1) % (peers + 2);
         if (id_p1 == 0)
             id_p1 = 1;
@@ -1150,12 +1173,6 @@ void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
         getDataFromPeer(id_p1, data[id_p1 - 1], k * count, count, size);
     }
 }
-
-// void NodeNetwork::Returnkey() {
-
-//     memcpy(key1, key_1, 16);
-//     memcpy(key0, key_0, 16);
-// }
 
 void NodeNetwork::closeAllConnections() {
 }

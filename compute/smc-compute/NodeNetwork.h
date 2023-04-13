@@ -21,6 +21,10 @@
 #ifndef NODENETWORK_H_
 #define NODENETWORK_H_
 
+// key size in bytes; switching to a longer size will require more work than updating this constant as 128-bit encryption function calls are used
+#define KEYSIZE 16
+// the block size is always 16 with AES, use AES_BLOCK_SIZE
+
 #include "NodeConfiguration.h"
 #include "stdint.h"
 #include <cstdlib>
@@ -85,12 +89,14 @@ public:
     void multicastToPeers(mpz_t **, mpz_t **, int, int);
     void broadcastToPeers(mpz_t *, int, mpz_t **, int);
 
-	void getRandOfPeer(int id, mpz_t *rand_id, int size);
+    void getRandOfPeer(int id, mpz_t *rand_id, int size);
     void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
     void multicastToPeers_Mul2(mpz_t **data, int size);
 
-    void Returnkey();
+    // PRG seeds used in multiplication
+    unsigned char** prgSeeds;
 
+    // to be removed
     unsigned char key_0[16];
     unsigned char key_1[16]; 
 
@@ -124,6 +130,7 @@ private:
     std::map<int, int> peer2sock;
     std::map<int, int> sock2peer;
     int serverSock;
+
 };
 
 #endif /* NODENETWORK_H_ */
