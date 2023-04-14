@@ -925,11 +925,15 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
             sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
 
+            // stores the key and iv (16 bytes each)
+            // change from 32 to 64 everywhere in order to generate a second key to seed PRG (same goes for peerKeyIV secion)
             unsigned char key_iv[32];
             RAND_status();
-            if (!RAND_bytes(key_iv, 32))
+            if (!RAND_bytes(key_iv, 32)) // generating 32 pseudorandom bytes
                 printf("Key, iv generation error\n");
-            memcpy(KeyIV, key_iv, 32);
+
+            // print_hexa(key_iv, 64);
+            memcpy(KeyIV, key_iv, 32); // copying into KeyIV
             int peer = config->getID() - (i + 1);
             FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
             if (pubkeyfp == NULL)
@@ -939,10 +943,11 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
                 printf("Read Public Key for RSA Error\n");
             char *encrypt = (char *)malloc(RSA_size(publicRkey));
             memset(encrypt, 0x00, RSA_size(publicRkey));
-            int enc_len = RSA_public_encrypt(32, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+            int enc_len = RSA_public_encrypt(32, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING); // encrypting the key/iv char string,  flen should not be more than RSA_size(rsa) (42 for RSA_PKCS1_OAEP_PADDING), so enc_len = 42
+            // std::cout << "enc_len = " << enc_len << std::endl; 
             if (enc_len < 1)
                 printf("RSA public encrypt error\n");
-            int n = write(newsockfd[i], encrypt, enc_len);
+            int n = write(newsockfd[i], encrypt, enc_len); // sending to peer
             if (n < 0)
                 printf("ERROR writing to socket \n");
             init_keys(peer, 0);
@@ -950,7 +955,6 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
         }
     }
 }
-
 
 // original version used for setting up keys for secure communication
 // void NodeNetwork::init_keys(int peer, int nRead) {
@@ -974,8 +978,13 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
 //     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
 // }
 
-// updated version 
+// updated version
 void NodeNetwork::init_keys(int peer, int nRead) {
+
+    // generates
+    //  if (!RAND_bytes(key_iv, 32))
+    //  printf("Key, iv generation error\n");
+
     unsigned char key[16], iv[16];
     memset(key, 0x00, 16);
     memset(iv, 0x00, 16);
