@@ -1108,20 +1108,20 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
     return plaintext;
 }
 
-void NodeNetwork::getRandOfPeer(int id, mpz_t *rand_id, int size) {
-    int length = 16;
-    char *buffer = (char *)malloc(sizeof(char) * 16);
-    memset(buffer, 0, 16);
-    int i;
-    EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-    for (i = 0; i < size; i++) {
-        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &length);
-        memcpy(buffer, encrypted, 16);
-        mpz_import(rand_id[i], 16, -1, 1, -1, 0, encrypted);
-    }
-    free(buffer);
-    // free(encrypted);
-}
+// void NodeNetwork::getRandOfPeer(int id, mpz_t *rand_id, int size) {
+//     int length = 16;
+//     char *buffer = (char *)malloc(sizeof(char) * 16);
+//     memset(buffer, 0, 16);
+//     int i;
+//     EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+//     for (i = 0; i < size; i++) {
+//         unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &length);
+//         memcpy(buffer, encrypted, 16);
+//         mpz_import(rand_id[i], 16, -1, 1, -1, 0, encrypted);
+//     }
+//     free(buffer);
+//     // free(encrypted);
+// }
 
 void NodeNetwork::multicastToPeers_Mul(mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;

@@ -89,7 +89,7 @@ public:
     void multicastToPeers(mpz_t **, mpz_t **, int, int);
     void broadcastToPeers(mpz_t *, int, mpz_t **, int);
 
-    void getRandOfPeer(int id, mpz_t *rand_id, int size);
+    // void getRandOfPeer(int id, mpz_t *rand_id, int size);
     void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
     void multicastToPeers_Mul2(mpz_t **data, int size);
 
