@@ -37,11 +37,11 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 	mpz_set_str(modulus, mod.c_str(), 10);
 	nodeConfig = new NodeConfiguration(id, runtime_config, bits);
 	peers = numOfPeers; 
-	ss = new SecretShare(numOfPeers, threshold, modulus);
 	std::cout << "Creating the NodeNetwork\n";
 
 	NodeNetwork* nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);    
 	nNet = *nodeNet;
+	ss = new SecretShare(numOfPeers, threshold, modulus, id, nNet.getPRGseeds());
 
 	clientConnect();
 	receivePolynomials(privatekey_filename);
@@ -4037,24 +4037,26 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename){
 	int* Coefficients = (int*)malloc(sizeof(int) * coefsize); 
 	int position = 0; 
 	for(int i = 0; i < keysize; i++){ 
-		char strkey[mpz_t_size+1] = {0,}; 
-		memcpy(strkey, decrypt+sizeof(int)*3+position, mpz_t_size); 
-		mpz_set_str(Keys[i], strkey, 10);		
-		position += mpz_t_size; 
+	  char strkey[mpz_t_size+1];
+	  strkey[0] = 0; 
+	  memcpy(strkey, decrypt+sizeof(int)*3+position, mpz_t_size); 
+	  mpz_set_str(Keys[i], strkey, 10);		
+	  position += mpz_t_size; 
 	}
 	memcpy(Coefficients, decrypt+sizeof(int)*3+mpz_t_size*keysize, sizeof(int)*coefsize); 
 	free(buffer); 
 	free(decrypt); 
 
 	for(int i = 0; i < keysize; i++){
-		char strkey[mpz_t_size+1] = {0,}; 
-		mpz_get_str(strkey, 10, Keys[i]); 
-		std::string Strkey = strkey; 
-		std::vector<int> temp;
-		for(int k = 0; k < coefsize/keysize; k++){
-			temp.push_back(Coefficients[i * coefsize/keysize + k]);
-		}
-		polynomials.insert(std::pair<std::string, std::vector<int> >(Strkey, temp));
+	  char strkey[mpz_t_size+1];
+	  strkey[0] = 0; 
+	  mpz_get_str(strkey, 10, Keys[i]); 
+	  std::string Strkey = strkey; 
+	  std::vector<int> temp;
+	  for(int k = 0; k < coefsize/keysize; k++){
+	    temp.push_back(Coefficients[i * coefsize/keysize + k]);
+	  }
+	  polynomials.insert(std::pair<std::string, std::vector<int> >(Strkey, temp));
 	}
 	//printf("Polynomials received... \n"); 
 }

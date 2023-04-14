@@ -21,6 +21,7 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
+#include "NodeNetwork.h"
 #include "SecretShare.h"
 #include "stdint.h"
 #include <cstdlib>
@@ -32,23 +33,27 @@
 class SecretShare {
 
 public:
-    SecretShare(int, int, mpz_t);
+  SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE]); 
 
-    int getPeers();
-    int getThreshold();
+    unsigned int getPeers();
+    unsigned int getThreshold();
     void getFieldSize(mpz_t);
 
     // Create n shares of a secret or multiple secrets
     void getShares(mpz_t *, mpz_t);
     void getShares(mpz_t **, mpz_t *, int);
 
-    void computeLagrangeWeight();
+    void computeLagrangeWeights();
     void computeSharingMatrix();
 
     // Reconstruct a secret from n shares
     void reconstructSecret(mpz_t, mpz_t *, bool);
     void reconstructSecret(mpz_t *, mpz_t **, int, bool);
-
+    // Reconstruct a secret from the minimum (threshold+1) number of shares
+    void reconstructSecretFromMin(mpz_t *, mpz_t **, unsigned int);
+    // Evaluate a polynomial represented by threshold+1 shares on another threshold+1 points
+    void getSharesMul(mpz_t **, mpz_t **, unsigned int);
+    
     // Modular Multiplication
     void modMul(mpz_t, mpz_t, mpz_t);
     void modMul(mpz_t *, mpz_t *, mpz_t *, int);
@@ -93,7 +98,7 @@ public:
     void mod(mpz_t *result, mpz_t *a, mpz_t *m, int size);
     void mod(mpz_t *result, mpz_t *a, mpz_t m, int size);
 
-    // computation for 3P multiplication
+    // computation for 3P multiplication, to be removed
     void getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size);
     void Seed(unsigned char *key_0, unsigned char *key_1);
     void checkSeed();
@@ -101,17 +106,36 @@ public:
 
 private:
     mpz_t fieldSize;
-    int threshold;
-    int peers;
+    unsigned int threshold;
+    unsigned int peers;
+    unsigned int myid;
+
     std::vector<long> coefficients;
-    mpz_t *lagrangeWeight;
+    // coeffiicents for polynomial reconstruction on point 0 from all shares
+    mpz_t *lagrangeWeightsAll;
+    // coefficients for polynomial reconstruction on point 0 from threshold+1 shares at points with indices in recvFromIDs
+    mpz_t *lagrangeWeightsThreshold;
+    // coefficients for polynonial evaluation on threshold points at indices stored in sendToIDs, where the polynomial is stored as threshold+1 values at indices in recvFromIDs and point 0
+    // size is threshold*(threshold+1)
+    mpz_t **lagrangeWeightsMult;
     mpz_t **sharingMatrix;
-    int bits;
+    //    int bits;
     gmp_randstate_t rstate;
+
+    // peers to whom a share or shares will be sent, numbered consequently
+    // from myid (myid+1, ..., myid+t)
+    unsigned int *sendToIDs;
+    // peers to receive shares from or generate via PRGs, numbered from myid
+    // in the decreasing order (myid-t, ..., myid-1)
+    unsigned int *recvFromIDs;
+    
+    // additional data structures for multiplication
+    gmp_randstate_t *rstatesMult;
+
+    // for 3-party multiplication
     gmp_randstate_t rstate_0;
     gmp_randstate_t rstate_1;
     int seeded;
-    int myid;
     int id_p1;
     int id_m1;
     mpz_t id_p1_inv;

@@ -27,17 +27,49 @@
 #include <gmp.h>
 #include <cstring>
 
-SecretShare::SecretShare(int p, int t, mpz_t mod){
+/*
+ * the constructor receives: 
+ * p - the number of computational parties or peers,
+ * t - secret sharing threshold, 
+ * mod - modulus of the field/computation, 
+ * id - the ID of the current party, and 
+ * keys - an array of 16-byte keys of size threshold, which are used as PRG seeds in optimized multiplication.
+ */
+SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned char *keys[KEYSIZE]){
 	peers = p;
 	threshold = t;
+	myid = id;
 	mpz_init(fieldSize);
 	mpz_set(fieldSize, mod);
 	computeSharingMatrix();
-	computeLagrangeWeight();
-	gmp_randinit_mt(rstate); 
+	computeLagrangeWeights();
+	gmp_randinit_mt(rstate);
+
+	unsigned int i;
+	// initialize arrays of indices
+	sendToIDs = (unsigned int *)malloc(sizeof(unsigned int)*threshold);
+	recvFromIDs = (unsigned int *)malloc(sizeof(unsigned int)*threshold);
+	// IDs range between 1 and n=peers
+	for (i = 0; i < threshold; i++) {
+	  sendToIDs[i] = ((myid + i) % peers) + 1;
+	  if ((threshold - i) >= myid) 
+	    recvFromIDs[i] = myid + peers - threshold + i;
+	  else
+	    recvFromIDs[i] = myid - threshold + i;
+	}
+	
+	// initialize PRGs
+	mpz_t seed;
+	mpz_init(seed);
+	rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t)*threshold);
+	for (i = 0; i < threshold; i++) {
+	  gmp_randinit_mt(rstatesMult[i]); 
+	  mpz_import(seed, KEYSIZE, 1, sizeof(keys[i]), 0, 0, keys[i]);
+	  gmp_randseed(rstatesMult[i], seed);
+	}
 }
 
-int SecretShare::getPeers(){
+unsigned int SecretShare::getPeers(){
 	return peers; 
 }
 
@@ -45,7 +77,7 @@ void SecretShare::getFieldSize(mpz_t field){
 	mpz_set(field, fieldSize); 
 }
 
-int SecretShare::getThreshold(){
+unsigned int SecretShare::getThreshold(){
 	return threshold; 
 }
 
@@ -359,41 +391,130 @@ void SecretShare::computeSharingMatrix(){
 }
 
 /* 
- * this function pre-computed Largrange coefficients for reconstructing a 
- * secret from n=peer shares, which corresponds to evaluating the polynomial
- * at point 0.
+ * this function pre-computed Largrange coefficients for:
+ * 1) reconstructing a secret from n=peers shares, which corresponds to evaluating the polynomial at point 0;
+ * 2) reconstructing a secret from threshold+1 shares using points at indices stored in recvFromIDs (used by Open); and
+ * 3) evaluating a polynomial on threshold+1 points at indices stored in sendToIDs as well as myid, where the polynomial is encoded using threshold+1 values at indices stored in recvFromIDs and point 0.
  */
-void SecretShare::computeLagrangeWeight(){
+void SecretShare::computeLagrangeWeights(){
 	mpz_t nom, denom, t1, t2, temp;
 	mpz_init(nom);
 	mpz_init(denom);
 	mpz_init(t1);
 	mpz_init(t2);
 	mpz_init(temp);
+	unsigned int i, j, l;
 
-	lagrangeWeight = (mpz_t*)malloc(sizeof(mpz_t) * peers);
-	
-	for(int i = 0; i < peers; i++)
-		mpz_init(lagrangeWeight[i]);
-	
-	for(int peer = 0; peer < peers; peer++){
-		int point = peer+1;
-		mpz_set_ui(nom,1);
-		mpz_set_ui(denom,1);
+	// first set of coefficients
+	lagrangeWeightsAll = (mpz_t*)malloc(sizeof(mpz_t) * peers);
 
-		for(int l = 0; l < peers; l++){
-			if(l != peer){
-				mpz_set_ui(t1, l+1);
-				modMul(nom, nom, t1);
-				mpz_set_ui(t2, point);
-				modSub(temp, t1, t2);
-				modMul(denom, denom, temp);
-			}
-		}
-		modInv(temp, denom);
-		modMul(lagrangeWeight[peer], nom, temp);
+	for(i = 0; i < peers; i++)
+	  mpz_init(lagrangeWeightsAll[i]);
+	
+	// refer to https://en.wikipedia.org/wiki/Lagrange_polynomial
+	// at loop iteration i compute ell_i(0)
+	for (i = 0; i < peers; i++){
+	  mpz_set_ui(nom,1);
+	  mpz_set_ui(denom,1);
+	  mpz_set_ui(t2, i+1);
+	  
+	  for(l = 0; l < peers; l++){
+	    if(l != i){
+	      mpz_set_ui(t1, l+1);
+	      modMul(nom, nom, t1); // nominator is multiplied by x_l=l+1
+	      modSub(temp, t1, t2); // denominator is muliplied by x_l-x_i=l-i
+	      modMul(denom, denom, temp);
+	    }
+	  }
+	  modInv(temp, denom);
+	  modMul(lagrangeWeightsAll[i], nom, temp);
 	}
 
+	// second set 
+	lagrangeWeightsThreshold = (mpz_t*)malloc(sizeof(mpz_t) * (threshold + 1));
+	
+	for(i = 0; i < threshold+1; i++)
+	  mpz_init(lagrangeWeightsThreshold[i]);
+	
+	for (i = 0; i < threshold+1; i++){
+	  mpz_set_ui(nom,1);
+	  mpz_set_ui(denom,1);
+	  if (i == threshold)
+	    mpz_set_ui(t2, myid);
+	  else 
+	    mpz_set_ui(t2, recvFromIDs[i]);
+	  
+	  for(l = 0; l < threshold+1; l++){
+	    if(l != i) {
+	      if (l == threshold)
+		mpz_set_ui(t1, myid);
+	      else 
+		mpz_set_ui(t1, recvFromIDs[l]);
+	      modMul(nom, nom, t1);
+	      modSub(temp, t1, t2);
+	      modMul(denom, denom, temp);
+	    }
+	  }
+	  modInv(temp, denom);
+	  modMul(lagrangeWeightsThreshold[i], nom, temp);
+	}
+
+	// third set of coefficients
+	lagrangeWeightsMult = (mpz_t**)malloc(sizeof(mpz_t *)*(threshold + 1));
+	
+	for (i = 0; i < threshold+1; i++) {
+	  lagrangeWeightsMult[i] = (mpz_t*)malloc(sizeof(mpz_t)*(threshold + 1));
+	
+	  for(j = 0; j < threshold+1; j++)
+	    mpz_init(lagrangeWeightsMult[i][j]);
+	}
+	
+	// weights at row i (i.e., in largrangeWeightsMult[i]) correspond to polynomial evaluation on point sendToIDs[i] and row threshold corresponds to evaluation on point myid
+	// the denominator is independent of the point and needs to be computed only once
+	// column j corresponds to the coefficient on point recvFromIDs[j] in the interpolation set; the point at position j=threshold is 0
+	for (j = 0; j < threshold+1; j++){
+	  mpz_set_ui(denom,1);
+	  if (j == threshold)
+	    mpz_set_ui(t2, 0);
+	  else 
+	    mpz_set_ui(t2, recvFromIDs[j]);
+
+	  // computing denominator
+	  for(l = 0; l < threshold+1; l++){
+	    if(l != j) {
+	      if (l == threshold)
+		mpz_set_ui(t1, 0);
+	      else 
+		mpz_set_ui(t1, recvFromIDs[l]);
+	      modSub(temp, t1, t2);
+	      modMul(denom, denom, temp);
+	    }
+	  }
+	  modInv(temp, denom);
+	  mpz_set(denom, temp);
+
+	  // computing point-dependent nominators
+	  for (i = 0; i < threshold+1; i++) {
+	    mpz_set_ui(nom, 1);
+	    if (i == threshold)
+	      mpz_set_ui(t2, myid);
+	    else 
+	      mpz_set_ui(t2, sendToIDs[i]);
+	    
+	    for (l = 0; l < threshold+1; l++) {
+	      if(l != j) {
+		if (l == threshold)
+		  mpz_set_ui(t1, 0);
+		else 
+		  mpz_set_ui(t1, recvFromIDs[l]);
+		modSub(temp, t1, t2);
+		modMul(nom, nom, temp);
+	      }
+	    }
+	    modMul(lagrangeWeightsMult[i][j], nom, denom);
+	  }
+	}
+	
 	mpz_clear(nom); 
 	mpz_clear(denom); 
 	mpz_clear(t1); 
@@ -407,10 +528,10 @@ void SecretShare::reconstructSecret(mpz_t result, mpz_t* y, bool isMultiply){
 	mpz_init(temp);
 	mpz_set_ui(result, 0); 
 	for(int peer = 0; peer < peers; peer++){
-		modMul(temp, y[peer], lagrangeWeight[peer]);
+		modMul(temp, y[peer], lagrangeWeightsAll[peer]);
 		modAdd(result,result, temp);
 	}
-	mpz_clear(temp); 
+	mpz_clear(temp);
 }
 
 /* reconstruction of a number of secrets from n=peers shares each */
@@ -421,9 +542,55 @@ void SecretShare::reconstructSecret(mpz_t* result, mpz_t** y, int size, bool isM
 		mpz_set_ui(result[i], 0);
 	for(int i = 0; i < size; i++){
 		for(int peer = 0; peer < peers; peer++){
-			modMul(temp, y[peer][i], lagrangeWeight[peer]);
+			modMul(temp, y[peer][i], lagrangeWeightsAll[peer]);
 			modAdd(result[i],result[i], temp);
 		}
+	}
+	mpz_clear(temp); 
+}
+
+/* 
+ * reconstruction of a number of secrets from threshold+1 shares each. 
+ * the shares are expected to correspond to points at indices stored in recvFromIDs as well as myid.
+ */
+void SecretShare::reconstructSecretFromMin(mpz_t* result, mpz_t** y, unsigned int size) {
+	mpz_t temp;
+	mpz_init(temp);
+	unsigned i, j;
+	
+	for (i = 0; i < size; i++)
+	  mpz_set_ui(result[i], 0);
+	
+	for (i = 0; i < size; i++) {
+	  for (j = 0; j < threshold+1; j++) {
+	    modMul(temp, y[j][i], lagrangeWeightsThreshold[j]);
+	    modAdd(result[i], result[i], temp);
+	  }
+	}
+	mpz_clear(temp); 
+}
+
+/* 
+ * for each set of threshold+1 input shares, evaluate a polynomial represented by them on another set of threshold+1 points.
+ * input is of size (threshold+1)*size, i.e., a row stores size shares from a single party.
+ * ouput result is also of size (threshold+1)*size, a row stores size shares for a single party (parties in sendToIDs and myid).
+ */
+void SecretShare::getSharesMul(mpz_t** result, mpz_t** input, unsigned int size) {
+	mpz_t temp;
+	mpz_init(temp);
+	unsigned i, j, k;
+	
+	for (i = 0; i < threshold+1; i++)
+	  for (j = 0; j < size; j++)
+	    mpz_set_ui(result[i][j], 0);
+	
+	for (i = 0; i < size; i++) {
+	  // for each secret, evaluate the polynomial on threshold+1 points
+	  for (j = 0; j < threshold+1; j++) 
+	    for (k = 0; k < threshold+1; k++) {
+	    modMul(temp, input[j][i], lagrangeWeightsMult[k][j]);
+	    modAdd(result[k][i], result[k][i], temp);
+	  }
 	}
 	mpz_clear(temp); 
 }

@@ -25,11 +25,6 @@ PrefixMultiplication::PrefixMultiplication(NodeNetwork nodeNet, std::map<std::st
 	polynomials = poly;
 	id = nodeID;
 	ss = s;
-	for (int i = 0; i < 9; i++){ //Not optimal, pass this thing by pointer somehow
-		mpz_init(coef[i]);
-		mpz_set(coef[i],coeficients[i]);
-	}
-
 
 	Rand = new Random(nodeNet, poly, nodeID, s);
 }
