@@ -81,15 +81,20 @@ int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed mode
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
-    connectToPeers();
-
+    
     // here number of peers is n-1 instead of n
-    int peers = config->getPeerCount();    
+    int peers = config->getPeerCount();
     // allocate space for prgSeeds
-    int threshold = peers/2;
-    prgSeeds = (unsigned char **)malloc(threshold*sizeof(unsigned char*));
-    for (unsigned int i = 0; i < threshold; i++)
-      prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char)*KEYSIZE);
+    int threshold = peers / 2;
+    // prgSeeds = (unsigned char **)malloc(peers * sizeof(unsigned char *));
+    prgSeeds = new unsigned char *[threshold];
+    for (unsigned int i = 0; i < peers; i++) {
+        // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
+        prgSeeds[i] = new unsigned char[KEYSIZE];
+    }
+    
+    connectToPeers();
+    // printf("connecttopeers end\n");
 
     numOfThreads = num_threads; // it should be read from parsing
     int numb = 8 * sizeof(char);
@@ -156,7 +161,19 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
 
 NodeNetwork::NodeNetwork() {}
 
-NodeNetwork::~NodeNetwork() {}
+NodeNetwork::~NodeNetwork() {
+    // int peers = config->getPeerCount();
+    // int threshold = peers / 2;
+
+    // for (uint i = 0; i < threshold; i++) {
+    //     delete[] prgSeeds[i];
+    // }
+    // delete[] prgSeeds;
+}
+
+unsigned char **NodeNetwork::getPRGseeds() {
+    return prgSeeds;
+}
 
 void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size) {
     try {
@@ -814,7 +831,8 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
 }
 
 void NodeNetwork::requestConnection(int numOfPeers) {
-    peerKeyIV = (unsigned char *)malloc(KEYSIZE+AES_BLOCK_SIZE);
+    // key/iv for secure communication, plus key for seed
+    peerKeyIV = (unsigned char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
     int *sockfd = (int *)malloc(sizeof(int) * numOfPeers);
     int *portno = (int *)malloc(sizeof(int) * numOfPeers);
     struct sockaddr_in *serv_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
@@ -889,7 +907,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
         int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
         if (dec_len < 1)
             printf("RSA private decrypt error\n");
-        memcpy(peerKeyIV, decrypt, KEYSIZE+AES_BLOCK_SIZE);
+        memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
         init_keys(ID, 1);
         free(buffer);
         free(decrypt);
@@ -897,7 +915,8 @@ void NodeNetwork::requestConnection(int numOfPeers) {
 }
 
 void NodeNetwork::acceptPeers(int numOfPeers) {
-    KeyIV = (unsigned char *)malloc(KEYSIZE+AES_BLOCK_SIZE);
+    // key/iv for secure communication, plus key for seed
+    KeyIV = (unsigned char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
     int sockfd, maxsd, portno, on = 1;
     int *newsockfd = (int *)malloc(sizeof(int) * numOfPeers);
     socklen_t *clilen = (socklen_t *)malloc(sizeof(socklen_t) * numOfPeers);
@@ -941,11 +960,11 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
             sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
 
-            unsigned char key_iv[KEYSIZE+AES_BLOCK_SIZE];
+            unsigned char key_iv[2 * KEYSIZE + AES_BLOCK_SIZE];
             RAND_status();
-            if (!RAND_bytes(key_iv, KEYSIZE+AES_BLOCK_SIZE))
+            if (!RAND_bytes(key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE))
                 printf("Key, iv generation error\n");
-            memcpy(KeyIV, key_iv, KEYSIZE+AES_BLOCK_SIZE);
+            memcpy(KeyIV, key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE);
             int peer = config->getID() - (i + 1);
             FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
             if (pubkeyfp == NULL)
@@ -955,7 +974,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
                 printf("Read Public Key for RSA Error\n");
             char *encrypt = (char *)malloc(RSA_size(publicRkey));
             memset(encrypt, 0x00, RSA_size(publicRkey));
-            int enc_len = RSA_public_encrypt(KEYSIZE+AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+            int enc_len = RSA_public_encrypt(2 * KEYSIZE + AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
             if (enc_len < 1)
                 printf("RSA public encrypt error\n");
             int n = write(newsockfd[i], encrypt, enc_len); // sending to peer
@@ -989,31 +1008,56 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
 //     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
 // }
 
-
+// used for debugging
+void print_hexa(uint8_t *message, int message_length) {
+    for (int i = 0; i < message_length; i++) {
+        printf("%02x", message[i]);
+    }
+    printf(";\n");
+}
 void NodeNetwork::init_keys(int peer, int nRead) {
-    unsigned char key[KEYSIZE], iv[AES_BLOCK_SIZE];
+    unsigned char key[KEYSIZE], iv[AES_BLOCK_SIZE], prg_seed_key[KEYSIZE];
     memset(key, 0x00, KEYSIZE);
     memset(iv, 0x00, AES_BLOCK_SIZE);
+    memset(prg_seed_key, 0x00, KEYSIZE);
+
+
     if (0 == nRead) // useKey KeyIV
     {
         memcpy(key, KeyIV, KEYSIZE);
         memcpy(iv, KeyIV + KEYSIZE, AES_BLOCK_SIZE);
+        memcpy(prg_seed_key, KeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
     } else // getKey from peers
     {
         memcpy(key, peerKeyIV, KEYSIZE);
         memcpy(iv, peerKeyIV + KEYSIZE, AES_BLOCK_SIZE);
+        memcpy(prg_seed_key, peerKeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
     }
+
 
     // populate the prgSeeds array which stores keys for parties myid-threshold through myid-1
     int peers = config->getPeerCount();
-    // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties 
-    int threshold = peers/2;
+    // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties
+    int threshold = peers / 2;
     int myid = getID();
     int index = myid - peer;
     if (index < 0)
-      index = index + peers + 1;
-    if (1 <= index <= threshold)
-      memcpy(prgSeeds[threshold-index], key, KEYSIZE*sizeof(unsigned char));
+        index = index + peers + 1;
+    // printf("index :%i\n", index);
+    // printf("threshold :%i\n", threshold);
+
+    if (1 <= index <= threshold) {
+        // printf("threshold - index :%i\n", threshold - index);
+        // first KEYSIZE + AES_BLOCK_SIZE are for key/iv for securecommunication
+        memcpy(prgSeeds[threshold - index+1], prg_seed_key, KEYSIZE);
+        // the index above needs to be checked
+    print_hexa(prgSeeds[threshold - index+1],KEYSIZE ); 
+
+    }
+
+    // print_hexa(key,KEYSIZE ); 
+    // print_hexa(iv,AES_BLOCK_SIZE ); 
+    // print_hexa(prg_seed_key,KEYSIZE ); 
 
     // 3-party version which will be removed after implementing general optimized multiplication
     if (peers == 2) {
@@ -1040,6 +1084,7 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     EVP_DecryptInit_ex(de, EVP_aes_128_cbc(), NULL, key, iv);
     peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
+    // printf("hi\n");
 }
 
 void NodeNetwork::mpzFromString(char *str, mpz_t *no, int *lengths, int size) {

@@ -41,6 +41,8 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 
 	NodeNetwork* nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);    
 	nNet = *nodeNet;
+
+	std::cout << "Creating SecretShare\n";
 	ss = new SecretShare(numOfPeers, threshold, modulus, id, nNet.getPRGseeds());
 
 	clientConnect();

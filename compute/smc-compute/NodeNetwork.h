@@ -93,13 +93,14 @@ public:
     void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
     void multicastToPeers_Mul2(mpz_t **data, int size);
 
+     unsigned char **getPRGseeds() ;
+
     // PRG seeds used in multiplication
-    unsigned char** prgSeeds;
+
 
     // to be removed
     unsigned char key_0[16];
-    unsigned char key_1[16]; 
-
+    unsigned char key_1[16];
 
 private:
     static pthread_mutex_t socket_mutex;
@@ -131,6 +132,9 @@ private:
     std::map<int, int> sock2peer;
     int serverSock;
 
+    unsigned char **prgSeeds;
+
+    
 };
 
 #endif /* NODENETWORK_H_ */
