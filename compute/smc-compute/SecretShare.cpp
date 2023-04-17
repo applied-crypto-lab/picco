@@ -36,14 +36,16 @@
  * keys - an array of 16-byte keys of size threshold, which are used as PRG seeds in optimized multiplication.
  */
 SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned char *keys[KEYSIZE]){
+
+	// keys are properly passed using the getter function, so they are now private members of NodeNetwork
+	// printf("printing keys\n");
+    // print_hexa(keys[0],KEYSIZE); 
+    // print_hexa(keys[1],KEYSIZE); 
 	peers = p;
 	threshold = t;
 	myid = id;
 	mpz_init(fieldSize);
 	mpz_set(fieldSize, mod);
-	computeSharingMatrix();
-	computeLagrangeWeights();
-	gmp_randinit_mt(rstate);
 
 	unsigned int i;
 	// initialize arrays of indices
@@ -58,6 +60,13 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 	    recvFromIDs[i] = myid - threshold + i;
 	}
 	
+	// printf("ComputeSharingMatrix\n");
+	computeSharingMatrix();
+	// printf("computeLagrangeWeights\n");
+	computeLagrangeWeights();
+	gmp_randinit_mt(rstate);
+	// printf("done\n");
+
 	// initialize PRGs
 	mpz_t seed;
 	mpz_init(seed);

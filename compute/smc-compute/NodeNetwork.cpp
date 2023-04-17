@@ -1051,7 +1051,7 @@ void NodeNetwork::init_keys(int peer, int nRead) {
         // first KEYSIZE + AES_BLOCK_SIZE are for key/iv for securecommunication
         memcpy(prgSeeds[threshold - index+1], prg_seed_key, KEYSIZE);
         // the index above needs to be checked
-    print_hexa(prgSeeds[threshold - index+1],KEYSIZE ); 
+    // print_hexa(prgSeeds[threshold - index+1],KEYSIZE ); 
 
     }
 

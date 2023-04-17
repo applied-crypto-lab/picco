@@ -132,9 +132,11 @@ private:
     std::map<int, int> sock2peer;
     int serverSock;
 
-    unsigned char **prgSeeds;
+    unsigned char **prgSeeds; //getter function works properly in SecretShare constructor
 
     
 };
+
+void print_hexa(uint8_t *message, int message_length);
 
 #endif /* NODENETWORK_H_ */
