@@ -93,9 +93,8 @@ public:
     void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
     void multicastToPeers_Mul2(mpz_t **data, int size);
 
-     unsigned char **getPRGseeds() ;
-
-    // PRG seeds used in multiplication
+    //getter function for retreiving PRG seeds
+    unsigned char **getPRGseeds();
 
 
     // to be removed
@@ -132,9 +131,8 @@ private:
     std::map<int, int> sock2peer;
     int serverSock;
 
-    unsigned char **prgSeeds; //getter function works properly in SecretShare constructor
-
-    
+    // PRG seeds used in multiplication
+    unsigned char **prgSeeds; // getter function works properly in SecretShare constructor
 };
 
 void print_hexa(uint8_t *message, int message_length);

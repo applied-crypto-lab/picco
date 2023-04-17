@@ -81,7 +81,7 @@ int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed mode
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
-    
+
     // here number of peers is n-1 instead of n
     int peers = config->getPeerCount();
     // allocate space for prgSeeds
@@ -92,7 +92,7 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
         // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
         prgSeeds[i] = new unsigned char[KEYSIZE];
     }
-    
+
     connectToPeers();
     // printf("connecttopeers end\n");
 
@@ -1021,7 +1021,6 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     memset(iv, 0x00, AES_BLOCK_SIZE);
     memset(prg_seed_key, 0x00, KEYSIZE);
 
-
     if (0 == nRead) // useKey KeyIV
     {
         memcpy(key, KeyIV, KEYSIZE);
@@ -1034,7 +1033,6 @@ void NodeNetwork::init_keys(int peer, int nRead) {
         memcpy(prg_seed_key, peerKeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
     }
 
-
     // populate the prgSeeds array which stores keys for parties myid-threshold through myid-1
     int peers = config->getPeerCount();
     // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties
@@ -1046,18 +1044,22 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     // printf("index :%i\n", index);
     // printf("threshold :%i\n", threshold);
 
-    if (1 <= index <= threshold) {
+    // if (1 <= index <= threshold) {
+    if ((1 <= index) and (index <= threshold)) {
         // printf("threshold - index :%i\n", threshold - index);
         // first KEYSIZE + AES_BLOCK_SIZE are for key/iv for securecommunication
-        memcpy(prgSeeds[threshold - index+1], prg_seed_key, KEYSIZE);
+        memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
         // the index above needs to be checked
-    // print_hexa(prgSeeds[threshold - index+1],KEYSIZE ); 
-
+        // print_hexa(prgSeeds[threshold - index+1],KEYSIZE );
     }
+    // else {
+    //     memcpy(prgSeeds[threshold +peers - index], prg_seed_key, KEYSIZE);
 
-    // print_hexa(key,KEYSIZE ); 
-    // print_hexa(iv,AES_BLOCK_SIZE ); 
-    // print_hexa(prg_seed_key,KEYSIZE ); 
+    // }
+
+    // print_hexa(key,KEYSIZE );
+    // print_hexa(iv,AES_BLOCK_SIZE );
+    // print_hexa(prg_seed_key,KEYSIZE );
 
     // 3-party version which will be removed after implementing general optimized multiplication
     if (peers == 2) {

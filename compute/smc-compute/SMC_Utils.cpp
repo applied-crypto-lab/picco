@@ -88,7 +88,7 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 	DProd = new DotProduct(*nodeNet, polynomials, id, ss, coef); 
 	PI = new PrivIndex(*nodeNet, polynomials, id, ss, coef); 
 	PP = new PrivPtr(*nodeNet, id, ss); 
-        Idiv = new IntDiv(*nodeNet, polynomials, id, ss, coef);
+	Idiv = new IntDiv(*nodeNet, polynomials, id, ss, coef);
 	I2F = new Int2FL(*nodeNet, polynomials, id, ss, coef); 
  	F2I = new FL2Int(*nodeNet, polynomials, id, ss, coef); 
 	Fladd = new FLAdd(*nodeNet, polynomials, id, ss, coef); 
