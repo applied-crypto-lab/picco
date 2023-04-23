@@ -87,7 +87,7 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     // allocate space for prgSeeds
     int threshold = peers / 2;
     // prgSeeds = (unsigned char **)malloc(peers * sizeof(unsigned char *));
-    prgSeeds = new unsigned char *[threshold];
+    prgSeeds = new unsigned char *[2 * threshold];
     for (unsigned int i = 0; i < peers; i++) {
         // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
         prgSeeds[i] = new unsigned char[KEYSIZE];
@@ -1039,27 +1039,15 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     int threshold = peers / 2;
     int myid = getID();
     int index = myid - peer;
-    if (index < 0)
+    if (index < 0) {
         index = index + peers + 1;
-    // printf("index :%i\n", index);
-    // printf("threshold :%i\n", threshold);
-
-    // if (1 <= index <= threshold) {
-    if ((1 <= index) and (index <= threshold)) {
-        // printf("threshold - index :%i\n", threshold - index);
-        // first KEYSIZE + AES_BLOCK_SIZE are for key/iv for securecommunication
-        memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
-        // the index above needs to be checked
-        // print_hexa(prgSeeds[threshold - index+1],KEYSIZE );
     }
-    // else {
-    //     memcpy(prgSeeds[threshold +peers - index], prg_seed_key, KEYSIZE);
 
-    // }
-
-    // print_hexa(key,KEYSIZE );
-    // print_hexa(iv,AES_BLOCK_SIZE );
-    // print_hexa(prg_seed_key,KEYSIZE );
+    if ((1 <= index) and (index <= threshold)) {
+        memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
+    } else {
+        memcpy(prgSeeds[threshold + peers - index], prg_seed_key, KEYSIZE);
+    }
 
     // 3-party version which will be removed after implementing general optimized multiplication
     if (peers == 2) {
