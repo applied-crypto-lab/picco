@@ -70,8 +70,8 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 	// initialize PRGs
 	mpz_t seed;
 	mpz_init(seed);
-	rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t)*threshold);
-	for (i = 0; i < threshold; i++) {
+	rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t)*(2*threshold));
+	for (i = 0; i < 2*threshold; i++) {
 	  gmp_randinit_mt(rstatesMult[i]); 
 	  mpz_import(seed, KEYSIZE, 1, sizeof(keys[i]), 0, 0, keys[i]);
 	  gmp_randseed(rstatesMult[i], seed);
