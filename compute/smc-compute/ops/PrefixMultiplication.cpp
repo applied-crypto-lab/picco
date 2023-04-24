@@ -76,14 +76,14 @@ void PrefixMultiplication::doOperation(mpz_t** B, mpz_t** result, int length, in
 
 	ss->modMul(temp, R, S, length);
 	net.broadcastToPeers(temp, length, buffer1, threadID);
-	ss->reconstructSecret(U, buffer1, length, true);
+	ss->reconstructSecret(U, buffer1, length );
 	clearBuffer(buffer1, peers, length);
 	for(int i = 0; i < length-1; i++)
 		ss->modMul(V[i], R[i+1], S[i]);
 
 	ss->getShares(buffer1, V, length);
 	net.multicastToPeers(buffer1, buffer2, length, threadID);
-	ss->reconstructSecret(V, buffer2, length, true);
+	ss->reconstructSecret(V, buffer2, length );
 	/************ free memory ********************/
 	for(int i = 0; i < peers; i++){
                 for(int j = 0; j < length; j++){
@@ -123,7 +123,7 @@ void PrefixMultiplication::doOperation(mpz_t** B, mpz_t** result, int length, in
 			ss->modMul(results[i*size+m],B[i][m],W[i]);
     
 	net.broadcastToPeers(results, size*length, buffer3, threadID);
-	ss->reconstructSecret(results, buffer3, size * length, true);
+	ss->reconstructSecret(results, buffer3, size * length);
 
 	for(int i = 0; i < size; i++)
 		mpz_set(temp1[i], results[i]); 

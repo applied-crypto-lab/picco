@@ -83,7 +83,7 @@ void SDiv::doOperation(mpz_t* Y, mpz_t* A, mpz_t* B, int size){
 		ss->modSub(temp2, const2K1, X, size);
 		/*********/
 		/*net.broadcastToPeers(temp2, size, shares); 
-		ss->reconstructSecret(temp, shares, size, true); 
+		ss->reconstructSecret(temp, shares, size); 
 		for(int i = 0; i < size; i++)
 			gmp_printf("temp2 : %Zd\n", temp[i]); */
 		/********/

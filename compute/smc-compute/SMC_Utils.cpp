@@ -113,7 +113,7 @@ int SMC_Utils::smc_open(mpz_t var, int threadID){
 	mpz_init(results[0]); 
 	mpz_set(data[0], var);  
 	nNet.broadcastToPeers(data, 1, buffer, threadID);
-	ss->reconstructSecret(results,buffer, 1, false);
+	ss->reconstructSecret(results,buffer, 1);
 	mpz_t tmp, field; 
 	mpz_init(tmp); 
 	mpz_init(field); 
@@ -158,7 +158,7 @@ float SMC_Utils::smc_open(mpz_t* var, int threadID){
         	mpz_set(data[i], var[i]);
 	}
         nNet.broadcastToPeers(data, 4, buffer, threadID);
-        ss->reconstructSecret(results,buffer, 4, false);
+        ss->reconstructSecret(results,buffer, 4);
 	
 	for(int i = 0; i < 4; i++){
 		if(i == 1){

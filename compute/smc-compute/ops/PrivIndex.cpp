@@ -139,7 +139,7 @@ void PrivIndex::doOperationRead(mpz_t* index, mpz_t* array, mpz_t* result, int d
 	ss->modAdd(C, index, r, size); 
 	ss->modAdd(C, C, S, size);
 	net.broadcastToPeers(C, size, resultShares, threadID);
-	ss->reconstructSecret(C, resultShares, size, true);
+	ss->reconstructSecret(C, resultShares, size);
 
 	/*** Lookup: LINE 4: c' = c mod 2^log_n ***/
 	ss->mod(C, C, pow2K, size);
@@ -162,7 +162,7 @@ void PrivIndex::doOperationRead(mpz_t* index, mpz_t* array, mpz_t* result, int d
 
 	ss->getShares(shares, result, m*size); 
 	net.multicastToPeers(shares, buffer, m*size, threadID); 
-	ss->reconstructSecret(result, buffer, m*size, true);
+	ss->reconstructSecret(result, buffer, m*size);
 	gettimeofday(&tv5, NULL);
 	//std::cout << "Time DotProduct: " << time_diff(&tv4,&tv5) << std::endl;
 

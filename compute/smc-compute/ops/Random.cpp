@@ -614,7 +614,7 @@ void Random::PRandBit(int size, mpz_t* results){
 	generateRandValue(id, field, size, u); 
 	ss->modMul(v, u, u, size);
 	net.broadcastToPeers(v, size, resultShares, -1);
-	ss->reconstructSecret(v, resultShares, size, true);
+	ss->reconstructSecret(v, resultShares, size);
 	ss->modSqrt(v, v, size);
 	ss->modInv(v, v, size);
 	ss->modMul(results, v, u, size);
@@ -671,7 +671,7 @@ void Random::PRandBit(int size, mpz_t* results, int threadID){
 	generateRandValue(id, field, size, u, threadID); 
 	ss->modMul(v, u, u, size);
 	net.broadcastToPeers(v, size, resultShares, threadID);
-	ss->reconstructSecret(v, resultShares, size, true);
+	ss->reconstructSecret(v, resultShares, size);
 	ss->modSqrt(v, v, size);
 	ss->modInv(v, v, size);
 	ss->modMul(results, v, u, size);

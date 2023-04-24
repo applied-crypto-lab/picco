@@ -59,7 +59,7 @@ void Inv::doOperation(mpz_t* shares, mpz_t* results, int size, int threadID){
 	Rand->generateRandValue(id, field, size, R, threadID); //
 	ss->modMul(temp, shares, R, size);
 	net.broadcastToPeers(temp, size, buffer, threadID);
-	ss->reconstructSecret(results, buffer, size, true);
+	ss->reconstructSecret(results, buffer, size);
 	ss->modInv(results, results, size);
 	ss->modMul(results, R, results, size);
 	

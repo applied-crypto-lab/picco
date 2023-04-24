@@ -38,9 +38,6 @@
 SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned char *keys[KEYSIZE]){
 
 	// keys are properly passed using the getter function, so they are now private members of NodeNetwork
-	// printf("printing keys\n");
-    // print_hexa(keys[0],KEYSIZE); 
-    // print_hexa(keys[1],KEYSIZE); 
 	peers = p;
 	threshold = t;
 	myid = id;
@@ -58,6 +55,14 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 	    recvFromIDs[i] = myid + peers - threshold + i;
 	  else
 	    recvFromIDs[i] = myid - threshold + i;
+	}
+
+	for (int i = 0; i < threshold; i++) {
+		printf("sendToIDs[%i]    %u\n",i, sendToIDs[i] );
+		printf("recvFromIDs[%i]  %u\n",i, recvFromIDs[i] );
+	}
+		for (int i = 0; i < 2*threshold; i++) {
+		print_hexa(keys[i],KEYSIZE);
 	}
 	
 	// printf("ComputeSharingMatrix\n");
@@ -532,7 +537,7 @@ void SecretShare::computeLagrangeWeights(){
 }
 
 /* reconstruction of a secret from n=peers shares */
-void SecretShare::reconstructSecret(mpz_t result, mpz_t* y, bool isMultiply){
+void SecretShare::reconstructSecret(mpz_t result, mpz_t* y){
 	mpz_t temp;
 	mpz_init(temp);
 	mpz_set_ui(result, 0); 
@@ -544,7 +549,7 @@ void SecretShare::reconstructSecret(mpz_t result, mpz_t* y, bool isMultiply){
 }
 
 /* reconstruction of a number of secrets from n=peers shares each */
-void SecretShare::reconstructSecret(mpz_t* result, mpz_t** y, int size, bool isMultiply){
+void SecretShare::reconstructSecret(mpz_t* result, mpz_t** y, int size){
 	mpz_t temp;
 	mpz_init(temp);
 	for(int i = 0; i < size; i++)
@@ -649,6 +654,15 @@ void SecretShare::getShares2(mpz_t* temp, mpz_t* rand, mpz_t** data, int size){
 	}
 }
 
+// start_ind dictates which half of the array to take from
+// if 0, the first half. if t, the second half
+void SecretShare::PRG(mpz_t** output, uint size, uint start_ind){
+	for(int i=0;i<threshold;i++) {
+		for(int j=0;j<size;j++) {
+			mpz_urandomm(output[i][j], rstatesMult[i + start_ind], fieldSize);
+		}
+	}
+}
 void SecretShare::checkSeed(){
  	if(seeded==0)
 	{

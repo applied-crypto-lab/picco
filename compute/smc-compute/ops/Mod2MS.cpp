@@ -106,7 +106,7 @@ void Mod2MS::doOperation(mpz_t* result, mpz_t* A, mpz_t* M, mpz_t* powM, int L, 
 	ss->modAdd(temp, temp, R1, size);
 	ss->modAdd(temp, A, temp, size);
 	net.broadcastToPeers(temp, size, resultShares, threadID);
-	ss->reconstructSecret(T1, resultShares, size, true);
+	ss->reconstructSecret(T1, resultShares, size);
 	for(int i = 0; i < L-1; i++){
 		ss->modSub(temp, X[i], X[i+1], size);
 		for(int j = 0; j < size; j++)

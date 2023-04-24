@@ -87,7 +87,7 @@ void FL2Int::doOperation(mpz_t** values1, mpz_t* results, int L, int K, int gamm
 	/********************************************/
 	/*for(int i = 0; i < 4; i++){
 		    net.broadcastToPeers(valuesP[i], size, resultShares, threadID);
-        	    ss->reconstructSecret(temp1, resultShares, size, true);
+        	    ss->reconstructSecret(temp1, resultShares, size);
 		    for(int j = 0; j < size; j++)
 			gmp_printf("%Zd ", temp1[j]); 
 		    printf("\n"); 

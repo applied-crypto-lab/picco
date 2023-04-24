@@ -82,7 +82,7 @@ void Mod2M::doOperation(mpz_t* result, mpz_t* shares1, int K, int M, int size, i
 	ss->modAdd(C, C, R[M], size);
 	ss->modAdd(C, C, pow2K1, size); 
 	net.broadcastToPeers(C, size, resultShares, threadID);
-	ss->reconstructSecret(C, resultShares, size, true);
+	ss->reconstructSecret(C, resultShares, size);
 	ss->mod(C, C, pow2M, size); 
 	B->doOperation(C, R, U, M, size, threadID);
 	ss->modMul(U, U, pow2M, size);

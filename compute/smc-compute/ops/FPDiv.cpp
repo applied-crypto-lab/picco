@@ -71,13 +71,13 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 	/*printf("test for correctness of inputs...\n"); 
 	
   	net.broadcastToPeers(a, size, resultShares);
-        ss->reconstructSecret(tmpResults, resultShares, size, true);
+        ss->reconstructSecret(tmpResults, resultShares, size );
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
 	
   	net.broadcastToPeers(b, size, resultShares);
-        ss->reconstructSecret(tmpResults, resultShares, size, true);
+        ss->reconstructSecret(tmpResults, resultShares, size );
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
@@ -100,21 +100,21 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 	/************************************/
 	/*printf("Result of App...\n"); 
 	net.broadcastToPeers(w, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
 	
 	printf("a: "); 
 	net.broadcastToPeers(a, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
 	
 	printf("b: "); 
 	net.broadcastToPeers(b, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
@@ -128,14 +128,14 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 	/*
  	printf("line 3 x: "); 
 	net.broadcastToPeers(x, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
 	
 	printf("line 4 y: "); 
 	net.broadcastToPeers(y, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
@@ -146,7 +146,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 	/*
 	printf("line 5 y: "); 
 	net.broadcastToPeers(y, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
@@ -160,7 +160,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 		/*
 		printf("line 7 y: "); 
 		net.broadcastToPeers(y, size, resultShares); 
-		ss->reconstructSecret(tmpResults, resultShares, size, true); 
+		ss->reconstructSecret(tmpResults, resultShares, size ); 
 		for(int i = 0; i < size; i++)
 			gmp_printf("%Zd ", tmpResults[i]); 
 		printf("\n"); 
@@ -169,7 +169,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 		/*
 		printf("line 8 x: "); 
 		net.broadcastToPeers(x, size, resultShares); 
-		ss->reconstructSecret(tmpResults, resultShares, size, true); 
+		ss->reconstructSecret(tmpResults, resultShares, size ); 
 		for(int i = 0; i < size; i++)
 			gmp_printf("%Zd ", tmpResults[i]); 
 		printf("\n"); 
@@ -178,7 +178,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 		/*
 		printf("line 9 y: "); 
 		net.broadcastToPeers(y, size, resultShares); 
-		ss->reconstructSecret(tmpResults, resultShares, size, true); 
+		ss->reconstructSecret(tmpResults, resultShares, size ); 
 		for(int i = 0; i < size; i++)
 			gmp_printf("%Zd ", tmpResults[i]); 
 		printf("\n"); 
@@ -188,7 +188,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 		/*
 		printf("line 10 x: "); 
 		net.broadcastToPeers(x, size, resultShares); 
-		ss->reconstructSecret(tmpResults, resultShares, size, true); 
+		ss->reconstructSecret(tmpResults, resultShares, size ); 
 		for(int i = 0; i < size; i++)
 			gmp_printf("%Zd ", tmpResults[i]); 
 		printf("\n"); 
@@ -202,7 +202,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 	/*
 	printf("line 11 y: "); 
 	net.broadcastToPeers(y, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n"); 
@@ -211,7 +211,7 @@ void FPDiv::doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int siz
 	/*
 	printf("line 12 y:\n"); 
 	net.broadcastToPeers(result, size, resultShares); 
-	ss->reconstructSecret(tmpResults, resultShares, size, true); 
+	ss->reconstructSecret(tmpResults, resultShares, size ); 
 	for(int i = 0; i < size; i++)
 		gmp_printf("%Zd ", tmpResults[i]); 
 	printf("\n\n"); 

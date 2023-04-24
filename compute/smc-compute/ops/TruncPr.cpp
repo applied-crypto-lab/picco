@@ -80,7 +80,7 @@ void TruncPr::doOperation(mpz_t* result, mpz_t* shares, int K, int M, int size, 
 		ss->modAdd(C, C, pow2K1, size);
 		
 		net.broadcastToPeers(C, size, resultShares, threadID);
-		ss->reconstructSecret(C, resultShares, size, true);
+		ss->reconstructSecret(C, resultShares, size);
 
 		for(int i = 0; i < size; i++){
 			mpz_mod(C[i], C[i], pow2M);

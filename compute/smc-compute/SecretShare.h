@@ -47,8 +47,8 @@ public:
     void computeSharingMatrix();
 
     // Reconstruct a secret from n shares
-    void reconstructSecret(mpz_t, mpz_t *, bool);
-    void reconstructSecret(mpz_t *, mpz_t **, int, bool);
+    void reconstructSecret(mpz_t, mpz_t *);
+    void reconstructSecret(mpz_t *, mpz_t **, int);
     // Reconstruct a secret from the minimum (threshold+1) number of shares
     void reconstructSecretFromMin(mpz_t *, mpz_t **, unsigned int);
     // Evaluate a polynomial represented by threshold+1 shares on another threshold+1 points
@@ -103,6 +103,9 @@ public:
     void Seed(unsigned char *key_0, unsigned char *key_1);
     void checkSeed();
     void getCoef(int id);
+
+    void PRG(mpz_t** output, uint size, uint start_ind);
+
 
 private:
     mpz_t fieldSize;

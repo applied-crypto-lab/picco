@@ -56,7 +56,7 @@ void DotProduct::doOperation(mpz_t* a, mpz_t* b, mpz_t result, int array_size, i
     
 	ss->getShares(shares, data, 1); 
 	net.multicastToPeers(shares, buffer, 1, threadID); 
-	ss->reconstructSecret(data, buffer, 1, true); 
+	ss->reconstructSecret(data, buffer, 1 ); 
 	mpz_set(result, data[0]);
 	 
 	//free the memory
@@ -101,7 +101,7 @@ void DotProduct::doOperation(mpz_t** a, mpz_t** b, mpz_t* result, int batch_size
 
 	ss->getShares(shares, result, batch_size); 
 	net.multicastToPeers(shares, buffer, batch_size, threadID); 
-	ss->reconstructSecret(result, buffer, batch_size, true);
+	ss->reconstructSecret(result, buffer, batch_size );
  
 	//free the memory 
 	for(int i = 0; i < peers; i++){

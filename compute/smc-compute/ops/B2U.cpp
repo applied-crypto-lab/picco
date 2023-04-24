@@ -83,7 +83,7 @@ void B2U::doOperation(mpz_t* A, int L, mpz_t** result, int size, int threadID){
 	ss->modAdd(C, C, pow2A, size);
 	ss->modAdd(C, C, R[L], size);
 	net.broadcastToPeers(C, size, resultShares, threadID);
-	ss->reconstructSecret(C, resultShares, size, true);
+	ss->reconstructSecret(C, resultShares, size);
 	for(int i = 0; i < size; i++)
 		binarySplit(C[i], c[i], L);
 

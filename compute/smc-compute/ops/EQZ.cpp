@@ -96,7 +96,7 @@ void EQZ::doOperation(mpz_t* shares, mpz_t* result, int K, int size, int threadI
  	ss->modMul(S, S, const2K, size); 
 	ss->modAdd(C, C, S, size);
 	net.broadcastToPeers(C, size, resultShares, threadID);
-	ss->reconstructSecret(c, resultShares, size, true);
+	ss->reconstructSecret(c, resultShares, size);
 	for(int i = 0; i < size; i++){
 		binarySplit(c[i], bitK, K);
 		for(int j = 0; j < K; j++){
@@ -128,7 +128,7 @@ void EQZ::doOperation(mpz_t* shares, mpz_t* result, int K, int size, int threadI
 	for(int i = 0; i < size; i++)
 		ss->modAdd(C[i], U[m][0], sum[i]);
 	net.broadcastToPeers(C, size, resultShares, threadID);
-	ss->reconstructSecret(c,resultShares, size,true);
+	ss->reconstructSecret(c,resultShares, size);
 	for(int i = 0; i < size; i++){
 		binarySplit(c[i], bitm, m);
 		mpz_set_ui(sum[i], 0); 

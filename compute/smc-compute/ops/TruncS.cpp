@@ -114,7 +114,7 @@ void TruncS::doOperation(mpz_t* result, mpz_t* A, int K, mpz_t* M, int size, int
 	ss->modAdd(temp, temp, R1, size);
 	ss->modAdd(temp, A, temp, size);
 	net.broadcastToPeers(temp, size, resultShares, threadID);
-	ss->reconstructSecret(T1, resultShares, size, true);
+	ss->reconstructSecret(T1, resultShares, size);
 
 	for(int i = 0; i < K-1; i++){
 		ss->modSub(temp, X[i], X[i+1], size);

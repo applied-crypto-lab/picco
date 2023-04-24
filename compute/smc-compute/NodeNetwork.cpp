@@ -91,6 +91,9 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     for (unsigned int i = 0; i < peers; i++) {
         // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
         prgSeeds[i] = new unsigned char[KEYSIZE];
+        memset(prgSeeds[i], 0, KEYSIZE);
+		// print_hexa(prgSeeds[i],KEYSIZE);
+
     }
 
     connectToPeers();
@@ -1044,8 +1047,10 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     }
 
     if ((1 <= index) and (index <= threshold)) {
+        printf("if : %u\n", threshold - index);
         memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
     } else {
+        printf("else : %u\n", threshold + peers - index);
         memcpy(prgSeeds[threshold + peers - index], prg_seed_key, KEYSIZE);
     }
 
@@ -1199,7 +1204,7 @@ void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
     if (id_m1 == 0)
         id_m1 = peers + 1;
 
-    int sendIdx = 0, getIdx = 0;
+    // int sendIdx = 0, getIdx = 0;
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
