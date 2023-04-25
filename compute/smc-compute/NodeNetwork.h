@@ -131,6 +131,7 @@ private:
     std::map<int, int> peer2sock;
     std::map<int, int> sock2peer;
     int serverSock;
+    uint threshold;
 
     // PRG seeds used in multiplication
     unsigned char **prgSeeds; // getter function works properly in SecretShare constructor

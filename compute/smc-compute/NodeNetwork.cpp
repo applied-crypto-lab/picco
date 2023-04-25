@@ -85,15 +85,14 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     // here number of peers is n-1 instead of n
     int peers = config->getPeerCount();
     // allocate space for prgSeeds
-    int threshold = peers / 2;
+    threshold = peers / 2;
     // prgSeeds = (unsigned char **)malloc(peers * sizeof(unsigned char *));
     prgSeeds = new unsigned char *[2 * threshold];
     for (unsigned int i = 0; i < peers; i++) {
         // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
         prgSeeds[i] = new unsigned char[KEYSIZE];
         memset(prgSeeds[i], 0, KEYSIZE);
-		// print_hexa(prgSeeds[i],KEYSIZE);
-
+        // print_hexa(prgSeeds[i],KEYSIZE);
     }
 
     connectToPeers();
@@ -1214,36 +1213,16 @@ void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
     }
 }
 
-void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs,  mpz_t **data, int size) {
-    // int myid = getID();
-    // int peers = config->getPeerCount();
-    // int id_p1;
-    // int id_m1;
-    // id_p1 = (myid + 1) % (peers + 2);
-    // if (id_p1 == 0)
-    //     id_p1 = 1;
-
-    // id_m1 = (myid - 1) % (peers + 2);
-    // if (id_m1 == 0)
-    //     id_m1 = peers + 1;
-
-    // int sendIdx = 0, getIdx = 0;
+void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
-    // for (int k = 0; k <= rounds; k++) {
-    //     sendDataToPeer(id_m1, data[id_m1 - 1], k * count, count, size);
-    //     getDataFromPeer(id_p1, data[id_p1 - 1], k * count, count, size);
-    // }
-    for (size_t i = 0; i < threshold; i++) {
-        for (int k = 0; k <= rounds; k++) {
-            sendDataToPeer(sendtoIDs[i], SendData, k * count, count, size);
-            getDataFromPeer(RecvFromIDs[i], RecvData[i], k * count, count, size);
+    for (uint i = 0; i < threshold; i++) {
+        for (uint k = 0; k <= rounds; k++) {
+            sendDataToPeer(sendtoIDs[i], data[1], k * count, count, size);    // fix data indices
+            getDataFromPeer(RecvFromIDs[i], data[1], k * count, count, size); // fix data indices
         }
     }
-
-
-
 }
 
 void NodeNetwork::closeAllConnections() {
