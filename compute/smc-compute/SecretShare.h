@@ -33,7 +33,7 @@
 class SecretShare {
 
 public:
-  SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE]); 
+    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE]);
 
     unsigned int getPeers();
     unsigned int getThreshold();
@@ -53,7 +53,7 @@ public:
     void reconstructSecretFromMin(mpz_t *, mpz_t **, unsigned int);
     // Evaluate a polynomial represented by threshold+1 shares on another threshold+1 points
     void getSharesMul(mpz_t **, mpz_t **, unsigned int);
-    
+
     // Modular Multiplication
     void modMul(mpz_t, mpz_t, mpz_t);
     void modMul(mpz_t *, mpz_t *, mpz_t *, int);
@@ -104,8 +104,7 @@ public:
     void checkSeed();
     void getCoef(int id);
 
-    void PRG(mpz_t** output, uint size, uint start_ind);
-
+    void PRG(mpz_t **output, uint size, uint start_ind);
 
 private:
     mpz_t fieldSize;
@@ -131,7 +130,7 @@ private:
     // peers to receive shares from or generate via PRGs, numbered from myid
     // in the decreasing order (myid-t, ..., myid-1)
     unsigned int *recvFromIDs;
-    
+
     // additional data structures for multiplication
     gmp_randstate_t *rstatesMult;
 

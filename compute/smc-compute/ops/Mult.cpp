@@ -144,29 +144,20 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
             mpz_set(rand_buff[threshold][i], temp[i]); 
         }
 
-        ss->getSharesMul(buffer, rand_buff, size); // step 3
+        ss->getSharesMul(buffer, rand_buff, size); // step 3 or 4???
 
         ss->PRG(rand_buff, size, threshold); // step 5, reusing rand_buffer
 
-        // id_p1 = (id + 1) % (peers + 1);
-        // if (id_p1 == 0)
-        //     id_p1 = 1;
-
-        // id_m1 = (id - 1) % (peers + 1);
-        // if (id_m1 == 0)
-        //     id_m1 = peers;
-
-        // // secret stored in temp
-        // // create polynomial, stored in data
-        // ss->getShares2(temp, rand_id, data, size);
-
-        // net.multicastToPeers_Mul(data, size, threadID); // step 4 and step 5
+        // net.multicastToPeers_Mul(data, size, threadID); // step 4? do we use the send/recv IDs defined in SecretShare?
 
         // for (int i = 0; i < size; i++) {
         //     mpz_set(data[id_m1 - 1][i], temp[i]);
         // }
 
-        ss->reconstructSecret(C, data, size); // step 5
+
+
+
+        ss->reconstructSecret(C, data, size); // step 5, which version is used here?
         // free memory
         for (int i = 0; i < (threshold+1); i++) {
             for (int j = 0; j < size; j++) {
