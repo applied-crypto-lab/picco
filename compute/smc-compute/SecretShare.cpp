@@ -65,12 +65,9 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
         print_hexa(keys[i], KEYSIZE);
     }
 
-    // printf("ComputeSharingMatrix\n");
     computeSharingMatrix();
-    // printf("computeLagrangeWeights\n");
     computeLagrangeWeights();
     gmp_randinit_mt(rstate);
-    // printf("done\n");
     // for (i = 0; i < (threshold+1); i++) {
     // 	for (int j = 0; j < (threshold+1); j++) {
     // 		gmp_printf("%Zu,", lagrangeWeightsMult[i][j]);

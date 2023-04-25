@@ -92,6 +92,7 @@ public:
     // void getRandOfPeer(int id, mpz_t *rand_id, int size);
     void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
     void multicastToPeers_Mul2(mpz_t **data, int size);
+    void multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs,  mpz_t **data, int size);
 
     //getter function for retreiving PRG seeds
     unsigned char **getPRGseeds();
