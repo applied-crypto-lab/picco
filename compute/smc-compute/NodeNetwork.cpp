@@ -1223,7 +1223,7 @@ void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     for (uint i = 0; i < threshold; i++) {
         for (uint k = 0; k <= rounds; k++) {
             idx = threshold - i - 1;
-            printf("sendTo %u, recFrom %u, src_idx %i, dst_idx %i, idx %i\n", sendtoIDs[i],RecvFromIDs[idx], i, 2*threshold - i, idx);
+            // printf("sendTo %u, recFrom %u, src_idx %i, dst_idx %i, idx %i\n", sendtoIDs[i],RecvFromIDs[idx], i, 2*threshold - i, idx);
             // gmp_printf("data[0][%i]: %Zu\n",i, data[0][i]);
 
             sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size);    // fix data indices

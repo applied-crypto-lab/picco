@@ -135,38 +135,36 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         ss->modMul(temp, A, B, size); // step 1
 
 
-        printf("---\nmodMul: \n");
-        for (int i = 0; i < size; i++) {
-            gmp_printf("temp[%i]: %Zu\n",i, temp[i]);
+        // printf("---\nmodMul: \n");
+        // for (int i = 0; i < size; i++) {
+        //     gmp_printf("temp[%i]: %Zu\n",i, temp[i]);
 
-        }
+        // }
 
 
         ss->PRG(rand_buff, size, 0); // step 2
         for (int i = 0; i < size; i++) {
             // putting the [c]_p into last position of rand_buff
-            // does this matter where [c]_p goes relative to getSharesMul?
             mpz_set(rand_buff[threshold][i], temp[i]); 
         }
-        printf("---\nPRG1\n");
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < threshold + 1; i++) {
-            gmp_printf("rand_buff[%i][%i]: %Zu\n",i,j, rand_buff[i][j]);
+        // printf("---\nPRG1\n");
+        // for (int j = 0; j < size; j++) {
+        //     for (int i = 0; i < threshold + 1; i++) {
+        //     gmp_printf("rand_buff[%i][%i]: %Zu\n",i,j, rand_buff[i][j]);
 
-            }
-        }
+        //     }
+        // }
 
 
 
 
         ss->getSharesMul(buffer, rand_buff, size); // step 3 and 4
-        printf("---\ngetSharesMul\n");
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < peers; i++) {
-            gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
-
-            }
-        }
+        // printf("---\ngetSharesMul\n");
+        // for (int j = 0; j < size; j++) {
+        //     for (int i = 0; i < peers; i++) {
+        //     gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
+        //     }
+        // }
 
 
 
@@ -176,23 +174,23 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         // printf("testing sending\n");
         // net.multicastToPeers(data, buffer, size, threadID);
 
-        printf("---\nmulticastToPeers_Mul_v2\n");
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < peers; i++) {
-            gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
+        // printf("---\nmulticastToPeers_Mul_v2\n");
+        // for (int j = 0; j < size; j++) {
+        //     for (int i = 0; i < peers; i++) {
+        //     gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
 
-            }
-        }
+        //     }
+        // }
 
         ss->PRG(buffer, size, threshold); // step 5, reusing buffer
 
-        printf("---\nPRG2\n");
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < peers; i++) {
-            gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
+        // printf("---\nPRG2\n");
+        // for (int j = 0; j < size; j++) {
+        //     for (int i = 0; i < peers; i++) {
+        //     gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
 
-            }
-        }
+        //     }
+        // }
 
 
         ss->reconstructSecretMult(C, buffer, size); // step 5

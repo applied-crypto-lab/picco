@@ -59,10 +59,10 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     }
 
     // printf("original\n");
-    for (int i = 0; i < threshold; i++) {
-        printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
-        printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
-    }
+    // for (int i = 0; i < threshold; i++) {
+    //     printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
+    //     printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
+    // }
     // computeSharingMatrix();
     // computeLagrangeWeights();
 
@@ -94,13 +94,13 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     multIndices[threshold] = id;
 
 
-    for (int i = 0; i < 2 * threshold; i++) {
-        print_hexa(keys[i], KEYSIZE);
-    }
-    for (int i = 0; i <peers; i++) {
-        printf("multIndices[%i]    %u\n", i, multIndices[i]);
+    // for (int i = 0; i < 2 * threshold; i++) {
+    //     print_hexa(keys[i], KEYSIZE);
+    // }
+    // for (int i = 0; i <peers; i++) {
+    //     printf("multIndices[%i]    %u\n", i, multIndices[i]);
 
-    }
+    // }
 
 
 
@@ -723,7 +723,7 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
 // if 0, the first half. if t, the second half
 void SecretShare::PRG(mpz_t **output, uint size, uint start_ind) {
     for (int i = 0; i < threshold; i++) {
-        printf("state = %i\n",i + start_ind);
+        // printf("state = %i\n",i + start_ind);
         // gmp_printf("rstatesMult[%i]: %Zu\n",i, rstatesMult[i]);
 
         for (int j = 0; j < size; j++) {
