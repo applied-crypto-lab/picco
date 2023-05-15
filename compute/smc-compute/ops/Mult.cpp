@@ -134,18 +134,16 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         // start computation
         ss->modMul(temp, A, B, size); // step 1
 
-
         // printf("---\nmodMul: \n");
         // for (int i = 0; i < size; i++) {
         //     gmp_printf("temp[%i]: %Zu\n",i, temp[i]);
 
         // }
 
-
         ss->PRG(rand_buff, size, 0); // step 2
         for (int i = 0; i < size; i++) {
             // putting the [c]_p into last position of rand_buff
-            mpz_set(rand_buff[threshold][i], temp[i]); 
+            mpz_set(rand_buff[threshold][i], temp[i]);
         }
         // printf("---\nPRG1\n");
         // for (int j = 0; j < size; j++) {
@@ -155,9 +153,6 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         //     }
         // }
 
-
-
-
         ss->getSharesMul(buffer, rand_buff, size); // step 3 and 4
         // printf("---\ngetSharesMul\n");
         // for (int j = 0; j < size; j++) {
@@ -166,11 +161,9 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         //     }
         // }
 
-
-
         // step 4? do we use the send/recv IDs defined in SecretShare?
         // sending contents of buffer[0,...,t], recieving into buffer[t+1,...,n]
-        net.multicastToPeers_Mul_v2(ss->getSendToIDs(),ss->getRecvFromIDs(),buffer, size,threadID); 
+        net.multicastToPeers_Mul_v2(ss->getSendToIDs(), ss->getRecvFromIDs(), buffer, size, threadID);
         // printf("testing sending\n");
         // net.multicastToPeers(data, buffer, size, threadID);
 
@@ -192,11 +185,10 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         //     }
         // }
 
-
         ss->reconstructSecretMult(C, buffer, size); // step 5
 
         // free memory
-        for (int i = 0; i < (threshold+1); i++) {
+        for (int i = 0; i < (threshold + 1); i++) {
             for (int j = 0; j < size; j++) {
                 mpz_clear(rand_buff[i][j]);
             }

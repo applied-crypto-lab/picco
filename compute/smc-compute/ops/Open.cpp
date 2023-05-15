@@ -24,21 +24,21 @@ void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwo
     uint threshold = s->getThreshold();
     int peers = s->getPeers();
 
-    mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
+    mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
     for (int i = 0; i < (threshold + 1); i++) {
-        resultShares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; j++)
-            mpz_init(resultShares[i][j]);
+            mpz_init(buffer[i][j]);
     }
 
-    nodeNet.broadcastToPeers(shares, size, resultShares, threadID);
-    s->reconstructSecretFromMin(result, resultShares, size);
+    nodeNet.broadcastToPeers(shares, size, buffer, threadID);
+    s->reconstructSecretFromMin(result, buffer, size);
 
     // freeing
     for (int i = 0; i < (threshold + 1); i++) {
         for (int j = 0; j < size; j++)
-            mpz_clear(resultShares[i][j]);
-        free(resultShares[i]);
+            mpz_clear(buffer[i][j]);
+        free(buffer[i]);
     }
-    free(resultShares);
+    free(buffer);
 }
