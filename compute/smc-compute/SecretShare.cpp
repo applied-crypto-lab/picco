@@ -43,11 +43,12 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     myid = id;
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
-
     unsigned int i;
     // initialize arrays of indices
     sendToIDs = (unsigned int *)malloc(sizeof(unsigned int) * threshold);
     recvFromIDs = (unsigned int *)malloc(sizeof(unsigned int) * threshold);
+    multIndices = new uint[peers];
+
     // IDs range between 1 and n=peers
     for (i = 0; i < threshold; i++) {
         sendToIDs[i] = ((myid + i) % peers) + 1;
@@ -57,16 +58,54 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
             recvFromIDs[i] = myid - threshold + i;
     }
 
+    // printf("original\n");
     for (int i = 0; i < threshold; i++) {
         printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
         printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
     }
+    // computeSharingMatrix();
+    // computeLagrangeWeights();
+
+    // corrected versionm
+    // printf("test %i\n", (1 - 1 - 1) % 5 + 1);
+    // printf("-1 % 5 %i\n", -1 % 5);
+    // for (int j = 1; j < threshold+1; j++)
+    // {
+    //     printf("exp send[%i]  %i\n",j - 1, int(int(myid) + (j) - (1)) % int(peers) + 1);
+    //     printf("exp recv[%i]  %i\n",j - 1, int(int(myid) - (j) - (1)) % int(peers) + 1);
+    // }
+    
+    // for (int i = 0; i < threshold; i++) {
+    //     sendToIDs  [i]= modulo((int(myid) + int(i+1) - int(1)), int(peers)) + int(1);
+    //     recvFromIDs[i]= modulo((int(myid) - int(i+1) - int(1)), int(peers)) + int(1);
+    // }
+    // printf("corrected\n");
+    // for (int i = 0; i < threshold; i++) {
+    //     printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
+    //     printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
+    // }
+
+
+    // printf("peers: %u\n", peers);
+    for (int i = 0; i < threshold; i++) {
+        multIndices[i] = sendToIDs[i];
+        multIndices[threshold + i + 1] = recvFromIDs[i];
+    }
+    multIndices[threshold] = id;
+
+
     for (int i = 0; i < 2 * threshold; i++) {
         print_hexa(keys[i], KEYSIZE);
     }
+    for (int i = 0; i <peers; i++) {
+        printf("multIndices[%i]    %u\n", i, multIndices[i]);
+
+    }
+
+
 
     computeSharingMatrix();
-    computeLagrangeWeights();
+    computeLagrangeWeights(); 
     gmp_randinit_mt(rstate);
     // for (i = 0; i < (threshold+1); i++) {
     // 	for (int j = 0; j < (threshold+1); j++) {
@@ -81,8 +120,10 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * (2 * threshold));
     for (i = 0; i < 2 * threshold; i++) {
         gmp_randinit_mt(rstatesMult[i]);
-        mpz_import(seed, KEYSIZE, 1, sizeof(keys[i]), 0, 0, keys[i]);
+        mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
+        // gmp_printf("seed[%i]: %Zu\n",i, seed); //lower digits of seed different between parties?
         gmp_randseed(rstatesMult[i], seed);
+
     }
 }
 
@@ -96,6 +137,14 @@ void SecretShare::getFieldSize(mpz_t field) {
 
 unsigned int SecretShare::getThreshold() {
     return threshold;
+}
+
+unsigned int *SecretShare::getSendToIDs() {
+    return sendToIDs;
+}
+
+unsigned int *SecretShare::getRecvFromIDs() {
+    return recvFromIDs;
 }
 
 /* the function creates n=peers shares of the second argument */
@@ -442,6 +491,8 @@ void SecretShare::computeLagrangeWeights() {
         }
         modInv(temp, denom);
         modMul(lagrangeWeightsAll[i], nom, temp);
+        // gmp_printf("lagrangeWeightsAll[%i]: %Zu\n",i, lagrangeWeightsAll[i]);
+
     }
 
     // second set
@@ -471,6 +522,7 @@ void SecretShare::computeLagrangeWeights() {
         }
         modInv(temp, denom);
         modMul(lagrangeWeightsThreshold[i], nom, temp);
+        // gmp_printf("lagrangeWeightsThreshold[%i]: %Zu\n",i, lagrangeWeightsThreshold[i]);
     }
 
     // third set of coefficients
@@ -526,6 +578,7 @@ void SecretShare::computeLagrangeWeights() {
                 }
             }
             modMul(lagrangeWeightsMult[i][j], nom, denom);
+            // gmp_printf("lagrangeWeightsMult[%i][%i]: %Zu\n",i,j, lagrangeWeightsMult[i][j]);
         }
     }
 
@@ -563,6 +616,19 @@ void SecretShare::reconstructSecret(mpz_t *result, mpz_t **y, int size) {
     mpz_clear(temp);
 }
 
+void SecretShare::reconstructSecretMult(mpz_t *result, mpz_t **y, int size) {
+    mpz_t temp;
+    mpz_init(temp);
+    for (int i = 0; i < size; i++)
+        mpz_set_ui(result[i], 0);
+    for (int i = 0; i < size; i++) {
+        for (int peer = 0; peer < peers; peer++) {
+            modMul(temp, y[peer][i], lagrangeWeightsAll[multIndices[peer]-1]);
+            modAdd(result[i], result[i], temp);
+        }
+    }
+    mpz_clear(temp);
+}
 /*
  * reconstruction of a number of secrets from threshold+1 shares each.
  * the shares are expected to correspond to points at indices stored in recvFromIDs as well as myid.
@@ -657,6 +723,9 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
 // if 0, the first half. if t, the second half
 void SecretShare::PRG(mpz_t **output, uint size, uint start_ind) {
     for (int i = 0; i < threshold; i++) {
+        printf("state = %i\n",i + start_ind);
+        // gmp_printf("rstatesMult[%i]: %Zu\n",i, rstatesMult[i]);
+
         for (int j = 0; j < size; j++) {
             mpz_urandomm(output[i][j], rstatesMult[i + start_ind], fieldSize);
         }
@@ -685,4 +754,10 @@ void SecretShare::getCoef(int id) {
     mpz_invert(id_p1_inv, id_p1_inv, fieldSize);
     // printf("id_p1: %u\n", id_p1);
     // gmp_printf("id_p1_inv: %Zu\n", id_p1_inv);
+}
+
+int modulo(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
 }

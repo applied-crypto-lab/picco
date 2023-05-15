@@ -1,5 +1,5 @@
 bits:
-peers:3
-threshold:1
+peers:5
+threshold:2
 inputs:1
 outputs:1

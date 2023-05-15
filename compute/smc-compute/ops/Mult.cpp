@@ -10,7 +10,7 @@
    (at your option) any later version.
 
    PICCO is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   but WITHOUT ANY WARRANTY; without even the impled warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
@@ -101,41 +101,46 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         int id_p1;
         int id_m1;
 
-        mpz_t *rand_id = (mpz_t *)malloc(sizeof(mpz_t) * size);
         mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
         mpz_t **rand_buff = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
 
+        mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));
         mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
 
         for (int i = 0; i < (threshold + 1); i++) {
-            buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
             rand_buff[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         }
         for (int i = 0; i < peers; i++) {
+            buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
             data[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         }
         // initialziation
         for (int i = 0; i < peers; i++) {
             for (int j = 0; j < size; j++) {
                 mpz_init(data[i][j]);
+                mpz_init(buffer[i][j]);
             }
         }
-
 
         for (int i = 0; i < (threshold + 1); i++) {
             for (int j = 0; j < size; j++) {
                 // mpz_init(data[i][j]);
-                mpz_init(buffer[i][j]);
                 mpz_init(rand_buff[i][j]);
             }
         }
         for (int i = 0; i < size; i++) {
             mpz_init(temp[i]);
-            mpz_init(rand_id[i]);
         }
         // start computation
         ss->modMul(temp, A, B, size); // step 1
+
+
+        printf("---\nmodMul: \n");
+        for (int i = 0; i < size; i++) {
+            gmp_printf("temp[%i]: %Zu\n",i, temp[i]);
+
+        }
+
 
         ss->PRG(rand_buff, size, 0); // step 2
         for (int i = 0; i < size; i++) {
@@ -143,34 +148,68 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
             // does this matter where [c]_p goes relative to getSharesMul?
             mpz_set(rand_buff[threshold][i], temp[i]); 
         }
+        printf("---\nPRG1\n");
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < threshold + 1; i++) {
+            gmp_printf("rand_buff[%i][%i]: %Zu\n",i,j, rand_buff[i][j]);
 
-        ss->getSharesMul(buffer, rand_buff, size); // step 3 or 4???
-
-        ss->PRG(rand_buff, size, threshold); // step 5, reusing rand_buffer
-
-        // net.multicastToPeers_Mul(data, size, threadID); // step 4? do we use the send/recv IDs defined in SecretShare?
-
-        // for (int i = 0; i < size; i++) {
-        //     mpz_set(data[id_m1 - 1][i], temp[i]);
-        // }
+            }
+        }
 
 
 
 
-        ss->reconstructSecret(C, data, size); // step 5, which version is used here?
+        ss->getSharesMul(buffer, rand_buff, size); // step 3 and 4
+        printf("---\ngetSharesMul\n");
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < peers; i++) {
+            gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
+
+            }
+        }
+
+
+
+        // step 4? do we use the send/recv IDs defined in SecretShare?
+        // sending contents of buffer[0,...,t], recieving into buffer[t+1,...,n]
+        net.multicastToPeers_Mul_v2(ss->getSendToIDs(),ss->getRecvFromIDs(),buffer, size,threadID); 
+        // printf("testing sending\n");
+        // net.multicastToPeers(data, buffer, size, threadID);
+
+        printf("---\nmulticastToPeers_Mul_v2\n");
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < peers; i++) {
+            gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
+
+            }
+        }
+
+        ss->PRG(buffer, size, threshold); // step 5, reusing buffer
+
+        printf("---\nPRG2\n");
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < peers; i++) {
+            gmp_printf("buffer[%i][%i]: %Zu\n",i,j, buffer[i][j]);
+
+            }
+        }
+
+
+        ss->reconstructSecretMult(C, buffer, size); // step 5
+
         // free memory
         for (int i = 0; i < (threshold+1); i++) {
             for (int j = 0; j < size; j++) {
                 mpz_clear(rand_buff[i][j]);
-                mpz_clear(buffer[i][j]);
             }
             free(rand_buff[i]);
-            free(buffer[i]);
         }
         for (int i = 0; i < peers; i++) {
             for (int j = 0; j < size; j++) {
+                mpz_clear(buffer[i][j]);
                 mpz_clear(data[i][j]);
             }
+            free(buffer[i]);
             free(data[i]);
         }
         free(rand_buff);
@@ -178,10 +217,8 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         free(data);
         for (int i = 0; i < size; i++) {
             mpz_clear(temp[i]);
-            mpz_clear(rand_id[i]);
         }
         free(temp);
-        free(rand_id);
 
         // GRR legacy multiplication
         // mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);

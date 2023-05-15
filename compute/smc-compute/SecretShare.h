@@ -39,6 +39,9 @@ public:
     unsigned int getThreshold();
     void getFieldSize(mpz_t);
 
+    unsigned int *getSendToIDs();
+    unsigned int *getRecvFromIDs();
+
     // Create n shares of a secret or multiple secrets
     void getShares(mpz_t *, mpz_t);
     void getShares(mpz_t **, mpz_t *, int);
@@ -51,6 +54,8 @@ public:
     void reconstructSecret(mpz_t *, mpz_t **, int);
     // Reconstruct a secret from the minimum (threshold+1) number of shares
     void reconstructSecretFromMin(mpz_t *, mpz_t **, unsigned int);
+    void reconstructSecretMult(mpz_t *result, mpz_t **y, int size);
+
     // Evaluate a polynomial represented by threshold+1 shares on another threshold+1 points
     void getSharesMul(mpz_t **, mpz_t **, unsigned int);
 
@@ -128,8 +133,12 @@ private:
     // from myid (myid+1, ..., myid+t)
     unsigned int *sendToIDs;
     // peers to receive shares from or generate via PRGs, numbered from myid
-    // in the decreasing order (myid-t, ..., myid-1)
+    // in the decreasing order (myid-t, ..., myid-1) ***this is ultimately INCREASING order
+    // e.g. for id = 3, recvFromIDs[0] = 4, recvFromIDs[1] = 5
     unsigned int *recvFromIDs;
+
+    uint *multIndices;
+
 
     // additional data structures for multiplication
     gmp_randstate_t *rstatesMult;
@@ -142,4 +151,8 @@ private:
     int id_m1;
     mpz_t id_p1_inv;
 };
+
+// substitute for % operator to (properly) handle negative numbers
+int modulo(int a, int b);
+
 #endif

@@ -23,5 +23,6 @@
 
 #include "Operation.h"
 
+void Open_Shamir(mpz_t* shares, mpz_t* result,  int size, int threadID, NodeNetwork nodeNet, int nodeID, SecretShare *s);
 
 #endif

@@ -36,6 +36,7 @@ CPP_SRCS += \
 ../smc-compute/ops/FPDiv.cpp \
 ../smc-compute/ops/AppRcr.cpp \
 ../smc-compute/ops/IntAppRcr.cpp \
+../smc-compute/ops/Open.cpp \
 ../smc-compute/ops/Norm.cpp 
 
 OBJS += \
@@ -76,6 +77,7 @@ OBJS += \
 ./smc-compute/ops/FPDiv.o \
 ./smc-compute/ops/AppRcr.o \
 ./smc-compute/ops/IntAppRcr.o \
+./smc-compute/ops/Open.o \
 ./smc-compute/ops/Norm.o 
 
 
@@ -117,6 +119,7 @@ CPP_DEPS += \
 ./smc-compute/ops/FPDiv.d \
 ./smc-compute/ops/AppRcr.d \
 ./smc-compute/ops/IntAppRcr.d \
+./smc-compute/ops/Open.d \
 ./smc-compute/ops/Norm.d  
  
 #Rules for building source in ops
