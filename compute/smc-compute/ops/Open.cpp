@@ -31,7 +31,12 @@ void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwo
             mpz_init(buffer[i][j]);
     }
 
-    nodeNet.broadcastToPeers(shares, size, buffer, threadID);
+    nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(),shares, buffer, size, threadID);
+
+    for (int i = 0; i < size; i++) {
+        // putting the my share into last position of buff
+        mpz_set(buffer[threshold][i], shares[i]);
+    }
     s->reconstructSecretFromMin(result, buffer, size);
 
     // freeing

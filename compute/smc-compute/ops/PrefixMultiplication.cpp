@@ -74,16 +74,20 @@ void PrefixMultiplication::doOperation(mpz_t** B, mpz_t** result, int length, in
 	Rand->generateRandValue(id, field, length, S, threadID); //
 
 
+	//line 4
 	ss->modMul(temp, R, S, length);
 	net.broadcastToPeers(temp, length, buffer1, threadID);
 	ss->reconstructSecret(U, buffer1, length );
 	clearBuffer(buffer1, peers, length);
+
+	//line 5, multiplication (not using the mult opbject?)
 	for(int i = 0; i < length-1; i++)
 		ss->modMul(V[i], R[i+1], S[i]);
 
 	ss->getShares(buffer1, V, length);
 	net.multicastToPeers(buffer1, buffer2, length, threadID);
 	ss->reconstructSecret(V, buffer2, length );
+	//end line 5
 	/************ free memory ********************/
 	for(int i = 0; i < peers; i++){
                 for(int j = 0; j < length; j++){

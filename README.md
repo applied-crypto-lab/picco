@@ -183,14 +183,14 @@ In the current implementation, not all features of C are supported in user progr
 ## Protocol sources
 
 The field-based protocols implemented in this software come from the following papers:
-- [Gennaro et al., 1998](https://doi.org/10.1145/277697.277716)
-  - Integer multiplication
+<!-- - [Gennaro et al., 1998](https://doi.org/10.1145/277697.277716)
+  - Integer multiplication -->
 - [Catrina and De Hoogh, 2010](https://doi.org/10.1007/978-3-642-15317-4_13)
-  - Integer comparisons/equality testing using truncation
-  - Integer bitwise operations (XOR, AND, OR) using bit decomposition
+  - Integer comparisons and equality testing using truncation
+  - Bit decomposition
 - [Aliasgari et al., 2013](https://www.ndss-symposium.org/wp-content/uploads/2017/09/11_4_0.pdf)
-  - Integer division
-  - Floating-point operations (addition, subtraction, multiplication, division, comparisons, equality, rounding) and conversion (int-fixed, int-float, fixed-float)
+  <!-- - Integer division -->
+  - Floating-point operations (addition, subtraction, multiplication, division, comparisons, equality, rounding) and type conversion (int to float, float to int)
 - [Blanton et al., 2020](https://doi.org/10.1007/978-3-030-57808-4_19)
-  - Integer multiplication (optimized for 3 parties)
+  - Integer multiplication (from Section 5.2)
   - Array access at a private location

@@ -92,12 +92,14 @@ public:
     // void getRandOfPeer(int id, mpz_t *rand_id, int size);
     void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
     void multicastToPeers_Mul2(mpz_t **data, int size);
-    void multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs,  mpz_t **data, int size);
-void multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs,mpz_t **data, int size, int threadID);
+    void multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size);
+    void multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID);
 
-    //getter function for retreiving PRG seeds
+    void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID);
+    void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size);
+
+    // getter function for retreiving PRG seeds
     unsigned char **getPRGseeds();
-
 
     // to be removed
     unsigned char key_0[16];

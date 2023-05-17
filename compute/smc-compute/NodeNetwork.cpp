@@ -1213,8 +1213,6 @@ void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
     }
 }
 
-
-
 void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
@@ -1226,18 +1224,18 @@ void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_
             // printf("sendTo %u, recFrom %u, src_idx %i, dst_idx %i, idx %i\n", sendtoIDs[i],RecvFromIDs[idx], i, 2*threshold - i, idx);
             // gmp_printf("data[0][%i]: %Zu\n",i, data[0][i]);
 
-            sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size);    // fix data indices
+            sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size); // fix data indices
             // printf("recvfrom %u\n", RecvFromIDs[idx]);
             // printf("idx %i\n",idx);
             // printf("threshold + idx + 1 = %i\n",threshold + idx+1);
-            getDataFromPeer(RecvFromIDs[idx], data[2*threshold - i], k * count, count, size); // fix data indices
+            getDataFromPeer(RecvFromIDs[idx], data[2 * threshold - i], k * count, count, size); // fix data indices
             // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size); // fix data indices
         }
     }
 }
 
 // why is this needed for send/recv to work?
-void NodeNetwork::multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs,mpz_t **data, int size, int threadID) {
+void NodeNetwork::multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
     int peers = config->getPeerCount();
@@ -1265,6 +1263,52 @@ void NodeNetwork::multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs,mpz
     }
 }
 
+// sends one piece of data to recvFromIds
+void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
+    test_flags[threadID]++;
+    int id = getID();
+    int peers = config->getPeerCount();
+    if (size == 0)
+        return;
+    if (threadID == -1) {
+        if (mode != -1) {
+            sendModeToPeers(id);
+            pthread_mutex_lock(&buffer_mutex);
+            while (numOfChangedNodes < peers)
+                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
+            pthread_mutex_unlock(&buffer_mutex);
+            numOfChangedNodes = 0;
+            mode = -1;
+        }
+        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
+        return;
+    } else {
+        if (mode != 0) {
+            pthread_mutex_lock(&buffer_mutex);
+            pthread_cond_signal(&manager_conditional_variable);
+            pthread_mutex_unlock(&buffer_mutex);
+            mode = 0;
+        }
+    }
+}
+
+void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
+    // compute the maximum size of data that can be communicated
+    int count = 0, rounds = 0;
+    int idx = 0;
+    getRounds(size, &count, &rounds);
+    for (uint i = 0; i < threshold; i++) {
+        for (uint k = 0; k <= rounds; k++) {
+            idx = threshold - i - 1;
+            // printf("sendTo %u, recFrom %u, src_idx %i, dst_idx %i, idx %i\n", sendtoIDs[i],RecvFromIDs[idx], i, 2*threshold - i, idx);
+            // gmp_printf("data[0][%i]: %Zu\n",i, data[0][i]);
+
+            sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size); 
+            getDataFromPeer(RecvFromIDs[idx], buffer[i], k * count, count, size); 
+            // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size); 
+        }
+    }
+}
 
 void NodeNetwork::closeAllConnections() {
 }
