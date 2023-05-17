@@ -45,3 +45,4 @@ input_*
 result_*
 *.txt
 runtime-config-*
+compute/sample-programs/non-thread/eqz_mine.c
