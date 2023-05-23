@@ -41,8 +41,10 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     peers = p;
     threshold = t;
     myid = id;
+    
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
+    gmp_printf("fieldSize %Zu\n", fieldSize);
     unsigned int i;
     // initialize arrays of indices
     sendToIDs = (unsigned int *)malloc(sizeof(unsigned int) * threshold);
@@ -80,10 +82,12 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     //     recvFromIDs[i]= modulo((int(myid) - int(i+1) - int(1)), int(peers)) + int(1);
     // }
     // printf("corrected\n");
-    // for (int i = 0; i < threshold; i++) {
-    //     printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
-    //     printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
-    // }
+    for (int i = 0; i < threshold; i++) {
+        printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
+    }
+    for (int i = 0; i < threshold; i++) {
+        printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
+    }
 
 
     // printf("peers: %u\n", peers);
@@ -480,7 +484,6 @@ void SecretShare::computeLagrangeWeights() {
         mpz_set_ui(nom, 1);
         mpz_set_ui(denom, 1);
         mpz_set_ui(t2, i + 1);
-
         for (l = 0; l < peers; l++) {
             if (l != i) {
                 mpz_set_ui(t1, l + 1);
@@ -492,7 +495,6 @@ void SecretShare::computeLagrangeWeights() {
         modInv(temp, denom);
         modMul(lagrangeWeightsAll[i], nom, temp);
         // gmp_printf("lagrangeWeightsAll[%i]: %Zu\n",i, lagrangeWeightsAll[i]);
-
     }
 
     // second set
@@ -508,21 +510,25 @@ void SecretShare::computeLagrangeWeights() {
             mpz_set_ui(t2, myid);
         else
             mpz_set_ui(t2, recvFromIDs[i]);
-
+        // gmp_printf("\n t2[%i] %Zu , ",i, t2);
         for (l = 0; l < threshold + 1; l++) {
             if (l != i) {
                 if (l == threshold)
                     mpz_set_ui(t1, myid);
                 else
                     mpz_set_ui(t1, recvFromIDs[l]);
+                // gmp_printf("t1[%i] %Zu, ",l, t1);
                 modMul(nom, nom, t1);
                 modSub(temp, t1, t2);
                 modMul(denom, denom, temp);
             }
         }
+        // gmp_printf("\n nom %Zu , ",nom);
+        // gmp_printf("\n denom %Zu , ",denom);
+
         modInv(temp, denom);
         modMul(lagrangeWeightsThreshold[i], nom, temp);
-        // gmp_printf("lagrangeWeightsThreshold[%i]: %Zu\n",i, lagrangeWeightsThreshold[i]);
+        gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n",i, t2, lagrangeWeightsThreshold[i]);
     }
 
     // third set of coefficients
@@ -643,7 +649,29 @@ void SecretShare::reconstructSecretFromMin(mpz_t *result, mpz_t **y, unsigned in
 
     for (i = 0; i < size; i++) {
         for (j = 0; j < threshold + 1; j++) {
+            // gmp_printf("LWT[%i], y[%i][%i] :  (%Zu, %Zu) \n",j, j, i,lagrangeWeightsThreshold[j], y[j][i]);
             modMul(temp, y[j][i], lagrangeWeightsThreshold[j]);
+            modAdd(result[i], result[i], temp);
+        }
+    }
+    mpz_clear(temp);
+}
+void SecretShare::reconstructSecretFromMin_test(mpz_t *result, mpz_t **y, unsigned int size) {
+    mpz_t temp;
+    mpz_init(temp);
+    unsigned i, j;
+
+    for (i = 0; i < size; i++)
+        mpz_set_ui(result[i], 0);
+    uint index = 0;
+    for (i = 0; i < size; i++) {
+        for (j = 0; j < threshold + 1; j++) {
+             if (j == threshold)
+                index = myid - 1;
+            else
+                index = recvFromIDs[j] - 1;
+            printf("index %i\n",index); 
+            modMul(temp, y[j][i], lagrangeWeightsAll[index]);
             modAdd(result[i], result[i], temp);
         }
     }

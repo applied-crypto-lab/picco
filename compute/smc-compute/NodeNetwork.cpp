@@ -1297,14 +1297,17 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int count = 0, rounds = 0;
     int idx = 0;
     getRounds(size, &count, &rounds);
+    // gmp_printf("send data: %Zu\n", data[0]);
     for (uint i = 0; i < threshold; i++) {
         for (uint k = 0; k <= rounds; k++) {
             idx = threshold - i - 1;
-            // printf("sendTo %u, recFrom %u, src_idx %i, dst_idx %i, idx %i\n", sendtoIDs[i],RecvFromIDs[idx], i, 2*threshold - i, idx);
-            // gmp_printf("data[0][%i]: %Zu\n",i, data[0][i]);
 
-            sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size); 
-            getDataFromPeer(RecvFromIDs[idx], buffer[i], k * count, count, size); 
+            // casting to int just to avoid having to rewrite everything
+            sendDataToPeer((int) sendtoIDs[i], data, k * count, count, size); 
+            getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size); 
+            // gmp_printf("send %Zu to %u, recv %Zu from %u, dst_idx %i \n", data[0], sendtoIDs[i], buffer[idx][0], RecvFromIDs[idx],idx);
+            gmp_printf("to %u, from %u, idx %i: (%Zu, %Zu)\n",  sendtoIDs[i], RecvFromIDs[idx],idx, data[0], buffer[idx][0]);
+            // gmp_printf("recvied %Zu\n", buffer[idx][0]);
             // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size); 
         }
     }

@@ -55,6 +55,7 @@ public:
     // Reconstruct a secret from the minimum (threshold+1) number of shares
     void reconstructSecretFromMin(mpz_t *, mpz_t **, unsigned int);
     void reconstructSecretMult(mpz_t *result, mpz_t **y, int size);
+    void reconstructSecretFromMin_test(mpz_t *, mpz_t **, unsigned int);
 
     // Evaluate a polynomial represented by threshold+1 shares on another threshold+1 points
     void getSharesMul(mpz_t **, mpz_t **, unsigned int);

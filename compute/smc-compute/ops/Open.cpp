@@ -22,7 +22,6 @@
 
 void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, int nodeID, SecretShare *s) {
     uint threshold = s->getThreshold();
-    int peers = s->getPeers();
 
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
     for (int i = 0; i < (threshold + 1); i++) {
@@ -31,14 +30,17 @@ void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwo
             mpz_init(buffer[i][j]);
     }
 
-    nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(),shares, buffer, size, threadID);
+    nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(), shares, buffer, size, threadID);
 
     for (int i = 0; i < size; i++) {
-        // putting the my share into last position of buff
+        // putting my share into last position of buff as to match lagrangeWeightsThreshold[i]
         mpz_set(buffer[threshold][i], shares[i]);
     }
+    // for (int i = 0; i < (threshold + 1); i++) {
+    //     for (int j = 0; j < size; j++)
+    //         gmp_printf("buffer[%i][%i]: %Zu\n", i, j, buffer[i][j]);
+    // }
     s->reconstructSecretFromMin(result, buffer, size);
-
     // freeing
     for (int i = 0; i < (threshold + 1); i++) {
         for (int j = 0; j < size; j++)

@@ -22,6 +22,7 @@
 #define EQZ_H_
 
 #include "Random.h"
+#include "Open.h"
 #include "PrefixMultiplication.h"
 #include "Operation.h"
 
