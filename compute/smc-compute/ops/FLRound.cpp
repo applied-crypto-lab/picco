@@ -37,6 +37,8 @@ FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > p
 
 FLRound::~FLRound() {}
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol FLRound, page 8
 void FLRound::doOperation(mpz_t** A2, mpz_t** result, mpz_t* mode, int L, int K, int size, int threadID){
 
 	mpz_t constPower2L, constPower2L1, const2, constL, constL1;

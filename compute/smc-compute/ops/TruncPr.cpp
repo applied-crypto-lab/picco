@@ -31,6 +31,8 @@ TruncPr::TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > p
 	
 }
 
+// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Protocol 3.1, page 6
 void TruncPr::doOperation(mpz_t* result, mpz_t* shares, int K, int M, int size, int threadID){
 		int peers = ss->getPeers();
 		mpz_t** R = (mpz_t**)malloc(sizeof(mpz_t*) * (M+2));

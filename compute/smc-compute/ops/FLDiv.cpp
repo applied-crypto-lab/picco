@@ -32,6 +32,8 @@ FLDiv::FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly,
 
 FLDiv::~FLDiv() {}
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol FLDiv with public divisonr, page 6
 void FLDiv::doOperationPub(mpz_t** A1, mpz_t** B1, mpz_t** result1, int K, int size, int threadID)
 {
 	
@@ -150,6 +152,9 @@ void FLDiv::doOperationPub(mpz_t** A1, mpz_t** B1, mpz_t** result1, int K, int s
 	free(Y); 
 }
 
+
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol FLDiv, page 6
 void FLDiv::doOperation(mpz_t** A1, mpz_t** B1, mpz_t** result1, int K, int size, int threadID){
 	int peers = ss->getPeers(); 
 	mpz_t beta, const1, const2, constK;

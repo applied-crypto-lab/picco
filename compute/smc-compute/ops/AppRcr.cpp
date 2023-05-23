@@ -34,6 +34,8 @@ AppRcr::~AppRcr() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
+// Protocol 3.4, page 14
 void AppRcr::doOperation(mpz_t* w, mpz_t* b, int k, int f, int size, int threadID){
 	mpz_t one, two, temp, alpha;
 	mpz_init_set_ui(one, 1); 

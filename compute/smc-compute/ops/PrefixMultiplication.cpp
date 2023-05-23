@@ -31,6 +31,8 @@ PrefixMultiplication::PrefixMultiplication(NodeNetwork nodeNet, std::map<std::st
 
 PrefixMultiplication::~PrefixMultiplication() {}
 
+// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Protocol 4.2 page 11
 void PrefixMultiplication::doOperation(mpz_t** B, mpz_t** result, int length, int size, int threadID){
 	int peers = ss->getPeers();
 	mpz_t* R = (mpz_t*)malloc(sizeof(mpz_t) * length);
@@ -74,7 +76,7 @@ void PrefixMultiplication::doOperation(mpz_t** B, mpz_t** result, int length, in
 	Rand->generateRandValue(id, field, length, S, threadID); //
 
 
-	//line 4
+	//line 4, MulPub (can't be replaced with Open)
 	ss->modMul(temp, R, S, length);
 	net.broadcastToPeers(temp, length, buffer1, threadID);
 	ss->reconstructSecret(U, buffer1, length );

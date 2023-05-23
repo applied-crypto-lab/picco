@@ -38,7 +38,6 @@ private:
 	LTZ *Lt;
 	Mult *Mul;
 	B2U *Bt;
-	PrefixMultiplication *Pre;
 	Inv *In;
     	Random* Rand;
 };

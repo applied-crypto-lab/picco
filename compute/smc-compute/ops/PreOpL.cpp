@@ -32,6 +32,8 @@ PreOpL::~PreOpL() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
+// Protocol 4.2 page 41
 //D1 contains the propagation bit and D2 contains the generation bit
 void PreOpL::doOperation(mpz_t** C, mpz_t** D1, mpz_t** D2, int K, int size, int threadID){
 	mpz_t* temp1 = (mpz_t*)malloc(sizeof(mpz_t) * size);

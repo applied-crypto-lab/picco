@@ -33,6 +33,8 @@ Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > pol
 
 Mod2MS::~Mod2MS() {}
 
+// Source: ???
+// Protocol XX page Y
 void Mod2MS::doOperation(mpz_t* result, mpz_t* A, mpz_t* M, mpz_t* powM, int L, int size, int threadID){
 	int peers = ss->getPeers(); 
 	mpz_t** X = (mpz_t**)malloc(sizeof(mpz_t*) * (L+1));

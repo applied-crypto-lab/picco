@@ -35,6 +35,8 @@ BitDec::~BitDec() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
+// Protocol 5.14 page 57
 void BitDec::doOperation(mpz_t** S, mpz_t* A, int K, int M, int size, int threadID){
 	int peers = ss->getPeers(); 
 	mpz_t** R = (mpz_t**)malloc(sizeof(mpz_t*) * (M+2));

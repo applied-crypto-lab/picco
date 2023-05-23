@@ -29,6 +29,9 @@ PreOr::PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly,
 
 PreOr::~PreOr() {}
 
+
+// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Protocol 4.4, page 12
 //results[K][size]
 //C[K][size]
 //K = Number of things in a single prefix operations

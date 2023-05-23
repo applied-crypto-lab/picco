@@ -37,7 +37,8 @@ Mod2M::~Mod2M() {
 	// TODO Auto-generated destructor stub
 }
 
- 
+// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Protocol 3.2 page 7
 void Mod2M::doOperation(mpz_t* result, mpz_t* shares1, int K, int M, int size, int threadID){
 	int peers = ss->getPeers();
 	mpz_t** R = (mpz_t**)malloc(sizeof(mpz_t*) * (M+2));

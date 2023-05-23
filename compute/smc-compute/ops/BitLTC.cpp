@@ -38,6 +38,8 @@ BitLTC::~BitLTC() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Protocol 4.5 page 13 (BitLTC1)
 void BitLTC::doOperation(mpz_t* A, mpz_t** b, mpz_t* result, int K, int size, int threadID){
 	mpz_t** d = (mpz_t**)malloc(sizeof(mpz_t*) * K);
 	mpz_t** a = (mpz_t**)malloc(sizeof(mpz_t*) * size);

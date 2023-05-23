@@ -36,6 +36,8 @@ LTZ::~LTZ() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Protocol 3.6, page 9
 void LTZ::doOperation(mpz_t* result, mpz_t* shares, int K, int size, int threadID){
 	mpz_t const0; 
 	mpz_init_set_ui(const0, 0); 	

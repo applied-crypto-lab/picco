@@ -24,6 +24,8 @@ Int2FL::Int2FL() {
 
 }
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol Int2FL, page 9
 Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
     
 	Mul = new Mult(nodeNet,nodeID,s);

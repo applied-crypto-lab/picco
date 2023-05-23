@@ -29,6 +29,8 @@ AddBitwise::~AddBitwise() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
+// Protocol 4.4 page 45
 // Notice that S has a format [K+1][size] while A and B has formats [K][size].
 void AddBitwise::doOperation(mpz_t** S, mpz_t** A, mpz_t** B, int K, int size, int threadID){
 	mpz_t* temp1 = (mpz_t*)malloc(sizeof(mpz_t) * size);

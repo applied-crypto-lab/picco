@@ -40,7 +40,8 @@ Norm::~Norm() {
 	// TODO Auto-generated destructor stub
 }
 
-// ndeds more tests
+// Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
+// Protocol 3.5, page 14
 void Norm::doOperation(mpz_t* c, mpz_t* vp, mpz_t* b, int k, int f, int size, int threadID){
 	mpz_t one, two, temp;
 	mpz_init_set_ui(one,1);

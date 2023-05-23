@@ -32,6 +32,8 @@ Pow2::Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, i
 
 Pow2::~Pow2() {}
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol Pow2, page 4
 void Pow2::doOperation(mpz_t* result, mpz_t* A, int L, int size, int threadID){
 	int M = ceil(log2(L));
 	mpz_t** S = (mpz_t**)malloc(sizeof(mpz_t*) * (M+1));

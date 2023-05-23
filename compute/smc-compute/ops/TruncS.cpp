@@ -25,7 +25,6 @@ TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > pol
 	Mul = new Mult(nodeNet,nodeID, s);
 	Lt = new LTZ(nodeNet, poly, nodeID, s, coeficients);
 	Bt = new B2U(nodeNet, poly, nodeID, s, coeficients);
-	Pre = new PrefixMultiplication(nodeNet, poly, nodeID, s, coeficients);
 	In = new Inv(nodeNet, poly, nodeID, s, coeficients);
 	Rand = new Random(nodeNet, poly, nodeID, s);
     
@@ -39,6 +38,8 @@ TruncS::~TruncS() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol Trunc, page 4
 void TruncS::doOperation(mpz_t* result, mpz_t* A, int K, mpz_t* M, int size, int threadID){
     	int peers = ss->getPeers();
 	mpz_t** X = (mpz_t**)malloc(sizeof(mpz_t*) * (K+1));

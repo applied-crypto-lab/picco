@@ -33,6 +33,8 @@ B2U::B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int
 
 B2U::~B2U() {}
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol B2U, page 4
 void B2U::doOperation(mpz_t* A, int L, mpz_t** result, int size, int threadID){
 	int peers = ss->getPeers(); 
 	mpz_t* pow2A = (mpz_t*)malloc(sizeof(mpz_t) * size);

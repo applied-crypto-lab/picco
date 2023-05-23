@@ -44,6 +44,9 @@ FLAdd::~FLAdd() {
 //notice that in this implementation K is the same as "L" specified in the paper and vice versa. 
 /**************************/
 
+
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol FLAdd, page 7
 /*A[0](B[0]) contains a value V*/
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/

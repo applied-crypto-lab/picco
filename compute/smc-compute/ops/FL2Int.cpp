@@ -42,6 +42,8 @@ FL2Int::~FL2Int() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Protocol FL2Int, page 9
 void FL2Int::doOperation(mpz_t** values1, mpz_t* results, int L, int K, int gamma, int size, int threadID){
 	
 	mpz_t** values = (mpz_t**)malloc(sizeof(mpz_t*) * 4); 

@@ -33,6 +33,8 @@ FLLTZ::~FLLTZ() {
 	// TODO Auto-generated destructor stub
 }
 
+// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+// Based on Protocol FLLT, page 9
 void FLLTZ::doOperation(mpz_t** A1, mpz_t** B1, mpz_t* result, int K, int L, int size, int threadID){
 	
   	/***********************************************************************/
