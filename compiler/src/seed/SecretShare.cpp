@@ -53,6 +53,7 @@ int SecretShare::getThreshold(){
 	return threshold; 
 }
 
+// responsible for actually producing shares of a secret
 void SecretShare::getShares(mpz_t* shares, mpz_t secret){
 	/*mpz_t coefficient, temp;
 	mpz_init(coefficient);
