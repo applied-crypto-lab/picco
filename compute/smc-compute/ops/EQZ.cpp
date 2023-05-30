@@ -90,11 +90,14 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         for (int j = 0; j < size; ++j)
             mpz_init(V[i][j]);
     }
-
+    printf("hi1\n");
     // checking if we can reconstruct the input from t+1 shares (correct)
-    net.broadcastToPeers(shares, size, resultShares, threadID);
+    net.broadcastToPeers(shares, size, resultShares, threadID); //issue here where program just hangs (occurs elsewhere)
+    printf("hi2\n");
     ss->reconstructSecret(c, resultShares, size);
+    printf("hi3\n");
     Open_Shamir(shares, c_test, size, threadID, net, id, ss);
+    printf("hi4\n");
 
     for (int j = 0; j < size; j++) {
         gmp_printf("all_open input       c[%i]: %Zu\n", j, c[j]);
