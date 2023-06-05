@@ -125,7 +125,14 @@ In order to run a user's translated program in a distributed setting, one needs 
 
   The four values should be listed in the specified order on each line. Note that the same runtime config file should be distributed to all computational parties.
 
-  All programs compiled by PICCO use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported and a key stored in a file needs to be in a format compatible with what OpenSSL uses.
+  All programs compiled by PICCO use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported and a key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
+
+  ```
+  openssl genrsa -out privateID.pem 2048
+  openssl rsa -in privateID.pem -outform PEM -pubout -out publicID.pem
+  ```
+
+
 
 - The **execution** uses $N+1$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation. Out of these machines, $N$ machines correspond to computational nodes and the remaining machine is an additional node that supplies shared randomness to the computational parties using the seed program `picco-seed` (produced at the time of PICCO compilation) and can be controlled by the data owners. Strictly speaking, the seeds need to be communicated to the given set of computational parties only once, after which the computational parties can execute secure implementations of various programs any number of times. However, for simplicity, our implementation expects communication from `picco-seed` for each program execution, and the time for generating and transmitting the seeds is not counted in the program execution time. 
 
