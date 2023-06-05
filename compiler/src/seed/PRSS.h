@@ -23,37 +23,42 @@
 #include <map>
 
 #include "stdint.h"
-#include <vector>
-#include <iostream>
 #include <cstdlib>
 #include <gmp.h>
+#include <iostream>
+#include <openssl/rand.h>
+#include <vector>
+
+#define KEYSIZE 16
+
 class PRSS {
 public:
-	PRSS(int, mpz_t); 
-	virtual ~PRSS();
-	void setKeysAndPoints();
-	void setPeers(int);
-	void setThreshold(int);
-	void setPolynomials();
-	int getPeers();
-	int getThreshold();
-	long getFieldSize();
-	mpz_t* getKeys(); 
-	int getKeysize(); 
-	std::map<std::string, std::vector<int> > getPolynomials(); 
-	std::map<std::string, std::vector<int> > getPoints(); 
-	int computePolynomials(std::vector<int>, int);
-	std::string mpz2string(mpz_t, int); 
+    PRSS(int, mpz_t);
+    virtual ~PRSS();
+    void setKeysAndPoints();
+    void setPeers(int);
+    void setThreshold(int);
+    void setPolynomials();
+    int getPeers();
+    int getThreshold();
+    long getFieldSize();
+    mpz_t *getKeys();
+    int getKeysize();
+    std::map<std::string, std::vector<int>> getPolynomials();
+    std::map<std::string, std::vector<int>> getPoints();
+    int computePolynomials(std::vector<int>, int);
+    std::string mpz2string(mpz_t, int);
+
 private:
-	std::map<std::string, std::vector<int> > polynomials;
-	std::map<std::string, std::vector<int> > points;
-	mpz_t* keys; 
-	int keysize; 
-	void getCombinations(std::vector<int> &, int, std::vector<int> &, int, int, std::vector<std::vector<int> > &);
-	int peers;
-	int threshold;
-	mpz_t modulus; 
-	int mpz_t_size; 
+    std::map<std::string, std::vector<int>> polynomials;
+    std::map<std::string, std::vector<int>> points;
+    mpz_t *keys;
+    int keysize;
+    void getCombinations(std::vector<int> &, int, std::vector<int> &, int, int, std::vector<std::vector<int>> &);
+    int peers;
+    int threshold;
+    mpz_t modulus;
+    int mpz_t_size;
 };
 
 #endif /* PRSS_H_ */
