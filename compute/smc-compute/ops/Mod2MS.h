@@ -17,6 +17,7 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+#include "Open.h"
 #include "B2U.h"
 #include "Inv.h"
 #include "LTZ.h"

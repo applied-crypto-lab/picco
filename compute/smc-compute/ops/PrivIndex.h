@@ -20,6 +20,7 @@
 #ifndef PRIVINDEX_H_
 #define PRIVINDEX_H_
 
+#include "Open.h"
 #include "BitDec.h"
 #include "EQZ.h"
 #include "Mult.h"

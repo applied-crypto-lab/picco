@@ -20,6 +20,7 @@
 #ifndef MOD2_H_
 #define MOD2_H_
 
+#include "Open.h"
 #include "Operation.h"
 #include "Random.h"
 

@@ -27,6 +27,7 @@
 #include "Mult.h"
 #include "Operation.h"
 #include "PrefixMultiplication.h"
+#include "Open.h"
 #include "Random.h"
 
 class TruncS : public Operation {

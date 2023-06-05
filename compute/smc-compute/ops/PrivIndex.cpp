@@ -136,9 +136,9 @@ void PrivIndex::doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int d
     ss->modMul(S, S, pow2K, size);
     ss->modAdd(C, index, r, size);
     ss->modAdd(C, C, S, size);
-    net.broadcastToPeers(C, size, resultShares, threadID);
-    ss->reconstructSecret(C, resultShares, size);
-
+    // net.broadcastToPeers(C, size, resultShares, threadID);
+    // ss->reconstructSecret(C, resultShares, size);
+    Open_Shamir(C, C, size, threadID, net, id, ss); 
     /*** Lookup: LINE 4: c' = c mod 2^log_n ***/
     ss->mod(C, C, pow2K, size);
     gettimeofday(&tv4, NULL);

@@ -20,6 +20,7 @@
 #ifndef INV_H_
 #define INV_H_
 
+#include "Open.h"
 #include "Operation.h"
 #include "Random.h"
 

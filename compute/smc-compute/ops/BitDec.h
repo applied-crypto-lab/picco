@@ -21,6 +21,7 @@
 #define BITDEC_H_
 
 #include "AddBitwise.h"
+#include "Open.h"
 #include "Operation.h"
 #include "Random.h"
 

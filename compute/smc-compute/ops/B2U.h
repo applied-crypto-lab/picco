@@ -19,6 +19,7 @@
 */
 
 #include "Mult.h"
+#include "Open.h"
 #include "Operation.h"
 #include "Pow2.h"
 #include "PreOr.h"

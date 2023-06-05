@@ -50,7 +50,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *c_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // mpz_t *c_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *sum = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t temp1, temp2, const1, const2, constK, constm, const2K, const2m;
 
@@ -63,7 +63,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_init_set_ui(constm, m);
     mpz_init(const2K);
     mpz_init(const2m);
-    printf("K: %i\n", K);
+    // printf("K: %i\n", K);
     for (int i = 0; i < K; i++)
         mpz_init(bitK[i]);
     for (int i = 0; i < m; i++)
@@ -72,7 +72,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     for (int i = 0; i < size; ++i) {
         mpz_init(C[i]);
         mpz_init(c[i]);
-        mpz_init(c_test[i]);
+        // mpz_init(c_test[i]);
         mpz_init(S[i]);
         mpz_init(sum[i]);
     }
@@ -90,68 +90,51 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         for (int j = 0; j < size; ++j)
             mpz_init(V[i][j]);
     }
-    printf("hi1\n");
+    // printf("hi1\n");
     // checking if we can reconstruct the input from t+1 shares (correct)
-    net.broadcastToPeers(shares, size, resultShares, threadID); // issue here where program just hangs (occurs elsewhere)
-    printf("hi2\n");
-    ss->reconstructSecret(c, resultShares, size);
-    printf("hi3\n");
-    Open_Shamir(shares, c_test, size, threadID, net, id, ss);
-    printf("hi4\n");
+    // net.broadcastToPeers(shares, size, resultShares, threadID); // issue here where program just hangs (occurs elsewhere)
+    // printf("hi2\n");
+    // ss->reconstructSecret(c, resultShares, size);
+    // printf("hi3\n");
+    // Open_Shamir(shares, c_test, size, threadID, net, id, ss);
+    // printf("hi4\n");
 
-    for (int j = 0; j < size; j++) {
-        gmp_printf("all_open input       c[%i]: %Zu\n", j, c[j]);
-        gmp_printf("min_open input  c_test[%i]: %Zu\n", j, c_test[j]);
-        // mpz_set_ui(c[j], 0); //clearing output just in case
-    }
-    printf("----\n");
+    // for (int j = 0; j < size; j++) {
+    //     gmp_printf("all_open input       c[%i]: %Zu\n", j, c[j]);
+    //     gmp_printf("min_open input  c_test[%i]: %Zu\n", j, c_test[j]);
+    //     // mpz_set_ui(c[j], 0); //clearing output just in case
+    // }
+    // printf("----\n");
 
     Rand->PRandM(K, K, size, V, threadID);   // generating r', r'_k-1,...,r'_0
     ss->modAdd(C, shares, V[K], size);       // Line 2 of EQZ
     Rand->PRandInt(K, K, size, S, threadID); // generating r''
 
-    Open_Shamir(S, c_test, size, threadID, net, id, ss);
-    net.broadcastToPeers(S, size, resultShares, threadID);
-    ss->reconstructSecret(c, resultShares, size);
+    // consistency checking
+    //  Open_Shamir(S, c_test, size, threadID, net, id, ss);
+    //  net.broadcastToPeers(S, size, resultShares, threadID);
+    //  ss->reconstructSecret(c, resultShares, size);
 
-    for (int j = 0; j < size; j++) {
-        gmp_printf("my share       S[%i]: %Zu\n", j, S[j]);
-        gmp_printf("expected       S[%i]: %Zu\n", j, c[j]);
-        gmp_printf("actual    S_test[%i]: %Zu\n", j, c_test[j]);
-    }
-    printf("----\n");
+    // for (int j = 0; j < size; j++) {
+    //     gmp_printf("my share       S[%i]: %Zu\n", j, S[j]);
+    //     gmp_printf("expected       S[%i]: %Zu\n", j, c[j]);
+    //     gmp_printf("actual    S_test[%i]: %Zu\n", j, c_test[j]);
+    // }
+    // printf("----\n");
 
     ss->modPow(const2K, const2, constK); // Line 2 of EQZ
     ss->modMul(S, S, const2K, size);     // Line 2 of EQZ
     ss->modAdd(C, C, S, size);           // Line 2 of EQZ
 
-    net.broadcastToPeers(C, size, resultShares, threadID);
-    // for (int i = 0; i < peers; i++) {
-    // for (int j = 0; j < size; j++)
-    // gmp_printf("resultShares[%i][%i]: %Zu\n", i, j, resultShares[i][j]);
-    // }
-    ss->reconstructSecret(c, resultShares, size);
+    // net.broadcastToPeers(C, size, resultShares, threadID);
+    // ss->reconstructSecret(c, resultShares, size);
 
-    // printf("---\n reconstructSecret\n");
+    Open_Shamir(C, c, size, threadID, net, id, ss); // Line 2 of EQZ
+
     // for (int j = 0; j < size; j++) {
-    //     gmp_printf("c[%i]: %Zu\n", j, c[j]);
-    //     mpz_set_ui(c[j], 0); //clearing output just in case
-
+    //     gmp_printf("expected       c[%i]: %Zu\n", j, c[j]);
+    //     gmp_printf("actual    c_test[%i]: %Zu\n", j, c_test[j]);
     // }
-    // printf("---\n Open\n");
-    // for (int j = 0; j < size; j++) {
-    //     gmp_printf("shares[%i]: %Zu\n", j, shares[j]);
-    //     // mpz_set_ui(c[j], 0); //clearing output just in case
-    // }
-    printf("\n----");
-    printf("Open\n");
-    Open_Shamir(C, c_test, size, threadID, net, id, ss); // Line 2 of EQZ
-
-    for (int j = 0; j < size; j++) {
-        gmp_printf("expected       c[%i]: %Zu\n", j, c[j]);
-        gmp_printf("actual    c_test[%i]: %Zu\n", j, c_test[j]);
-        // mpz_set_ui(c[j], 0); //clearing output just in case
-    }
 
     for (int i = 0; i < size; i++) {
         binarySplit(c[i], bitK, K);   // Line 3 of EQZ
@@ -183,8 +166,10 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         ss->modAdd(C[i], C[i], S[0]);
     for (int i = 0; i < size; i++)
         ss->modAdd(C[i], U[m][0], sum[i]);
-    net.broadcastToPeers(C, size, resultShares, threadID);
-    ss->reconstructSecret(c, resultShares, size);
+    // net.broadcastToPeers(C, size, resultShares, threadID);
+    // ss->reconstructSecret(c, resultShares, size);
+    Open_Shamir(C, c, size, threadID, net, id, ss); // Line 2 of EQZ
+
     for (int i = 0; i < size; i++) {
         binarySplit(c[i], bitm, m);
         mpz_set_ui(sum[i], 0);
@@ -237,13 +222,13 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     for (int i = 0; i < size; ++i) {
         mpz_clear(C[i]);
         mpz_clear(c[i]);
-        mpz_clear(c_test[i]);
+        // mpz_clear(c_test[i]);
         mpz_clear(sum[i]);
         mpz_clear(S[i]);
     }
     free(C);
     free(c);
-    free(c_test);
+    // free(c_test);
     free(sum);
     free(S);
 

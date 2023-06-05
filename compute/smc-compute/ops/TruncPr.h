@@ -20,6 +20,7 @@
 #ifndef TRUNCPR_H_
 #define TRUNCPR_H_
 
+#include "Open.h"
 #include "Operation.h"
 #include "Random.h"
 

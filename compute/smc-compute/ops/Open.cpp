@@ -20,6 +20,8 @@
 
 #include "Open.h"
 
+// Reconstructss shares into result using t+1 shares
+// Can be used where the output is stored in the input's location
 void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, int nodeID, SecretShare *s) {
     uint threshold = s->getThreshold();
 

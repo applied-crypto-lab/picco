@@ -78,8 +78,9 @@ void TruncPr::doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, 
     ss->modAdd(C, C, R[M], size);
     ss->modAdd(C, C, pow2K1, size);
 
-    net.broadcastToPeers(C, size, resultShares, threadID);
-    ss->reconstructSecret(C, resultShares, size);
+    // net.broadcastToPeers(C, size, resultShares, threadID);
+    // ss->reconstructSecret(C, resultShares, size);
+    Open_Shamir(C, C, size, threadID, net, id, ss); // Line 2, storing result in C
 
     for (int i = 0; i < size; i++) {
         mpz_mod(C[i], C[i], pow2M);
