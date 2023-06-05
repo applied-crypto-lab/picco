@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -18,25 +18,26 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Operation.h"
-#include "Random.h"
-#include "Pow2.h"
 #include "Mult.h"
+#include "Operation.h"
+#include "Pow2.h"
 #include "PreOr.h"
+#include "Random.h"
 
 #ifndef B2U_H_
 #define B2U_H_
 
-class B2U : public Operation{
+class B2U : public Operation {
 public:
-	B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~B2U();
-	void doOperation(mpz_t* A, int L, mpz_t** result, int size, int threadID);
+    B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~B2U();
+    void doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID);
+
 private:
-	Random *Rand; 
-	Pow2 *Pw2;
-	Mult *Mul;
-	PreOr *Por;
+    Random *Rand;
+    Pow2 *Pw2;
+    Mult *Mul;
+    PreOr *Por;
 };
 
 #endif /* B2U_H_ */

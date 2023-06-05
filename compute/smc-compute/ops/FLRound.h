@@ -20,26 +20,27 @@
 #ifndef FLROUND_H_
 #define FLROUND_H_
 
-#include "Operation.h"
+#include "EQZ.h"
+#include "FLAdd.h"
 #include "LTZ.h"
 #include "Mod2M.h"
-#include "EQZ.h"
-#include "Mult.h"
 #include "Mod2MS.h"
-#include "FLAdd.h"
+#include "Mult.h"
+#include "Operation.h"
 
-class FLRound : public Operation{
+class FLRound : public Operation {
 public:
-	FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~FLRound();
-	void doOperation(mpz_t** A, mpz_t** result, mpz_t* mode, int L, int K, int size, int threadID);
+    FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~FLRound();
+    void doOperation(mpz_t **A, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID);
+
 private:
-	LTZ *Lt;
-	Mod2M *Mod;
-	EQZ *Eq;
-	Mult *Mul;
-	Mod2MS *Md2m;
-	FLAdd *Fladd; 	
+    LTZ *Lt;
+    Mod2M *Mod;
+    EQZ *Eq;
+    Mult *Mul;
+    Mod2MS *Md2m;
+    FLAdd *Fladd;
 };
 
 #endif /* FLROUND_H_ */

@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,28 +20,28 @@
 #ifndef INT2FL_H_
 #define INT2FL_H_
 
-#include "Operation.h"
-#include "Mult.h"
-#include "LTZ.h"
-#include "EQZ.h"
-#include "PreOr.h"
 #include "BitDec.h"
+#include "EQZ.h"
+#include "LTZ.h"
+#include "Mult.h"
+#include "Operation.h"
+#include "PreOr.h"
 #include "Trunc.h"
 
-class Int2FL: public Operation {
+class Int2FL : public Operation {
 public:
-	Int2FL();
-	Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~Int2FL();
-	void doOperation(mpz_t* values, mpz_t** results, int gamma, int K, int size, int threadID);
-    
+    Int2FL();
+    Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~Int2FL();
+    void doOperation(mpz_t *values, mpz_t **results, int gamma, int K, int size, int threadID);
+
 private:
-	Mult *Mul;
-	LTZ *Lt;
-	PreOr *Pre;
-	BitDec *Bd;
-	Trunc * T; 
-	EQZ *Eq; 
+    Mult *Mul;
+    LTZ *Lt;
+    PreOr *Pre;
+    BitDec *Bd;
+    Trunc *T;
+    EQZ *Eq;
 };
 
 #endif /* INT2FL_H */

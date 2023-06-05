@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -23,16 +23,16 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class BitOps : public Operation{
+class BitOps : public Operation {
 public:
-	BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~BitOps();
-	void BitAnd(mpz_t* A, mpz_t* B, mpz_t* result, int size, int threadID);
-	void BitOr(mpz_t* A, mpz_t* B, mpz_t* result, int size, int threadID);
-	void BitXor(mpz_t* A, mpz_t* B, mpz_t* result, int size, int threadID);
+    BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~BitOps();
+    void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID);
+    void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID);
+    void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID);
 
 private:
-	Mult *Mul;
+    Mult *Mul;
 };
 
 #endif /* BITOPS_H_ */

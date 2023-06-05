@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -23,15 +23,15 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class DotProduct : public Operation{
+class DotProduct : public Operation {
 public:
-	DotProduct(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~DotProduct();
-	void doOperation(mpz_t* a, mpz_t* b, mpz_t result, int size, int threadID);
-	void doOperation(mpz_t** a, mpz_t** b, mpz_t* result, int num_vec, int size_vec, int threadID); 
+    DotProduct(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~DotProduct();
+    void doOperation(mpz_t *a, mpz_t *b, mpz_t result, int size, int threadID);
+    void doOperation(mpz_t **a, mpz_t **b, mpz_t *result, int num_vec, int size_vec, int threadID);
+
 private:
-	Mult *Mul;
+    Mult *Mul;
 };
 
 #endif /*DOTPRODUCT_H*/
-

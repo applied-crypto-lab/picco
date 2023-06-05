@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,20 +20,21 @@
 #ifndef FLLTZ_H_
 #define FLLTZ_H_
 
-#include "Operation.h"
-#include "Mult.h"
-#include "LTZ.h"
 #include "EQZ.h"
+#include "LTZ.h"
+#include "Mult.h"
+#include "Operation.h"
 
-class FLLTZ: public Operation {
+class FLLTZ : public Operation {
 public:
-	FLLTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~FLLTZ();
-	void doOperation(mpz_t** A, mpz_t** B, mpz_t* result, int K, int L, int size, int threadID);
+    FLLTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~FLLTZ();
+    void doOperation(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID);
+
 private:
-	Mult *Mul;
-	LTZ *Lt;
-	EQZ *Eq;
+    Mult *Mul;
+    LTZ *Lt;
+    EQZ *Eq;
 };
 
 #endif /* FLOATLTZ_H_ */

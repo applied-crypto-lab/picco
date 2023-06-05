@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -23,13 +23,14 @@
 #include "Operation.h"
 #include "Trunc.h"
 
-class FPMult: public Operation {
+class FPMult : public Operation {
 public:
-	FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~FPMult();
-	void doOperation(mpz_t* C, mpz_t* A, mpz_t* B, int K, int F, int size);
+    FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~FPMult();
+    void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size);
+
 private:
-	Trunc *T;
+    Trunc *T;
 };
 
 #endif /* FPMULT_H_ */

@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -22,17 +22,18 @@
 #define MOD2M_H_
 
 #include "BitLTC.h"
-#include "Random.h"
 #include "Operation.h"
+#include "Random.h"
 
-class Mod2M: public Operation {
+class Mod2M : public Operation {
 public:
-	Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~Mod2M();
-	void doOperation(mpz_t* result, mpz_t* shares, int K, int M, int size, int threadID);
+    Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~Mod2M();
+    void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
+
 private:
-	BitLTC *B;
-	Random *Rand; 
+    BitLTC *B;
+    Random *Rand;
 };
 
 #endif /* MOD2M_H_ */

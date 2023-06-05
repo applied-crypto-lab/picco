@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -24,13 +24,14 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class CarryBit : public Operation{
+class CarryBit : public Operation {
 public:
-	CarryBit(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, int field, mpz_t coeficients[]);
-	virtual ~CarryBit();
-	void doOperation(mpz_t* D1, mpz_t* D2, mpz_t* D3, mpz_t* D4, int size, int threadID);
+    CarryBit(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, int field, mpz_t coeficients[]);
+    virtual ~CarryBit();
+    void doOperation(mpz_t *D1, mpz_t *D2, mpz_t *D3, mpz_t *D4, int size, int threadID);
+
 private:
-	Mult *M;
+    Mult *M;
 };
 
 #endif /* CARRYBIT_H_ */

@@ -21,11 +21,11 @@
 #define MULT_H_
 
 #include "Operation.h"
-class Mult : public Operation{
+class Mult : public Operation {
 public:
-	Mult(NodeNetwork nodeNet, int nodeID, SecretShare *s); 
-	virtual ~Mult();
-	void doOperation(mpz_t* C, mpz_t* A, mpz_t* B, int size, int threadID); 
+    Mult(NodeNetwork nodeNet, int nodeID, SecretShare *s);
+    virtual ~Mult();
+    void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID);
 };
 
 #endif /* MULT_H_ */

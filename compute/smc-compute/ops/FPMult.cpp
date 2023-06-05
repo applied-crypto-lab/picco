@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -19,24 +19,24 @@
 */
 #include "FPMult.h"
 
-FPMult::FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]) {
-	T = new Trunc(nodeNet,poly,nodeID,s,coeficients);
-	net = nodeNet;
-	id = nodeID;
-	ss = s;
+FPMult::FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+    T = new Trunc(nodeNet, poly, nodeID, s, coeficients);
+    net = nodeNet;
+    id = nodeID;
+    ss = s;
 }
 
 FPMult::~FPMult() {
-	// TODO Auto-generated destructor stub
+    // TODO Auto-generated destructor stub
 }
 
-void FPMult::doOperation(mpz_t* C, mpz_t* A, mpz_t* B, int K, int F, int size){
-	mpz_t* temp = (mpz_t*)malloc(sizeof(mpz_t) * size);
-	for(int i = 0; i < size; i++)
-		mpz_init(temp[i]);
-	ss->modMul(temp, A, B, size);
-	T->doOperation(C, temp, 2*K, F, size);
-	for(int i = 0; i < size; i++)
-		mpz_clear(temp[i]); 
-	free(temp); 
+void FPMult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size) {
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init(temp[i]);
+    ss->modMul(temp, A, B, size);
+    T->doOperation(C, temp, 2 * K, F, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(temp[i]);
+    free(temp);
 }

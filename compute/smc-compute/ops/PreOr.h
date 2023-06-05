@@ -21,18 +21,18 @@
 #define PREOR_H_
 
 #include "Mod2.h"
-#include "PrefixMultiplication.h"
 #include "Operation.h"
+#include "PrefixMultiplication.h"
 
-class PreOr: public Operation {
+class PreOr : public Operation {
 public:
-	PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]);
-	virtual ~PreOr();
-	void doOperation(mpz_t** result, mpz_t** A, int K, int size, int threadID);
-    
+    PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
+    virtual ~PreOr();
+    void doOperation(mpz_t **result, mpz_t **A, int K, int size, int threadID);
+
 private:
-	Mod2 *M2;
-	PrefixMultiplication *PreMul;
+    Mod2 *M2;
+    PrefixMultiplication *PreMul;
 };
 
 #endif /* PREOR_H_ */

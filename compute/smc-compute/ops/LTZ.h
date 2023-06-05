@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -21,17 +21,18 @@
 #ifndef LTZ_H_
 #define LTZ_H_
 
-#include "Trunc.h"
 #include "Operation.h"
+#include "Trunc.h"
 
-class LTZ: public Operation {
-    
+class LTZ : public Operation {
+
 public:
-	LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~LTZ();
-	void doOperation(mpz_t* result, mpz_t* shares, int K, int size, int threadID);
+    LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~LTZ();
+    void doOperation(mpz_t *result, mpz_t *shares, int K, int size, int threadID);
+
 private:
-	Trunc *T;
+    Trunc *T;
 };
 
 #endif /* LTZ_H_ */

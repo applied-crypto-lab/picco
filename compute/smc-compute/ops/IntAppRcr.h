@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,20 +20,21 @@
 #ifndef INTAPPRCR_H_
 #define INTAPPRCR_H_
 
-#include "Norm.h"
 #include "Mult.h"
-#include "TruncPr.h"
+#include "Norm.h"
 #include "Operation.h"
+#include "TruncPr.h"
 
-class IntAppRcr:public Operation{
+class IntAppRcr : public Operation {
 public:
-	IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~IntAppRcr();
-	void doOperation(mpz_t* w, mpz_t* b, int k, int size, int threadID);
+    IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~IntAppRcr();
+    void doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID);
+
 private:
-	Mult *Mul;
-	Norm *No;
-	TruncPr *T;
+    Mult *Mul;
+    Norm *No;
+    TruncPr *T;
 };
 
 #endif /* INTAPPRCR_H_ */

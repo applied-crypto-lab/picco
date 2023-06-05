@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,30 +20,31 @@
 #ifndef FLOATADD_H_
 #define FLOATADD_H_
 
-#include "Operation.h"
-#include "LTZ.h"
-#include "EQZ.h"
-#include "Mult.h"
-#include "Trunc.h"
 #include "BitDec.h"
+#include "EQZ.h"
+#include "Inv.h"
+#include "LTZ.h"
+#include "Mult.h"
+#include "Operation.h"
 #include "Pow2.h"
 #include "PreOr.h"
-#include "Inv.h"
+#include "Trunc.h"
 
-class FLAdd: public Operation{
+class FLAdd : public Operation {
 public:
-	FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]);
-	virtual ~FLAdd();
-	void doOperation(mpz_t** A, mpz_t** B, mpz_t** result, int K, int L, int size, int threadID);
+    FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
+    virtual ~FLAdd();
+    void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int L, int size, int threadID);
+
 private:
-	LTZ *Lt;
-	EQZ *Eq;
-	Mult *Mul;
-	Trunc *T;
-	BitDec *Bd;
-	PreOr *Preor; 
-	Pow2 *P2; 	
-	Inv  *In; 
+    LTZ *Lt;
+    EQZ *Eq;
+    Mult *Mul;
+    Trunc *T;
+    BitDec *Bd;
+    PreOr *Preor;
+    Pow2 *P2;
+    Inv *In;
 };
 
 #endif /* FLOATADD_H_ */

@@ -21,25 +21,26 @@
 #ifndef TRUNCS_H_
 #define TRUNCS_H_
 
-#include "Random.h"
+#include "B2U.h"
+#include "Inv.h"
 #include "LTZ.h"
 #include "Mult.h"
-#include "B2U.h"
-#include "PrefixMultiplication.h"
-#include "Inv.h"
 #include "Operation.h"
+#include "PrefixMultiplication.h"
+#include "Random.h"
 
-class TruncS: public Operation {
+class TruncS : public Operation {
 public:
-	TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~TruncS();
-	void doOperation(mpz_t* result, mpz_t* A, int K, mpz_t* M, int size, int threadID);
+    TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~TruncS();
+    void doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID);
+
 private:
-	LTZ *Lt;
-	Mult *Mul;
-	B2U *Bt;
-	Inv *In;
-    	Random* Rand;
+    LTZ *Lt;
+    Mult *Mul;
+    B2U *Bt;
+    Inv *In;
+    Random *Rand;
 };
 
 #endif /* TRUNCS_H_ */

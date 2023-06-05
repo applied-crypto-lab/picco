@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -21,16 +21,17 @@
 #ifndef ADDBITWISE_H_
 #define ADDBITWISE_H_
 
-#include "PreOpL.h"
 #include "Operation.h"
+#include "PreOpL.h"
 
-class AddBitwise: public Operation{
+class AddBitwise : public Operation {
 public:
-	AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~AddBitwise();
-	void doOperation(mpz_t** S, mpz_t** A, mpz_t** B, int K, int size, int threadID);
+    AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~AddBitwise();
+    void doOperation(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID);
+
 private:
-	PreOpL *Pre;
+    PreOpL *Pre;
 };
 
 #endif /* ADDBITWISE_H_ */

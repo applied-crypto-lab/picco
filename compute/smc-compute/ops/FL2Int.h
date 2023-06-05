@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,29 +20,28 @@
 #ifndef FL2INT_H_
 #define INT2FL_H_
 
-#include "Operation.h"
-#include "Mult.h"
-#include "LTZ.h"
 #include "FLRound.h"
-#include "Mod2MS.h"
-#include "Pow2.h"
 #include "Inv.h"
+#include "LTZ.h"
+#include "Mod2MS.h"
+#include "Mult.h"
+#include "Operation.h"
+#include "Pow2.h"
 
-
-class FL2Int: public Operation {
+class FL2Int : public Operation {
 public:
-	FL2Int();
-	FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~FL2Int();
-	void doOperation(mpz_t** values, mpz_t* results, int K, int L, int gamma, int size, int threadID);
-    
+    FL2Int();
+    FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~FL2Int();
+    void doOperation(mpz_t **values, mpz_t *results, int K, int L, int gamma, int size, int threadID);
+
 private:
-	Mult *Mul;
-	LTZ *Lt;
-	FLRound *Flround; 
-	Mod2MS *Mod2ms; 
-	Pow2 *P; 
-	Inv *I; 
+    Mult *Mul;
+    LTZ *Lt;
+    FLRound *Flround;
+    Mod2MS *Mod2ms;
+    Pow2 *P;
+    Inv *I;
 };
 
 #endif /* INT2FL_H */

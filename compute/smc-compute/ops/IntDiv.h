@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,25 +20,26 @@
 #ifndef INTDIV_H_
 #define INTDIV_H_
 
-#include "Operation.h"
-#include "Mult.h"
 #include "EQZ.h"
-#include "LTZ.h"
 #include "IntAppRcr.h"
+#include "LTZ.h"
+#include "Mult.h"
+#include "Operation.h"
 #include "TruncPr.h"
 
-class IntDiv: public Operation {
+class IntDiv : public Operation {
 public:
-	IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coefficients[]);
-	virtual ~IntDiv();
-	void doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int size, int threadID);
-	void doOperationPub(mpz_t* result, mpz_t* a, mpz_t* b, int k, int size, int threadID); 
+    IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
+    virtual ~IntDiv();
+    void doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID);
+    void doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID);
+
 private:
-	Mult *Mul;
-	IntAppRcr *App;
-	TruncPr *T;
-	EQZ *Eq; 
-	LTZ *Lt; 
+    Mult *Mul;
+    IntAppRcr *App;
+    TruncPr *T;
+    EQZ *Eq;
+    LTZ *Lt;
 };
 
 #endif /* INTDIV_H_ */

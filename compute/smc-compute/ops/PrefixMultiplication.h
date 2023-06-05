@@ -20,17 +20,18 @@
 #ifndef PREFIXMULTIPLICATION_H_
 #define PREFIXMULTIPLICATION_H_
 
-#include "Random.h"
 #include "Operation.h"
+#include "Random.h"
 
-class PrefixMultiplication: public Operation {
-    
+class PrefixMultiplication : public Operation {
+
 public:
-	PrefixMultiplication(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~PrefixMultiplication();
-	void doOperation(mpz_t** B, mpz_t** result, int size, int length, int threadID);
-private:  
-	Random *Rand; 
+    PrefixMultiplication(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~PrefixMultiplication();
+    void doOperation(mpz_t **B, mpz_t **result, int size, int length, int threadID);
+
+private:
+    Random *Rand;
 };
 
 #endif /* PREFIXMULTIPLICATION_H_ */

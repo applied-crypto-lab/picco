@@ -36,11 +36,8 @@ void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwo
         // putting my share into last position of buff as to match lagrangeWeightsThreshold[i]
         mpz_set(buffer[threshold][i], shares[i]);
     }
-    // for (int i = 0; i < (threshold + 1); i++) {
-    //     for (int j = 0; j < size; j++)
-    //         gmp_printf("buffer[%i][%i]: %Zu\n", i, j, buffer[i][j]);
-    // }
     s->reconstructSecretFromMin(result, buffer, size);
+
     // freeing
     for (int i = 0; i < (threshold + 1); i++) {
         for (int j = 0; j < size; j++)

@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,18 +20,19 @@
 #ifndef BITLTC_H_
 #define BITLTC_H_
 
+#include "Mod2.h"
 #include "Operation.h"
 #include "PrefixMultiplication.h"
-#include "Mod2.h"
 
-class BitLTC : public Operation{
+class BitLTC : public Operation {
 public:
-	BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~BitLTC();
-	void doOperation(mpz_t* A, mpz_t** b, mpz_t* result, int K, int size, int threadID);
+    BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~BitLTC();
+    void doOperation(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID);
+
 private:
-	PrefixMultiplication *PreMul;
-	Mod2 *Mod;
+    PrefixMultiplication *PreMul;
+    Mod2 *Mod;
 };
 
 #endif /* BITLTC_H_ */

@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -21,24 +21,24 @@
 #ifndef NORM_H_
 #define NORM_H_
 
-#include "Operation.h"
-#include "Mult.h"
-#include "LTZ.h"
-#include "PreOr.h"
 #include "BitDec.h"
+#include "LTZ.h"
+#include "Mult.h"
+#include "Operation.h"
+#include "PreOr.h"
 
-class Norm: public Operation {
+class Norm : public Operation {
 public:
-	Norm();
-	Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~Norm();
-	void doOperation(mpz_t* c, mpz_t* vp, mpz_t* b, int k, int f, int size, int threadID);
-    
+    Norm();
+    Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~Norm();
+    void doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID);
+
 private:
-	Mult *Mul;
-	LTZ *Lt;
-	PreOr *Pre;
-	BitDec *Bt;
+    Mult *Mul;
+    LTZ *Lt;
+    PreOr *Pre;
+    BitDec *Bt;
 };
 
 #endif /* NORM_H_ */

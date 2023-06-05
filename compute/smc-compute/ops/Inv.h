@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,17 +20,17 @@
 #ifndef INV_H_
 #define INV_H_
 
-#include "Random.h"
 #include "Operation.h"
+#include "Random.h"
 
-class Inv: public Operation {
+class Inv : public Operation {
 public:
-	Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~Inv();
-	void doOperation(mpz_t* shares, mpz_t* results, int size, int threadID);
+    Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~Inv();
+    void doOperation(mpz_t *shares, mpz_t *results, int size, int threadID);
 
 private:
-	Random *Rand; 
+    Random *Rand;
 };
 
 #endif /* INV_H_ */

@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,20 +20,21 @@
 #ifndef SDIV_H_
 #define SDIV_H_
 
-#include "Operation.h"
-#include "Mult.h"
-#include "TruncPr.h"
 #include "Mod2M.h"
+#include "Mult.h"
+#include "Operation.h"
+#include "TruncPr.h"
 
-class SDiv: public Operation {
+class SDiv : public Operation {
 public:
-	SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
-	virtual ~SDiv();
-	void doOperation(mpz_t* Y, mpz_t* A, mpz_t* B, int K, int size, int threadID);
+    SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
+    virtual ~SDiv();
+    void doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID);
+
 private:
-	Mult *Mul;
-	TruncPr *Truncpr;
-	Mod2M *Mod;
+    Mult *Mul;
+    TruncPr *Truncpr;
+    Mod2M *Mod;
 };
 
 #endif /* SDIV_H_ */

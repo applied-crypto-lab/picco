@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,28 +20,28 @@
 #ifndef OPERATION_H_
 #define OPERATION_H_
 
-#include <gmp.h>
-#include <vector>
-#include <map>
-#include <cstdlib>
-#include "../SecretShare.h"
 #include "../NodeNetwork.h"
+#include "../SecretShare.h"
+#include <cstdlib>
+#include <gmp.h>
+#include <map>
+#include <vector>
 
 class Operation {
 public:
-	Operation();
-	virtual ~Operation();
-	void clearBuffer(mpz_t** buffer, int firstDimSize, int secondDimSize);
-	void clearBuffer(mpz_t* buffer, int firstDimSize);
-	void binarySplit(mpz_t v, mpz_t* result, int K);
-	void binarySplit(int v, int* result, int K);
-	double time_diff(struct timeval *, struct timeval *);
-    
-	SecretShare *ss;
-	mpz_t coef[9];
-	std::map<std::string, std::vector<int> > polynomials; //
-	NodeNetwork net;
-	int id;
+    Operation();
+    virtual ~Operation();
+    void clearBuffer(mpz_t **buffer, int firstDimSize, int secondDimSize);
+    void clearBuffer(mpz_t *buffer, int firstDimSize);
+    void binarySplit(mpz_t v, mpz_t *result, int K);
+    void binarySplit(int v, int *result, int K);
+    double time_diff(struct timeval *, struct timeval *);
+
+    SecretShare *ss;
+    mpz_t coef[9];
+    std::map<std::string, std::vector<int>> polynomials; //
+    NodeNetwork net;
+    int id;
 };
 
 #endif /* OPERATION_H_ */

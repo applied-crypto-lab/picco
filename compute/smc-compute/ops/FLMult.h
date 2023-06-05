@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,20 +20,21 @@
 #ifndef FLMULT_H_
 #define FLMULT_H_
 
-#include "Operation.h"
-#include "Mult.h"
-#include "Trunc.h"
 #include "LTZ.h"
+#include "Mult.h"
+#include "Operation.h"
+#include "Trunc.h"
 
-class FLMult: public Operation {
+class FLMult : public Operation {
 public:
-	FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~FLMult();
-	void doOperation(mpz_t** A, mpz_t** B, mpz_t** result, int K, int size, int threadID);
+    FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~FLMult();
+    void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
+
 private:
-	Mult *Mul;
-	Trunc *T;
-	LTZ *Lt;
+    Mult *Mul;
+    Trunc *T;
+    LTZ *Lt;
 };
 
 #endif /* FLMULT_H_ */

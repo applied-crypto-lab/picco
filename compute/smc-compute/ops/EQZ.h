@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -21,21 +21,21 @@
 #ifndef EQZ_H_
 #define EQZ_H_
 
-#include "Random.h"
 #include "Open.h"
-#include "PrefixMultiplication.h"
 #include "Operation.h"
+#include "PrefixMultiplication.h"
+#include "Random.h"
 
-class EQZ : public Operation{
-    
+class EQZ : public Operation {
+
 public:
-	EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
-	virtual ~EQZ();
-	void doOperation(mpz_t* shares, mpz_t* result, int K, int size, int threaID);
-private:
-	PrefixMultiplication *PreMul;
-	Random  *Rand; 
-};
+    EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~EQZ();
+    void doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threaID);
 
+private:
+    PrefixMultiplication *PreMul;
+    Random *Rand;
+};
 
 #endif /* EQZ_H_ */

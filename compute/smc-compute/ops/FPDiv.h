@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,20 +20,21 @@
 #ifndef FPDIV_H_
 #define FPDIV_H_
 
-#include "Operation.h"
-#include "Mult.h"
 #include "AppRcr.h"
+#include "Mult.h"
+#include "Operation.h"
 #include "TruncPr.h"
 
-class FPDiv: public Operation {
+class FPDiv : public Operation {
 public:
-	FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~FPDiv();
-	void doOperation(mpz_t* result, mpz_t* a, mpz_t* b, int k, int f, int size, int threadID);
+    FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~FPDiv();
+    void doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID);
+
 private:
-	Mult *Mul;
-	AppRcr *App;
-	TruncPr *T;
+    Mult *Mul;
+    AppRcr *App;
+    TruncPr *T;
 };
 
 #endif /* FPDIV_H_ */

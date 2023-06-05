@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,16 +20,17 @@
 #ifndef TRUNCPR_H_
 #define TRUNCPR_H_
 
-#include "Random.h"
 #include "Operation.h"
+#include "Random.h"
 
-class TruncPr : public Operation{
+class TruncPr : public Operation {
 public:
-	TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~TruncPr();
-	void doOperation(mpz_t* result, mpz_t* shares, int K, int M, int size, int threadID);
+    TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~TruncPr();
+    void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
+
 private:
-    Random *Rand; 
+    Random *Rand;
 };
 
 #endif /* TRUNCPR_H_ */

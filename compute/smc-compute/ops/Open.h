@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -23,6 +23,6 @@
 
 #include "Operation.h"
 
-void Open_Shamir(mpz_t* shares, mpz_t* result,  int size, int threadID, NodeNetwork nodeNet, int nodeID, SecretShare *s);
+void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, int nodeID, SecretShare *s);
 
 #endif

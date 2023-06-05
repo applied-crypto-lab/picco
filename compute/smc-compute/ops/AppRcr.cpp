@@ -1,4 +1,4 @@
-/*  
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -19,69 +19,68 @@
 */
 #include "AppRcr.h"
 
+AppRcr::AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
 
-AppRcr::AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
-	
-	Mul = new Mult(nodeNet, nodeID, s);
-	T = new TruncPr(nodeNet,poly,nodeID,s,coeficients);
-	No = new Norm(nodeNet,poly,nodeID,s,coeficients);
-    	ss = s;
-	net = nodeNet; 
-	id = nodeID; 
+    Mul = new Mult(nodeNet, nodeID, s);
+    T = new TruncPr(nodeNet, poly, nodeID, s, coeficients);
+    No = new Norm(nodeNet, poly, nodeID, s, coeficients);
+    ss = s;
+    net = nodeNet;
+    id = nodeID;
 }
 
 AppRcr::~AppRcr() {
-	// TODO Auto-generated destructor stub
+    // TODO Auto-generated destructor stub
 }
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.4, page 14
-void AppRcr::doOperation(mpz_t* w, mpz_t* b, int k, int f, int size, int threadID){
-	mpz_t one, two, temp, alpha;
-	mpz_init_set_ui(one, 1); 
-	mpz_init_set_ui(two, 2);
-	mpz_init(temp);
-	mpz_init(alpha);
+void AppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID) {
+    mpz_t one, two, temp, alpha;
+    mpz_init_set_ui(one, 1);
+    mpz_init_set_ui(two, 2);
+    mpz_init(temp);
+    mpz_init(alpha);
 
-	int peers = ss->getPeers(); 
-	
-	mpf_t num1, num2; 
-	mpf_init(num1); 
-	mpf_init(num2); 
+    int peers = ss->getPeers();
 
-	mpz_t* c = (mpz_t*)malloc(sizeof(mpz_t) * size);
-	mpz_t* v = (mpz_t*)malloc(sizeof(mpz_t) * size);
+    mpf_t num1, num2;
+    mpf_init(num1);
+    mpf_init(num2);
 
-	for(int i=0; i<size; ++i){
-		mpz_init(c[i]);
-		mpz_init(v[i]);
-	}
-	//compute alpha 
-	mpf_set_d(num1, 2.9142); 
-	mpz_pow_ui(alpha, two, k);
-	mpf_set_z(num2, alpha); 
-	mpf_mul(num2, num2, num1); 
-	mpz_set_f(temp, num2); 
-	ss->modMul(alpha, temp, one);
-	//finish the rest of computation
-	No->doOperation(c, v, b, k, f, size,  threadID);
-	ss->modMul(c, c, two, size); 
-	ss->modSub(c, alpha, c, size); 
-	Mul->doOperation(c, c, v, size, threadID);
-	T->doOperation(w, c, 2*k, 2*(k-f), size, threadID);
+    mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *v = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
-	//free the memory
-	for(int i=0; i<size; ++i){
-		mpz_clear(c[i]);
-		mpz_clear(v[i]);
-	}
-	free(c); 
-	free(v); 
+    for (int i = 0; i < size; ++i) {
+        mpz_init(c[i]);
+        mpz_init(v[i]);
+    }
+    // compute alpha
+    mpf_set_d(num1, 2.9142);
+    mpz_pow_ui(alpha, two, k);
+    mpf_set_z(num2, alpha);
+    mpf_mul(num2, num2, num1);
+    mpz_set_f(temp, num2);
+    ss->modMul(alpha, temp, one);
+    // finish the rest of computation
+    No->doOperation(c, v, b, k, f, size, threadID);
+    ss->modMul(c, c, two, size);
+    ss->modSub(c, alpha, c, size);
+    Mul->doOperation(c, c, v, size, threadID);
+    T->doOperation(w, c, 2 * k, 2 * (k - f), size, threadID);
 
-	mpz_clear(alpha);
-	mpz_clear(one);  
-	mpz_clear(two); 
-	mpz_clear(temp); 
-	mpf_clear(num1); 
-	mpf_clear(num2);  
+    // free the memory
+    for (int i = 0; i < size; ++i) {
+        mpz_clear(c[i]);
+        mpz_clear(v[i]);
+    }
+    free(c);
+    free(v);
+
+    mpz_clear(alpha);
+    mpz_clear(one);
+    mpz_clear(two);
+    mpz_clear(temp);
+    mpf_clear(num1);
+    mpf_clear(num2);
 }

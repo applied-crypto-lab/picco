@@ -92,7 +92,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
     printf("hi1\n");
     // checking if we can reconstruct the input from t+1 shares (correct)
-    net.broadcastToPeers(shares, size, resultShares, threadID); //issue here where program just hangs (occurs elsewhere)
+    net.broadcastToPeers(shares, size, resultShares, threadID); // issue here where program just hangs (occurs elsewhere)
     printf("hi2\n");
     ss->reconstructSecret(c, resultShares, size);
     printf("hi3\n");
@@ -106,12 +106,9 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
     printf("----\n");
 
-
-
     Rand->PRandM(K, K, size, V, threadID);   // generating r', r'_k-1,...,r'_0
     ss->modAdd(C, shares, V[K], size);       // Line 2 of EQZ
     Rand->PRandInt(K, K, size, S, threadID); // generating r''
-
 
     Open_Shamir(S, c_test, size, threadID, net, id, ss);
     net.broadcastToPeers(S, size, resultShares, threadID);
@@ -124,9 +121,9 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
     printf("----\n");
 
-    ss->modPow(const2K, const2, constK);     // Line 2 of EQZ
-    ss->modMul(S, S, const2K, size);         // Line 2 of EQZ
-    ss->modAdd(C, C, S, size);               // Line 2 of EQZ
+    ss->modPow(const2K, const2, constK); // Line 2 of EQZ
+    ss->modMul(S, S, const2K, size);     // Line 2 of EQZ
+    ss->modAdd(C, C, S, size);           // Line 2 of EQZ
 
     net.broadcastToPeers(C, size, resultShares, threadID);
     // for (int i = 0; i < peers; i++) {
@@ -155,7 +152,6 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         gmp_printf("actual    c_test[%i]: %Zu\n", j, c_test[j]);
         // mpz_set_ui(c[j], 0); //clearing output just in case
     }
-
 
     for (int i = 0; i < size; i++) {
         binarySplit(c[i], bitK, K);   // Line 3 of EQZ

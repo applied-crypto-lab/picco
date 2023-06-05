@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -19,25 +19,26 @@
 */
 #include "B2U.h"
 #include "Inv.h"
-#include "Mult.h"
 #include "LTZ.h"
-#include "Random.h"
+#include "Mult.h"
 #include "Operation.h"
+#include "Random.h"
 
 #ifndef MOD2MS_H_
 #define MOD2MS_H_
 
-class Mod2MS : public Operation{
+class Mod2MS : public Operation {
 public:
-	Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~Mod2MS();
-	void doOperation(mpz_t* result, mpz_t* A, mpz_t* M, mpz_t* InvM, int L, int size, int threadID);
+    Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~Mod2MS();
+    void doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *InvM, int L, int size, int threadID);
+
 private:
-	B2U *B2u;
-	Inv *Iv;
-	Mult *Mul;
-	LTZ *Ltz;
-	Random *Rand; 
+    B2U *B2u;
+    Inv *Iv;
+    Mult *Mul;
+    LTZ *Ltz;
+    Random *Rand;
 };
 
 #endif /* MOD2M1_H_ */

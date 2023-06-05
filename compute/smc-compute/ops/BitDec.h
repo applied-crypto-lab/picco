@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -20,18 +20,19 @@
 #ifndef BITDEC_H_
 #define BITDEC_H_
 
-#include "Random.h"
 #include "AddBitwise.h"
 #include "Operation.h"
+#include "Random.h"
 
-class BitDec:public Operation{
+class BitDec : public Operation {
 public:
-	BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int> > poly, int nodeID, SecretShare* s, mpz_t coeficients[]);
-	virtual ~BitDec();
-	void doOperation(mpz_t** S, mpz_t* A, int K, int M, int size, int threadID);
+    BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    virtual ~BitDec();
+    void doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID);
+
 private:
-	AddBitwise *Add;
-	Random *Rand; 
+    AddBitwise *Add;
+    Random *Rand;
 };
 
 #endif /* BITDEC_H_ */
