@@ -128,8 +128,8 @@ In order to run a user's translated program in a distributed setting, one needs 
   All programs compiled by PICCO use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported and a key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
 
   ```
-  openssl genrsa -out privateID.pem 2048
-  openssl rsa -in privateID.pem -outform PEM -pubout -out publicID.pem
+  openssl genrsa -out private_ID.pem 2048
+  openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
   ```
 
 
