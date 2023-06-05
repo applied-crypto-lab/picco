@@ -100,13 +100,13 @@ void seed::sendPolynomials(mpz_t mod) {
                     coefficients.push_back(polys.find(Strkey)->second.at(j));
             }
         }
-        for (auto &[key, value] : polys) {
-            std::cout << key << ", ";
-            for (size_t j = 0; j < value.size(); j++) {
-                std::cout << value.at(j) << ", ";
-            }
-            std::cout << std::endl;
-        }
+        // for (auto &[key, value] : polys) {
+        //     std::cout << key << ", ";
+        //     for (size_t j = 0; j < value.size(); j++) {
+        //         std::cout << value.at(j) << ", ";
+        //     }
+        //     std::cout << std::endl;
+        // }
         std::cout << std::endl;
         int *Coefficients = &coefficients[0];
         int coefsize = coefficients.size();
@@ -139,9 +139,9 @@ void seed::sendPolynomials(mpz_t mod) {
                 strkey[0] = '\0';
 
                 mpz_get_str(strkey, 10, tempKey[l]);
-                std::cout <<"copied ";
-                gmp_printf("Key[%i]: %Zu\n", l, tempKey[l]);
-                printf("strkey %s\n", strkey);
+                // std::cout <<"copied ";
+                // gmp_printf("Key[%i]: %Zu\n", l, tempKey[l]);
+                // printf("strkey %s\n", strkey);
 
                 memcpy(buf + sizeof(int) * 3 + position, strkey, mpz_t_size);
                 position += mpz_t_size;

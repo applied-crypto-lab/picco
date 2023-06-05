@@ -16,3 +16,6 @@ mv picco-seed ../../bin/
 #cd ../compute/
 #../compiler/ompi ../compiler/test-programs/var-test.c ../compiler/config.txt > var-test.cpp 
 #make var-test
+
+# make ; mv picco-seed ../../bin/
+

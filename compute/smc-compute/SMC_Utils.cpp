@@ -3812,11 +3812,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     for (int i = 0; i < keysize; i++) {
         char strkey[mpz_t_size+1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end 
         // strkey[0] = '\0';
-        // strkey[0] = '\0';
-		// TODO: replace memcpy with strncat when strings are used
         memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size); 
-		// this ends up copying some garbage at the end of the string, and hence corrupting the resultant string
-		// strncat(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size);
         printf("%s\n", strkey);
 		// std::string Strkey (strkey);
 		// std::cout<<Strkey<<std::endl;
