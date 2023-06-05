@@ -107,7 +107,7 @@ void seed::sendPolynomials(mpz_t mod) {
         //     }
         //     std::cout << std::endl;
         // }
-        std::cout << std::endl;
+        // std::cout << std::endl;
         int *Coefficients = &coefficients[0];
         int coefsize = coefficients.size();
         // printf("coefsize = %i \n", coefsize);

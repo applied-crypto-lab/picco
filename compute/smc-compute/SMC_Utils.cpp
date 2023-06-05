@@ -3810,16 +3810,16 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     int *Coefficients = (int *)malloc(sizeof(int) * coefsize);
     int position = 0;
     for (int i = 0; i < keysize; i++) {
-        char strkey[mpz_t_size+1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end 
+        char strkey[mpz_t_size + 1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end
         // strkey[0] = '\0';
-        memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size); 
+        memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size);
         printf("%s\n", strkey);
-		// std::string Strkey (strkey);
-		// std::cout<<Strkey<<std::endl;
-		// for (int c = 0; strkey[c] != '\0'; c++)
-		// 	printf("%c", strkey[c]);
+        // std::string Strkey (strkey);
+        // std::cout<<Strkey<<std::endl;
+        // for (int c = 0; strkey[c] != '\0'; c++)
+        // 	printf("%c", strkey[c]);
         // printf("\n");
-		mpz_set_str(Keys[i], strkey, 10);
+        mpz_set_str(Keys[i], strkey, 10);
         position += mpz_t_size;
     }
     for (size_t i = 0; i < keysize; i++) {
@@ -3853,7 +3853,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         polynomials.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
     }
     // printf("POLYNOMIAL SIZE = %i\n",polysize);
-    printf("Polynomials received... POLYNOMIAL SIZE = %i\n", polynomials.size());
+    printf("Polynomials received... \n");
 
     for (auto &[key, value] : polynomials) {
         std::cout << key << ", ";
