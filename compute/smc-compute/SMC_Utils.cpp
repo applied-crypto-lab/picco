@@ -98,113 +98,14 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 }
 
 /* Specific SMC Utility Functions */
+// open a single integer value
 int SMC_Utils::smc_open(priv_int var, int threadID) {
-
-return 0;
-    // return Open(&var, threadID, nNet, ss);
-
-    // priv_int *data = (priv_int *)malloc(sizeof(priv_int) * 1);
-    // priv_int *results = (priv_int *)malloc(sizeof(priv_int) * 1);
-    // priv_int **buffer = (priv_int **)malloc(sizeof(priv_int *) * peers);
-    // for (int i = 0; i < peers; ++i) {
-    //     buffer[i] = (priv_int *)malloc(sizeof(priv_int));
-    //     mpz_init(buffer[i][0]);
-    // }
-    // mpz_init(data[0]);
-    // mpz_init(results[0]);
-    // mpz_set(data[0], var);
-    // nNet.broadcastToPeers(data, 1, buffer, threadID);
-    // ss->reconstructSecret(results, buffer, 1);
-    // priv_int tmp, field;
-    // mpz_init(tmp);
-    // mpz_init(field);
-    // ss->getFieldSize(field);
-    // mpz_mul_ui(tmp, results[0], 2);
-    // if (mpz_cmp(tmp, field) > 0)
-    //     mpz_sub(results[0], results[0], field);
-    // // gmp_printf("%Zd ", results[0]);
-    // int result = mpz_get_si(results[0]);
-
-    // // free the memory
-    // mpz_clear(data[0]);
-    // mpz_clear(results[0]);
-    // free(data);
-    // free(results);
-    // for (int i = 0; i < peers; i++) {
-    //     mpz_clear(buffer[i][0]);
-    //     free(buffer[i]);
-    // }
-    // free(buffer);
-
-    // return result;
+    return Open_int(var, threadID, nNet, ss);
 }
 
-/********************************************************/
-
+// open a single floating-point value
 float SMC_Utils::smc_open(priv_int *var, int threadID) {
-    priv_int *data = (priv_int *)malloc(sizeof(priv_int) * 4);
-    priv_int *results = (priv_int *)malloc(sizeof(priv_int) * 4);
-    priv_int **buffer = (priv_int **)malloc(sizeof(priv_int *) * peers);
-    for (int i = 0; i < peers; ++i) {
-        buffer[i] = (priv_int *)malloc(sizeof(priv_int) * 4);
-        for (int j = 0; j < 4; j++)
-            mpz_init(buffer[i][j]);
-    }
-
-    for (int i = 0; i < 4; i++) {
-        mpz_init(data[i]);
-        mpz_init(results[i]);
-        mpz_set(data[i], var[i]);
-    }
-    nNet.broadcastToPeers(data, 4, buffer, threadID);
-    ss->reconstructSecret(results, buffer, 4);
-
-    // for (int i = 0; i < 4; i++) {
-        // if (i == 1) {
-    priv_int tmp, field;
-    mpz_init(tmp);
-    mpz_init(field);
-    ss->getFieldSize(field);
-    mpz_mul_ui(tmp, results[1], 2); // if larger than half of the space, convert to negative value
-    if (mpz_cmp(tmp, field) > 0)
-        mpz_sub(results[1], results[1], field);
-        // }
-    // }
-    double v = mpz_get_d(results[0]);
-    double p = mpz_get_d(results[1]);
-    double z = mpz_get_d(results[2]);
-    double s = mpz_get_d(results[3]);
-    double result = 0;
-
-    // free the memory
-    for (int i = 0; i < 4; i++) {
-        mpz_clear(data[i]);
-        mpz_clear(results[i]);
-    }
-    free(data);
-    free(results);
-
-    for (int i = 0; i < peers; i++) {
-        for (int j = 0; j < 4; j++)
-            mpz_clear(buffer[i][j]);
-        free(buffer[i]);
-    }
-    free(buffer);
-
-    // return the result
-    if (z == 1) {
-        // printf("%d\n", 0);
-        return 0;
-    } else {
-        result = v * pow(2, p);
-        if (s == 1) {
-            // printf("%f\n", -result);
-            return -result;
-        } else {
-            // printf("%f\n", result);
-            return result;
-        }
-    }
+    return Open_float(var, threadID, nNet, ss);
 }
 
 // for integer variable I/O
@@ -3841,7 +3742,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     memcpy(Coefficients, decrypt + sizeof(int) * 3 + mpz_t_size * keysize, sizeof(int) * coefsize);
     free(buffer);
     free(decrypt);
-    printf("coefsize = %i \t keysize = %i, \t mpz_t_size = %i\n", coefsize, mpz_t_size);
+    // printf("coefsize = %i \t keysize = %i, \t mpz_t_size = %i\n", coefsize, mpz_t_size);
     // for (size_t i = 0; i < coefsize; i++) {
     //     printf("Coefficients[%i] = %i\n", i, Coefficients[i]);
     // }
@@ -3856,7 +3757,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
             temp.push_back(Coefficients[i * coefsize / keysize + k]);
         }
         // std::cout<<"temp.size = "<<temp.size()<<std::endl;
-        std::cout << Strkey << " temp = ";
+        // std::cout << Strkey << " temp = ";
         for (size_t j = 0; j < temp.size(); j++) {
             std::cout << temp.at(j) << ", ";
         }
@@ -3867,13 +3768,13 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     // printf("POLYNOMIAL SIZE = %i\n",polysize);
     printf("Polynomials received... \n");
 
-    for (auto &[key, value] : polynomials) {
-        std::cout << key << ", ";
-        for (size_t j = 0; j < value.size(); j++) {
-            std::cout << value.at(j) << ", ";
-        }
-        std::cout << std::endl;
-    }
+    // for (auto &[key, value] : polynomials) {
+    //     std::cout << key << ", ";
+    //     for (size_t j = 0; j < value.size(); j++) {
+    //         std::cout << value.at(j) << ", ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 void SMC_Utils::setCoef() {

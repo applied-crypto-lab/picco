@@ -49,17 +49,83 @@ void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork node
     free(buffer);
 }
 
-int Open_int(mpz_t *shares, int threadID, NodeNetwork nodeNet, SecretShare *s) {
+int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *s) {
 
-    // return result;
-    return 0;
+    mpz_t *data = (mpz_t *)malloc(sizeof(mpz_t) * 1);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * 1);
+    mpz_init(data[0]);
+    mpz_init(results[0]);
+    mpz_set(data[0], var);
+
+    Open(data, results,1, threadID, nodeNet, s);
+
+    mpz_t tmp, field;
+    mpz_init(tmp);
+    mpz_init(field);
+    s->getFieldSize(field);
+    mpz_mul_ui(tmp, results[0], 2);
+    if (mpz_cmp(tmp, field) > 0)
+        mpz_sub(results[0], results[0], field);
+    // gmp_printf("%Zd ", results[0]);
+    int result = mpz_get_si(results[0]);
+
+    mpz_clear(tmp);
+    mpz_clear(field);
+    mpz_clear(data[0]);
+    mpz_clear(results[0]);
+    free(data);
+    free(results);
+    return result;
 }
 
 
-float Open_float(mpz_t *shares, int threadID, NodeNetwork nodeNet, SecretShare *s) {
+float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss) {
 
-    
+    mpz_t *data = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * 4);
 
-    return 0.0;
-    // return result;
+    for (int i = 0; i < 4; i++) {
+        mpz_init(data[i]);
+        mpz_init(results[i]);
+        mpz_set(data[i], var[i]);
+    }
+    Open(data, results, 4, threadID, nodeNet, ss);
+
+    mpz_t tmp, field;
+    mpz_init(tmp);
+    mpz_init(field);
+    ss->getFieldSize(field);
+    mpz_mul_ui(tmp, results[1], 2); // if larger than half of the space, convert to negative value
+    if (mpz_cmp(tmp, field) > 0)
+        mpz_sub(results[1], results[1], field);
+
+    double v = mpz_get_d(results[0]);
+    double p = mpz_get_d(results[1]);
+    double z = mpz_get_d(results[2]);
+    double s = mpz_get_d(results[3]);
+    double result = 0;
+
+    // free the memory
+    mpz_clear(field);
+    mpz_clear(tmp);
+    for (int i = 0; i < 4; i++) {
+        mpz_clear(data[i]);
+        mpz_clear(results[i]);
+    }
+    free(data);
+    free(results);
+
+    // return the result
+    if (z == 1) {
+        return 0;
+    } else {
+        result = v * pow(2, p);
+        if (s == 1) {
+            return -result;
+        } else {
+            return result;
+        }
+    }
+
+    return result;
 }
