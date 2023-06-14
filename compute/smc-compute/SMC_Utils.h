@@ -24,7 +24,7 @@
 #include "Headers.h"
 #include "NodeConfiguration.h"
 #include "NodeNetwork.h"
-#include "ops/Operation.h"
+#include "ops/shamir/Operation.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>
