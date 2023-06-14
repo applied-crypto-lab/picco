@@ -97,7 +97,7 @@ void BitDec::doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int thread
     ss->modSub(temp, temp, R1, size);
     // net.broadcastToPeers(temp, size, resultShares, threadID);
     // ss->reconstructSecret(temp, resultShares, size);
-    Open_Shamir(temp, temp, size, threadID, net, id, ss); 
+    Open(temp, temp, size, threadID, net, ss); 
 
     for (int i = 0; i < size; i++)
         binarySplit(temp[i], B[i], M);

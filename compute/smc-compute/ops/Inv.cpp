@@ -58,7 +58,7 @@ void Inv::doOperation(mpz_t *shares, mpz_t *results, int size, int threadID) {
     ss->modMul(temp, shares, R, size);
     // net.broadcastToPeers(temp, size, buffer, threadID);
     // ss->reconstructSecret(results, buffer, size);
-    Open_Shamir(results, results, size, threadID, net, id, ss); 
+    Open(results, results, size, threadID, net, ss); 
 
     ss->modInv(results, results, size);
     ss->modMul(results, R, results, size);

@@ -114,7 +114,7 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
     ss->modAdd(temp, A, temp, size);
     // net.broadcastToPeers(temp, size, resultShares, threadID);
     // ss->reconstructSecret(T1, resultShares, size);
-    Open_Shamir(temp, T1, size, threadID, net, id, ss);
+    Open(temp, T1, size, threadID, net, ss);
 
     for (int i = 0; i < K - 1; i++) {
         ss->modSub(temp, X[i], X[i + 1], size);

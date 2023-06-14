@@ -96,7 +96,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     // printf("hi2\n");
     // ss->reconstructSecret(c, resultShares, size);
     // printf("hi3\n");
-    // Open_Shamir(shares, c_test, size, threadID, net, id, ss);
+    // Open(shares, c_test, size, threadID, net, id, ss);
     // printf("hi4\n");
 
     // for (int j = 0; j < size; j++) {
@@ -111,7 +111,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     Rand->PRandInt(K, K, size, S, threadID); // generating r''
 
     // consistency checking
-    //  Open_Shamir(S, c_test, size, threadID, net, id, ss);
+    //  Open(S, c_test, size, threadID, net, id, ss);
     //  net.broadcastToPeers(S, size, resultShares, threadID);
     //  ss->reconstructSecret(c, resultShares, size);
 
@@ -129,7 +129,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     // net.broadcastToPeers(C, size, resultShares, threadID);
     // ss->reconstructSecret(c, resultShares, size);
 
-    Open_Shamir(C, c, size, threadID, net, id, ss); // Line 2 of EQZ
+    Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
 
     // for (int j = 0; j < size; j++) {
     //     gmp_printf("expected       c[%i]: %Zu\n", j, c[j]);
@@ -168,7 +168,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         ss->modAdd(C[i], U[m][0], sum[i]);
     // net.broadcastToPeers(C, size, resultShares, threadID);
     // ss->reconstructSecret(c, resultShares, size);
-    Open_Shamir(C, c, size, threadID, net, id, ss); // Line 2 of EQZ
+    Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
 
     for (int i = 0; i < size; i++) {
         binarySplit(c[i], bitm, m);

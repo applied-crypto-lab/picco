@@ -231,6 +231,11 @@ void SecretShare::modMul(mpz_t result, mpz_t x, mpz_t y) {
     mpz_mod(result, result, fieldSize);
 }
 
+// void SecretShare::modMul(mpz_t result, mpz_t x, int y) {
+//     mpz_mul_si(result, x, y);
+//     mpz_mod(result, result, fieldSize);
+// }
+
 void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
     for (int i = 0; i < size; i++)
         modMul(result[i], x[i], y[i]);
@@ -240,6 +245,11 @@ void SecretShare::modMul(mpz_t result, mpz_t x, long y) {
     mpz_mul_si(result, x, y);
     mpz_mod(result, result, fieldSize);
 }
+
+// void SecretShare::modMul(mpz_t result, mpz_t x, long unsigned y) {
+//     mpz_mul_ui(result, x, y);
+//     mpz_mod(result, result, fieldSize);
+// }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, long y, int size) {
     for (int i = 0; i < size; ++i) {

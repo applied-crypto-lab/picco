@@ -22,7 +22,7 @@
 
 // Reconstructss shares into result using t+1 shares
 // Can be used where the output is stored in the input's location
-void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, int nodeID, SecretShare *s) {
+void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s) {
     uint threshold = s->getThreshold();
 
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
@@ -47,4 +47,19 @@ void Open_Shamir(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwo
         free(buffer[i]);
     }
     free(buffer);
+}
+
+int Open_int(mpz_t *shares, int threadID, NodeNetwork nodeNet, SecretShare *s) {
+
+    // return result;
+    return 0;
+}
+
+
+float Open_float(mpz_t *shares, int threadID, NodeNetwork nodeNet, SecretShare *s) {
+
+    
+
+    return 0.0;
+    // return result;
 }

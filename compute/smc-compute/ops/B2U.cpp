@@ -86,7 +86,7 @@ void B2U::doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID) {
     ss->modAdd(C, C, R[L], size);
     // net.broadcastToPeers(C, size, resultShares, threadID);
     // ss->reconstructSecret(C, resultShares, size);
-    Open_Shamir(C, C, size, threadID, net, id, ss); 
+    Open(C, C, size, threadID, net, ss); 
 
 
     for (int i = 0; i < size; i++)
