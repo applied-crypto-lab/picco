@@ -20,8 +20,8 @@
 #ifndef OPERATION_H_
 #define OPERATION_H_
 
-#include "../NodeNetwork.h"
-#include "../SecretShare.h"
+#include "../../NodeNetwork.h"
+#include "../../SecretShare.h"
 #include <cstdlib>
 #include <gmp.h>
 #include <map>
