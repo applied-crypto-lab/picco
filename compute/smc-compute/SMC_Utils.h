@@ -31,6 +31,9 @@
 #include <sstream>
 #include <string>
 
+#define BASE 10
+
+
 typedef mpz_t priv_int; 
 
 // typedef unsigned long Lint; // for ring size in [31,62];
@@ -546,7 +549,6 @@ private:
     NodeNetwork nNet;
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
-    int base;
 
     Mult *Mul;
     LTZ *Lt;

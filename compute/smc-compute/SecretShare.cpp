@@ -60,64 +60,16 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
             recvFromIDs[i] = myid - threshold + i;
     }
 
-    // printf("original\n");
-    // for (int i = 0; i < threshold; i++) {
-    //     printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
-    //     printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
-    // }
-    // computeSharingMatrix();
-    // computeLagrangeWeights();
-
-    // corrected versionm
-    // printf("test %i\n", (1 - 1 - 1) % 5 + 1);
-    // printf("-1 % 5 %i\n", -1 % 5);
-    // for (int j = 1; j < threshold+1; j++)
-    // {
-    //     printf("exp send[%i]  %i\n",j - 1, int(int(myid) + (j) - (1)) % int(peers) + 1);
-    //     printf("exp recv[%i]  %i\n",j - 1, int(int(myid) - (j) - (1)) % int(peers) + 1);
-    // }
-    
-    // for (int i = 0; i < threshold; i++) {
-    //     sendToIDs  [i]= modulo((int(myid) + int(i+1) - int(1)), int(peers)) + int(1);
-    //     recvFromIDs[i]= modulo((int(myid) - int(i+1) - int(1)), int(peers)) + int(1);
-    // }
-    // printf("corrected\n");
-    for (int i = 0; i < threshold; i++) {
-        printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
-    }
-    for (int i = 0; i < threshold; i++) {
-        printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
-    }
-
-
-    // printf("peers: %u\n", peers);
     for (int i = 0; i < threshold; i++) {
         multIndices[i] = sendToIDs[i];
         multIndices[threshold + i + 1] = recvFromIDs[i];
     }
     multIndices[threshold] = id;
 
-
-    // for (int i = 0; i < 2 * threshold; i++) {
-    //     print_hexa(keys[i], KEYSIZE);
-    // }
-    // for (int i = 0; i <peers; i++) {
-    //     printf("multIndices[%i]    %u\n", i, multIndices[i]);
-
-    // }
-
-
-
     computeSharingMatrix();
     computeLagrangeWeights(); 
     gmp_randinit_mt(rstate);
-    // for (i = 0; i < (threshold+1); i++) {
-    // 	for (int j = 0; j < (threshold+1); j++) {
-    // 		gmp_printf("%Zu,", lagrangeWeightsMult[i][j]);
-    // 	}
-    // printf("\n");
-    // }
-
+    
     // initialize PRGs
     mpz_t seed;
     mpz_init(seed);
@@ -125,7 +77,6 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     for (i = 0; i < 2 * threshold; i++) {
         gmp_randinit_mt(rstatesMult[i]);
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
-        // gmp_printf("seed[%i]: %Zu\n",i, seed); //lower digits of seed different between parties?
         gmp_randseed(rstatesMult[i], seed);
 
     }
@@ -231,11 +182,6 @@ void SecretShare::modMul(mpz_t result, mpz_t x, mpz_t y) {
     mpz_mod(result, result, fieldSize);
 }
 
-// void SecretShare::modMul(mpz_t result, mpz_t x, int y) {
-//     mpz_mul_si(result, x, y);
-//     mpz_mod(result, result, fieldSize);
-// }
-
 void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
     for (int i = 0; i < size; i++)
         modMul(result[i], x[i], y[i]);
@@ -245,11 +191,6 @@ void SecretShare::modMul(mpz_t result, mpz_t x, long y) {
     mpz_mul_si(result, x, y);
     mpz_mod(result, result, fieldSize);
 }
-
-// void SecretShare::modMul(mpz_t result, mpz_t x, long unsigned y) {
-//     mpz_mul_ui(result, x, y);
-//     mpz_mod(result, result, fieldSize);
-// }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, long y, int size) {
     for (int i = 0; i < size; ++i) {
@@ -504,7 +445,6 @@ void SecretShare::computeLagrangeWeights() {
         }
         modInv(temp, denom);
         modMul(lagrangeWeightsAll[i], nom, temp);
-        // gmp_printf("lagrangeWeightsAll[%i]: %Zu\n",i, lagrangeWeightsAll[i]);
     }
 
     // second set
@@ -520,21 +460,17 @@ void SecretShare::computeLagrangeWeights() {
             mpz_set_ui(t2, myid);
         else
             mpz_set_ui(t2, recvFromIDs[i]);
-        // gmp_printf("\n t2[%i] %Zu , ",i, t2);
         for (l = 0; l < threshold + 1; l++) {
             if (l != i) {
                 if (l == threshold)
                     mpz_set_ui(t1, myid);
                 else
                     mpz_set_ui(t1, recvFromIDs[l]);
-                // gmp_printf("t1[%i] %Zu, ",l, t1);
                 modMul(nom, nom, t1);
                 modSub(temp, t1, t2);
                 modMul(denom, denom, temp);
             }
         }
-        // gmp_printf("\n nom %Zu , ",nom);
-        // gmp_printf("\n denom %Zu , ",denom);
 
         modInv(temp, denom);
         modMul(lagrangeWeightsThreshold[i], nom, temp);
@@ -594,7 +530,6 @@ void SecretShare::computeLagrangeWeights() {
                 }
             }
             modMul(lagrangeWeightsMult[i][j], nom, denom);
-            // gmp_printf("lagrangeWeightsMult[%i][%i]: %Zu\n",i,j, lagrangeWeightsMult[i][j]);
         }
     }
 
@@ -659,7 +594,6 @@ void SecretShare::reconstructSecretFromMin(mpz_t *result, mpz_t **y, unsigned in
 
     for (i = 0; i < size; i++) {
         for (j = 0; j < threshold + 1; j++) {
-            // gmp_printf("LWT[%i], y[%i][%i] :  (%Zu, %Zu) \n",j, j, i,lagrangeWeightsThreshold[j], y[j][i]);
             modMul(temp, y[j][i], lagrangeWeightsThreshold[j]);
             modAdd(result[i], result[i], temp);
         }
@@ -790,8 +724,6 @@ void SecretShare::getCoef(int id) {
     mpz_init(id_p1_inv);
     mpz_set_ui(id_p1_inv, id_p1);
     mpz_invert(id_p1_inv, id_p1_inv, fieldSize);
-    // printf("id_p1: %u\n", id_p1);
-    // gmp_printf("id_p1_inv: %Zu\n", id_p1_inv);
 }
 
 int modulo(int a, int b)

@@ -93,6 +93,7 @@ EQZ::~EQZ() {
 // Protocol 3.7, page 9
 // Uses Symmetric Function subprotocol from Damgard et al., "Unconditionally Secure Constant-Rounds Multi-party 
 // Computation for Equality, Comparison, Bits and Exponentiation", 2006
+// This is the only protocol that used the "coefficients" parameter, and hence why it was relegated to an EQZ class member (created/filled in constructor)
 void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadID) {
     int peers = ss->getPeers();
     int m = 8; // works for 256 bit field size

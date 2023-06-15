@@ -30,7 +30,6 @@
 
 // Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
-    base = 10;
     std::cout << "SMC_Utils constructor\n";
     priv_int modulus;
     mpz_init(modulus);
@@ -122,7 +121,7 @@ void SMC_Utils::smc_input(int id, priv_int *var, std::string type, int threadID)
     std::vector<std::string> tokens;
     std::getline(inputStreams[id - 1], line);
     tokens = splitfunc(line.c_str(), "=");
-    mpz_set_str(*var, tokens[1].c_str(), base);
+    mpz_set_str(*var, tokens[1].c_str(), BASE);
 }
 
 void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
@@ -136,7 +135,7 @@ void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
 void SMC_Utils::smc_output(int id, priv_int *var, std::string type, int threadID) {
     // smc_open(*var, threadID);
     std::string value;
-    value = mpz_get_str(NULL, base, *var);
+    value = mpz_get_str(NULL, BASE, *var);
     outputStreams[id - 1] << value + "\n";
     outputStreams[id - 1].flush();
 }
@@ -157,7 +156,7 @@ void SMC_Utils::smc_input(int id, priv_int **var, std::string type, int threadID
     temp = splitfunc(line.c_str(), "=");
     tokens = splitfunc(temp[1].c_str(), ",");
     for (int i = 0; i < 4; i++)
-        mpz_set_str((*var)[i], tokens[i].c_str(), base);
+        mpz_set_str((*var)[i], tokens[i].c_str(), BASE);
 }
 
 void SMC_Utils::smc_output(int id, float *var, std::string type, int threadID) {
@@ -173,7 +172,7 @@ void SMC_Utils::smc_output(int id, priv_int **var, std::string type, int threadI
     std::string value;
     // smc_open(*var, threadID);
     for (int i = 0; i < 4; i++) {
-        value = mpz_get_str(NULL, base, (*var)[i]);
+        value = mpz_get_str(NULL, BASE, (*var)[i]);
         if (i != 3)
             outputStreams[id - 1] << value + ",";
         else
@@ -191,13 +190,13 @@ void SMC_Utils::smc_input(int id, priv_int *var, int size, std::string type, int
     temp = splitfunc(line.c_str(), "=");
     tokens = splitfunc(temp[1].c_str(), ",");
     for (int i = 0; i < size; i++)
-        mpz_set_str(var[i], tokens[i].c_str(), base);
+        mpz_set_str(var[i], tokens[i].c_str(), BASE);
 }
 
 void SMC_Utils::smc_output(int id, priv_int *var, int size, std::string type, int threadID) {
     std::string value;
     for (int i = 0; i < size; i++) {
-        value = mpz_get_str(NULL, base, var[i]);
+        value = mpz_get_str(NULL, BASE, var[i]);
         // smc_open(var[i], threadID);
         if (i != size - 1)
             outputStreams[id - 1] << value + ",";
@@ -241,7 +240,7 @@ void SMC_Utils::smc_input(int id, priv_int **var, int size, std::string type, in
         temp = splitfunc(line.c_str(), "=");
         tokens = splitfunc(temp[1].c_str(), ",");
         for (int j = 0; j < 4; j++)
-            mpz_set_str(var[i][j], tokens[j].c_str(), base);
+            mpz_set_str(var[i][j], tokens[j].c_str(), BASE);
     }
 }
 
@@ -250,7 +249,7 @@ void SMC_Utils::smc_output(int id, priv_int **var, int size, std::string type, i
     for (int i = 0; i < size; i++) {
         // smc_open(var[i], threadID);
         for (int j = 0; j < 4; j++) {
-            value = mpz_get_str(NULL, base, var[i][j]);
+            value = mpz_get_str(NULL, BASE, var[i][j]);
             if (j != 3)
                 outputStreams[id - 1] << value + ",";
             else
@@ -290,20 +289,11 @@ void SMC_Utils::smc_add(priv_int a, priv_int b, priv_int result, int alen, int b
 }
 
 void SMC_Utils::smc_add(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // priv_int btmp;
-    // mpz_init_set_si(btmp, b);
-    // smc_add(a, btmp, result, alen, blen, resultlen, type, threadID);
     ss->modAdd(result, a, b);
-
-    // mpz_clear(btmp);
 }
 
 void SMC_Utils::smc_add(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // priv_int atmp;
-    // mpz_init_set_si(atmp, a);
-    // smc_add(atmp, b, result, alen, blen, resultlen, type, threadID);
     ss->modAdd(result, b, a);
-    // mpz_clear(atmp);
 }
 
 void SMC_Utils::smc_add(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
