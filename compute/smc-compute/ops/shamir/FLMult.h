@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLMULT_H_
-#define FLMULT_H_
+#ifndef FLMULT_SHAMIR_H_
+#define FLMULT_SHAMIR_H_
 
 #include "LTZ.h"
 #include "Mult.h"
@@ -37,4 +37,4 @@ private:
     LTZ *Lt;
 };
 
-#endif /* FLMULT_H_ */
+#endif /* FLMULT_SHAMIR_H_ */

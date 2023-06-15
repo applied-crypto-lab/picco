@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MOD2M_H_
-#define MOD2M_H_
+#ifndef MOD2M_SHAMIR_H_
+#define MOD2M_SHAMIR_H_
 
 #include "BitLTC.h"
 #include "Operation.h"
@@ -36,4 +36,4 @@ private:
     Random *Rand;
 };
 
-#endif /* MOD2M_H_ */
+#endif /* MOD2M_SHAMIR_H_ */

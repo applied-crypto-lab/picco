@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef EQZ_H_
-#define EQZ_H_
+#ifndef EQZ_SHAMIR_H_
+#define EQZ_SHAMIR_H_
 
 #include "Open.h"
 #include "Operation.h"
@@ -40,4 +40,4 @@ private:
 
 };
 
-#endif /* EQZ_H_ */
+#endif /* EQZ_SHAMIR_H_ */

@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NORM_H_
-#define NORM_H_
+#ifndef NORM_SHAMIR_H_
+#define NORM_SHAMIR_H_
 
 #include "BitDec.h"
 #include "LTZ.h"
@@ -41,4 +41,4 @@ private:
     BitDec *Bt;
 };
 
-#endif /* NORM_H_ */
+#endif /* NORM_SHAMIR_H_ */

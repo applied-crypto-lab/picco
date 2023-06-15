@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef INV_H_
-#define INV_H_
+#ifndef INV_SHAMIR_H_
+#define INV_SHAMIR_H_
 
 #include "Open.h"
 #include "Operation.h"
@@ -34,4 +34,4 @@ private:
     Random *Rand;
 };
 
-#endif /* INV_H_ */
+#endif /* INV_SHAMIR_H_ */

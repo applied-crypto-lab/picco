@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef OPERATION_H_
-#define OPERATION_H_
+#ifndef OPERATION_SHAMIR_H_
+#define OPERATION_SHAMIR_H_
 
 #include "../../NodeNetwork.h"
 #include "../../SecretShare.h"
@@ -43,4 +43,4 @@ public:
     int id;
 };
 
-#endif /* OPERATION_H_ */
+#endif /* OPERATION_SHAMIR_H_ */

@@ -25,8 +25,8 @@
 #include "PreOr.h"
 #include "Random.h"
 
-#ifndef B2U_H_
-#define B2U_H_
+#ifndef B2U_SHAMIR_H_
+#define B2U_SHAMIR_H_
 
 class B2U : public Operation {
 public:
@@ -41,4 +41,4 @@ private:
     PreOr *Por;
 };
 
-#endif /* B2U_H_ */
+#endif /* B2U_SHAMIR_H_ */

@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FL2INT_H_
-#define INT2FL_H_
+#ifndef FL2INT_SHAMIR_H_
+#define INT2FL_SHAMIR_H_
 
 #include "FLRound.h"
 #include "Inv.h"

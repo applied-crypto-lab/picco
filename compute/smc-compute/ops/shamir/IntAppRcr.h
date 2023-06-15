@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef INTAPPRCR_H_
-#define INTAPPRCR_H_
+#ifndef INTAPPRCR_SHAMIR_H_
+#define INTAPPRCR_SHAMIR_H_
 
 #include "Mult.h"
 #include "Norm.h"
@@ -37,4 +37,4 @@ private:
     TruncPr *T;
 };
 
-#endif /* INTAPPRCR_H_ */
+#endif /* INTAPPRCR_SHAMIR_H_ */

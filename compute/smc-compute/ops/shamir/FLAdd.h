@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLOATADD_H_
-#define FLOATADD_H_
+#ifndef FLOATADD_SHAMIR_H_
+#define FLOATADD_SHAMIR_H_
 
 #include "BitDec.h"
 #include "EQZ.h"
@@ -47,4 +47,4 @@ private:
     Inv *In;
 };
 
-#endif /* FLOATADD_H_ */
+#endif /* FLOATADD_SHAMIR_H_ */

@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef MULT_H_
-#define MULT_H_
+#ifndef MULT_SHAMIR_H_
+#define MULT_SHAMIR_H_
 
 #include "Operation.h"
 class Mult : public Operation {
@@ -28,4 +28,4 @@ public:
     void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID);
 };
 
-#endif /* MULT_H_ */
+#endif /* MULT_SHAMIR_H_ */

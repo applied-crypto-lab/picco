@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FPMULT_H_
-#define FPMULT_H_
+#ifndef FPMULT_SHAMIR_H_
+#define FPMULT_SHAMIR_H_
 
 #include "Operation.h"
 #include "Trunc.h"
@@ -33,4 +33,4 @@ private:
     Trunc *T;
 };
 
-#endif /* FPMULT_H_ */
+#endif /* FPMULT_SHAMIR_H_ */

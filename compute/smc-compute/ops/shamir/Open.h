@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPEN_SHAMIR_H_
-#define OPEN_SHAMIR_H_
+#ifndef OPEN_SHAMIR_SHAMIR_H_
+#define OPEN_SHAMIR_SHAMIR_H_
 
 #include "Operation.h"
 

@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ADDBITWISE_H_
-#define ADDBITWISE_H_
+#ifndef ADDBITWISE_SHAMIR_H_
+#define ADDBITWISE_SHAMIR_H_
 
 #include "Operation.h"
 #include "PreOpL.h"
@@ -34,4 +34,4 @@ private:
     PreOpL *Pre;
 };
 
-#endif /* ADDBITWISE_H_ */
+#endif /* ADDBITWISE_SHAMIR_H_ */

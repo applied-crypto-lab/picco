@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLDIV_H_
-#define FLDIV_H_
+#ifndef FLDIV_SHAMIR_H_
+#define FLDIV_SHAMIR_H_
 
 #include "LTZ.h"
 #include "Mult.h"
@@ -41,4 +41,4 @@ private:
     SDiv *Sdiv;
 };
 
-#endif /* FLDIV_H_ */
+#endif /* FLDIV_SHAMIR_H_ */

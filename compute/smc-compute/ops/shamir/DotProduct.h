@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef DOTPRODUCT_H_
-#define DOTPRODUCT_H_
+#ifndef DOTPRODUCT_SHAMIR_H_
+#define DOTPRODUCT_SHAMIR_H_
 
 #include "Mult.h"
 #include "Operation.h"

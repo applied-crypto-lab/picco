@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BITOPS_H_
-#define BITOPS_H_
+#ifndef BITOPS_SHAMIR_H_
+#define BITOPS_SHAMIR_H_
 
 #include "Mult.h"
 #include "Operation.h"
@@ -35,4 +35,4 @@ private:
     Mult *Mul;
 };
 
-#endif /* BITOPS_H_ */
+#endif /* BITOPS_SHAMIR_H_ */

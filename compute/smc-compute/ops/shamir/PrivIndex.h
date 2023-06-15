@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef PRIVINDEX_H_
-#define PRIVINDEX_H_
+#ifndef PRIVINDEX_SHAMIR_H_
+#define PRIVINDEX_SHAMIR_H_
 
 #include "Open.h"
 #include "BitDec.h"
@@ -46,4 +46,4 @@ private:
     Random *Rand;
 };
 
-#endif /* PRIVINDEX_H_ */
+#endif /* PRIVINDEX_SHAMIR_H_ */

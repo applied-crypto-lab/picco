@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef LTZ_H_
-#define LTZ_H_
+#ifndef LTZ_SHAMIR_H_
+#define LTZ_SHAMIR_H_
 
 #include "Operation.h"
 #include "Trunc.h"
@@ -35,4 +35,4 @@ private:
     Trunc *T;
 };
 
-#endif /* LTZ_H_ */
+#endif /* LTZ_SHAMIR_H_ */

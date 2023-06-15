@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.i
 */
-#ifndef PREOPL_H_
-#define PREOPL_H_
+#ifndef PREOPL_SHAMIR_H_
+#define PREOPL_SHAMIR_H_
 
 #include "CarryBit.h"
 #include "Mult.h"
@@ -35,4 +35,4 @@ private:
     CarryBit *Carry;
 };
 
-#endif /* PREOPL_H_ */
+#endif /* PREOPL_SHAMIR_H_ */

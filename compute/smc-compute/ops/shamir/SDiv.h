@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef SDIV_H_
-#define SDIV_H_
+#ifndef SDIV_SHAMIR_H_
+#define SDIV_SHAMIR_H_
 
 #include "Mod2M.h"
 #include "Mult.h"
@@ -37,4 +37,4 @@ private:
     Mod2M *Mod;
 };
 
-#endif /* SDIV_H_ */
+#endif /* SDIV_SHAMIR_H_ */

@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TRUNCS_H_
-#define TRUNCS_H_
+#ifndef TRUNCS_SHAMIR_H_
+#define TRUNCS_SHAMIR_H_
 
 #include "B2U.h"
 #include "Inv.h"
@@ -44,4 +44,4 @@ private:
     Random *Rand;
 };
 
-#endif /* TRUNCS_H_ */
+#endif /* TRUNCS_SHAMIR_H_ */

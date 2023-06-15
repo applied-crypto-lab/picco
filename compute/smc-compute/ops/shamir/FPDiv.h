@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FPDIV_H_
-#define FPDIV_H_
+#ifndef FPDIV_SHAMIR_H_
+#define FPDIV_SHAMIR_H_
 
 #include "AppRcr.h"
 #include "Mult.h"
@@ -37,4 +37,4 @@ private:
     TruncPr *T;
 };
 
-#endif /* FPDIV_H_ */
+#endif /* FPDIV_SHAMIR_H_ */

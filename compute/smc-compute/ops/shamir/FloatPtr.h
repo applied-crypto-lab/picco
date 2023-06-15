@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLOAT_PTR_H_
-#define FLOAT_PTR_H_
+#ifndef FLOAT_PTR_SHAMIR_H_
+#define FLOAT_PTR_SHAMIR_H_
 
 #include "Mult.h"
 #include "Operation.h"
@@ -103,4 +103,4 @@ private:
     Mult *Mul;
 };
 
-#endif /* FLOAT_PTR_H_*/
+#endif /* FLOAT_PTR_SHAMIR_H_*/

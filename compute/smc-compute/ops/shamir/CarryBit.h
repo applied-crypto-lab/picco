@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CARRYBIT_H_
-#define CARRYBIT_H_
+#ifndef CARRYBIT_SHAMIR_H_
+#define CARRYBIT_SHAMIR_H_
 
 #include "Mult.h"
 #include "Operation.h"
@@ -34,4 +34,4 @@ private:
     Mult *M;
 };
 
-#endif /* CARRYBIT_H_ */
+#endif /* CARRYBIT_SHAMIR_H_ */

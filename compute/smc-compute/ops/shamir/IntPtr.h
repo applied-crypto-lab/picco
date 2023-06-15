@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef INT_PTR_H_
-#define INT_PTR_H_
+#ifndef INT_PTR_SHAMIR_H_
+#define INT_PTR_SHAMIR_H_
 
 #include "Mult.h"
 #include "Operation.h"
@@ -101,4 +101,4 @@ private:
     Mult *Mul;
 };
 
-#endif /* INT_PTR_H_*/
+#endif /* INT_PTR_SHAMIR_H_*/

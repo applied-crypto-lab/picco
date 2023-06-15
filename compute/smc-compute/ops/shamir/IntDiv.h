@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef INTDIV_H_
-#define INTDIV_H_
+#ifndef INTDIV_SHAMIR_H_
+#define INTDIV_SHAMIR_H_
 
 #include "EQZ.h"
 #include "IntAppRcr.h"
@@ -42,4 +42,4 @@ private:
     LTZ *Lt;
 };
 
-#endif /* INTDIV_H_ */
+#endif /* INTDIV_SHAMIR_H_ */

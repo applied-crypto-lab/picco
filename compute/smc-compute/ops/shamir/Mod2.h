@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef MOD2_H_
-#define MOD2_H_
+#ifndef MOD2_SHAMIR_H_
+#define MOD2_SHAMIR_H_
 
 #include "Open.h"
 #include "Operation.h"
@@ -35,4 +35,4 @@ private:
     Random *Rand;
 };
 
-#endif /* MOD2_H_ */
+#endif /* MOD2_SHAMIR_H_ */

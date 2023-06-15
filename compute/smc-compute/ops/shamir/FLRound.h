@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLROUND_H_
-#define FLROUND_H_
+#ifndef FLROUND_SHAMIR_H_
+#define FLROUND_SHAMIR_H_
 
 #include "EQZ.h"
 #include "FLAdd.h"
@@ -43,4 +43,4 @@ private:
     FLAdd *Fladd;
 };
 
-#endif /* FLROUND_H_ */
+#endif /* FLROUND_SHAMIR_H_ */

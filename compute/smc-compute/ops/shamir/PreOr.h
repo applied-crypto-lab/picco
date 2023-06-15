@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef PREOR_H_
-#define PREOR_H_
+#ifndef PREOR_SHAMIR_H_
+#define PREOR_SHAMIR_H_
 
 #include "Mod2.h"
 #include "Operation.h"
@@ -35,4 +35,4 @@ private:
     PrefixMultiplication *PreMul;
 };
 
-#endif /* PREOR_H_ */
+#endif /* PREOR_SHAMIR_H_ */

@@ -25,8 +25,8 @@
 #include "Operation.h"
 #include "Random.h"
 
-#ifndef MOD2MS_H_
-#define MOD2MS_H_
+#ifndef MOD2MS_SHAMIR_H_
+#define MOD2MS_SHAMIR_H_
 
 class Mod2MS : public Operation {
 public:
@@ -42,4 +42,4 @@ private:
     Random *Rand;
 };
 
-#endif /* MOD2M1_H_ */
+#endif /* MOD2M1_SHAMIR_H_ */

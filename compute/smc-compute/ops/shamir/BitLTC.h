@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BITLTC_H_
-#define BITLTC_H_
+#ifndef BITLTC_SHAMIR_H_
+#define BITLTC_SHAMIR_H_
 
 #include "Mod2.h"
 #include "Operation.h"
@@ -35,4 +35,4 @@ private:
     Mod2 *Mod;
 };
 
-#endif /* BITLTC_H_ */
+#endif /* BITLTC_SHAMIR_H_ */

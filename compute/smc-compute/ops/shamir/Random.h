@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RANDOM_H_
-#define RANDOM_H_
+#ifndef RANDOM_SHAMIR_H_
+#define RANDOM_SHAMIR_H_
 
 #include "Operation.h"
 
@@ -54,4 +54,4 @@ private:
     static pthread_mutex_t mutex;
 };
 
-#endif /* OPERATION_H_ */
+#endif /* OPERATION_SHAMIR_H_ */

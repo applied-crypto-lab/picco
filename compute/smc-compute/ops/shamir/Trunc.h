@@ -1,6 +1,6 @@
 
-#ifndef TRUNC_H_
-#define TRUNC_H_
+#ifndef TRUNC_SHAMIR_H_
+#define TRUNC_SHAMIR_H_
 
 #include "Mod2M.h"
 #include "Operation.h"
@@ -15,4 +15,4 @@ private:
     Mod2M *Mod;
 };
 
-#endif /* TRUNC_H_ */
+#endif /* TRUNC_SHAMIR_H_ */

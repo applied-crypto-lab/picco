@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef INT2FL_H_
-#define INT2FL_H_
+#ifndef INT2FL_SHAMIR_H_
+#define INT2FL_SHAMIR_H_
 
 #include "BitDec.h"
 #include "EQZ.h"

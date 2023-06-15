@@ -1,5 +1,5 @@
-#ifndef PRIV_PTR_H_
-#define PRIV_PTR_H_
+#ifndef PRIV_PTR_SHAMIR_H_
+#define PRIV_PTR_SHAMIR_H_
 
 #include "Mult.h"
 #include "Operation.h"

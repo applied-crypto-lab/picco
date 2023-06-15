@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLLTZ_H_
-#define FLLTZ_H_
+#ifndef FLLTZ_SHAMIR_H_
+#define FLLTZ_SHAMIR_H_
 
 #include "EQZ.h"
 #include "LTZ.h"
@@ -37,4 +37,4 @@ private:
     EQZ *Eq;
 };
 
-#endif /* FLOATLTZ_H_ */
+#endif /* FLOATLTZ_SHAMIR_H_ */

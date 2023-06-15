@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef PREFIXMULTIPLICATION_H_
-#define PREFIXMULTIPLICATION_H_
+#ifndef PREFIXMULTIPLICATION_SHAMIR_H_
+#define PREFIXMULTIPLICATION_SHAMIR_H_
 
 #include "Operation.h"
 #include "Random.h"
@@ -34,4 +34,4 @@ private:
     Random *Rand;
 };
 
-#endif /* PREFIXMULTIPLICATION_H_ */
+#endif /* PREFIXMULTIPLICATION_SHAMIR_H_ */

@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BITDEC_H_
-#define BITDEC_H_
+#ifndef BITDEC_SHAMIR_H_
+#define BITDEC_SHAMIR_H_
 
 #include "AddBitwise.h"
 #include "Open.h"
@@ -36,4 +36,4 @@ private:
     Random *Rand;
 };
 
-#endif /* BITDEC_H_ */
+#endif /* BITDEC_SHAMIR_H_ */

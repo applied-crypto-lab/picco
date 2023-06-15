@@ -17,8 +17,8 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef APPRCR_H_
-#define APPRCR_H_
+#ifndef APPRCR_SHAMIR_H_
+#define APPRCR_SHAMIR_H_
 
 #include "Mult.h"
 #include "Norm.h"
@@ -37,4 +37,4 @@ private:
     TruncPr *T;
 };
 
-#endif /* APPRCR_H_ */
+#endif /* APPRCR_SHAMIR_H_ */

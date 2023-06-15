@@ -21,8 +21,8 @@
 #include "Operation.h"
 #include "PrefixMultiplication.h"
 
-#ifndef POW2_H_
-#define POW2_H_
+#ifndef POW2_SHAMIR_H_
+#define POW2_SHAMIR_H_
 
 class Pow2 : public Operation {
 
@@ -36,4 +36,4 @@ private:
     PrefixMultiplication *PreMul;
 };
 
-#endif /* POW2_H_ */
+#endif /* POW2_SHAMIR_H_ */
