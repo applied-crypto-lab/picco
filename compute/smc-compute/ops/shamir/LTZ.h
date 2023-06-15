@@ -27,7 +27,7 @@
 class LTZ : public Operation {
 
 public:
-    LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~LTZ();
     void doOperation(mpz_t *result, mpz_t *shares, int K, int size, int threadID);
 

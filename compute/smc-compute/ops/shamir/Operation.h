@@ -38,7 +38,6 @@ public:
     double time_diff(struct timeval *, struct timeval *);
 
     SecretShare *ss;
-    mpz_t coef[9];
     std::map<std::string, std::vector<int>> polynomials; //
     NodeNetwork net;
     int id;

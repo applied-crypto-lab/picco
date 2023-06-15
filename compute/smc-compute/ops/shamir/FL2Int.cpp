@@ -24,14 +24,14 @@ FL2Int::FL2Int() {
     // TODO Auto-generated constructor stub
 }
 
-FL2Int::FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+FL2Int::FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coefficients);
-    Flround = new FLRound(nodeNet, poly, nodeID, s, coefficients);
-    Mod2ms = new Mod2MS(nodeNet, poly, nodeID, s, coefficients);
-    P = new Pow2(nodeNet, poly, nodeID, s, coefficients);
-    I = new Inv(nodeNet, poly, nodeID, s, coefficients);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    Flround = new FLRound(nodeNet, poly, nodeID, s);
+    Mod2ms = new Mod2MS(nodeNet, poly, nodeID, s);
+    P = new Pow2(nodeNet, poly, nodeID, s);
+    I = new Inv(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

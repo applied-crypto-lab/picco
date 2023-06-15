@@ -19,9 +19,9 @@
 */
 #include "FLEQZ.h"
 
-FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     Mul = new Mult(nodeNet, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s, coeficients);
+    Eq = new EQZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

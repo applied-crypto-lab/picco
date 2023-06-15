@@ -20,7 +20,7 @@
 
 #include "Inv.h"
 
-Inv::Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+Inv::Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Rand = new Random(nodeNet, poly, nodeID, s);
     net = nodeNet;

@@ -25,7 +25,7 @@
 
 class FPMult : public Operation {
 public:
-    FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~FPMult();
     void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size);
 

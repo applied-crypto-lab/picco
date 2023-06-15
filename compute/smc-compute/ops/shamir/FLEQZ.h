@@ -26,7 +26,7 @@
 
 class FLEQZ : public Operation {
 public:
-    FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~FLEQZ();
     void doOperation(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID);
 

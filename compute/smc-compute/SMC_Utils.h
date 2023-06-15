@@ -533,7 +533,7 @@ public:
     void smc_process_results(priv_int **result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID);
 
     std::map<std::string, std::vector<int>> polynomials; // temporarily public
-    priv_int coef[9];                                       // temporarily public
+    // priv_int coef[9];                                       // temporarily public
     int id;                                              // temporarily public;
 
     double time_diff(struct timeval *, struct timeval *);
@@ -570,7 +570,7 @@ private:
     // Handle client connections and polynomail stuff
     void clientConnect();
     void receivePolynomials(std::string privatekey_filename);
-    void setCoef();
+    // void setCoef();
     int peers;
     int newsockfd;
 };

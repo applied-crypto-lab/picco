@@ -29,13 +29,15 @@
 class EQZ : public Operation {
 
 public:
-    EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~EQZ();
     void doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threaID);
 
 private:
     PrefixMultiplication *PreMul;
     Random *Rand;
+    mpz_t coef[9];                                      
+
 };
 
 #endif /* EQZ_H_ */

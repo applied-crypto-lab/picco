@@ -26,7 +26,7 @@
 
 class PreOr : public Operation {
 public:
-    PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
+    PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~PreOr();
     void doOperation(mpz_t **result, mpz_t **A, int K, int size, int threadID);
 

@@ -19,12 +19,12 @@
 */
 #include "TruncS.h"
 
-TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coeficients);
-    Bt = new B2U(nodeNet, poly, nodeID, s, coeficients);
-    In = new Inv(nodeNet, poly, nodeID, s, coeficients);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    Bt = new B2U(nodeNet, poly, nodeID, s);
+    In = new Inv(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s);
 
     net = nodeNet;

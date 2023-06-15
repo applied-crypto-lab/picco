@@ -23,11 +23,11 @@ Norm::Norm() {
     // TODO Auto-generated constructor stub
 }
 
-Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coefficients);
-    Bt = new BitDec(nodeNet, poly, nodeID, s, coefficients);
-    Pre = new PreOr(nodeNet, poly, nodeID, s, coefficients);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    Bt = new BitDec(nodeNet, poly, nodeID, s);
+    Pre = new PreOr(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;

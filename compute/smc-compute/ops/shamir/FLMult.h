@@ -27,7 +27,7 @@
 
 class FLMult : public Operation {
 public:
-    FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~FLMult();
     void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
 

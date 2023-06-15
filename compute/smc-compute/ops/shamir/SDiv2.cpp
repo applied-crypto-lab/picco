@@ -19,11 +19,11 @@
 */
 #include "SDiv.h"
 
-SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[], int K1) {
+SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, int K1) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    Mod = new Mod2M(nodeNet, poly, nodeID, s, coeficients);
-    Truncpr = new TruncPr(nodeNet, poly, nodeID, s, coeficients);
+    Mod = new Mod2M(nodeNet, poly, nodeID, s);
+    Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;

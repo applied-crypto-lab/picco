@@ -74,26 +74,26 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
         ss->getCoef(id);
         ss->Seed((nodeNet->key_0), (nodeNet->key_1));
     }
-    setCoef();
+    // setCoef();
     Mul = new Mult(*nodeNet, id, ss);
-    Lt = new LTZ(*nodeNet, polynomials, id, ss, coef);
-    Eq = new EQZ(*nodeNet, polynomials, id, ss, coef);
-    T = new Trunc(*nodeNet, polynomials, id, ss, coef);
-    Ts = new TruncS(*nodeNet, polynomials, id, ss, coef);
-    P = new Pow2(*nodeNet, polynomials, id, ss, coef);
-    BOps = new BitOps(*nodeNet, polynomials, id, ss, coef);
-    DProd = new DotProduct(*nodeNet, polynomials, id, ss, coef);
-    PI = new PrivIndex(*nodeNet, polynomials, id, ss, coef);
+    Lt = new LTZ(*nodeNet, polynomials, id, ss);
+    Eq = new EQZ(*nodeNet, polynomials, id, ss);
+    T = new Trunc(*nodeNet, polynomials, id, ss);
+    Ts = new TruncS(*nodeNet, polynomials, id, ss);
+    P = new Pow2(*nodeNet, polynomials, id, ss);
+    BOps = new BitOps(*nodeNet, polynomials, id, ss);
+    DProd = new DotProduct(*nodeNet, polynomials, id, ss);
+    PI = new PrivIndex(*nodeNet, polynomials, id, ss);
     PP = new PrivPtr(*nodeNet, id, ss);
-    Idiv = new IntDiv(*nodeNet, polynomials, id, ss, coef);
-    I2F = new Int2FL(*nodeNet, polynomials, id, ss, coef);
-    F2I = new FL2Int(*nodeNet, polynomials, id, ss, coef);
-    Fladd = new FLAdd(*nodeNet, polynomials, id, ss, coef);
-    Flmult = new FLMult(*nodeNet, polynomials, id, ss, coef);
-    Fldiv = new FLDiv(*nodeNet, polynomials, id, ss, coef);
-    Flltz = new FLLTZ(*nodeNet, polynomials, id, ss, coef);
-    Fleqz = new FLEQZ(*nodeNet, polynomials, id, ss, coef);
-    Fpdiv = new FPDiv(*nodeNet, polynomials, id, ss, coef);
+    Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
+    I2F = new Int2FL(*nodeNet, polynomials, id, ss);
+    F2I = new FL2Int(*nodeNet, polynomials, id, ss);
+    Fladd = new FLAdd(*nodeNet, polynomials, id, ss);
+    Flmult = new FLMult(*nodeNet, polynomials, id, ss);
+    Fldiv = new FLDiv(*nodeNet, polynomials, id, ss);
+    Flltz = new FLLTZ(*nodeNet, polynomials, id, ss);
+    Fleqz = new FLEQZ(*nodeNet, polynomials, id, ss);
+    Fpdiv = new FPDiv(*nodeNet, polynomials, id, ss);
     // for test purposes
 }
 
@@ -3777,57 +3777,57 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     // }
 }
 
-void SMC_Utils::setCoef() {
-    priv_int temp1, temp2, zero;
-    mpz_init(temp1);
-    mpz_init(temp2);
-    mpz_init_set_ui(zero, 0);
+// void SMC_Utils::setCoef() {
+//     priv_int temp1, temp2, zero;
+//     mpz_init(temp1);
+//     mpz_init(temp2);
+//     mpz_init_set_ui(zero, 0);
 
-    for (int i = 0; i < 9; i++)
-        mpz_init(coef[i]);
+//     for (int i = 0; i < 9; i++)
+//         mpz_init(coef[i]);
 
-    mpz_set(coef[8], zero);
+//     mpz_set(coef[8], zero);
 
-    mpz_set_ui(temp1, 40320);
-    mpz_set_ui(temp2, 109584);
-    ss->modInv(temp1, temp1);
-    mpz_set(coef[7], temp1);
-    ss->modMul(coef[7], coef[7], temp2);
+//     mpz_set_ui(temp1, 40320);
+//     mpz_set_ui(temp2, 109584);
+//     ss->modInv(temp1, temp1);
+//     mpz_set(coef[7], temp1);
+//     ss->modMul(coef[7], coef[7], temp2);
 
-    mpz_set_ui(temp2, 118124);
-    mpz_set(coef[6], temp1);
-    ss->modMul(coef[6], coef[6], temp2);
-    ss->modSub(coef[6], zero, coef[6]);
+//     mpz_set_ui(temp2, 118124);
+//     mpz_set(coef[6], temp1);
+//     ss->modMul(coef[6], coef[6], temp2);
+//     ss->modSub(coef[6], zero, coef[6]);
 
-    mpz_set_ui(temp2, 67284);
-    mpz_set(coef[5], temp1);
-    ss->modMul(coef[5], coef[5], temp2);
+//     mpz_set_ui(temp2, 67284);
+//     mpz_set(coef[5], temp1);
+//     ss->modMul(coef[5], coef[5], temp2);
 
-    mpz_set_ui(temp2, 22449);
-    mpz_set(coef[4], temp1);
-    ss->modMul(coef[4], coef[4], temp2);
-    ss->modSub(coef[4], zero, coef[4]);
+//     mpz_set_ui(temp2, 22449);
+//     mpz_set(coef[4], temp1);
+//     ss->modMul(coef[4], coef[4], temp2);
+//     ss->modSub(coef[4], zero, coef[4]);
 
-    mpz_set_ui(temp2, 4536);
-    mpz_set(coef[3], temp1);
-    ss->modMul(coef[3], coef[3], temp2);
+//     mpz_set_ui(temp2, 4536);
+//     mpz_set(coef[3], temp1);
+//     ss->modMul(coef[3], coef[3], temp2);
 
-    mpz_set_ui(temp2, 546);
-    mpz_set(coef[2], temp1);
-    ss->modMul(coef[2], coef[2], temp2);
-    ss->modSub(coef[2], zero, coef[2]);
+//     mpz_set_ui(temp2, 546);
+//     mpz_set(coef[2], temp1);
+//     ss->modMul(coef[2], coef[2], temp2);
+//     ss->modSub(coef[2], zero, coef[2]);
 
-    mpz_set_ui(temp2, 36);
-    mpz_set(coef[1], temp1);
-    ss->modMul(coef[1], coef[1], temp2);
+//     mpz_set_ui(temp2, 36);
+//     mpz_set(coef[1], temp1);
+//     ss->modMul(coef[1], coef[1], temp2);
 
-    mpz_set(coef[0], temp1);
-    ss->modSub(coef[0], zero, coef[0]);
+//     mpz_set(coef[0], temp1);
+//     ss->modSub(coef[0], zero, coef[0]);
 
-    mpz_clear(zero);
-    mpz_clear(temp1);
-    mpz_clear(temp2);
-}
+//     mpz_clear(zero);
+//     mpz_clear(temp1);
+//     mpz_clear(temp2);
+// }
 
 void SMC_Utils::convertFloat(float value, int K, int L, priv_int **elements) {
     unsigned int *newptr = (unsigned int *)&value;

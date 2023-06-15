@@ -25,14 +25,14 @@ Int2FL::Int2FL() {
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Int2FL, page 9
-Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coeficients);
-    Eq = new EQZ(nodeNet, poly, nodeID, s, coeficients);
-    Bd = new BitDec(nodeNet, poly, nodeID, s, coeficients);
-    Pre = new PreOr(nodeNet, poly, nodeID, s, coeficients);
-    T = new Trunc(nodeNet, poly, nodeID, s, coeficients);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    Bd = new BitDec(nodeNet, poly, nodeID, s);
+    Pre = new PreOr(nodeNet, poly, nodeID, s);
+    T = new Trunc(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

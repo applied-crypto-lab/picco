@@ -7,7 +7,7 @@
 
 class Trunc : public Operation {
 public:
-    Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~Trunc();
     void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
 

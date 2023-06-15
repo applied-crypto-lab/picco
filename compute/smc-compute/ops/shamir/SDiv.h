@@ -27,7 +27,7 @@
 
 class SDiv : public Operation {
 public:
-    SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]);
+    SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~SDiv();
     void doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID);
 

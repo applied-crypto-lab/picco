@@ -31,7 +31,7 @@
 class PrivIndex : public Operation {
 
 public:
-    PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~PrivIndex();
     void compute_private_conditions(mpz_t *, mpz_t, mpz_t *, int, int);
     void doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type);

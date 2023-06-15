@@ -19,11 +19,11 @@
 */
 #include "PrivIndex.h"
 
-PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    Bd = new BitDec(nodeNet, poly, nodeID, s, coefficients);
-    Eq = new EQZ(nodeNet, poly, nodeID, s, coefficients);
+    Bd = new BitDec(nodeNet, poly, nodeID, s);
+    Eq = new EQZ(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s); //
     net = nodeNet;
     id = nodeID;

@@ -19,8 +19,8 @@
 */
 #include "FPMult.h"
 
-FPMult::FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
-    T = new Trunc(nodeNet, poly, nodeID, s, coeficients);
+FPMult::FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
+    T = new Trunc(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

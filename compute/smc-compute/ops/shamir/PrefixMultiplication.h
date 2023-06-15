@@ -26,7 +26,7 @@
 class PrefixMultiplication : public Operation {
 
 public:
-    PrefixMultiplication(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    PrefixMultiplication(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~PrefixMultiplication();
     void doOperation(mpz_t **B, mpz_t **result, int size, int length, int threadID);
 

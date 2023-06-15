@@ -20,19 +20,69 @@
 
 #include "EQZ.h"
 
-EQZ::EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int NodeID, SecretShare *s, mpz_t coefficients[]) {
+EQZ::EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int NodeID, SecretShare *s) {
 
-    PreMul = new PrefixMultiplication(nodeNet, poly, NodeID, s, coefficients);
+    PreMul = new PrefixMultiplication(nodeNet, poly, NodeID, s);
     Rand = new Random(nodeNet, poly, NodeID, s);
 
     net = nodeNet;
     id = NodeID;
     ss = s;
 
-    for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
+    mpz_t temp1, temp2, zero;
+    mpz_init(temp1);
+    mpz_init(temp2);
+    mpz_init_set_ui(zero, 0);
+
+    for (int i = 0; i < 9; i++)
         mpz_init(coef[i]);
-        mpz_set(coef[i], coefficients[i]);
-    }
+
+    mpz_set(coef[8], zero);
+
+    mpz_set_ui(temp1, 40320);
+    mpz_set_ui(temp2, 109584);
+    ss->modInv(temp1, temp1);
+    mpz_set(coef[7], temp1);
+    ss->modMul(coef[7], coef[7], temp2);
+
+    mpz_set_ui(temp2, 118124);
+    mpz_set(coef[6], temp1);
+    ss->modMul(coef[6], coef[6], temp2);
+    ss->modSub(coef[6], zero, coef[6]);
+
+    mpz_set_ui(temp2, 67284);
+    mpz_set(coef[5], temp1);
+    ss->modMul(coef[5], coef[5], temp2);
+
+    mpz_set_ui(temp2, 22449);
+    mpz_set(coef[4], temp1);
+    ss->modMul(coef[4], coef[4], temp2);
+    ss->modSub(coef[4], zero, coef[4]);
+
+    mpz_set_ui(temp2, 4536);
+    mpz_set(coef[3], temp1);
+    ss->modMul(coef[3], coef[3], temp2);
+
+    mpz_set_ui(temp2, 546);
+    mpz_set(coef[2], temp1);
+    ss->modMul(coef[2], coef[2], temp2);
+    ss->modSub(coef[2], zero, coef[2]);
+
+    mpz_set_ui(temp2, 36);
+    mpz_set(coef[1], temp1);
+    ss->modMul(coef[1], coef[1], temp2);
+
+    mpz_set(coef[0], temp1);
+    ss->modSub(coef[0], zero, coef[0]);
+
+    mpz_clear(zero);
+    mpz_clear(temp1);
+    mpz_clear(temp2);
+
+    // for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
+    //     mpz_init(coef[i]);
+    //     mpz_set(coef[i][i]);
+    // }
 }
 
 EQZ::~EQZ() {

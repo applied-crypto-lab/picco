@@ -19,11 +19,11 @@
 */
 #include "FLDiv.h"
 
-FLDiv::FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+FLDiv::FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     Mul = new Mult(nodeNet, nodeID, s);
-    T = new Trunc(nodeNet, poly, nodeID, s, coeficients);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coeficients);
-    Sdiv = new SDiv(nodeNet, poly, nodeID, s, coeficients);
+    T = new Trunc(nodeNet, poly, nodeID, s);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    Sdiv = new SDiv(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;

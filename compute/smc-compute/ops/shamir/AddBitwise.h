@@ -26,7 +26,7 @@
 
 class AddBitwise : public Operation {
 public:
-    AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~AddBitwise();
     void doOperation(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID);
 

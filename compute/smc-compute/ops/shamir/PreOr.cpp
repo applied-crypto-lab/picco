@@ -19,9 +19,9 @@
 */
 #include "PreOr.h"
 
-PreOr::PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+PreOr::PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     M2 = new Mod2(nodeNet, poly, nodeID, s);
-    PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s, coefficients);
+    PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

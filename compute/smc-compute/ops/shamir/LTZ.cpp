@@ -20,16 +20,12 @@
 
 #include "LTZ.h"
 
-LTZ::LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+LTZ::LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     ss = s;
-    T = new Trunc(nodeNet, poly, nodeID, s, coefficients);
+    T = new Trunc(nodeNet, poly, nodeID, s);
     net = nodeNet;
     polynomials = poly;
     id = nodeID;
-    for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
-        mpz_init(coef[i]);
-        mpz_set(coef[i], coefficients[i]);
-    }
 }
 
 LTZ::~LTZ() {

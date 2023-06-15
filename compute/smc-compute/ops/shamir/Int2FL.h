@@ -31,7 +31,7 @@
 class Int2FL : public Operation {
 public:
     Int2FL();
-    Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~Int2FL();
     void doOperation(mpz_t *values, mpz_t **results, int gamma, int K, int size, int threadID);
 

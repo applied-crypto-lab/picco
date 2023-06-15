@@ -26,7 +26,7 @@
 
 class BitLTC : public Operation {
 public:
-    BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~BitLTC();
     void doOperation(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID);
 

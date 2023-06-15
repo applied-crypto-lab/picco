@@ -19,16 +19,16 @@
 */
 #include "FLAdd.h"
 
-FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coeficients);
-    T = new Trunc(nodeNet, poly, nodeID, s, coeficients);
-    Eq = new EQZ(nodeNet, poly, nodeID, s, coeficients);
-    Bd = new BitDec(nodeNet, poly, nodeID, s, coeficients);
-    Preor = new PreOr(nodeNet, poly, nodeID, s, coeficients);
-    P2 = new Pow2(nodeNet, poly, nodeID, s, coeficients);
-    In = new Inv(nodeNet, poly, nodeID, s, coeficients);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    T = new Trunc(nodeNet, poly, nodeID, s);
+    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    Bd = new BitDec(nodeNet, poly, nodeID, s);
+    Preor = new PreOr(nodeNet, poly, nodeID, s);
+    P2 = new Pow2(nodeNet, poly, nodeID, s);
+    In = new Inv(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;

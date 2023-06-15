@@ -20,18 +20,14 @@
 
 #include "BitLTC.h"
 
-BitLTC::BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+BitLTC::BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s, coeficients);
+    PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
     Mod = new Mod2(nodeNet, poly, nodeID, s);
     ss = s;
     net = nodeNet;
     polynomials = poly;
     id = nodeID;
-    for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
-        mpz_init(coef[i]);
-        mpz_set(coef[i], coeficients[i]);
-    }
 }
 
 BitLTC::~BitLTC() {

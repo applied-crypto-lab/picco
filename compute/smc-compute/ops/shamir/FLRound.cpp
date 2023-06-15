@@ -19,14 +19,14 @@
 */
 #include "FLRound.h"
 
-FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coefficients);
-    Mod = new Mod2M(nodeNet, poly, nodeID, s, coefficients);
-    Eq = new EQZ(nodeNet, poly, nodeID, s, coefficients);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    Mod = new Mod2M(nodeNet, poly, nodeID, s);
+    Eq = new EQZ(nodeNet, poly, nodeID, s);
     Mul = new Mult(nodeNet, nodeID, s);
-    Md2m = new Mod2MS(nodeNet, poly, nodeID, s, coefficients);
-    Fladd = new FLAdd(nodeNet, poly, nodeID, s, coefficients);
+    Md2m = new Mod2MS(nodeNet, poly, nodeID, s);
+    Fladd = new FLAdd(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;

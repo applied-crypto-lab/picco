@@ -27,7 +27,7 @@
 
 class IntAppRcr : public Operation {
 public:
-    IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~IntAppRcr();
     void doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID);
 

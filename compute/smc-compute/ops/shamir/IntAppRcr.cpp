@@ -20,11 +20,11 @@
 
 #include "IntAppRcr.h"
 
-IntAppRcr::IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+IntAppRcr::IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    T = new TruncPr(nodeNet, poly, nodeID, s, coefficients);
-    No = new Norm(nodeNet, poly, nodeID, s, coefficients);
+    T = new TruncPr(nodeNet, poly, nodeID, s);
+    No = new Norm(nodeNet, poly, nodeID, s);
     ss = s;
     net = nodeNet;
     id = nodeID;

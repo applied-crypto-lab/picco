@@ -27,7 +27,7 @@
 
 class BitDec : public Operation {
 public:
-    BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~BitDec();
     void doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID);
 

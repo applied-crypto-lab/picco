@@ -21,7 +21,7 @@
 
 TruncPr::~TruncPr() {}
 
-TruncPr::TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+TruncPr::TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     net = nodeNet;
     id = nodeID;

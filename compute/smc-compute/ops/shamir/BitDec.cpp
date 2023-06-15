@@ -20,9 +20,9 @@
 
 #include "BitDec.h"
 
-BitDec::BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+BitDec::BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Add = new AddBitwise(nodeNet, poly, nodeID, s, coeficients);
+    Add = new AddBitwise(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s);
 
     net = nodeNet;

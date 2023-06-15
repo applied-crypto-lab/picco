@@ -27,7 +27,7 @@
 class Pow2 : public Operation {
 
 public:
-    Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~Pow2();
     void doOperation(mpz_t *result, mpz_t *A, int L, int size, int threadID);
 

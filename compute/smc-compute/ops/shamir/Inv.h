@@ -26,7 +26,7 @@
 
 class Inv : public Operation {
 public:
-    Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~Inv();
     void doOperation(mpz_t *shares, mpz_t *results, int size, int threadID);
 

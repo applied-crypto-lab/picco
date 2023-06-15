@@ -19,16 +19,12 @@
 */
 #include "Mod2M.h"
 
-Mod2M::Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+Mod2M::Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     ss = s;
-    B = new BitLTC(nodeNet, poly, nodeID, s, coeficients);
+    B = new BitLTC(nodeNet, poly, nodeID, s);
     net = nodeNet;
     polynomials = poly;
     id = nodeID;
-    for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
-        mpz_init(coef[i]);
-        mpz_set(coef[i], coeficients[i]);
-    }
     Rand = new Random(nodeNet, poly, nodeID, s);
 }
 

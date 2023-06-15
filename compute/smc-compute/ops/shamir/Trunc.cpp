@@ -19,17 +19,13 @@
 */
 #include "Trunc.h"
 
-Trunc::Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]) {
+Trunc::Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     ss = s;
-    Mod = new Mod2M(nodeNet, poly, nodeID, s, coeficients);
+    Mod = new Mod2M(nodeNet, poly, nodeID, s);
     net = nodeNet;
     polynomials = poly;
     id = nodeID;
-    for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
-        mpz_init(coef[i]);
-        mpz_set(coef[i], coeficients[i]);
-    }
 }
 
 Trunc::~Trunc() {

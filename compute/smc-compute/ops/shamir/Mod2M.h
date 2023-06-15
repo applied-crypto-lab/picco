@@ -27,7 +27,7 @@
 
 class Mod2M : public Operation {
 public:
-    Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~Mod2M();
     void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
 

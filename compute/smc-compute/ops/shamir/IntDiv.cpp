@@ -19,14 +19,14 @@
 */
 #include "IntDiv.h"
 #include <math.h>
-IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coefficients[]) {
+IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Mul = new Mult(nodeNet, nodeID, s);
-    App = new IntAppRcr(nodeNet, poly, nodeID, s, coefficients);
+    App = new IntAppRcr(nodeNet, poly, nodeID, s);
     // need to use
-    T = new TruncPr(nodeNet, poly, nodeID, s, coefficients);
-    Eq = new EQZ(nodeNet, poly, nodeID, s, coefficients);
-    Lt = new LTZ(nodeNet, poly, nodeID, s, coefficients);
+    T = new TruncPr(nodeNet, poly, nodeID, s);
+    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    Lt = new LTZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

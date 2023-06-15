@@ -29,7 +29,7 @@
 
 class FLDiv : public Operation {
 public:
-    FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~FLDiv();
     void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
     void doOperationPub(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);

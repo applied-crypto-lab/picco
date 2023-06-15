@@ -25,7 +25,7 @@
 
 class BitOps : public Operation {
 public:
-    BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, mpz_t coeficients[]);
+    BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~BitOps();
     void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID);
     void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID);
