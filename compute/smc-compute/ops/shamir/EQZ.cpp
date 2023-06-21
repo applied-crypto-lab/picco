@@ -91,7 +91,7 @@ EQZ::~EQZ() {
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.7, page 9
-// Uses Symmetric Function subprotocol from Damgard et al., "Unconditionally Secure Constant-Rounds Multi-party 
+// Uses Symmetric Function subprotocol from Damgard et al., "Unconditionally Secure Constant-Rounds Multi-party
 // Computation for Equality, Comparison, Bits and Exponentiation", 2006
 // This is the only protocol that used the "coefficients" parameter, and hence why it was relegated to an EQZ class member (created/filled in constructor)
 void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadID) {
@@ -143,51 +143,16 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         for (int j = 0; j < size; ++j)
             mpz_init(V[i][j]);
     }
-    // printf("hi1\n");
-    // checking if we can reconstruct the input from t+1 shares (correct)
-    // net.broadcastToPeers(shares, size, resultShares, threadID); // issue here where program just hangs (occurs elsewhere)
-    // printf("hi2\n");
-    // ss->reconstructSecret(c, resultShares, size);
-    // printf("hi3\n");
-    // Open(shares, c_test, size, threadID, net, id, ss);
-    // printf("hi4\n");
-
-    // for (int j = 0; j < size; j++) {
-    //     gmp_printf("all_open input       c[%i]: %Zu\n", j, c[j]);
-    //     gmp_printf("min_open input  c_test[%i]: %Zu\n", j, c_test[j]);
-    //     // mpz_set_ui(c[j], 0); //clearing output just in case
-    // }
-    // printf("----\n");
 
     Rand->PRandM(K, K, size, V, threadID);   // generating r', r'_k-1,...,r'_0
     ss->modAdd(C, shares, V[K], size);       // Line 2 of EQZ
     Rand->PRandInt(K, K, size, S, threadID); // generating r''
 
-    // consistency checking
-    //  Open(S, c_test, size, threadID, net, id, ss);
-    //  net.broadcastToPeers(S, size, resultShares, threadID);
-    //  ss->reconstructSecret(c, resultShares, size);
-
-    // for (int j = 0; j < size; j++) {
-    //     gmp_printf("my share       S[%i]: %Zu\n", j, S[j]);
-    //     gmp_printf("expected       S[%i]: %Zu\n", j, c[j]);
-    //     gmp_printf("actual    S_test[%i]: %Zu\n", j, c_test[j]);
-    // }
-    // printf("----\n");
-
     ss->modPow(const2K, const2, constK); // Line 2 of EQZ
     ss->modMul(S, S, const2K, size);     // Line 2 of EQZ
     ss->modAdd(C, C, S, size);           // Line 2 of EQZ
 
-    // net.broadcastToPeers(C, size, resultShares, threadID);
-    // ss->reconstructSecret(c, resultShares, size);
-
     Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
-
-    // for (int j = 0; j < size; j++) {
-    //     gmp_printf("expected       c[%i]: %Zu\n", j, c[j]);
-    //     gmp_printf("actual    c_test[%i]: %Zu\n", j, c_test[j]);
-    // }
 
     for (int i = 0; i < size; i++) {
         binarySplit(c[i], bitK, K);   // Line 3 of EQZ
@@ -307,4 +272,58 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         free(T[i]);
     }
     free(T);
+}
+
+void EQZ::doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID) {
+    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; ++i)
+        mpz_init(sub[i]);
+    int len = smc_compute_len(alen, blen);
+    ss->modSub(sub, a, b, size);
+    doOperation(sub, result, len, size, threadID);
+    smc_batch_free_operator(&sub, size);
+}
+
+void EQZ::doOperation_EQZ(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID) {
+    mpz_t sub;
+    mpz_init(sub);
+    ss->modSub(sub, a, b);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_init_set(subs[0], sub);
+    mpz_init(results[0]);
+
+    int len = smc_compute_len(alen, blen);
+    doOperation(subs, results, len, 1, threadID);
+    mpz_set(result, results[0]);
+
+    mpz_clear(sub);
+    smc_batch_free_operator(&results, 1);
+    smc_batch_free_operator(&subs, 1);
+}
+
+void EQZ::doOperation_EQZ(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID) {
+
+    mpz_t sub;
+    mpz_t b_tmp;
+
+    mpz_init_set_si(b_tmp, b);
+    mpz_init(sub);
+    ss->modSub(sub, a, b_tmp);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(subs[0], sub);
+    mpz_init(results[0]);
+
+    int len = smc_compute_len(alen, blen);
+    doOperation(results, subs, len, 1, threadID);
+    mpz_set(result, results[0]);
+
+    // free the memory
+    mpz_clear(sub);
+    mpz_clear(b_tmp);
+
+    smc_batch_free_operator(&subs, 1);
+    smc_batch_free_operator(&results, 1);
 }
