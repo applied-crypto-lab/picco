@@ -639,54 +639,15 @@ void SMC_Utils::smc_mult(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int b
 
 /* SMC Division*/
 void SMC_Utils::smc_div(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
-
-    // mpz_init_set(op1[0], a);
-    // mpz_init_set(op2[0], b);
-    // mpz_init(results[0]);
-
-    // // alen and blen could be negative when a and b are coverted from public values
     Idiv->doOperation(result, a, b, resultlen, threadID);
-    // mpz_set(result, results[0]);
-
-    // // free the memory
-    // smc_batch_free_operator(&op1, 1);
-    // smc_batch_free_operator(&op2, 1);
-    // smc_batch_free_operator(&results, 1);
 }
 
 void SMC_Utils::smc_div(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
-
-    // mpz_init_set(op1[0], a);
-    // mpz_init_set_si(op2[0], b);
-    // mpz_init(results[0]);
-
     Idiv->doOperationPub(result, a, b, resultlen, threadID);
-    // mpz_set(result, results[0]);
-
-    // // free the memory
-    // smc_batch_free_operator(&op1, 1);
-    // smc_batch_free_operator(&op2, 1);
-    // smc_batch_free_operator(&results, 1);
 }
 
 void SMC_Utils::smc_div(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t zero, atmp;
-    // mpz_init_set_ui(zero, 0);
-    // mpz_init_set_si(atmp, a);
-    // ss->modAdd(atmp, atmp, zero);
-    // smc_div(atmp, b, result, alen, blen, resultlen, type, threadID);
-
     Idiv->doOperation(result, a, b, resultlen, threadID);
-
-    // // free the memory
-    // mpz_clear(zero);
-    // mpz_clear(atmp);
 }
 
 void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
@@ -736,19 +697,11 @@ void SMC_Utils::smc_div(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int bl
 }
 
 void SMC_Utils::smc_div(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init_set_si(atmp[i], a[i]);
-    smc_div(atmp, b, alen, blen, result, resultlen, size, type, threadID);
-    smc_batch_free_operator(&atmp, size);
+    Idiv->doOperation(result, a, b, resultlen, size, threadID);
 }
 
 void SMC_Utils::smc_div(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init_set_si(b_tmp[i], b[i]);
-    Idiv->doOperationPub(result, a, b_tmp, resultlen, size, threadID);
-    smc_batch_free_operator(&b_tmp, size);
+    Idiv->doOperationPub(result, a, b, resultlen, size, threadID);
 }
 
 void SMC_Utils::smc_div(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {

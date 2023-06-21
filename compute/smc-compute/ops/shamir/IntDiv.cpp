@@ -57,6 +57,15 @@ void IntDiv::doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID) {
 }
 
 
+void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID) {
+    mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(btmp[i], b[i]);
+    doOperationPub(result, a, btmp, k, size, threadID);
+    smc_batch_free_operator(&btmp, size);
+}
+
+
 void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
     int lambda = 8;
     int peers = ss->getPeers();
@@ -304,32 +313,30 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
 }
 
 void IntDiv::doOperation(mpz_t result, int a, mpz_t b, int k, int threadID) {
-    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
+ 
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
 
-    // mpz_init_set(op1[0], a);
-    // mpz_init_set(op2[0], b);
-    // mpz_init(results[0]);
+    mpz_init_set_si(op1[0], a);
+    mpz_init_set(op2[0], b);
+    mpz_init(results[0]);
 
-    // // alen and blen could be negative when a and b are coverted from public values
-    // mpz_set(result, results[0]);
-
-    // free the memory
-    // smc_batch_free_operator(&op1, 1);
-    // smc_batch_free_operator(&op2, 1);
-    // smc_batch_free_operator(&results, 1);
-
-    mpz_t zero, atmp;
-    mpz_init_set_ui(zero, 0);
-    mpz_init_set_si(atmp, a);
-    ss->modAdd(atmp, atmp, zero);
-    // smc_div(atmp, b, result, alen, blen, resultlen, type, threadID);
-    doOperation(result, atmp, b, k, threadID);
+    // alen and blen could be negative when a and b are coverted from public values
+    doOperation(results, op1, op2, k, 1, threadID);
+    mpz_set(result, results[0]);
 
     // free the memory
-    mpz_clear(zero);
-    mpz_clear(atmp);
+    smc_batch_free_operator(&op1, 1);
+    smc_batch_free_operator(&op2, 1);
+    smc_batch_free_operator(&results, 1);
 
+}
 
+void IntDiv::doOperation(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID) {
+    mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(atmp[i], a[i]);
+    doOperation(result, atmp, b, k, size, threadID);
+    smc_batch_free_operator(&atmp, size);
 }
