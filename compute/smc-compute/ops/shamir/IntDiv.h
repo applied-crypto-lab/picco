@@ -32,7 +32,10 @@ public:
     IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~IntDiv();
     void doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID);
+    void doOperation(mpz_t result, mpz_t a, mpz_t b, int k,  int threadID);
+    void doOperation(mpz_t result, int a, mpz_t b, int k, int threadID);
     void doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID);
+    void doOperationPub(mpz_t result, mpz_t a, int b, int k,  int threadID);
 
 private:
     Mult *Mul;

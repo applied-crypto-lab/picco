@@ -36,6 +36,27 @@ IntDiv::~IntDiv() {
     // TODO Auto-generated destructor stub
 }
 
+void IntDiv::doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID) {
+
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(op1[0], a);
+    mpz_init_set_si(op2[0], b);
+    mpz_init(results[0]);
+
+    doOperationPub(results, op1, op2, k, 1, threadID);
+    mpz_set(result, results[0]);
+
+    // free the memory
+    smc_batch_free_operator(&op1, 1);
+    smc_batch_free_operator(&op2, 1);
+    smc_batch_free_operator(&results, 1);
+
+}
+
+
 void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
     int lambda = 8;
     int peers = ss->getPeers();
@@ -120,6 +141,25 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     mpz_clear(const1);
     mpz_clear(const2);
     mpz_clear(constk);
+}
+
+void IntDiv::doOperation(mpz_t result, mpz_t a, mpz_t b, int k, int threadID) {
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(op1[0], a);
+    mpz_init_set(op2[0], b);
+    mpz_init(results[0]);
+
+    // alen and blen could be negative when a and b are coverted from public values
+    doOperation(results, op1, op2, k, 1, threadID);
+    mpz_set(result, results[0]);
+
+    // free the memory
+    smc_batch_free_operator(&op1, 1);
+    smc_batch_free_operator(&op2, 1);
+    smc_batch_free_operator(&results, 1);
 }
 
 void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
@@ -261,4 +301,35 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     free(lt);
     free(a_tmp);
     free(b_tmp);
+}
+
+void IntDiv::doOperation(mpz_t result, int a, mpz_t b, int k, int threadID) {
+    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
+
+    // mpz_init_set(op1[0], a);
+    // mpz_init_set(op2[0], b);
+    // mpz_init(results[0]);
+
+    // // alen and blen could be negative when a and b are coverted from public values
+    // mpz_set(result, results[0]);
+
+    // free the memory
+    // smc_batch_free_operator(&op1, 1);
+    // smc_batch_free_operator(&op2, 1);
+    // smc_batch_free_operator(&results, 1);
+
+    mpz_t zero, atmp;
+    mpz_init_set_ui(zero, 0);
+    mpz_init_set_si(atmp, a);
+    ss->modAdd(atmp, atmp, zero);
+    // smc_div(atmp, b, result, alen, blen, resultlen, type, threadID);
+    doOperation(result, atmp, b, k, threadID);
+
+    // free the memory
+    mpz_clear(zero);
+    mpz_clear(atmp);
+
+
 }

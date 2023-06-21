@@ -232,6 +232,24 @@ void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t y, int size) {
         modAdd(result[i], x[i], y);
 }
 
+void SecretShare::modAdd(mpz_t *result, mpz_t *x, long *y, int size) {
+    mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(ytmp[i], y[i]); 
+    modAdd(result, x, ytmp, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(ytmp[i]);
+}
+
+void SecretShare::modAdd(mpz_t *result, mpz_t *x, int *y, int size) {
+    mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(ytmp[i], y[i]); 
+    modAdd(result, x, ytmp, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(ytmp[i]);
+}
+
 void SecretShare::modSub(mpz_t result, mpz_t x, mpz_t y) {
     mpz_sub(result, x, y);
     mpz_mod(result, result, fieldSize);
@@ -731,3 +749,20 @@ int modulo(int a, int b)
     int r = a % b;
     return r < 0 ? r + b : r;
 }
+
+/* General utility functions */
+void smc_batch_free_operator(mpz_t **op, int size) {
+    for (int i = 0; i < size; i++)
+        mpz_clear((*op)[i]);
+    free(*op);
+}
+
+void smc_batch_free_operator(mpz_t ***op, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++)
+            mpz_clear((*op)[i][j]);
+        free((*op)[i]);
+    }
+    free(*op);
+}
+

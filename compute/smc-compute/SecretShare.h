@@ -73,6 +73,8 @@ public:
     void modAdd(mpz_t, mpz_t, long);
     void modAdd(mpz_t *, mpz_t *, long, int);
     void modAdd(mpz_t *, mpz_t *, mpz_t, int);
+    void modAdd(mpz_t *, mpz_t *, long *, int);
+    void modAdd(mpz_t *, mpz_t *, int *, int);
 
     // Modular Subtraction
     void modSub(mpz_t, mpz_t, mpz_t);
@@ -155,5 +157,10 @@ private:
 
 // substitute for % operator to (properly) handle negative numbers
 int modulo(int a, int b);
+
+void smc_batch_free_operator(mpz_t **op, int size);
+void smc_batch_free_operator(mpz_t ***op, int size);
+
+
 
 #endif
