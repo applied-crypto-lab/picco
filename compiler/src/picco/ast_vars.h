@@ -20,7 +20,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* ast_vars.h -- declare & analyze vars 
+/* ast_vars.h -- declare & analyze vars
  *
  *   gtp = global threadprivate
  *   sgl = shared (non-threadprivate) global
@@ -33,17 +33,17 @@
 #include "ast.h"
 #include "symtab.h"
 
-            /* Declare all variables appearing in a declaration list */
+/* Declare all variables appearing in a declaration list */
 extern void ast_declare_decllist_vars(astspec s, astdecl d);
-            /* Declare all vars in a varlist (i.e. in an OpenMP data clause) */
+/* Declare all vars in a varlist (i.e. in an OpenMP data clause) */
 extern void ast_declare_varlist_vars(astdecl d);
-            /* Declare function parameters; 
-             * d must be the declarator of FUNCDEF */
+/* Declare function parameters;
+ * d must be the declarator of FUNCDEF */
 extern void ast_declare_function_params(astdecl d);
 
-            /* Gather all variables of interest (sng = shared non-global,
-             * sgl = shared global, gtp = global threadprivate
-             */
+/* Gather all variables of interest (sng = shared non-global,
+ * sgl = shared global, gtp = global threadprivate
+ */
 extern void ast_paracon_find_sng_vars(ompcon t, int xformflag);
 extern void ast_taskcon_find_sngfp_vars(ompcon t, int xformflag);
 extern void ast_find_gtp_vars(aststmt t, int xformflag);
@@ -65,4 +65,4 @@ extern symtab sng_vars, gtp_vars, sgl_vars;
 #define isgtp(e) (istp(e) && (e)->scopelevel == 0)
 #define issgl(e) (!istp(e) && (e)->scopelevel == 0)
 
-#endif 
+#endif

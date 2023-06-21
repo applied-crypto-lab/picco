@@ -37,7 +37,6 @@ extern void ast_ompcon_free(ompcon t);
 extern void ast_ompclause_free(ompclause t);
 extern void ast_ompdir_free(ompdir t);
 
-
 /* OMPi-extensions
  */
 extern void ast_oxclause_free(oxclause t);
@@ -45,4 +44,3 @@ extern void ast_oxdir_free(oxdir t);
 extern void ast_oxcon_free(oxcon t);
 
 #endif
-

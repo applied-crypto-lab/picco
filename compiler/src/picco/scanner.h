@@ -25,21 +25,21 @@
 
 #include <stdio.h>
 
-extern FILE *yyin;                /* defined by flex */
-extern int   yylex(void);
+extern FILE *yyin; /* defined by flex */
+extern int yylex(void);
 
 /* Set this to the name of the file you are about to scan */
-extern void  sc_set_filename(char *fn);
+extern void sc_set_filename(char *fn);
 
-extern int   __has_omp;            /* True if > 0 OMP #pragmas where found */
-extern int   __has_ompix;          /* ditto for OMPi-extensions */
-extern int   __has_affinitysched;  /* for affinity-scheduled loops */
+extern int __has_omp;           /* True if > 0 OMP #pragmas where found */
+extern int __has_ompix;         /* ditto for OMPi-extensions */
+extern int __has_affinitysched; /* for affinity-scheduled loops */
 
 extern char *sc_original_file(void);
-extern int   sc_original_line(void);
-extern int   sc_line(void);
-extern int   sc_column(void);
- 
+extern int sc_original_line(void);
+extern int sc_line(void);
+extern int sc_column(void);
+
 /* Scans & stores a whole GCC attribute phrase */
 extern int sc_scan_attribute(char **string);
 

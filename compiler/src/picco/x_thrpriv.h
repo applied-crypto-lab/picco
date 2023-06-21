@@ -39,8 +39,7 @@ extern void tp_fix_funcbody_gtpvars(aststmt t);
  * The following 2 are only used in x_parallel.c
  */
 
- 
-/* They return the name of 
+/* They return the name of
  * (a) the key associated with a tp var (global or not), given its "stab" entry
  * (b) the new (altered) name of the original var
  */

@@ -30,4 +30,3 @@
 extern void sgl_fix_sglvars();
 
 #endif
-

@@ -31,10 +31,10 @@ extern void xt_barebones_substitute(astspec *spec, astdecl *decl);
 extern void xt_barebones_decl(astdecl d);
 extern void xt_declaration_xform(aststmt *t);
 extern void xt_free_retired();
-extern int  xt_decl_depends_on_sue(astdecl decl);
-extern int  xt_spec_depends_on_sue(astspec spec);
-extern int  xt_symbol_depends_on_sue(symbol s);
-#define xt_has_sue(s,d) (xt_spec_depends_on_sue(s) || xt_decl_depends_on_sue(d))
+extern int xt_decl_depends_on_sue(astdecl decl);
+extern int xt_spec_depends_on_sue(astspec spec);
+extern int xt_symbol_depends_on_sue(symbol s);
+#define xt_has_sue(s, d) (xt_spec_depends_on_sue(s) || xt_decl_depends_on_sue(d))
 extern void xt_dlist_array2pointer(aststmt d);
 extern void xt_decl_array2pointer(astdecl d);
 

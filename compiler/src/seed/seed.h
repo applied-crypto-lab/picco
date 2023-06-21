@@ -25,16 +25,16 @@
 class seed {
 
 public:
-	seed();
-	void run();
-	void init(char*, char*); //
-	int parseConfigFile(char*);
-	void parseUtilConfigFile(char*); //
-	void sendPolynomials(mpz_t); //
-	static double time_diff(struct timeval *t1, struct timeval *t2);
-	std::string mpz2string(mpz_t, int); //
-private: 
-	int peers;
-	mpz_t modulus; //
+    seed();
+    void run();
+    void init(char *, char *); //
+    int parseConfigFile(char *);
+    void parseUtilConfigFile(char *); //
+    void sendPolynomials(mpz_t);      //
+    static double time_diff(struct timeval *t1, struct timeval *t2);
+    std::string mpz2string(mpz_t, int); //
+private:
+    int peers;
+    mpz_t modulus; //
 };
 #endif /* SEED_H_ */

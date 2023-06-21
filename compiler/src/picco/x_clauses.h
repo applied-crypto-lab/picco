@@ -25,9 +25,8 @@
 #ifndef __X_CLAUSES_H__
 #define __X_CLAUSES_H__
 
-#include "symtab.h"
 #include "ast.h"
-    
+#include "symtab.h"
 
 /*
  * Reduction
@@ -80,8 +79,7 @@ extern enum clausetype xc_dataclause_of_var(symbol var, ompdir d);
 /*
  * Declarations from the vars collected by xc_validate_store_dataclause_vars().
  */
-extern 
-   aststmt xc_stored_vars_declarations(int *haslast, int *hasboth, int *hasred);
+extern aststmt xc_stored_vars_declarations(int *haslast, int *hasboth, int *hasred);
 
 /* Take the clauses of a combined parallel-workshare statement and
  * split them; some are given to parallel and some to the workshare.
@@ -89,7 +87,7 @@ extern
  * private and firstprivate ones (so as to conform with the restrictions
  * on lastprivate clause that possibly exist)
  */
-extern void xc_split_combined_clauses(ompclause all, 
+extern void xc_split_combined_clauses(ompclause all,
                                       ompclause *parc, ompclause *wshc);
 
 /*

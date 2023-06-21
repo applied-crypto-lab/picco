@@ -28,12 +28,12 @@
 #include "ast.h"
 
 #define ast_copy(t) ast_stmt_copy(t)
-extern astexpr   ast_expr_copy(astexpr tree);
-extern aststmt   ast_stmt_copy(aststmt stmt);
-extern astdecl   ast_decl_copy(astdecl tree);
-extern astspec   ast_spec_copy(astspec tree);
-extern ompcon    ast_ompcon_copy(ompcon tree);
-extern ompdir    ast_ompdir_copy(ompdir tree);
+extern astexpr ast_expr_copy(astexpr tree);
+extern aststmt ast_stmt_copy(aststmt stmt);
+extern astdecl ast_decl_copy(astdecl tree);
+extern astspec ast_spec_copy(astspec tree);
+extern ompcon ast_ompcon_copy(ompcon tree);
+extern ompdir ast_ompdir_copy(ompdir tree);
 extern ompclause ast_ompclause_copy(ompclause tree);
 
 /* Special versions that discard storage class specifiers; the first one
@@ -45,7 +45,7 @@ extern astspec ast_spec_copy_nosc_asis(astspec tree);
 /* OMPi-extensions
  */
 extern oxclause ast_oxclause_copy(oxclause tree);
-extern oxdir    ast_oxdir_copy(oxdir tree);
-extern oxcon    ast_oxcon_copy(oxcon tree);
+extern oxdir ast_oxdir_copy(oxdir tree);
+extern oxcon ast_oxcon_copy(oxcon tree);
 
 #endif
