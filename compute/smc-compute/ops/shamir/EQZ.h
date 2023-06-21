@@ -33,6 +33,9 @@ public:
     virtual ~EQZ();
     void doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threaID);
 
+    void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
+    void doOperation_EQZ(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID);
+    void doOperation_EQZ(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID);
 private:
     PrefixMultiplication *PreMul;
     Random *Rand;

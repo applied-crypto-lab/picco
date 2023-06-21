@@ -41,3 +41,84 @@ void LTZ::doOperation(mpz_t *result, mpz_t *shares, int K, int size, int threadI
     ss->modSub(result, const0, result, size);
     mpz_clear(const0);
 }
+
+// computes  a <? b or a >? b (if args are reversed)
+void LTZ::doOperation_LT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID) {
+    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; ++i)
+        mpz_init(sub[i]);
+    int len = smc_compute_len(alen, blen);
+    ss->modSub(sub, a, b, size);
+    doOperation(result, sub, len, size, threadID);
+    smc_batch_free_operator(&sub, size);
+}
+
+//helper functions that interface with SMC_utils
+// reversing the parameters computes GT
+void LTZ::doOperation_LT(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID) {
+    mpz_t sub;
+    mpz_init(sub);
+    ss->modSub(sub, a, b);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(subs[0], sub);
+    mpz_init(results[0]);
+
+    int len = smc_compute_len(alen, blen);
+    doOperation(results, subs, len, 1, threadID);
+    mpz_set(result, results[0]);
+
+    // free the memory
+    mpz_clear(sub);
+    smc_batch_free_operator(&subs, 1);
+    smc_batch_free_operator(&results, 1);
+}
+
+void LTZ::doOperation_LT(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID) {
+    mpz_t sub;
+    mpz_t b_tmp;
+
+    mpz_init_set_si(b_tmp, b);
+    mpz_init(sub);
+    ss->modSub(sub, a, b_tmp);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(subs[0], sub);
+    mpz_init(results[0]);
+
+    int len = smc_compute_len(alen, blen);
+    doOperation(results, subs, len, 1, threadID);
+    mpz_set(result, results[0]);
+
+    // free the memory
+    mpz_clear(sub);
+    mpz_clear(b_tmp);
+
+    smc_batch_free_operator(&subs, 1);
+    smc_batch_free_operator(&results, 1);
+}
+
+void LTZ::doOperation_LT(mpz_t result, int a, mpz_t b, int alen, int blen, int resultlen, int threadID) {
+    mpz_t a_tmp;
+    mpz_t sub;
+    mpz_init_set_si(a_tmp, a);
+    mpz_init(sub);
+    ss->modSub(sub, a_tmp, b);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(subs[0], sub);
+    mpz_init(results[0]);
+
+    int len = smc_compute_len(alen, blen);
+    doOperation(results, subs, len, 1, threadID);
+    mpz_set(result, results[0]);
+
+    // free the memory
+    smc_batch_free_operator(&subs, 1);
+    smc_batch_free_operator(&results, 1);
+    mpz_clear(sub);
+    mpz_clear(a_tmp);
+}

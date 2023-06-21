@@ -531,7 +531,7 @@ public:
     void smc_batch_fl2fl(mpz_t ***a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID);
     void smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID);
 
-    void smc_compute_len(int alen, int blen, int *len);
+    // void smc_compute_len(int alen, int blen, int *len);
     void smc_process_operands(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
     void smc_process_results(mpz_t **result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID);
 

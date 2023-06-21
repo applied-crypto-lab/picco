@@ -549,7 +549,7 @@ void SMC_Utils::smc_mult(mpz_t a, int b, mpz_t result, int alen, int blen, int r
     // mpz_t btmp;
     // mpz_init(btmp);
     // ss->modAdd(btmp, btmp, b);
-    // ss->modMul(result, a, btmp);    
+    // ss->modMul(result, a, btmp);
     ss->modMul(result, a, b); // expected, in ss modMul( mpz_t, int)
     // smc_mult(a, btmp, result, alen, blen, resultlen, type, threadID);
     // mpz_clear(btmp);
@@ -637,7 +637,7 @@ void SMC_Utils::smc_mult(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int b
     smc_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "*", threadID);
 }
 
-/* SMC Division*/
+/* SMC Integer Division*/
 void SMC_Utils::smc_div(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
     Idiv->doOperation(result, a, b, resultlen, threadID);
 }
@@ -650,6 +650,19 @@ void SMC_Utils::smc_div(int a, mpz_t b, mpz_t result, int alen, int blen, int re
     Idiv->doOperation(result, a, b, resultlen, threadID);
 }
 
+void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+    Idiv->doOperation(result, a, b, resultlen, size, threadID);
+}
+
+void SMC_Utils::smc_div(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+    Idiv->doOperation(result, a, b, resultlen, size, threadID);
+}
+
+void SMC_Utils::smc_div(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+    Idiv->doOperationPub(result, a, b, resultlen, size, threadID);
+}
+
+/* SMC Floating-point division */
 void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     smc_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "/", threadID);
 }
@@ -687,21 +700,8 @@ void SMC_Utils::smc_div(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen
     smc_batch_free_operator(&atmp, 4);
 }
 
-// batch operations of division
-void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Idiv->doOperation(result, a, b, resultlen, size, threadID);
-}
-
 void SMC_Utils::smc_div(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     smc_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "/", threadID);
-}
-
-void SMC_Utils::smc_div(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Idiv->doOperation(result, a, b, resultlen, size, threadID);
-}
-
-void SMC_Utils::smc_div(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Idiv->doOperationPub(result, a, b, resultlen, size, threadID);
 }
 
 void SMC_Utils::smc_div(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
@@ -718,9 +718,13 @@ void SMC_Utils::smc_div(float *a, mpz_t **b, int alen_sig, int alen_exp, int ble
     smc_div(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     smc_batch_free_operator(&atmp, size);
 }
-void SMC_Utils::smc_compute_len(int alen, int blen, int *len) {
-    *len = alen >= blen ? alen : blen;
-}
+
+// why is this a pointer?
+// could easily just return an integer
+// moved function to SS
+// void SMC_Utils::smc_compute_len(int alen, int blen, int *len) {
+//     *len = alen >= blen ? alen : blen;
+// }
 
 void SMC_Utils::smc_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size) {
     mpz_t **a = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -926,38 +930,41 @@ void SMC_Utils::smc_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, in
 
 /* All Comparisons */
 void SMC_Utils::smc_lt(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t sub;
-    mpz_init(sub);
-    ss->modSub(sub, a, b);
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, threadID);
 
-    mpz_init_set(subs[0], sub);
-    mpz_init(results[0]);
+    // mpz_t sub;
+    // mpz_init(sub);
+    // ss->modSub(sub, a, b);
+    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
 
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    Lt->doOperation(results, subs, len, 1, threadID);
-    mpz_set(result, results[0]);
+    // mpz_init_set(subs[0], sub);
+    // mpz_init(results[0]);
 
-    // free the memory
-    mpz_clear(sub);
-    smc_batch_free_operator(&subs, 1);
-    smc_batch_free_operator(&results, 1);
+    // int len = smc_compute_len(alen, blen);
+    // Lt->doOperation(results, subs, len, 1, threadID);
+    // mpz_set(result, results[0]);
+
+    // // free the memory
+    // mpz_clear(sub);
+    // smc_batch_free_operator(&subs, 1);
+    // smc_batch_free_operator(&results, 1);
 }
 
 void SMC_Utils::smc_lt(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t bs;
-    mpz_init_set_si(bs, b);
-    smc_lt(a, bs, result, alen, blen, resultlen, "int", threadID);
-    mpz_clear(bs);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, threadID);
+    //     mpz_t bs;
+    //     mpz_init_set_si(bs, b);
+    //     smc_lt(a, bs, result, alen, blen, resultlen, "int", threadID);
+    //     mpz_clear(bs);
 }
 
 void SMC_Utils::smc_lt(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t as;
-    mpz_init_set_si(as, a);
-    smc_lt(as, b, result, alen, blen, resultlen, "int", threadID);
-    mpz_clear(as);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, threadID);
+    // mpz_t as;
+    // mpz_init_set_si(as, a);
+    // smc_lt(as, b, result, alen, blen, resultlen, "int", threadID);
+    // mpz_clear(as);
 }
 
 void SMC_Utils::smc_lt(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
@@ -980,14 +987,14 @@ void SMC_Utils::smc_lt(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_e
 
 // batch operations of comparisons
 void SMC_Utils::smc_lt(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; ++i)
-        mpz_init(sub[i]);
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    ss->modSub(sub, a, b, size);
-    Lt->doOperation(result, sub, len, size, threadID);
-    smc_batch_free_operator(&sub, size);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID);
+    // mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // for (int i = 0; i < size; ++i)
+    //     mpz_init(sub[i]);
+    // int len = smc_compute_len(alen, blen);
+    // ss->modSub(sub, a, b, size);
+    // Lt->doOperation(result, sub, len, size, threadID);
+    // smc_batch_free_operator(&sub, size);
 }
 
 void SMC_Utils::smc_lt(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
@@ -995,40 +1002,42 @@ void SMC_Utils::smc_lt(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int ble
 }
 
 void SMC_Utils::smc_gt(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t sub;
-    mpz_init(sub);
-    ss->modSub(sub, b, a);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, threadID);
+    // mpz_t sub;
+    // mpz_init(sub);
+    // ss->modSub(sub, b, a);
 
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_init_set(subs[0], sub);
-    mpz_init(results[0]);
+    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_init_set(subs[0], sub);
+    // mpz_init(results[0]);
 
-    /********************************************/
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    /********************************************/
-    Lt->doOperation(results, subs, len, 1, threadID);
-    mpz_set(result, results[0]);
+    // /********************************************/
+    // int len = smc_compute_len(alen, blen);
+    // /********************************************/
+    // Lt->doOperation(results, subs, len, 1, threadID);
+    // mpz_set(result, results[0]);
 
-    // free the memory
-    mpz_clear(sub);
-    smc_batch_free_operator(&subs, 1);
-    smc_batch_free_operator(&results, 1);
+    // // free the memory
+    // mpz_clear(sub);
+    // smc_batch_free_operator(&subs, 1);
+    // smc_batch_free_operator(&results, 1);
 }
 
 void SMC_Utils::smc_gt(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t bs;
-    mpz_init_set_si(bs, b);
-    smc_gt(a, bs, result, alen, blen, resultlen, type, threadID);
-    mpz_clear(bs);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, threadID);
+    // mpz_t bs;
+    // mpz_init_set_si(bs, b);
+    // smc_gt(a, bs, result, alen, blen, resultlen, type, threadID);
+    // mpz_clear(bs);
 }
 
 void SMC_Utils::smc_gt(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t as;
-    mpz_init_set_si(as, a);
-    smc_gt(as, b, result, alen, blen, resultlen, type, threadID);
-    mpz_clear(as);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, threadID);
+    // mpz_t as;
+    // mpz_init_set_si(as, a);
+    // smc_gt(as, b, result, alen, blen, resultlen, type, threadID);
+    // mpz_clear(as);
 }
 
 void SMC_Utils::smc_gt(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
@@ -1051,14 +1060,16 @@ void SMC_Utils::smc_gt(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_e
 
 // batch operations of gt
 void SMC_Utils::smc_gt(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; ++i)
-        mpz_init(sub[i]);
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    ss->modSub(sub, b, a, size);
-    Lt->doOperation(result, sub, len, size, threadID);
-    smc_batch_free_operator(&sub, size);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen,
+                       size, threadID); // switching order of parameters for LT will compute GT
+
+    // mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // for (int i = 0; i < size; ++i)
+    //     mpz_init(sub[i]);
+    // int len = smc_compute_len(alen, blen);
+    // ss->modSub(sub, b, a, size);
+    // Lt->doOperation(result, sub, len, size, threadID);
+    // smc_batch_free_operator(&sub, size);
 }
 
 void SMC_Utils::smc_gt(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
@@ -1066,39 +1077,48 @@ void SMC_Utils::smc_gt(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int ble
 }
 
 void SMC_Utils::smc_leq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t sub;
-    mpz_init(sub);
-    ss->modSub(sub, b, a);
-
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_init_set(subs[0], sub);
-    mpz_init(results[0]);
-
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    Lt->doOperation(results, subs, len, 1, threadID);
-    mpz_set(result, results[0]);
+    // Lt->doOperation_LEQ(result, a, b, alen, blen, resultlen, threadID);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, threadID);
     ss->modSub(result, 1, result);
 
-    // free the memory
-    mpz_clear(sub);
-    smc_batch_free_operator(&results, 1);
-    smc_batch_free_operator(&subs, 1);
+    //     mpz_t sub;
+    //     mpz_init(sub);
+    //     ss->modSub(sub, b, a);
+
+    //     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    //     mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+    //     mpz_init_set(subs[0], sub);
+    //     mpz_init(results[0]);
+
+    //     int len = smc_compute_len(alen, blen);
+    //     Lt->doOperation(results, subs, len, 1, threadID);
+    //     mpz_set(result, results[0]);
+    //     ss->modSub(result, 1, result);
+
+    //     // free the memory
+    //     mpz_clear(sub);
+    //     smc_batch_free_operator(&results, 1);
+    //     smc_batch_free_operator(&subs, 1);
 }
 
 void SMC_Utils::smc_leq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t bs;
-    mpz_init_set_si(bs, b);
-    smc_leq(a, bs, result, alen, blen, resultlen, type, threadID);
-    mpz_clear(bs);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, threadID);
+    ss->modSub(result, 1, result);
+
+    // mpz_t bs;
+    // mpz_init_set_si(bs, b);
+    // smc_leq(a, bs, result, alen, blen, resultlen, type, threadID);
+    // mpz_clear(bs);
 }
 
 void SMC_Utils::smc_leq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t as;
-    mpz_init_set_si(as, a);
-    smc_leq(as, b, result, alen, blen, resultlen, type, threadID);
-    mpz_clear(as);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, threadID);
+    ss->modSub(result, 1, result);
+
+    // mpz_t as;
+    // mpz_init_set_si(as, a);
+    // smc_leq(as, b, result, alen, blen, resultlen, type, threadID);
+    // mpz_clear(as);
 }
 
 void SMC_Utils::smc_leq(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
@@ -1124,15 +1144,17 @@ void SMC_Utils::smc_leq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_
 
 // batch operations of leq
 void SMC_Utils::smc_leq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init(sub[i]);
-    ss->modSub(sub, b, a, size);
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    Lt->doOperation(result, sub, len, size, threadID);
+    // Lt->doOperation_LEQ(result, a, b, alen, blen, resultlen, size, threadID);
+    Lt->doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID);
     ss->modSub(result, 1, result, size);
-    smc_batch_free_operator(&sub, size);
+    // mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // for (int i = 0; i < size; i++)
+    //     mpz_init(sub[i]);
+    // ss->modSub(sub, b, a, size);
+    // int len = smc_compute_len(alen, blen);
+    // Lt->doOperation(result, sub, len, size, threadID);
+    // ss->modSub(result, 1, result, size);
+    // smc_batch_free_operator(&sub, size);
 }
 
 void SMC_Utils::smc_leq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
@@ -1141,38 +1163,43 @@ void SMC_Utils::smc_leq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int bl
 }
 
 void SMC_Utils::smc_geq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t sub;
-    mpz_init(sub);
-    ss->modSub(sub, a, b);
-
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_init_set(subs[0], sub);
-    mpz_init(results[0]);
-
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    Lt->doOperation(results, subs, len, 1, threadID);
-    mpz_set(result, results[0]);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, threadID);
     ss->modSub(result, 1, result);
+    // mpz_t sub;
+    // mpz_init(sub);
+    // ss->modSub(sub, a, b);
 
-    mpz_clear(sub);
-    smc_batch_free_operator(&results, 1);
-    smc_batch_free_operator(&subs, 1);
+    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_init_set(subs[0], sub);
+    // mpz_init(results[0]);
+
+    // int len = smc_compute_len(alen, blen);
+    // Lt->doOperation(results, subs, len, 1, threadID);
+    // mpz_set(result, results[0]);
+    // ss->modSub(result, 1, result);
+
+    // mpz_clear(sub);
+    // smc_batch_free_operator(&results, 1);
+    // smc_batch_free_operator(&subs, 1);
 }
 
 void SMC_Utils::smc_geq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t bs;
-    mpz_init_set_si(bs, b);
-    smc_geq(a, bs, result, alen, blen, resultlen, type, threadID);
-    mpz_clear(bs);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, threadID);
+    ss->modSub(result, 1, result);
+    // mpz_t bs;
+    // mpz_init_set_si(bs, b);
+    // smc_geq(a, bs, result, alen, blen, resultlen, type, threadID);
+    // mpz_clear(bs);
 }
 
 void SMC_Utils::smc_geq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t as;
-    mpz_init_set_si(as, a);
-    smc_geq(as, b, result, alen, blen, resultlen, type, threadID);
-    mpz_clear(as);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, threadID);
+    ss->modSub(result, 1, result);
+    // mpz_t as;
+    // mpz_init_set_si(as, a);
+    // smc_geq(as, b, result, alen, blen, resultlen, type, threadID);
+    // mpz_clear(as);
 }
 
 void SMC_Utils::smc_geq(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
@@ -1198,16 +1225,18 @@ void SMC_Utils::smc_geq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_
 
 // batch operations of geq
 void SMC_Utils::smc_geq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init(sub[i]);
-    ss->modSub(sub, a, b, size);
-
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
-    Lt->doOperation(result, sub, len, size, threadID);
+    Lt->doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID);
     ss->modSub(result, 1, result, size);
-    smc_batch_free_operator(&sub, size);
+
+    //     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    //     for (int i = 0; i < size; i++)
+    //         mpz_init(sub[i]);
+    //     ss->modSub(sub, a, b, size);
+
+    //     int len = smc_compute_len(alen, blen);
+    //     Lt->doOperation(result, sub, len, size, threadID);
+    //     ss->modSub(result, 1, result, size);
+    //     smc_batch_free_operator(&sub, size);
 }
 
 void SMC_Utils::smc_geq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
@@ -1225,8 +1254,7 @@ void SMC_Utils::smc_eqeq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int
     mpz_init_set(subs[0], sub);
     mpz_init(results[0]);
 
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
+    int len = smc_compute_len(alen, blen);
     Eq->doOperation(subs, results, len, 1, threadID);
     mpz_set(result, results[0]);
 
@@ -1272,8 +1300,7 @@ void SMC_Utils::smc_eqeq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, 
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(sub[i]);
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
+    int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     Eq->doOperation(sub, result, len, size, threadID);
     smc_batch_free_operator(&sub, size);
@@ -1294,8 +1321,7 @@ void SMC_Utils::smc_neq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int 
     mpz_init_set(subs[0], sub);
     mpz_init(results[0]);
 
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
+    int len = smc_compute_len(alen, blen);
     Eq->doOperation(subs, results, len, 1, threadID);
     mpz_set(result, results[0]);
     ss->modSub(result, 1, result);
@@ -1345,8 +1371,7 @@ void SMC_Utils::smc_neq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(sub[i]);
-    int len = 0;
-    smc_compute_len(alen, blen, &len);
+    int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     Eq->doOperation(sub, result, len, size, threadID);
     ss->modSub(result, 1, result, size);

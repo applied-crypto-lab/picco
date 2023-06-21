@@ -31,6 +31,13 @@ public:
     virtual ~LTZ();
     void doOperation(mpz_t *result, mpz_t *shares, int K, int size, int threadID);
 
+    void doOperation_LT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
+    void doOperation_LT(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID);
+    void doOperation_LT(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID);
+    void doOperation_LT(mpz_t result, int a, mpz_t b, int alen, int blen, int resultlen, int threadID);
+
+    // void doOperation_GT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
+
 private:
     Trunc *T;
 };

@@ -160,6 +160,7 @@ int modulo(int a, int b);
 
 void smc_batch_free_operator(mpz_t **op, int size);
 void smc_batch_free_operator(mpz_t ***op, int size);
+int smc_compute_len(int alen, int blen);
 
 
 

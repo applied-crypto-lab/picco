@@ -766,3 +766,8 @@ void smc_batch_free_operator(mpz_t ***op, int size) {
     free(*op);
 }
 
+// used for comparisons
+// unknown as to why the original version stores at pointer
+int smc_compute_len(int alen, int blen) {
+    return alen >= blen ? alen : blen;
+}
