@@ -93,6 +93,7 @@ public:
     void modPow(mpz_t *, mpz_t *, long, int);
     void modPow2(mpz_t, int);
     void modPow2(mpz_t *result, int *exponent, int size);
+    void modPow2(mpz_t *result, mpz_t *exponent, int size);
 
     // Modular Inverse
     void modInv(mpz_t, mpz_t);

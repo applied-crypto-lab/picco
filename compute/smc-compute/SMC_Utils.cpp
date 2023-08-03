@@ -1560,6 +1560,7 @@ void SMC_Utils::smc_shl(mpz_t a, int b, mpz_t result, int alen, int blen, int re
 
 void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) {
+        // b is PUBLIC, but stored in type mpz_t 
         // int *b_tmp = (int *)malloc(sizeof(int) * size);
         // for (int i = 0; i < size; i++)
         //     b_tmp[i] = mpz_get_si(b[i]);
@@ -1567,8 +1568,6 @@ void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
         // free(b_tmp);
         ss->modPow2(result, b, size);
         ss->modMul(result, a, result, size);
-
-
     } else {
         P->doOperation(result, b, blen, size, threadID);
         Mul->doOperation(result, result, a, size, threadID);

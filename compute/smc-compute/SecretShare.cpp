@@ -325,6 +325,23 @@ void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
     mpz_clear(base);
 }
 
+void SecretShare::modPow2(mpz_t *result, mpz_t *exponent, int size) {
+    // for (int i = 0; i < size; ++i)
+    //     modPow(result[i], base[i], exponent);
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+
+    for (int i = 0; i < size; ++i) {
+        mpz_init_set(value, exponent[i]);
+        mpz_mod(value, value, fieldSize);
+        mpz_powm(result[i], base, value, fieldSize);
+    }
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
+
+
 void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
     for (int i = 0; i < size; i++)
         mpz_powm(result[i], base[i], exponent[i], fieldSize);
