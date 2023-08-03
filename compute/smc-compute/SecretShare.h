@@ -91,6 +91,8 @@ public:
     void modPow(mpz_t *, mpz_t *, mpz_t *, int);
     void modPow(mpz_t, mpz_t, long);
     void modPow(mpz_t *, mpz_t *, long, int);
+    void modPow2(mpz_t, int);
+    void modPow2(mpz_t *result, int *exponent, int size);
 
     // Modular Inverse
     void modInv(mpz_t, mpz_t);
@@ -142,7 +144,6 @@ private:
 
     uint *multIndices;
 
-
     // additional data structures for multiplication
     gmp_randstate_t *rstatesMult;
 
@@ -161,7 +162,5 @@ int modulo(int a, int b);
 void smc_batch_free_operator(mpz_t **op, int size);
 void smc_batch_free_operator(mpz_t ***op, int size);
 int smc_compute_len(int alen, int blen);
-
-
 
 #endif

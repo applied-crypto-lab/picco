@@ -30,6 +30,8 @@
 
 // Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
+    test_type(15);
+
     std::cout << "SMC_Utils constructor\n";
     mpz_t modulus;
     mpz_init(modulus);
@@ -1319,7 +1321,7 @@ void SMC_Utils::smc_eqeq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int b
 }
 
 void SMC_Utils::smc_neq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    Eq->doOperation_EQZ(result, a, b, alen, blen, resultlen,  threadID);
+    Eq->doOperation_EQZ(result, a, b, alen, blen, resultlen, threadID);
     ss->modSub(result, 1, result);
 
     // mpz_t sub;
@@ -1343,7 +1345,7 @@ void SMC_Utils::smc_neq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int 
 }
 
 void SMC_Utils::smc_neq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    Eq->doOperation_EQZ(result, a, b, alen, blen, resultlen,  threadID);
+    Eq->doOperation_EQZ(result, a, b, alen, blen, resultlen, threadID);
     ss->modSub(result, 1, result);
     // mpz_t bs;
     // mpz_init_set_si(bs, b);
@@ -1352,7 +1354,7 @@ void SMC_Utils::smc_neq(mpz_t a, int b, mpz_t result, int alen, int blen, int re
 }
 
 void SMC_Utils::smc_neq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    Eq->doOperation_EQZ(result, b, a, alen, blen, alen, resultlen,  threadID);
+    Eq->doOperation_EQZ(result, b, a, blen, alen, resultlen, threadID);
     ss->modSub(result, 1, result);
     // mpz_t as;
     // mpz_init_set_si(as, a);
@@ -1549,20 +1551,23 @@ void SMC_Utils::smc_shl(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int 
 }
 
 void SMC_Utils::smc_shl(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    mpz_t const2;
-    mpz_init_set_ui(const2, 2);
-    ss->modPow(result, const2, b);
+    // mpz_t const2;
+    // mpz_init_set_ui(const2, 2);
+    ss->modPow2(result, b);
     ss->modMul(result, a, result);
-    mpz_clear(const2);
+    // mpz_clear(const2);
 }
 
 void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) {
-        int *b_tmp = (int *)malloc(sizeof(int) * size);
-        for (int i = 0; i < size; i++)
-            b_tmp[i] = mpz_get_si(b[i]);
-        smc_shl(a, b_tmp, alen, blen, result, resultlen, size, type, threadID);
-        free(b_tmp);
+        // int *b_tmp = (int *)malloc(sizeof(int) * size);
+        // for (int i = 0; i < size; i++)
+        //     b_tmp[i] = mpz_get_si(b[i]);
+        // smc_shl(a, b_tmp, alen, blen, result, resultlen, size, type, threadID);
+        // free(b_tmp);
+        ss->modPow2(result, b, size);
+        ss->modMul(result, a, result, size);
+
 
     } else {
         P->doOperation(result, b, blen, size, threadID);
@@ -1571,13 +1576,16 @@ void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
 }
 
 void SMC_Utils::smc_shl(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t const2;
-    mpz_init_set_ui(const2, 2);
-    for (int i = 0; i < size; i++) {
-        ss->modPow(result[i], const2, b[i]);
-        ss->modMul(result[i], a[i], result[i]);
-    }
-    mpz_clear(const2);
+    // mpz_t const2;
+    // mpz_init_set_ui(const2, 2);
+    // for (int i = 0; i < size; i++) {
+    //     ss->modPow(result[i], const2, b[i]);
+    //     ss->modMul(result[i], a[i], result[i]);
+    // }
+    // mpz_clear(const2);
+
+    ss->modPow2(result, b, size);
+    ss->modMul(result, a, result, size);
 }
 
 // Dot Product
@@ -4013,4 +4021,59 @@ std::vector<std::string> SMC_Utils::splitfunc(const char *str, const char *delim
         token = strtok_r(NULL, delim, &saveptr);
     }
     return result;
+}
+
+// proof of concept type-specifc implementations
+
+void SMC_Utils::test_type(int x) {
+    priv_int value;
+    ss_init_set_si(value, x);
+    gmp_printf("value %Zd\n", value);
+    // printf("value %lu\n", value);
+
+    ss_clear(value);
+    // printf("value %lu\n", value);
+    gmp_printf("value %Zd\n", value); // value is cleared at this point, returns garbage
+
+    uint size = 3;
+    // priv_int *val_arr = (priv_int *)malloc(sizeof(priv_int) * size);
+    priv_int *val_arr = new priv_int[size];
+    ss_init_set_si(val_arr[0], x);
+    ss_init_set_si(val_arr[1], x + 3);
+    ss_init_set_si(val_arr[2], x + 16);
+    for (size_t i = 0; i < size; i++) {
+        // printf("val_arr[%lu] %lu\n", i, val_arr[i]);
+        gmp_printf("val_arr[%i] %Zd\n", i, val_arr[i]);
+    }
+    ss_free_arr(val_arr, size);
+        for (size_t i = 0; i < size; i++) {
+        // printf("val_arr[%lu] %lu\n", i, val_arr[i]);
+        gmp_printf("val_arr[%i] %Zd\n", i, val_arr[i]);
+    }
+}
+
+void ss_init_set_si(mpz_t &x, int x_val) {
+    mpz_init_set_si(x, x_val);
+}
+
+void ss_init_set_si(unsigned long &x, int x_val) {
+    x = x_val;
+}
+
+// for ul's, dont need to do anything for within-scope single variables, so just return
+void ss_clear(unsigned long &x) {}
+
+// frees space oucupied by x
+void ss_clear(mpz_t &x) {
+    mpz_clear(x);
+}
+
+void ss_free_arr(mpz_t *op, int size) {
+    for (int i = 0; i < size; i++)
+        mpz_clear(op[i]);
+    delete[] op;
+}
+
+void ss_free_arr(unsigned long *op, int size) {
+    delete[] op;
 }

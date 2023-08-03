@@ -34,9 +34,18 @@
 #define BASE 10
 
 
-typedef mpz_t mpz_t; 
+typedef mpz_t priv_int; 
+// typedef unsigned long priv_int; 
 
 // typedef unsigned long Lint; // for ring size in [31,62];
+
+void ss_init_set_si(mpz_t &x, int x_val);
+void ss_init_set_si(unsigned long &x, int x_val);
+void ss_clear(unsigned long &x);
+void ss_clear(mpz_t &x);
+
+void ss_free_arr(mpz_t *op, int size) ;
+void ss_free_arr(unsigned long *op, int size) ;
 
 
 class SMC_Utils {
@@ -535,6 +544,8 @@ public:
     void smc_process_operands(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
     void smc_process_results(mpz_t **result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID);
 
+    void test_type(int);
+
     std::map<std::string, std::vector<int>> polynomials; // temporarily public
     // mpz_t coef[9];                                       // temporarily public
     int id;                                              // temporarily public;
@@ -576,5 +587,7 @@ private:
     int peers;
     int newsockfd;
 };
+
+
 
 #endif /* SMC_UTILS_H_ */

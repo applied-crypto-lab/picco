@@ -41,7 +41,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     peers = p;
     threshold = t;
     myid = id;
-    
+
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
     gmp_printf("fieldSize %Zu\n", fieldSize);
@@ -67,9 +67,9 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     multIndices[threshold] = id;
 
     computeSharingMatrix();
-    computeLagrangeWeights(); 
+    computeLagrangeWeights();
     gmp_randinit_mt(rstate);
-    
+
     // initialize PRGs
     mpz_t seed;
     mpz_init(seed);
@@ -78,7 +78,6 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
         gmp_randinit_mt(rstatesMult[i]);
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
         gmp_randseed(rstatesMult[i], seed);
-
     }
 }
 
@@ -235,7 +234,7 @@ void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t y, int size) {
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, long *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
-        mpz_init_set_si(ytmp[i], y[i]); 
+        mpz_init_set_si(ytmp[i], y[i]);
     modAdd(result, x, ytmp, size);
     for (int i = 0; i < size; i++)
         mpz_clear(ytmp[i]);
@@ -244,7 +243,7 @@ void SecretShare::modAdd(mpz_t *result, mpz_t *x, long *y, int size) {
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, int *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
-        mpz_init_set_si(ytmp[i], y[i]); 
+        mpz_init_set_si(ytmp[i], y[i]);
     modAdd(result, x, ytmp, size);
     for (int i = 0; i < size; i++)
         mpz_clear(ytmp[i]);
@@ -300,6 +299,32 @@ void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
     mpz_powm(result, base, exponent, fieldSize);
 }
 
+void SecretShare::modPow2(mpz_t result, int exponent) {
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+    mpz_init_set_si(value, exponent);
+    // modAdd(value, value, (long)0); // assuming this just performs modular reduction, replaced with line below
+    mpz_mod(value, value, fieldSize);
+    mpz_powm(result, base, value, fieldSize);
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
+void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
+    // for (int i = 0; i < size; ++i)
+    //     modPow(result[i], base[i], exponent);
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+
+    for (int i = 0; i < size; ++i) {
+        mpz_init_set_si(value, exponent[i]);
+        mpz_mod(value, value, fieldSize);
+        mpz_powm(result[i], base, value, fieldSize);
+    }
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
 void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
     for (int i = 0; i < size; i++)
         mpz_powm(result[i], base[i], exponent[i], fieldSize);
@@ -308,14 +333,22 @@ void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) 
 void SecretShare::modPow(mpz_t result, mpz_t base, long exponent) {
     mpz_t value;
     mpz_init_set_si(value, exponent);
-    modAdd(value, value, (long)0);
+    // modAdd(value, value, (long)0);
+    mpz_mod(value, value, fieldSize);
     mpz_powm(result, base, value, fieldSize);
     mpz_clear(value);
 }
 
 void SecretShare::modPow(mpz_t *result, mpz_t *base, long exponent, int size) {
-    for (int i = 0; i < size; ++i)
-        modPow(result[i], base[i], exponent);
+    // for (int i = 0; i < size; ++i)
+    //     modPow(result[i], base[i], exponent);
+    mpz_t value;
+    mpz_init_set_si(value, exponent);
+    mpz_mod(value, value, fieldSize);
+    for (int i = 0; i < size; ++i) {
+        mpz_powm(result[i], base[i], value, fieldSize);
+    }
+    mpz_clear(value);
 }
 
 void SecretShare::modInv(mpz_t result, mpz_t value) {
@@ -492,7 +525,7 @@ void SecretShare::computeLagrangeWeights() {
 
         modInv(temp, denom);
         modMul(lagrangeWeightsThreshold[i], nom, temp);
-        gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n",i, t2, lagrangeWeightsThreshold[i]);
+        gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n", i, t2, lagrangeWeightsThreshold[i]);
     }
 
     // third set of coefficients
@@ -592,7 +625,7 @@ void SecretShare::reconstructSecretMult(mpz_t *result, mpz_t **y, int size) {
         mpz_set_ui(result[i], 0);
     for (int i = 0; i < size; i++) {
         for (int peer = 0; peer < peers; peer++) {
-            modMul(temp, y[peer][i], lagrangeWeightsAll[multIndices[peer]-1]);
+            modMul(temp, y[peer][i], lagrangeWeightsAll[multIndices[peer] - 1]);
             modAdd(result[i], result[i], temp);
         }
     }
@@ -628,11 +661,11 @@ void SecretShare::reconstructSecretFromMin_test(mpz_t *result, mpz_t **y, unsign
     uint index = 0;
     for (i = 0; i < size; i++) {
         for (j = 0; j < threshold + 1; j++) {
-             if (j == threshold)
+            if (j == threshold)
                 index = myid - 1;
             else
                 index = recvFromIDs[j] - 1;
-            printf("index %i\n",index); 
+            printf("index %i\n", index);
             modMul(temp, y[j][i], lagrangeWeightsAll[index]);
             modAdd(result[i], result[i], temp);
         }
@@ -744,8 +777,7 @@ void SecretShare::getCoef(int id) {
     mpz_invert(id_p1_inv, id_p1_inv, fieldSize);
 }
 
-int modulo(int a, int b)
-{
+int modulo(int a, int b) {
     int r = a % b;
     return r < 0 ? r + b : r;
 }
