@@ -575,4 +575,57 @@ double PrivIndex::time_diff(struct timeval *t1, struct timeval *t2) {
     return elapsed;
 }
 
+// needed to convert integer inputs to mpz_t
+void PrivIndex::doOperationWrite(mpz_t *index, mpz_t *array, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type){
+
+    mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(val[i], values[i]);
+    // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
+    doOperationWrite(index, array, val, dim, size, out_cond, priv_cond, counter, threadID, 0);
+    smc_batch_free_operator(&val, size);
+}
+
+void PrivIndex::doOperationWrite_2d(mpz_t *index, mpz_t **array, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type){
+
+    mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(val[i], values[i]);
+    // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
+    doOperationWrite_2d(index, array, val, dim1, dim2, size, out_cond, priv_cond, counter, threadID, 0);
+    smc_batch_free_operator(&val, size);
+}
+
+
+void PrivIndex::doOperationWrite_2d(mpz_t *index, mpz_t **array, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type){
+    mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * dim1 * dim2);
+    for (int i = 0; i < dim1; i++)
+        for (int j = 0; j < dim2; j++)
+            mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
+
+    // mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // for (int i = 0; i < size; i++)
+    //     mpz_init_set_si(val[i], values[i]);
+    // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
+    doOperationWrite(index, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0);
+    // smc_batch_free_operator(&val, size);
+
+    smc_batch_free_operator(&array_tmp, dim1 * dim2);
+
+}
+
+
+
+// void PrivIndex::doOperationWrite_int_mpz(mpz_t *index, mpz_t *array, mpz_t value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type){
+//     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+//     mpz_t *value_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+//     mpz_init_set(index_tmp[0], index);
+//     mpz_init_set(value_tmp[0], value);
+
+//     doOperationWrite(index_tmp, array, value_tmp, dim, 1, out_cond, priv_cond, counter, threadID, 0);
+
+//     smc_batch_free_operator(&index_tmp, 1);
+//     smc_batch_free_operator(&value_tmp, 1);
+    
+// }
 

@@ -44,13 +44,18 @@ public:
     void doOperation_float_arr(mpz_t index, mpz_t ***array, mpz_t *result, int dim1, int dim2, int type, int threadID);
     void doOperation_float(mpz_t index, mpz_t **array, mpz_t *result, int dim, int type, int threadID);
 
+    void doOperationWrite(mpz_t *index, mpz_t *array, int *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+
+    void doOperationWrite_2d(mpz_t *index, mpz_t **array, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    void doOperationWrite_2d(mpz_t *index, mpz_t **array, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
 
 
-    void doOperationWrite_int(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
-    void doOperationWrite_int_arr(mpz_t *index, mpz_t **array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    // void doOperationWrite_int(mpz_t *index, mpz_t *array, int value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
 
-    void doOperationWrite_float(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
-    void doOperationWrite_float_arr(mpz_t *index, mpz_t ***array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    // void doOperationWrite_int_arr(mpz_t *index, mpz_t **array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+
+    // void doOperationWrite_float(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    // void doOperationWrite_float_arr(mpz_t *index, mpz_t ***array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
 
 
 
