@@ -49,6 +49,83 @@ void PrivIndex::compute_private_conditions(mpz_t *private_conditions, mpz_t out_
             mpz_set_ui(private_conditions[i], 1);
     }
 }
+//integer
+void PrivIndex::doOperation_int(mpz_t index, mpz_t *array, mpz_t result, int dim, int type, int threadID) {
+    mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_init_set(index_tmp[0], index);
+    mpz_init(result_tmp[0]);
+
+    doOperationRead(index_tmp, array, result_tmp, dim, 1, threadID, 0);
+    mpz_set(result, result_tmp[0]);
+
+    smc_batch_free_operator(&index_tmp, 1);
+    smc_batch_free_operator(&result_tmp, 1);
+}
+
+//float
+void PrivIndex::doOperation_float(mpz_t index, mpz_t **array, mpz_t * result, int dim, int type, int threadID) {
+
+    mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * 4 * dim);
+    mpz_init_set(index_tmp[0], index);
+    for (int i = 0; i < dim; i++)
+        for (int j = 0; j < 4; j++)
+            mpz_init_set(array_tmp[4 * i + j], array[i][j]);
+
+    doOperationRead(index_tmp, array_tmp, result, dim, 1, threadID, 1);
+
+    smc_batch_free_operator(&index_tmp, 1);
+    smc_batch_free_operator(&array_tmp, 4 * dim);
+
+    // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    // mpz_init_set(index_tmp[0], index);
+    // mpz_init(result_tmp[0]);
+
+    // doOperationRead(index_tmp, array, result_tmp, dim, 1, threadID, 0);
+    // mpz_set(result, result_tmp[0]);
+
+    // smc_batch_free_operator(&index_tmp, 1);
+    // smc_batch_free_operator(&result_tmp, 1);
+}
+
+
+void PrivIndex::doOperation_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID) {
+
+    mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * dim1 * dim2);
+    mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+
+    mpz_init_set(index_tmp[0], index);
+    mpz_init(result_tmp[0]);
+    for (int i = 0; i < dim1; i++)
+        for (int j = 0; j < dim2; j++)
+            mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
+
+    doOperationRead(index_tmp, array_tmp, result_tmp, dim1 * dim2, 1, threadID, 0);
+    mpz_set(result, result_tmp[0]);
+
+    smc_batch_free_operator(&index_tmp, 1);
+    smc_batch_free_operator(&result_tmp, 1);
+    smc_batch_free_operator(&array_tmp, dim1 * dim2);
+}
+
+void PrivIndex::doOperation_float_arr(mpz_t index, mpz_t ***array, mpz_t * result, int dim1, int dim2, int type, int threadID) {
+    mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * 4 * dim1 * dim2);
+    mpz_init_set(index_tmp[0], index);
+    for (int i = 0; i < dim1; i++)
+        for (int j = 0; j < dim2; j++)
+            for (int k = 0; k < 4; k++)
+                mpz_init_set(array_tmp[4 * (i * dim2 + j) + k], array[i][j][k]);
+
+    doOperationRead(index_tmp, array_tmp, result, dim1 * dim2, 1, threadID, 1);
+
+    smc_batch_free_operator(&index_tmp, 1);
+    smc_batch_free_operator(&array_tmp, 4 * dim1 * dim2);
+}
+
 
 void PrivIndex::doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type) {
     int K = ceil(log2(dim));
@@ -497,3 +574,5 @@ double PrivIndex::time_diff(struct timeval *t1, struct timeval *t2) {
 
     return elapsed;
 }
+
+

@@ -20,10 +20,10 @@
 #ifndef PRIVINDEX_SHAMIR_H_
 #define PRIVINDEX_SHAMIR_H_
 
-#include "Open.h"
 #include "BitDec.h"
 #include "EQZ.h"
 #include "Mult.h"
+#include "Open.h"
 #include "Operation.h"
 #include "Random.h"
 #include <sys/time.h>
@@ -38,6 +38,21 @@ public:
     void doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
     void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID);
     double time_diff(struct timeval *, struct timeval *);
+
+    void doOperation_int(mpz_t index, mpz_t *array, mpz_t result, int dim, int type, int threadID);
+    void doOperation_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID);
+    void doOperation_float_arr(mpz_t index, mpz_t ***array, mpz_t *result, int dim1, int dim2, int type, int threadID);
+    void doOperation_float(mpz_t index, mpz_t **array, mpz_t *result, int dim, int type, int threadID);
+
+
+
+    void doOperationWrite_int(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    void doOperationWrite_int_arr(mpz_t *index, mpz_t **array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+
+    void doOperationWrite_float(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+    void doOperationWrite_float_arr(mpz_t *index, mpz_t ***array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type);
+
+
 
 private:
     Mult *Mul;
