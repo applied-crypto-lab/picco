@@ -61,8 +61,8 @@ public:
     void smc_input(int id, mpz_t *var, std::string type, int threadID);
     void smc_output(int id, int *var, std::string type, int threadID);
     void smc_output(int id, mpz_t *var, std::string type, int thread);
-    void convertFloat(float value, int K, int L, mpz_t **elements);
-    void convertDouble(double value, int K, int L, mpz_t **elements);
+    // void convertFloat(float value, int K, int L, mpz_t **elements);
+    // void convertDouble(double value, int K, int L, mpz_t **elements);
 
     // for float variable;
     void smc_input(int id, float *var, std::string type, int threadID);
