@@ -28,7 +28,7 @@
 //     void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID);
 // };
 
-void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork nNet, int id, SecretShare *ss);
+void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 
 #endif /* MULT_SHAMIR_H_ */

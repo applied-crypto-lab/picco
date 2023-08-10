@@ -24,15 +24,17 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class PreOpL : public Operation {
-public:
-    PreOpL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~PreOpL();
-    void doOperation(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID);
+// class PreOpL : public Operation {
+// public:
+//     PreOpL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
+//     virtual ~PreOpL();
+//     void doOperation(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID);
 
-private:
-    // Mult *M;
-    CarryBit *Carry;
-};
+// private:
+//     // Mult *M;
+//     CarryBit *Carry;
+// };
+
+void PreOpL(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID ,NodeNetwork nNet, int id, SecretShare *ss) ;
 
 #endif /* PREOPL_SHAMIR_H_ */

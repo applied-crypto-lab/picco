@@ -31,7 +31,7 @@ public:
     void doOperation(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID);
 
 private:
-    PreOpL *Pre;
+    // PreOpL *Pre;
 };
 
 #endif /* ADDBITWISE_SHAMIR_H_ */

@@ -21,7 +21,7 @@
 #include "AddBitwise.h"
 
 AddBitwise::AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    Pre = new PreOpL(nodeNet, poly, nodeID, s);
+    // Pre = new PreOpL(nodeNet, poly, nodeID, s);
     ss = s;
 }
 
@@ -67,7 +67,7 @@ void AddBitwise::doOperation(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, i
         ss->modSub(D1[i], temp1, temp2, size);
     }
 
-    Pre->doOperation(C, D1, D2, K, size, threadID);
+    PreOpL(C, D1, D2, K, size, threadID, net, id, ss);
     ss->modAdd(temp1, A[0], B[0], size);
     ss->modMul(temp2, C[0], const2, size);
     ss->modSub(S[0], temp1, temp2, size);
