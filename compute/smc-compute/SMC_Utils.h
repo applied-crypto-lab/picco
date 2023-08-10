@@ -24,12 +24,29 @@
 #include "Headers.h"
 #include "NodeConfiguration.h"
 #include "NodeNetwork.h"
-#include "ops/Operation.h"
+#include "ops/shamir/Operation.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>
 #include <sstream>
 #include <string>
+
+#define BASE 10
+
+
+typedef mpz_t priv_int; 
+// typedef unsigned long priv_int; 
+
+// typedef unsigned long Lint; // for ring size in [31,62];
+
+void ss_init_set_si(mpz_t &x, int x_val);
+void ss_init_set_si(unsigned long &x, int x_val);
+void ss_clear(unsigned long &x);
+void ss_clear(mpz_t &x);
+
+void ss_free_arr(mpz_t *op, int size) ;
+void ss_free_arr(unsigned long *op, int size) ;
+
 
 class SMC_Utils {
 public:
@@ -44,8 +61,8 @@ public:
     void smc_input(int id, mpz_t *var, std::string type, int threadID);
     void smc_output(int id, int *var, std::string type, int threadID);
     void smc_output(int id, mpz_t *var, std::string type, int thread);
-    void convertFloat(float value, int K, int L, mpz_t **elements);
-    void convertDouble(double value, int K, int L, mpz_t **elements);
+    // void convertFloat(float value, int K, int L, mpz_t **elements);
+    // void convertDouble(double value, int K, int L, mpz_t **elements);
 
     // for float variable;
     void smc_input(int id, float *var, std::string type, int threadID);
@@ -415,8 +432,8 @@ public:
 
     void smc_single_convert_to_private_float(float a, mpz_t **priv_a, int len_sig, int len_exp);
     void smc_batch_convert_to_private_float(float *a, mpz_t ***priv_a, int len_sig, int len_exp, int size);
-    void smc_batch_free_operator(mpz_t **op, int size);
-    void smc_batch_free_operator(mpz_t ***op, int size);
+    // void smc_batch_free_operator(mpz_t **op, int size);
+    // void smc_batch_free_operator(mpz_t ***op, int size);
 
     // int
     void smc_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID);
@@ -523,12 +540,14 @@ public:
     void smc_batch_fl2fl(mpz_t ***a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID);
     void smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID);
 
-    void smc_compute_len(int alen, int blen, int *len);
+    // void smc_compute_len(int alen, int blen, int *len);
     void smc_process_operands(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
     void smc_process_results(mpz_t **result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID);
 
+    void test_type(int);
+
     std::map<std::string, std::vector<int>> polynomials; // temporarily public
-    mpz_t coef[9];                                       // temporarily public
+    // mpz_t coef[9];                                       // temporarily public
     int id;                                              // temporarily public;
 
     double time_diff(struct timeval *, struct timeval *);
@@ -541,7 +560,6 @@ private:
     NodeNetwork nNet;
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
-    int base;
 
     Mult *Mul;
     LTZ *Lt;
@@ -565,9 +583,11 @@ private:
     // Handle client connections and polynomail stuff
     void clientConnect();
     void receivePolynomials(std::string privatekey_filename);
-    void setCoef();
+    // void setCoef();
     int peers;
     int newsockfd;
 };
+
+
 
 #endif /* SMC_UTILS_H_ */

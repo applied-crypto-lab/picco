@@ -28,6 +28,6 @@
 #include "ast.h"
 
 extern int xar_expr_is_constant(astexpr t);
-extern int xar_calc_int_expr(astexpr t, int *error);  /* error is 1 */
+extern int xar_calc_int_expr(astexpr t, int *error); /* error is 1 */
 
 #endif

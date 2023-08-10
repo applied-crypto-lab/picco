@@ -73,6 +73,8 @@ public:
     void modAdd(mpz_t, mpz_t, long);
     void modAdd(mpz_t *, mpz_t *, long, int);
     void modAdd(mpz_t *, mpz_t *, mpz_t, int);
+    void modAdd(mpz_t *, mpz_t *, long *, int);
+    void modAdd(mpz_t *, mpz_t *, int *, int);
 
     // Modular Subtraction
     void modSub(mpz_t, mpz_t, mpz_t);
@@ -89,6 +91,9 @@ public:
     void modPow(mpz_t *, mpz_t *, mpz_t *, int);
     void modPow(mpz_t, mpz_t, long);
     void modPow(mpz_t *, mpz_t *, long, int);
+    void modPow2(mpz_t, int);
+    void modPow2(mpz_t *result, int *exponent, int size);
+    void modPow2(mpz_t *result, mpz_t *exponent, int size);
 
     // Modular Inverse
     void modInv(mpz_t, mpz_t);
@@ -140,7 +145,6 @@ private:
 
     uint *multIndices;
 
-
     // additional data structures for multiplication
     gmp_randstate_t *rstatesMult;
 
@@ -155,5 +159,12 @@ private:
 
 // substitute for % operator to (properly) handle negative numbers
 int modulo(int a, int b);
+
+void smc_batch_free_operator(mpz_t **op, int size);
+void smc_batch_free_operator(mpz_t ***op, int size);
+int smc_compute_len(int alen, int blen);
+
+void convertFloat(float value, int K, int L, mpz_t **elements);
+void convertDouble(double value, int K, int L, mpz_t **elements);
 
 #endif

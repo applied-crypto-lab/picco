@@ -1,5 +1,5 @@
 # All of the sources participating in the build are defined here
--include smc-compute/ops/ops.mk
+-include smc-compute/ops/shamir/ops.mk
 -include smc-compute/smc-compute.mk
 -include objects.mk
 

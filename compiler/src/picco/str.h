@@ -22,10 +22,10 @@
 
 /* str.h -- A simple streaming string structure. */
 
-/* A dynamically growing string structure with a simple file-like interface. 
+/* A dynamically growing string structure with a simple file-like interface.
  * You can keep str_printf()'ing to it oblivioulsy, you can seek/truncate etc.
  * You str_free() it at the end.
- * You can always get the actual string by str_string(). 
+ * You can always get the actual string by str_string().
  * Take care NOT to touch the returned thing.
  */
 
@@ -33,37 +33,37 @@
 #define __STR_H__
 
 #ifndef NULL
-#  include <stdio.h>
+#include <stdio.h>
 #endif
 
-typedef void *str;	       
+typedef void *str;
 
-#define Strnew() Str(NULL)     /* An empty str */
-extern str  Str(char *s);      /* An str initialized to s */
+#define Strnew() Str(NULL) /* An empty str */
+extern str Str(char *s);   /* An str initialized to s */
 
 extern void str_free(str s);
-extern int  str_putc(str s, int c);
-extern int  str_printf(str s, char *fmt, ...);
-extern int  str_insert(str s, int pos, char *t);
-extern char *str_string(str s);        /* Get the actual string */
-extern int  str_tell(str s);           /* Where the "head" currently is */
-extern void str_seek(str s, int pos);  /* Put the "head" into an absolute pos */
-extern void str_truncate(str s);       /* Zero-out the string */
+extern int str_putc(str s, int c);
+extern int str_printf(str s, char *fmt, ...);
+extern int str_insert(str s, int pos, char *t);
+extern char *str_string(str s);       /* Get the actual string */
+extern int str_tell(str s);           /* Where the "head" currently is */
+extern void str_seek(str s, int pos); /* Put the "head" into an absolute pos */
+extern void str_truncate(str s);      /* Zero-out the string */
 
 /* Two scrathcpad strings for everyday use; use at your own risk! */
 extern str strA();
 extern str strB();
-#define A_str_putc(c)       str_putc(strA(),c)
-#define A_str_insert(pos,t) str_insert(strA(),pos,t)
-#define A_str_string()      str_string(strA())
-#define A_str_tell()        str_tell(strA())
-#define A_str_seek(pos)     str_seek(strA(),pos)
-#define A_str_truncate()    str_truncate(strA())
-#define B_str_putc(c)       str_putc(strB(),c)
-#define B_str_insert(pos,t) str_insert(strB(),pos,t)
-#define B_str_string()      str_string(strB())
-#define B_str_tell()        str_tell(strB())
-#define B_str_seek(pos)     str_seek(strB(),pos)
-#define B_str_truncate()    str_truncate(strB())
+#define A_str_putc(c) str_putc(strA(), c)
+#define A_str_insert(pos, t) str_insert(strA(), pos, t)
+#define A_str_string() str_string(strA())
+#define A_str_tell() str_tell(strA())
+#define A_str_seek(pos) str_seek(strA(), pos)
+#define A_str_truncate() str_truncate(strA())
+#define B_str_putc(c) str_putc(strB(), c)
+#define B_str_insert(pos, t) str_insert(strB(), pos, t)
+#define B_str_string() str_string(strB())
+#define B_str_tell() str_tell(strB())
+#define B_str_seek(pos) str_seek(strB(), pos)
+#define B_str_truncate() str_truncate(strB())
 
 #endif

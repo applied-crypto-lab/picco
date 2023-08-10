@@ -41,7 +41,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     peers = p;
     threshold = t;
     myid = id;
-    
+
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
     gmp_printf("fieldSize %Zu\n", fieldSize);
@@ -60,63 +60,15 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
             recvFromIDs[i] = myid - threshold + i;
     }
 
-    // printf("original\n");
-    // for (int i = 0; i < threshold; i++) {
-    //     printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
-    //     printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
-    // }
-    // computeSharingMatrix();
-    // computeLagrangeWeights();
-
-    // corrected versionm
-    // printf("test %i\n", (1 - 1 - 1) % 5 + 1);
-    // printf("-1 % 5 %i\n", -1 % 5);
-    // for (int j = 1; j < threshold+1; j++)
-    // {
-    //     printf("exp send[%i]  %i\n",j - 1, int(int(myid) + (j) - (1)) % int(peers) + 1);
-    //     printf("exp recv[%i]  %i\n",j - 1, int(int(myid) - (j) - (1)) % int(peers) + 1);
-    // }
-    
-    // for (int i = 0; i < threshold; i++) {
-    //     sendToIDs  [i]= modulo((int(myid) + int(i+1) - int(1)), int(peers)) + int(1);
-    //     recvFromIDs[i]= modulo((int(myid) - int(i+1) - int(1)), int(peers)) + int(1);
-    // }
-    // printf("corrected\n");
-    for (int i = 0; i < threshold; i++) {
-        printf("sendToIDs[%i]    %u\n", i, sendToIDs[i]);
-    }
-    for (int i = 0; i < threshold; i++) {
-        printf("recvFromIDs[%i]  %u\n", i, recvFromIDs[i]);
-    }
-
-
-    // printf("peers: %u\n", peers);
     for (int i = 0; i < threshold; i++) {
         multIndices[i] = sendToIDs[i];
         multIndices[threshold + i + 1] = recvFromIDs[i];
     }
     multIndices[threshold] = id;
 
-
-    // for (int i = 0; i < 2 * threshold; i++) {
-    //     print_hexa(keys[i], KEYSIZE);
-    // }
-    // for (int i = 0; i <peers; i++) {
-    //     printf("multIndices[%i]    %u\n", i, multIndices[i]);
-
-    // }
-
-
-
     computeSharingMatrix();
-    computeLagrangeWeights(); 
+    computeLagrangeWeights();
     gmp_randinit_mt(rstate);
-    // for (i = 0; i < (threshold+1); i++) {
-    // 	for (int j = 0; j < (threshold+1); j++) {
-    // 		gmp_printf("%Zu,", lagrangeWeightsMult[i][j]);
-    // 	}
-    // printf("\n");
-    // }
 
     // initialize PRGs
     mpz_t seed;
@@ -125,9 +77,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     for (i = 0; i < 2 * threshold; i++) {
         gmp_randinit_mt(rstatesMult[i]);
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
-        // gmp_printf("seed[%i]: %Zu\n",i, seed); //lower digits of seed different between parties?
         gmp_randseed(rstatesMult[i], seed);
-
     }
 }
 
@@ -281,6 +231,24 @@ void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t y, int size) {
         modAdd(result[i], x[i], y);
 }
 
+void SecretShare::modAdd(mpz_t *result, mpz_t *x, long *y, int size) {
+    mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(ytmp[i], y[i]);
+    modAdd(result, x, ytmp, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(ytmp[i]);
+}
+
+void SecretShare::modAdd(mpz_t *result, mpz_t *x, int *y, int size) {
+    mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(ytmp[i], y[i]);
+    modAdd(result, x, ytmp, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(ytmp[i]);
+}
+
 void SecretShare::modSub(mpz_t result, mpz_t x, mpz_t y) {
     mpz_sub(result, x, y);
     mpz_mod(result, result, fieldSize);
@@ -331,6 +299,49 @@ void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
     mpz_powm(result, base, exponent, fieldSize);
 }
 
+void SecretShare::modPow2(mpz_t result, int exponent) {
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+    mpz_init_set_si(value, exponent);
+    // modAdd(value, value, (long)0); // assuming this just performs modular reduction, replaced with line below
+    mpz_mod(value, value, fieldSize);
+    mpz_powm(result, base, value, fieldSize);
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
+void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
+    // for (int i = 0; i < size; ++i)
+    //     modPow(result[i], base[i], exponent);
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+
+    for (int i = 0; i < size; ++i) {
+        mpz_init_set_si(value, exponent[i]);
+        mpz_mod(value, value, fieldSize);
+        mpz_powm(result[i], base, value, fieldSize);
+    }
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
+void SecretShare::modPow2(mpz_t *result, mpz_t *exponent, int size) {
+    // for (int i = 0; i < size; ++i)
+    //     modPow(result[i], base[i], exponent);
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+
+    for (int i = 0; i < size; ++i) {
+        mpz_init_set(value, exponent[i]);
+        mpz_mod(value, value, fieldSize);
+        mpz_powm(result[i], base, value, fieldSize);
+    }
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
+
+
 void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
     for (int i = 0; i < size; i++)
         mpz_powm(result[i], base[i], exponent[i], fieldSize);
@@ -339,14 +350,22 @@ void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) 
 void SecretShare::modPow(mpz_t result, mpz_t base, long exponent) {
     mpz_t value;
     mpz_init_set_si(value, exponent);
-    modAdd(value, value, (long)0);
+    // modAdd(value, value, (long)0);
+    mpz_mod(value, value, fieldSize);
     mpz_powm(result, base, value, fieldSize);
     mpz_clear(value);
 }
 
 void SecretShare::modPow(mpz_t *result, mpz_t *base, long exponent, int size) {
-    for (int i = 0; i < size; ++i)
-        modPow(result[i], base[i], exponent);
+    // for (int i = 0; i < size; ++i)
+    //     modPow(result[i], base[i], exponent);
+    mpz_t value;
+    mpz_init_set_si(value, exponent);
+    mpz_mod(value, value, fieldSize);
+    for (int i = 0; i < size; ++i) {
+        mpz_powm(result[i], base[i], value, fieldSize);
+    }
+    mpz_clear(value);
 }
 
 void SecretShare::modInv(mpz_t result, mpz_t value) {
@@ -494,7 +513,6 @@ void SecretShare::computeLagrangeWeights() {
         }
         modInv(temp, denom);
         modMul(lagrangeWeightsAll[i], nom, temp);
-        // gmp_printf("lagrangeWeightsAll[%i]: %Zu\n",i, lagrangeWeightsAll[i]);
     }
 
     // second set
@@ -510,25 +528,21 @@ void SecretShare::computeLagrangeWeights() {
             mpz_set_ui(t2, myid);
         else
             mpz_set_ui(t2, recvFromIDs[i]);
-        // gmp_printf("\n t2[%i] %Zu , ",i, t2);
         for (l = 0; l < threshold + 1; l++) {
             if (l != i) {
                 if (l == threshold)
                     mpz_set_ui(t1, myid);
                 else
                     mpz_set_ui(t1, recvFromIDs[l]);
-                // gmp_printf("t1[%i] %Zu, ",l, t1);
                 modMul(nom, nom, t1);
                 modSub(temp, t1, t2);
                 modMul(denom, denom, temp);
             }
         }
-        // gmp_printf("\n nom %Zu , ",nom);
-        // gmp_printf("\n denom %Zu , ",denom);
 
         modInv(temp, denom);
         modMul(lagrangeWeightsThreshold[i], nom, temp);
-        gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n",i, t2, lagrangeWeightsThreshold[i]);
+        gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n", i, t2, lagrangeWeightsThreshold[i]);
     }
 
     // third set of coefficients
@@ -584,7 +598,6 @@ void SecretShare::computeLagrangeWeights() {
                 }
             }
             modMul(lagrangeWeightsMult[i][j], nom, denom);
-            // gmp_printf("lagrangeWeightsMult[%i][%i]: %Zu\n",i,j, lagrangeWeightsMult[i][j]);
         }
     }
 
@@ -629,7 +642,7 @@ void SecretShare::reconstructSecretMult(mpz_t *result, mpz_t **y, int size) {
         mpz_set_ui(result[i], 0);
     for (int i = 0; i < size; i++) {
         for (int peer = 0; peer < peers; peer++) {
-            modMul(temp, y[peer][i], lagrangeWeightsAll[multIndices[peer]-1]);
+            modMul(temp, y[peer][i], lagrangeWeightsAll[multIndices[peer] - 1]);
             modAdd(result[i], result[i], temp);
         }
     }
@@ -649,7 +662,6 @@ void SecretShare::reconstructSecretFromMin(mpz_t *result, mpz_t **y, unsigned in
 
     for (i = 0; i < size; i++) {
         for (j = 0; j < threshold + 1; j++) {
-            // gmp_printf("LWT[%i], y[%i][%i] :  (%Zu, %Zu) \n",j, j, i,lagrangeWeightsThreshold[j], y[j][i]);
             modMul(temp, y[j][i], lagrangeWeightsThreshold[j]);
             modAdd(result[i], result[i], temp);
         }
@@ -666,11 +678,11 @@ void SecretShare::reconstructSecretFromMin_test(mpz_t *result, mpz_t **y, unsign
     uint index = 0;
     for (i = 0; i < size; i++) {
         for (j = 0; j < threshold + 1; j++) {
-             if (j == threshold)
+            if (j == threshold)
                 index = myid - 1;
             else
                 index = recvFromIDs[j] - 1;
-            printf("index %i\n",index); 
+            printf("index %i\n", index);
             modMul(temp, y[j][i], lagrangeWeightsAll[index]);
             modAdd(result[i], result[i], temp);
         }
@@ -780,12 +792,213 @@ void SecretShare::getCoef(int id) {
     mpz_init(id_p1_inv);
     mpz_set_ui(id_p1_inv, id_p1);
     mpz_invert(id_p1_inv, id_p1_inv, fieldSize);
-    // printf("id_p1: %u\n", id_p1);
-    // gmp_printf("id_p1_inv: %Zu\n", id_p1_inv);
 }
 
-int modulo(int a, int b)
-{
+int modulo(int a, int b) {
     int r = a % b;
     return r < 0 ? r + b : r;
+}
+
+/* General utility functions */
+void smc_batch_free_operator(mpz_t **op, int size) {
+    for (int i = 0; i < size; i++)
+        mpz_clear((*op)[i]);
+    free(*op);
+}
+
+void smc_batch_free_operator(mpz_t ***op, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++)
+            mpz_clear((*op)[i][j]);
+        free((*op)[i]);
+    }
+    free(*op);
+}
+
+// used for comparisons
+// unknown as to why the original version stores at pointer
+int smc_compute_len(int alen, int blen) {
+    return alen >= blen ? alen : blen;
+}
+
+void convertFloat(float value, int K, int L, mpz_t **elements) {
+    unsigned int *newptr = (unsigned int *)&value;
+    int s = *newptr >> 31;
+    int e = *newptr & 0x7f800000;
+    e >>= 23;
+    int m = 0;
+    m = *newptr & 0x007fffff;
+
+    int z;
+    long v, p, k;
+    mpz_t significant, one, two, tmp, tmpm;
+    mpz_init(significant);
+    mpz_init(tmp);
+    mpz_init_set_ui(one, 1);
+    mpz_init_set_ui(two, 2);
+    mpz_init(tmpm);
+
+    if (e == 0 && m == 0) {
+        s = 0;
+        z = 1;
+        // v = 0;
+        mpz_set_ui(significant, 0);
+        p = 0;
+    } else {
+        z = 0;
+        if (L < 8) {
+            k = (1 << L) - 1;
+            /*check for overflow*/
+            if (e - 127 - K + 1 > k) {
+                p = k;
+                mpz_mul_2exp(significant, one, K);
+                mpz_sub_ui(significant, significant, 1);
+                // v = (1 << K) - 1;
+                /*check for underflow*/
+            } else if (e - 127 - K + 1 < -k) {
+                p = -k;
+                mpz_set_ui(significant, 1);
+                // v = 1;
+            } else {
+                p = e - 127 - K + 1;
+                m = m + (1 << 23);
+                mpz_set_si(tmpm, m);
+                if (K < 24) {
+                    mpz_pow_ui(tmp, two, 24 - K);
+                    mpz_div(significant, tmpm, tmp);
+                    // v = (m >> (24 - K));
+                } else {
+                    mpz_mul_2exp(significant, tmpm, K - 24);
+                    // v = m << (K - 24);
+                }
+            }
+        } else {
+            p = e - 127 - K + 1;
+            m = m + (1 << 23);
+            mpz_set_si(tmpm, m);
+            if (K < 24) {
+                mpz_pow_ui(tmp, two, 24 - K);
+                mpz_div(significant, tmpm, tmp);
+                // v = (m >> (24 - K));
+            } else {
+                mpz_set(significant, tmpm);
+                mpz_mul_2exp(significant, significant, K - 24);
+                // v = m;
+                // v = v << (K - 24);
+            }
+        }
+    }
+
+    // assignments;
+    mpz_set((*elements)[0], significant);
+    mpz_set_si((*elements)[1], p);
+    mpz_set_si((*elements)[2], z);
+    mpz_set_si((*elements)[3], s);
+
+    // clear the memory
+    mpz_clear(one);
+    mpz_clear(two);
+    mpz_clear(tmp);
+    mpz_clear(tmpm);
+    mpz_clear(significant);
+}
+
+void convertDouble(double value, int K, int L, mpz_t **elements) {
+    unsigned long *newptr = (unsigned long *)&value;
+    int s = (int)(*newptr >> 63);
+    unsigned long temp = (1 << 11);
+    temp--;
+    temp = temp << 52;
+    temp = (*newptr & temp);
+    temp = temp >> 52;
+    int e = (int)temp;
+    unsigned long m = 0;
+    temp = 1;
+    temp = temp << 52;
+    temp--;
+    m = (*newptr & temp);
+
+    int z;
+    long v, p, k;
+
+    mpz_t significant, tmp, tmpm, one, two;
+    mpz_init(significant);
+    mpz_init(tmp);
+    mpz_init(tmpm);
+    mpz_init_set_ui(one, 1);
+    mpz_init_set_ui(two, 2);
+
+    if (e == 0 && m == 0) {
+        s = 0;
+        z = 1;
+        // v = 0;
+        mpz_set_ui(significant, 0);
+        p = 0;
+    } else {
+        z = 0;
+        if (L < 11) {
+            k = (1 << L);
+            k--;
+            /*check for overflow*/
+            if (e - 1023 - K + 1 > k) {
+                p = k;
+                mpz_mul_2exp(significant, one, K);
+                mpz_sub_ui(significant, significant, 1);
+                // v = (1 << K);
+                // v--;
+                /*check for underflow*/
+            } else if (e - 1023 - K + 1 < -k) {
+                p = -k;
+                mpz_set_ui(significant, 1);
+                // v = 1;
+            } else {
+                p = e - 1023 - K + 1;
+                k = 1;
+                k = k << 52;
+                m = m + k;
+                mpz_set_si(tmpm, m);
+
+                if (K < 53) {
+                    mpz_pow_ui(tmp, two, 53 - K);
+                    mpz_div(significant, tmpm, tmp);
+                    // v = (m >> (53 - K));
+                } else {
+                    mpz_mul_2exp(significant, tmpm, K - 53);
+                    // v = m << (K - 53);
+                }
+            }
+        } else {
+            p = e - 1023 - K + 1;
+            k = 1;
+            k = k << 52;
+            m = m + k;
+            mpz_set_ui(tmpm, m);
+
+            if (K < 53) {
+                mpz_pow_ui(tmp, two, 53 - K);
+                mpz_div(significant, tmpm, tmp);
+                // v = (m >> (53 - K));
+            } else {
+                mpz_mul_2exp(significant, tmpm, K - 53);
+                // v = m << (K - 53);
+            }
+        }
+    }
+
+    mpz_set((*elements)[0], significant);
+    mpz_set_si((*elements)[1], p);
+    mpz_set_si((*elements)[2], z);
+    mpz_set_si((*elements)[3], s);
+
+    // free the memory
+    mpz_clear(one);
+    mpz_clear(two);
+    mpz_clear(tmp);
+    mpz_clear(tmpm);
+    mpz_clear(significant);
+
+    //(*elements)[0] = v;
+    //(*elements)[1] = p;
+    //(*elements)[2] = z;
+    //(*elements)[3] = s;
 }

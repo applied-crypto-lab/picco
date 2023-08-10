@@ -22,151 +22,130 @@
 
 /* ast_renlabs.c -- renames labels */
 
+#include "ast_renlabs.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
-#include "ast_renlabs.h"
-
 
 void ast_ompcon_renlabs(ompcon t);
 void ast_oxcon_renlabs(oxcon t);
-
 
 #define MAXLABS 1024
 static int _newlabs;
 static char _ln[128];
 symbol _renamed[MAXLABS];
 
-static
-symbol new_label_name(symbol oldlabel)
-{
-  int i;
-  
-  if (_newlabs == MAXLABS)
-  {
-    fprintf(stderr, "[new_label_name]: too many labels !!\n");
-    return (oldlabel);
-  }
-  for (i = 0; i < _newlabs; i++)
-    if (_renamed[i] == oldlabel)   /* done that */
-      break;
-  if (i == _newlabs)               /* first time seen */
-    _renamed[ _newlabs++ ] = oldlabel;
-  
-  sprintf(_ln, "%s__%d_", _renamed[i]->name, i);
-  return ( Symbol(_ln) );
+static symbol new_label_name(symbol oldlabel) {
+    int i;
+
+    if (_newlabs == MAXLABS) {
+        fprintf(stderr, "[new_label_name]: too many labels !!\n");
+        return (oldlabel);
+    }
+    for (i = 0; i < _newlabs; i++)
+        if (_renamed[i] == oldlabel) /* done that */
+            break;
+    if (i == _newlabs) /* first time seen */
+        _renamed[_newlabs++] = oldlabel;
+
+    sprintf(_ln, "%s__%d_", _renamed[i]->name, i);
+    return (Symbol(_ln));
 }
 
-
-void ast_stmt_jump_renlabs(aststmt t)
-{
-  switch (t->subtype)
-  {
+void ast_stmt_jump_renlabs(aststmt t) {
+    switch (t->subtype) {
     case SGOTO:
-      t->u.label = new_label_name(t->u.label);
+        t->u.label = new_label_name(t->u.label);
     case SBREAK:
     case SRETURN:
     case SCONTINUE:
-      break;
+        break;
     default:
-      fprintf(stderr, "[ast_stmt_jump_renlabs]: b u g !!\n");
-  }
+        fprintf(stderr, "[ast_stmt_jump_renlabs]: b u g !!\n");
+    }
 }
 
-
-void ast_stmt_iteration_renlabs(aststmt t)
-{
-  switch (t->subtype)
-  {
+void ast_stmt_iteration_renlabs(aststmt t) {
+    switch (t->subtype) {
     case SFOR:
     case SWHILE:
     case SDO:
-      ast_stmt_renlabs(t->body);
-      break;
+        ast_stmt_renlabs(t->body);
+        break;
     default:
-      fprintf(stderr, "[ast_stmt_iteration_renlabs]: b u g !!\n");
-  }
+        fprintf(stderr, "[ast_stmt_iteration_renlabs]: b u g !!\n");
+    }
 }
 
-
-void ast_stmt_selection_renlabs(aststmt t)
-{
-  switch (t->subtype)
-  {
+void ast_stmt_selection_renlabs(aststmt t) {
+    switch (t->subtype) {
     case SSWITCH:
-      ast_stmt_renlabs(t->body);
-      break;
+        ast_stmt_renlabs(t->body);
+        break;
     case SIF:
-      ast_stmt_renlabs(t->body);
-      if (t->u.selection.elsebody)
-        ast_stmt_renlabs(t->u.selection.elsebody);
-      break;
+        ast_stmt_renlabs(t->body);
+        if (t->u.selection.elsebody)
+            ast_stmt_renlabs(t->u.selection.elsebody);
+        break;
     default:
-      fprintf(stderr, "[ast_stmt_selection_renlabs]: b u g !!\n");
-  }
+        fprintf(stderr, "[ast_stmt_selection_renlabs]: b u g !!\n");
+    }
 }
 
-
-void ast_stmt_labeled_renlabs(aststmt t)
-{
-  switch (t->subtype)
-  {
+void ast_stmt_labeled_renlabs(aststmt t) {
+    switch (t->subtype) {
     case SLABEL:
-      t->u.label = new_label_name(t->u.label);
+        t->u.label = new_label_name(t->u.label);
     case SCASE:
     case SDEFAULT:
-      break;
+        break;
     default:
-      fprintf(stderr, "[ast_stmt_labeled_renlabs]: b u g !!\n");
-  }
-  ast_stmt_renlabs(t->body);
+        fprintf(stderr, "[ast_stmt_labeled_renlabs]: b u g !!\n");
+    }
+    ast_stmt_renlabs(t->body);
 }
 
-
-void ast_stmt_renlabs(aststmt t)
-{
-  switch (t->type)
-  {
+void ast_stmt_renlabs(aststmt t) {
+    switch (t->type) {
     case JUMP:
-      ast_stmt_jump_renlabs(t);
-      break;
+        ast_stmt_jump_renlabs(t);
+        break;
     case ITERATION:
-      ast_stmt_iteration_renlabs(t);
-      break;
+        ast_stmt_iteration_renlabs(t);
+        break;
     case SELECTION:
-      ast_stmt_selection_renlabs(t);
-      break;
+        ast_stmt_selection_renlabs(t);
+        break;
     case LABELED:
-      ast_stmt_labeled_renlabs(t);
-      break;
+        ast_stmt_labeled_renlabs(t);
+        break;
     case EXPRESSION:
-      break;
+        break;
     case COMPOUND:
-      if (t->body)
-        ast_stmt_renlabs(t->body);
-      break;
+        if (t->body)
+            ast_stmt_renlabs(t->body);
+        break;
     case STATEMENTLIST:
-      ast_stmt_renlabs(t->u.next);
-      ast_stmt_renlabs(t->body);
-      break;
+        ast_stmt_renlabs(t->u.next);
+        ast_stmt_renlabs(t->body);
+        break;
     case DECLARATION:
-      break;
+        break;
     case FUNCDEF:
-      ast_stmt_renlabs(t->body);    /* always non-NULL */
-      break;
+        ast_stmt_renlabs(t->body); /* always non-NULL */
+        break;
     case OMPSTMT:
-      ast_ompcon_renlabs(t->u.omp);
-      break;
+        ast_ompcon_renlabs(t->u.omp);
+        break;
     case VERBATIM:
-      break;
+        break;
     case OX_STMT:
-      ast_oxcon_renlabs(t->u.ox);
-      break;
+        ast_oxcon_renlabs(t->u.ox);
+        break;
     default:
-      fprintf(stderr, "[ast_stmt_renlabs]: b u g !!\n");
-  }
+        fprintf(stderr, "[ast_stmt_renlabs]: b u g !!\n");
+    }
 }
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                                               *
@@ -174,13 +153,10 @@ void ast_stmt_renlabs(aststmt t)
  *                                                               *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
-void ast_ompcon_renlabs(ompcon t)
-{
-  if (t->body)     /* barrier & flush don't have a body */
-    ast_stmt_renlabs(t->body);
+void ast_ompcon_renlabs(ompcon t) {
+    if (t->body) /* barrier & flush don't have a body */
+        ast_stmt_renlabs(t->body);
 }
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                                               *
@@ -188,9 +164,7 @@ void ast_ompcon_renlabs(ompcon t)
  *                                                               *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
-void ast_oxcon_renlabs(oxcon t)
-{
-  if (t->body)
-    ast_stmt_renlabs(t->body);
+void ast_oxcon_renlabs(oxcon t) {
+    if (t->body)
+        ast_stmt_renlabs(t->body);
 }

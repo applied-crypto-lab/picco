@@ -39,7 +39,7 @@ extern void ast_ompcon_xform(ompcon *t);
 extern void ast_omp_xform(aststmt *t);
 
 extern stentry newglobalvar(aststmt s);
-extern void    tail_add(aststmt s);
+extern void tail_add(aststmt s);
 
 /* This takes care of placing the produced thread functions */
 extern void xfrom_add_threadfunc(symbol fname, aststmt fd, aststmt curfunc);
@@ -48,7 +48,7 @@ extern void xfrom_add_threadfunc(symbol fname, aststmt fd, aststmt curfunc);
 extern aststmt xform_clone_declaration(symbol s, astexpr initer);
 
 /* Call a function with no args */
-#define Call0_expr(s) FunctionCall(Identifier(Symbol(s)),NULL)
+#define Call0_expr(s) FunctionCall(Identifier(Symbol(s)), NULL)
 #define Call0_stmt(s) Expression(Call0_expr(s))
 #define BarrierCall() Call0_stmt("ort_barrier_me")
 
@@ -63,7 +63,7 @@ extern int closest_parallel_scope;
 extern int xform_implicit_barrier_is_needed(ompcon t);
 
 /* This simply prints the directive into a string and encloses it
- * in comments, adding also the source line number. 
+ * in comments, adding also the source line number.
  * It returns a verbatim node with the comment.
  */
 extern aststmt ompdir_commented(ompdir d);

@@ -1,4 +1,4 @@
-/*   
+/*
    PICCO: A General Purpose Compiler for Private Distributed Computation
    ** Copyright (C) 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
@@ -19,21 +19,19 @@
 
 /* This file is modified from OMPi */
 
-
 /* symtab.h */
 #include "ast.h"
 
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
 
-typedef struct symbol_ 
-        { 
-          char *name; 
-          struct symbol_ *next;
-          int type; // int: 0 and float: 1 and struct: 2
-          int isptr;  // not = 0; ptr = 1;
-          astspec struct_type; //store the type of struct 
-	} *symbol;
+typedef struct symbol_ {
+    char *name;
+    struct symbol_ *next;
+    int type;            // int: 0 and float: 1 and struct: 2
+    int isptr;           // not = 0; ptr = 1;
+    astspec struct_type; // store the type of struct
+} *symbol;
 
 /*
  * Symbols
@@ -41,44 +39,48 @@ typedef struct symbol_
 
 extern void *smalloc(int size); /* malloc() with failure check */
 
-/* Either create a new symbol or return the already stored one. 
- * In the former case, the "name" is strdup()'ed 
+/* Either create a new symbol or return the already stored one.
+ * In the former case, the "name" is strdup()'ed
  */
 extern symbol Symbol(char *name);
-extern int    symbol_exists(char *name);
-extern void   symbols_allfree();
+extern int symbol_exists(char *name);
+extern void symbols_allfree();
 
-
-/* 
+/*
  * Symbol tables
  */
-#define STSIZE 1031  /* Prime */
+#define STSIZE 1031 /* Prime */
 
-typedef enum { IDNAME = 1, TYPENAME, SUNAME, ENUMNAME, LABELNAME, FUNCNAME}
-     namespace;
+typedef enum { IDNAME = 1,
+               TYPENAME,
+               SUNAME,
+               ENUMNAME,
+               LABELNAME,
+               FUNCNAME } namespace;
 
 typedef struct stentry_ *stentry;
-struct stentry_ { symbol    key;          /* The symbol */
-                  int       ival;         /* Two ints to put anything */
-                  int       vval;
-                  
-                  astspec   spec;         /* The specifier */
-                  astdecl   decl;         /* The bare declarator */
-                  astdecl   idecl;        /* initdeclarator (includes decl) */
-		  astdecl   field;          /* field of struct or union*/	
-                  namespace space;        /* 1 table for all spaces */
-                  int       isarray;      /* Non-scalar */
-                  int       isthrpriv;    /* 1 if it is a threadprivate var */
-                  int       scopelevel;   /* The scope it was declared in */
-                  stentry   bucketnext;   /* for the bucket */
-                  stentry   stacknext;    /* for the scope stack */
-                };
+struct stentry_ {
+    symbol key; /* The symbol */
+    int ival;   /* Two ints to put anything */
+    int vval;
 
-typedef struct symtab_ { stentry table[STSIZE];
-                         stentry top;     /* Most recent in scope */
-                         int     scopelevel;   /* Current scope level */
-                       } *symtab;
+    astspec spec;       /* The specifier */
+    astdecl decl;       /* The bare declarator */
+    astdecl idecl;      /* initdeclarator (includes decl) */
+    astdecl field;      /* field of struct or union*/
+    namespace space;    /* 1 table for all spaces */
+    int isarray;        /* Non-scalar */
+    int isthrpriv;      /* 1 if it is a threadprivate var */
+    int scopelevel;     /* The scope it was declared in */
+    stentry bucketnext; /* for the bucket */
+    stentry stacknext;  /* for the scope stack */
+};
 
+typedef struct symtab_ {
+    stentry table[STSIZE];
+    stentry top;    /* Most recent in scope */
+    int scopelevel; /* Current scope level */
+} *symtab;
 
 extern stentry symtab_get(symtab t, symbol s, namespace space);
 extern stentry symtab_put(symtab t, symbol s, namespace space);
@@ -86,13 +88,13 @@ extern stentry symtab_put_funcname(symtab t, symbol s, namespace space, astspec 
 
 extern stentry symtab_insert_global(symtab t, symbol s, namespace space);
 extern stentry symtab_remove(symtab t, symbol s, namespace p);
-extern symtab  Symtab(); /* An empty table */
-extern void    symtab_drain(symtab t);   /* Empty out a symbol table */
-extern void    scope_start(symtab t);
-extern void    scope_end(symtab t);
-extern void    scope_show(symtab t);
+extern symtab Symtab();             /* An empty table */
+extern void symtab_drain(symtab t); /* Empty out a symbol table */
+extern void scope_start(symtab t);
+extern void scope_end(symtab t);
+extern void scope_show(symtab t);
 
 /* Assume we check for identifier, not type name */
-#define isGlobal(t,s) ( symtab_get(t,s,IDNAME)->scopelevel == 0 )
+#define isGlobal(t, s) (symtab_get(t, s, IDNAME)->scopelevel == 0)
 
 #endif

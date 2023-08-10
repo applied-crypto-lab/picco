@@ -27,13 +27,20 @@
 
 #include "ast.h"
 
+typedef enum { NORMAL = 0,
+               SHORT,
+               LONG,
+               LONGLONG } nt_size;
+typedef enum { SIGNED = 0,
+               UNSIGNED } nt_sign;
+typedef enum { UBOOL = 0,
+               CHAR,
+               INT,
+               FLOAT,
+               DOUBLE } nt_basetype;
 
-typedef enum { NORMAL = 0, SHORT, LONG, LONGLONG } nt_size;
-typedef enum { SIGNED = 0, UNSIGNED } nt_sign;
-typedef enum { UBOOL = 0, CHAR, INT, FLOAT, DOUBLE } nt_basetype;
-
-nt_size     speclist_size(astspec s);
-nt_sign     speclist_sign(astspec s);
+nt_size speclist_size(astspec s);
+nt_sign speclist_sign(astspec s);
 nt_basetype speclist_basetype(astspec s);
 
 #endif
