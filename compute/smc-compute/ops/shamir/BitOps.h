@@ -32,7 +32,7 @@ public:
     void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID);
 
 private:
-    Mult *Mul;
+    // Mult *Mul;
 };
 
 #endif /* BITOPS_SHAMIR_H_ */

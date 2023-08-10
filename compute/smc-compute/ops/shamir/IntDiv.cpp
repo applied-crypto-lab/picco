@@ -21,7 +21,7 @@
 #include <math.h>
 IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     App = new IntAppRcr(nodeNet, poly, nodeID, s);
     // need to use
     T = new TruncPr(nodeNet, poly, nodeID, s);
@@ -100,7 +100,7 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     ss->modSub(sign, const1, lt, size);
     ss->modSub(sign, sign, lt, size);
     // make a to be a positive value
-    Mul->doOperation(c, a, lt, size, threadID);
+    Mult(c, a, lt, size, threadID, net, id, ss);
     ss->modSub(temp, a, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, a_tmp, size);
@@ -126,7 +126,7 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     Lt->doOperation(lt, temp, k, size, threadID);
     ss->modAdd(lt, lt, c, size);
     ss->modSub(result, lt, const1, size);
-    Mul->doOperation(result, result, sign, size, threadID);
+    Mult(result, result, sign, size, threadID, net, id, ss);
 
     // free the memory
     for (int i = 0; i < size; i++) {
@@ -228,7 +228,7 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     ss->modSub(sign, sign, lt, size);
 
     // make a to be a positive value
-    Mul->doOperation(c, a, lt, size, threadID);
+    Mult(c, a, lt, size, threadID, net, id, ss);
     ss->modSub(temp, a, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, a_tmp, size);
@@ -238,41 +238,41 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
         mpz_set(lt[i], temp1[size + i]);
     ss->modSub(temp, const1, lt, size);
     ss->modSub(temp, temp, lt, size);
-    Mul->doOperation(sign, sign, temp, size, threadID);
+    Mult(sign, sign, temp, size, threadID, net, id, ss);
 
     // make b to be a positive value
-    Mul->doOperation(c, b, lt, size, threadID);
+    Mult(c, b, lt, size, threadID, net, id, ss);
     ss->modSub(temp, b, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, b_tmp, size);
 
     /***********************************************/
     App->doOperation(w, temp, k, size, threadID);
-    Mul->doOperation(x, b_tmp, w, size, threadID);
-    Mul->doOperation(y, a_tmp, w, size, threadID);
+    Mult(x, b_tmp, w, size, threadID, net, id, ss);
+    Mult(y, a_tmp, w, size, threadID, net, id, ss);
     ss->modSub(x, alpha, x, size);
     T->doOperation(y, y, 2 * k, k - lambda, size, threadID);
 
     for (int i = 0; i < theta - 1; i++) {
         ss->modAdd(temp, x, alpha, size);
-        Mul->doOperation(y, y, temp, size, threadID);
-        Mul->doOperation(x, x, x, size, threadID);
+        Mult(y, y, temp, size, threadID, net, id, ss);
+        Mult(x, x, x, size, threadID, net, id, ss);
         T->doOperation(y, y, 2 * k + lambda, k, size, threadID);
         T->doOperation(x, x, 2 * k, k, size, threadID);
     }
     ss->modAdd(x, x, alpha, size);
-    Mul->doOperation(y, y, x, size, threadID);
+    Mult(y, y, x, size, threadID, net, id, ss);
     T->doOperation(result, y, 2 * k + lambda, k + lambda, size, threadID);
     /******************** VERSION 1 ***************************/
     /**********************************************************/
     ss->copy(result, c, size);
-    Mul->doOperation(temp, c, b_tmp, size, threadID);
+    Mult(temp, c, b_tmp, size, threadID, net, id, ss);
     ss->modSub(temp, a_tmp, temp, size);
     Lt->doOperation(lt, temp, k, size, threadID);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
     ss->modAdd(c, c, temp, size);
-    Mul->doOperation(temp, c, b_tmp, size, threadID);
+    Mult(temp, c, b_tmp, size, threadID, net, id, ss);
     ss->modSub(temp, a_tmp, temp, size);
     Lt->doOperation(lt, temp, k, size, threadID);
     ss->modMul(temp, lt, const2, size);
@@ -281,7 +281,7 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     ss->modMul(temp, temp, inv2, size);
     ss->modSub(c, c, temp, size);
     ss->copy(c, result, size);
-    Mul->doOperation(result, result, sign, size, threadID);
+    Mult(result, result, sign, size, threadID, net, id, ss);
     // free the memory
     mpz_clear(const1);
     mpz_clear(const2);

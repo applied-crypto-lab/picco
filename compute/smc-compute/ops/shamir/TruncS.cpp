@@ -21,7 +21,7 @@
 
 TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Bt = new B2U(nodeNet, poly, nodeID, s);
     In = new Inv(nodeNet, poly, nodeID, s);
@@ -96,11 +96,11 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
         if (i != 0)
             ss->modMul(pow2K[i], pow2K[i - 1], const2);
         ss->modSub(temp, const1, X[i], size);
-        Mul->doOperation(temp, temp, R[i], size, threadID);
+        Mult(temp, temp, R[i], size, threadID, net, id, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R1, R1, temp, size);
 
-        Mul->doOperation(temp, X[i], R[i], size, threadID);
+        Mult(temp, X[i], R[i], size, threadID, net, id, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R2, R2, temp, size);
     }
@@ -128,11 +128,11 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
     Lt->doOperation(T1, temp, K, size, threadID);
     // line 10
     ss->modSub(result, CC, R2, size);
-    Mul->doOperation(temp, T1, X[K], size, threadID);
+    Mult(temp, T1, X[K], size, threadID, net, id, ss);
     ss->modAdd(result, temp, result, size);
     In->doOperation(X[K], temp, size, threadID);
     ss->modSub(result, A, result, size);
-    Mul->doOperation(result, result, temp, size, threadID);
+    Mult(result, result, temp, size, threadID, net, id, ss);
 
     // free the memory
     mpz_clear(const1);

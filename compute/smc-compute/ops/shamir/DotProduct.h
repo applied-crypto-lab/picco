@@ -31,7 +31,7 @@ public:
     void doOperation(mpz_t **a, mpz_t **b, mpz_t *result, int num_vec, int size_vec, int threadID);
 
 private:
-    Mult *Mul;
+    // Mult *Mul;
 };
 
 #endif /*DOTPRODUCT_H*/

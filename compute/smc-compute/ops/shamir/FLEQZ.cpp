@@ -20,7 +20,7 @@
 #include "FLEQZ.h"
 
 FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Eq = new EQZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
@@ -78,19 +78,19 @@ void FLEQZ::doOperation(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int
 
     // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
     ss->modAdd(temp1, A[3], B[3], size);
-    Mul->doOperation(temp2, A[3], B[3], size, threadID);
+    Mult(temp2, A[3], B[3], size, threadID, net, id, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modSub(temp1, temp1, temp2, size);
     ss->modSub(temp2, const1, temp1, size); // temp2 = b3
-    Mul->doOperation(b5, A[2], B[2], size, threadID);
+    Mult(b5, A[2], B[2], size, threadID, net, id, ss);
 
     // compute b4 = AND(b1, b2, b3)
-    Mul->doOperation(temp1, b1, b2, size, threadID);
-    Mul->doOperation(temp2, temp1, temp2, size, threadID); // temp2 = b4
+    Mult(temp1, b1, b2, size, threadID, net, id, ss);
+    Mult(temp2, temp1, temp2, size, threadID, net, id, ss); // temp2 = b4
 
     // compute b = OR(b4, b5)
     ss->modAdd(temp1, temp2, b5, size);
-    Mul->doOperation(temp2, temp2, b5, size, threadID);
+    Mult(temp2, temp2, b5, size, threadID, net, id, ss);
     ss->modSub(b, temp1, temp2, size);
 
     for (int i = 0; i < size; i++)

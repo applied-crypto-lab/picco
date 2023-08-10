@@ -19,7 +19,7 @@
 */
 #include "FloatPtr.h"
 FloatPtr::FloatPtr(NodeNetwork nodeNet, int nodeID, SecretShare *s) {
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -141,7 +141,7 @@ void FloatPtr::update_list_attributes(list_float list, mpz_t priv_cond, int if_i
         mpz_init_set(op2[i], priv_cond);
         mpz_init(result[i]);
     }
-    Mul->doOperation(result, op1, op2, size);
+    Mult(result, op1, op2, size, net, id, ss);
     // store the updated private tags back to the list
     tmp = list->head->next;
     index = 0;
@@ -393,7 +393,7 @@ void FloatPtr::dereference_float_ptr_read_var(priv_float_ptr ptr, mpz_t *result,
             tmp = tmp->next;
         }
 
-        Mul->doOperation(product, op1, op2, 4 * size);
+        Mult(product, op1, op2, 4 * size, net, id, ss);
         for (int i = 0; i < 4; i++)
             mpz_set_ui(result[i], 0);
 
@@ -558,13 +558,13 @@ void FloatPtr::read_write_helper(priv_float_ptr ptr, priv_float_ptr result, mpz_
         node = node->next;
     }
 
-    Mul->doOperation(R, op1, op2, num);
+    Mult(R, op1, op2, num, net, id, ss);
     if (priv_cond != NULL) {
         mpz_t cond;
         mpz_init(cond);
         ss->modSub(cond, 1, priv_cond);
         update_list_attributes(result->list, cond, -1, result->size);
-        Mul->doOperation(R, R, op3, num);
+        Mult(R, R, op3, num, net, id, ss);
     } else {
         clear_list(result->list);
         result->size = 0;
@@ -643,7 +643,7 @@ void FloatPtr::dereference_float_ptr_write_ptr(priv_float_ptr ptr, priv_float_pt
             mpz_init_set(op1[0], priv_cond);
             mpz_init_set(op2[0], node->priv_tag);
             mpz_init(R[0]);
-            Mul->doOperation(R, op1, op2, 1);
+            Mult(R, op1, op2, 1, net, id, ss);
             ss->modSub(cond, 1, R[0]);
             update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size);
             update_list_attributes(ptr2->list, R[0], -1, ptr2->size);
@@ -707,8 +707,8 @@ void FloatPtr::dereference_float_ptr_write_var(priv_float_ptr ptr, mpz_t *value,
     /* compute (*location) + tag * priv_cond * (value-(*location))*/
     ss->modSub(op4, op4, op1, 4 * size);
     if (priv_cond != NULL)
-        Mul->doOperation(op4, op4, op3, 4 * size);
-    Mul->doOperation(op4, op4, op2, 4 * size);
+        Mult(op4, op4, op3, 4 * size, net, id, ss);
+    Mult(op4, op4, op2, 4 * size, net, id, ss);
     ss->modAdd(op4, op1, op4, 4 * size);
 
     tmp = tmp_ptr->list->head->next;

@@ -98,7 +98,7 @@ public:
     void dereference_int_ptr_write_ptr(priv_int_ptr, priv_int_ptr, int, mpz_t);
 
 private:
-    Mult *Mul;
+    // Mult *Mul;
 };
 
 #endif /* INT_PTR_SHAMIR_H_*/

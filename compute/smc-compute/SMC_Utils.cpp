@@ -76,7 +76,7 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
         ss->Seed((nodeNet->key_0), (nodeNet->key_1));
     }
     // setCoef();
-    Mul = new Mult(*nodeNet, id, ss);
+    // Mul = new Mult(nNet, id, ss);
     Lt = new LTZ(*nodeNet, polynomials, id, ss);
     Eq = new EQZ(*nodeNet, polynomials, id, ss);
     T = new Trunc(*nodeNet, polynomials, id, ss);
@@ -85,7 +85,7 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     BOps = new BitOps(*nodeNet, polynomials, id, ss);
     DProd = new DotProduct(*nodeNet, polynomials, id, ss);
     PI = new PrivIndex(*nodeNet, polynomials, id, ss);
-    PP = new PrivPtr(*nodeNet, id, ss);
+    PP = new PrivPtr(nNet, id, ss);
     Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
     I2F = new Int2FL(*nodeNet, polynomials, id, ss);
     F2I = new FL2Int(*nodeNet, polynomials, id, ss);
@@ -397,7 +397,7 @@ void SMC_Utils::smc_priv_eval(mpz_t a, mpz_t b, mpz_t cond, int threadID) {
     mpz_init(results[0]);
 
     ss->modSub(op1[0], a, b);
-    Mul->doOperation(results, op1, op2, 1, threadID);
+    Mult(results, op1, op2, 1, threadID,nNet, id, ss);
     ss->modAdd(a, results[0], b);
 
     smc_batch_free_operator(&op1, 1);
@@ -416,7 +416,7 @@ void SMC_Utils::smc_priv_eval(mpz_t *a, mpz_t *b, mpz_t cond, int threadID) {
         mpz_init(results[i]);
     }
 
-    Mul->doOperation(results, op1, op2, 4, threadID);
+    Mult(results, op1, op2, 4, threadID, nNet, id, ss);
     ss->modAdd(a, results, b, 4);
 
     smc_batch_free_operator(&op1, 4);
@@ -537,7 +537,7 @@ void SMC_Utils::smc_mult(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int
     mpz_init_set(op2[0], b);
     mpz_init(results[0]);
 
-    Mul->doOperation(results, op1, op2, 1, threadID);
+    Mult(results, op1, op2, 1, threadID,nNet, id, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -618,7 +618,7 @@ void SMC_Utils::smc_mult(mpz_t *a, int *b, int alen, int blen, mpz_t *result, in
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Mul->doOperation(result, a, b, size, threadID);
+    Mult(result, a, b, size, threadID,nNet, id, ss);
 }
 
 void SMC_Utils::smc_mult(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
@@ -1570,7 +1570,7 @@ void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
         ss->modMul(result, a, result, size);
     } else {
         P->doOperation(result, b, blen, size, threadID);
-        Mul->doOperation(result, result, a, size, threadID);
+        Mult(result, result, a, size, threadID,nNet, id, ss);
     }
 }
 
@@ -2178,12 +2178,12 @@ void SMC_Utils::smc_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz
         for (int i = 0; i < size; i++)
             mpz_set(tmp[i], out_cond);
         ss->modSub(result, result, result_org, size);
-        Mul->doOperation(result, result, tmp, size, threadID);
+        Mult(result, result, tmp, size, threadID,nNet, id, ss);
         ss->modAdd(result, result, result_org, size);
         /*
         ss->modSub(tmp3, 1, tmp, size);
-                Mul->doOperation(tmp1, result, tmp, size);
-                Mul->doOperation(tmp2, result_org, tmp3, size);
+                Mult(tmp1, result, tmp, size,nNet, id, ss);
+                Mult(tmp2, result_org, tmp3, size,nNet, id, ss);
                 ss->modAdd(result, tmp1, tmp2, size);
         */
     } else if (out_cond == NULL && counter != -1 && priv_cond != NULL) {
@@ -2193,12 +2193,12 @@ void SMC_Utils::smc_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz
             else
                 mpz_set(tmp[i], priv_cond[i]);
         ss->modSub(result, result, result_org, size);
-        Mul->doOperation(result, result, tmp, size, threadID);
+        Mult(result, result, tmp, size, threadID,nNet, id, ss);
         ss->modAdd(result, result, result_org, size);
         /*
         ss->modSub(tmp3, 1, tmp, size);
-                Mul->doOperation(tmp1, result, tmp, size);
-                Mul->doOperation(tmp2, result_org, tmp3, size);
+                Mult(tmp1, result, tmp, size,nNet, id, ss);
+                Mult(tmp2, result_org, tmp3, size,nNet, id, ss);
                 ss->modAdd(result, tmp1, tmp2, size);
         */
     }
@@ -2454,7 +2454,7 @@ void SMC_Utils::smc_batch(int a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t 
     if (out_cond != NULL) {
         for (int i = 0; i < size; i++)
             mpz_set(out_tmp[i], out_cond);
-        Mul->doOperation(result, result, out_tmp, size, threadID);
+        Mult(result, result, out_tmp, size, threadID,nNet, id, ss);
     }
 
     smc_batch_free_operator(&a_tmp, size);

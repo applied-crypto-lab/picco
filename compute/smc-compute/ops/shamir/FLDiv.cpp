@@ -20,7 +20,7 @@
 #include "FLDiv.h"
 
 FLDiv::FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     T = new Trunc(nodeNet, poly, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Sdiv = new SDiv(nodeNet, poly, nodeID, s);
@@ -91,8 +91,8 @@ void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
     Lt->doOperation(b, temp1, K + 1, size, threadID);
     // line 3
     ss->modSub(temp1, const1, b, size);
-    Mul->doOperation(temp1, temp1, Y, size, threadID);
-    Mul->doOperation(temp2, b, Y, size, threadID);
+    Mult(temp1, temp1, Y, size, threadID, net, id, ss);
+    Mult(temp2, b, Y, size, threadID, net, id, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
     T->doOperation(result[0], temp1, K + 1, 1, size, threadID);
@@ -102,12 +102,12 @@ void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
     ss->modSub(temp2, temp2, constK, size);
     ss->modAdd(temp2, temp2, const1, size);
     ss->modSub(temp2, temp2, b, size);
-    Mul->doOperation(temp1, temp1, temp2, size, threadID);
+    Mult(temp1, temp1, temp2, size, threadID, net, id, ss);
     // line 5
     ss->copy(temp1, result[1], size);
     ss->copy(A[2], result[2], size);
     // line 6
-    Mul->doOperation(temp1, A[3], B[3], size, threadID);
+    Mult(temp1, A[3], B[3], size, threadID, net, id, ss);
     ss->modMul(temp1, temp1, const2, size);
     ss->modAdd(temp2, A[3], B[3], size);
     ss->modSub(result[3], temp2, temp1, size);
@@ -199,8 +199,8 @@ void FLDiv::doOperation(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size
     Lt->doOperation(b, temp1, K + 1, size, threadID);
     // line 3
     ss->modSub(temp1, const1, b, size);
-    Mul->doOperation(temp1, temp1, Y, size, threadID);
-    Mul->doOperation(temp2, b, Y, size, threadID);
+    Mult(temp1, temp1, Y, size, threadID, net, id, ss);
+    Mult(temp2, b, Y, size, threadID, net, id, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
     T->doOperation(result[0], temp1, K + 1, 1, size, threadID);
@@ -210,12 +210,12 @@ void FLDiv::doOperation(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size
     ss->modSub(temp2, temp2, constK, size);
     ss->modAdd(temp2, temp2, const1, size);
     ss->modSub(temp2, temp2, b, size);
-    Mul->doOperation(temp1, temp1, temp2, size, threadID);
+    Mult(temp1, temp1, temp2, size, threadID, net, id, ss);
     // line 5
     ss->copy(temp1, result[1], size);
     ss->copy(A[2], result[2], size);
     // line 6
-    Mul->doOperation(temp1, A[3], B[3], size, threadID);
+    Mult(temp1, A[3], B[3], size, threadID, net, id, ss);
     ss->modMul(temp1, temp1, const2, size);
     ss->modAdd(temp2, A[3], B[3], size);
     ss->modSub(result[3], temp2, temp1, size);

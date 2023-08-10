@@ -21,7 +21,7 @@
 
 FPDiv::FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     App = new AppRcr(nodeNet, poly, nodeID, s);
     // need to use
     T = new TruncPr(nodeNet, poly, nodeID, s);
@@ -117,8 +117,8 @@ void FPDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int siz
         gmp_printf("%Zd ", tmpResults[i]);
     printf("\n");
     /************************************/
-    Mul->doOperation(x, b, w, size, threadID);
-    Mul->doOperation(y, a, w, size, threadID);
+    Mult(x, b, w, size, threadID, net, id, ss);
+    Mult(y, a, w, size, threadID, net, id, ss);
 
     for (int i = 0; i < size; i++)
         ss->modSub(x[i], alpha, x[i]);
@@ -154,7 +154,7 @@ void FPDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int siz
         // printf("round %d: \n", i);
         for (int j = 0; j < size; j++)
             ss->modAdd(temp[j], alpha, x[j]);
-        Mul->doOperation(y, y, temp, size, threadID);
+        Mult(y, y, temp, size, threadID, net, id, ss);
         /*
         printf("line 7 y: ");
         net.broadcastToPeers(y, size, resultShares);
@@ -163,7 +163,7 @@ void FPDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int siz
             gmp_printf("%Zd ", tmpResults[i]);
         printf("\n");
         */
-        Mul->doOperation(x, x, x, size, threadID);
+        Mult(x, x, x, size, threadID, net, id, ss);
         /*
         printf("line 8 x: ");
         net.broadcastToPeers(x, size, resultShares);
@@ -196,7 +196,7 @@ void FPDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int siz
     for (int i = 0; i < size; i++)
         ss->modAdd(x[i], alpha, x[i]);
 
-    Mul->doOperation(y, y, x, size, threadID);
+    Mult(y, y, x, size, threadID, net, id, ss);
     /*
     printf("line 11 y: ");
     net.broadcastToPeers(y, size, resultShares);

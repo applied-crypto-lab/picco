@@ -31,7 +31,7 @@ public:
     void doOperation(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID);
 
 private:
-    Mult *M;
+    // Mult *M;
     CarryBit *Carry;
 };
 

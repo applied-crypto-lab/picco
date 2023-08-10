@@ -21,7 +21,7 @@
 
 SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Mod = new Mod2M(nodeNet, poly, nodeID, s);
     Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
 
@@ -70,7 +70,7 @@ void SDiv::doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int thread
 
     for (int i = 1; i <= sita - 1; i++) {
         ss->modSub(temp, const2K1, X1, 2 * size);
-        Mul->doOperation(temp, XY, temp, 2 * size, threadID);
+        Mult(temp, XY, temp, 2 * size, threadID, net, id, ss);
         Truncpr->doOperation(XY, temp, 2 * K + 1, K, 2 * size, threadID);
         for (int j = 0; j < size; j++) {
             mpz_set(X1[j], XY[size + j]);
@@ -84,7 +84,7 @@ void SDiv::doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int thread
     }
 
     ss->modSub(temp1, const2K1, temp1, size);
-    Mul->doOperation(temp1, Y, temp1, size, threadID);
+    Mult(temp1, Y, temp1, size, threadID, net, id, ss);
     Truncpr->doOperation(Y, temp1, 2 * K + 1, K, size, threadID);
 
     // free the memory
