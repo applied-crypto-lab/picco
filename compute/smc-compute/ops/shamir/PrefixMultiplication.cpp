@@ -40,14 +40,10 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
     mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
     mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-    // mpz_t *W = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
 
     mpz_t **buffer1 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer2 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
-    // mpz_t **buffer3 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
 
     for (int i = 0; i < length * size; i++) {
         mpz_init(R[i]);
@@ -55,12 +51,10 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
         mpz_init(V[i]);
         mpz_init(U[i]);
         // mpz_init(W[i]);
-        mpz_init(temp[i]);
         mpz_init(results[i]);
     }
 
     for (int i = 0; i < size; i++)
-        mpz_init(temp1[i]);
 
     for (int i = 0; i < peers; i++) {
         buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
@@ -102,9 +96,6 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
 
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
     for (int i = 1; i < length; i++) {
-        // mpz_t temp;
-        // mpz_init(temp);
-        // ss->modInv(temp, U[i - 1]);
         // step 7
         ss->modMul(R[i], V[i - 1], U[i - 1]); 
     }
@@ -124,7 +115,7 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
 
     for (int i = 0; i < size; i++)
         mpz_set(R[i], U[i]); // reusing R, 
-    ss->copy(B[0], result[0], size);
+    ss->copy(B[0], result[0], size); // all the a_0's are stored in b[0]
     for (int i = 1; i < length; i++) {
         for (int m = 0; m < size; m++) {
             ss->modMul(R[m], R[m], U[i * size + m]);
@@ -147,28 +138,15 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
         mpz_clear(R[i]);
         mpz_clear(S[i]);
         mpz_clear(V[i]);
-        // mpz_clear(W[i]);
         mpz_clear(U[i]);
-        mpz_clear(temp[i]);
     }
     free(R);
     free(S);
     free(V);
-    // free(W);
     free(U);
-    free(temp);
 
     for (int i = 0; i < length * size; i++)
         mpz_clear(results[i]);
     free(results);
-    for (int i = 0; i < size; i++)
-        mpz_clear(temp1[i]);
-    free(temp1);
 
-    // for (int i = 0; i < peers; i++) {
-    //     for (int j = 0; j < length * size; j++)
-    //         mpz_clear(buffer3[i][j]);
-    //     free(buffer3[i]);
-    // }
-    // free(buffer3);
 }
