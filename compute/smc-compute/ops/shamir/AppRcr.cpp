@@ -21,7 +21,7 @@
 
 AppRcr::AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     T = new TruncPr(nodeNet, poly, nodeID, s);
     No = new Norm(nodeNet, poly, nodeID, s);
     ss = s;
@@ -66,7 +66,7 @@ void AppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int f, int size, int threadI
     No->doOperation(c, v, b, k, f, size, threadID);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
-    Mul->doOperation(c, c, v, size, threadID);
+    Mult(c, c, v, size, threadID, net, id, ss);
     T->doOperation(w, c, 2 * k, 2 * (k - f), size, threadID);
 
     // free the memory

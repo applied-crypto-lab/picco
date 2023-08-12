@@ -32,7 +32,7 @@ public:
     void doOperation(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID);
 
 private:
-    Mult *Mul;
+    // Mult *Mul;
     Norm *No;
     TruncPr *T;
 };

@@ -100,7 +100,7 @@ public:
     void dereference_float_ptr_write_var(priv_float_ptr, mpz_t *, int, mpz_t);
 
 private:
-    Mult *Mul;
+    // Mult *Mul;
 };
 
 #endif /* FLOAT_PTR_SHAMIR_H_*/

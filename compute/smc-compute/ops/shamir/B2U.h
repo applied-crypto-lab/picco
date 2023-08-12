@@ -37,7 +37,7 @@ public:
 private:
     Random *Rand;
     Pow2 *Pw2;
-    Mult *Mul;
+    // Mult *Mul;
     PreOr *Por;
 };
 

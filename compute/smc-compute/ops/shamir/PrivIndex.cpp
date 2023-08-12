@@ -21,7 +21,7 @@
 
 PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Bd = new BitDec(nodeNet, poly, nodeID, s);
     Eq = new EQZ(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s); //
@@ -345,9 +345,9 @@ void PrivIndex::doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int d
                     mpz_set(temp3[j * dim + k], U1[j][i]);
             }
         }
-        Mul->doOperation(temp1, temp1, temp3, size * dim, threadID);
+        Mult(temp1, temp1, temp3, size * dim, threadID, net, id, ss);
     }
-    Mul->doOperation(temp1, temp1, temp2, size * dim, threadID);
+    Mult(temp1, temp1, temp2, size * dim, threadID, net, id, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
             for (int k = 0; k < m; k++) {
@@ -356,7 +356,7 @@ void PrivIndex::doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int d
             }
         }
     }
-    Mul->doOperation(temp2, temp2, temp3, m * size * dim, threadID);
+    Mult(temp2, temp2, temp3, m * size * dim, threadID, net, id, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
             for (int k = 0; k < m; k++) {
@@ -366,7 +366,7 @@ void PrivIndex::doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int d
         }
     }
     ss->modSub(temp5, const1, temp5, m * dim);
-    Mul->doOperation(temp5, temp5, array, m * dim, threadID);
+    Mult(temp5, temp5, array, m * dim, threadID, net, id, ss);
     ss->modAdd(array, temp4, temp5, m * dim);
 
     // free memory
@@ -484,7 +484,7 @@ void PrivIndex::AllOr(mpz_t **array, int begin, int size, mpz_t **result, int ba
             }
         }
         ss->modAdd(add_b, u1, v1, oPos);
-        Mul->doOperation(mul_b, u1, v1, oPos, threadID); // 1 round
+        Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // 1 rou, net, id, ssnd
         // std::cout << "	1Mul->do: " << oPos << std::endl;
         ss->modSub(u1, add_b, mul_b, oPos);
 
@@ -536,7 +536,7 @@ void PrivIndex::AllOr(mpz_t **array, int begin, int size, mpz_t **result, int ba
             }
         }
         ss->modAdd(add_b, u1, v1, oPos);
-        Mul->doOperation(mul_b, u1, v1, oPos, threadID); // round
+        Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // rou, net, id, ssnd
         // std::cout << "	2Mul->do: " << oPos << std::endl;
         ss->modSub(buff, add_b, mul_b, oPos);
         sizeLen /= 2;

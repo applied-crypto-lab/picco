@@ -20,7 +20,7 @@
 #include "BitOps.h"
 
 BitOps::BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int NodeID, SecretShare *s) {
-    Mul = new Mult(nodeNet, NodeID, s);
+    // Mul = new Mult(nodeNet, NodeID, s);
     net = nodeNet;
     id = NodeID;
     ss = s;
@@ -29,7 +29,7 @@ BitOps::BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
 BitOps::~BitOps() {}
 
 void BitOps::BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
-    Mul->doOperation(result, A, B, size, threadID);
+    Mult(result, A, B, size, threadID, net, id, ss);
 }
 
 void BitOps::BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
@@ -37,7 +37,7 @@ void BitOps::BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);
     // (a+b) - ab
-    Mul->doOperation(C, A, B, size, threadID);
+    Mult(C, A, B, size, threadID, net, id, ss);
     ss->modAdd(result, A, B, size);
     ss->modSub(result, result, C, size);
     // free the memory
@@ -51,7 +51,7 @@ void BitOps::BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);
     //(a+b) - 2ab
-    Mul->doOperation(C, A, B, size, threadID);
+    Mult(C, A, B, size, threadID, net, id, ss);
     ss->modMul(C, C, 2, size);
     ss->modAdd(result, A, B, size);
     ss->modSub(result, result, C, size);

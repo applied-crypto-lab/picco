@@ -22,7 +22,7 @@
 
 B2U::B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     Pw2 = new Pow2(nodeNet, poly, nodeID, s);
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Por = new PreOr(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s);
 
@@ -96,7 +96,7 @@ void B2U::doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID) {
         for (int j = 0; j < size; j++)
             mpz_set(temp[j], c[j][i]);
         ss->modAdd(temp1, temp, R[i], size);
-        Mul->doOperation(temp, temp, R[i], size, threadID);
+        Mult(temp, temp, R[i], size, threadID,net, id, ss);
         ss->modMul(temp, temp, const2, size);
         ss->modSub(temp1, temp1, temp, size);
         ss->copy(temp1, R[i], size);

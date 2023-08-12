@@ -32,7 +32,7 @@ public:
     void doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID);
 
 private:
-    AddBitwise *Add;
+    // AddBitwise *Add;
     Random *Rand;
 };
 

@@ -27,7 +27,7 @@ Int2FL::Int2FL() {
 // Protocol Int2FL, page 9
 Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Eq = new EQZ(nodeNet, poly, nodeID, s);
     Bd = new BitDec(nodeNet, poly, nodeID, s);
@@ -88,7 +88,7 @@ void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int 
     // line 4
     ss->modMul(temp1, results[3], const2, size);
     ss->modSub(temp1, const1, temp1, size);
-    Mul->doOperation(A, temp1, A, size, threadID);
+    Mult(A, temp1, A, size, threadID, net, id, ss);
     // line 5 and 6
     Bd->doOperation(S, A, lambda, lambda, size, threadID);
     for (int i = 0; i < lambda && i <= lambda - i - 1; i++)
@@ -107,13 +107,13 @@ void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int 
         ss->modAdd(P, P, temp2, size);
     }
     ss->modAdd(P, P, const1, size);
-    Mul->doOperation(A, A, P, size, threadID);
+    Mult(A, A, P, size, threadID, net, id, ss);
     // line 8 and 11
     for (int i = 0; i < lambda; i++)
         ss->modAdd(results[1], results[1], S[i], size);
     ss->modSub(results[1], results[1], constK, size);
     ss->modSub(temp1, const1, results[2], size);
-    Mul->doOperation(results[1], results[1], temp1, size, threadID);
+    Mult(results[1], results[1], temp1, size, threadID, net, id, ss);
     // line 9 and 10
     if (lambda > K)
         T->doOperation(results[0], A, lambda, lambda - K, size, threadID);

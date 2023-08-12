@@ -24,14 +24,16 @@
 #include "Operation.h"
 #include "PreOpL.h"
 
-class AddBitwise : public Operation {
-public:
-    AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~AddBitwise();
-    void doOperation(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID);
+// class AddBitwise : public Operation {
+// public:
+//     AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
+//     virtual ~AddBitwise();
+//     void doOperation(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID);
 
-private:
-    PreOpL *Pre;
-};
+// private:
+//     // PreOpL *Pre;
+// };
+
+void AddBitwise(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /* ADDBITWISE_SHAMIR_H_ */

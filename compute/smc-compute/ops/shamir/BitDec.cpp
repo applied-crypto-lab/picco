@@ -22,7 +22,7 @@
 
 BitDec::BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Add = new AddBitwise(nodeNet, poly, nodeID, s);
+    // Add = new AddBitwise(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
@@ -115,7 +115,7 @@ void BitDec::doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int thread
     free(B);
     /*******************************************/
 
-    Add->doOperation(S, BB, R, M, size, threadID);
+    AddBitwise(S, BB, R, M, size, threadID, net, id, ss);
 
     // free the memory
     for (int i = 0; i < M + 2; i++) {

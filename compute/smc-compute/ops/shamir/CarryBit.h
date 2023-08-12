@@ -31,7 +31,7 @@ public:
     void doOperation(mpz_t *D1, mpz_t *D2, mpz_t *D3, mpz_t *D4, int size, int threadID);
 
 private:
-    Mult *M;
+    // Mult *M;
 };
 
 #endif /* CARRYBIT_SHAMIR_H_ */

@@ -78,7 +78,7 @@ public:
     void dereference_ptr_write_var(priv_ptr, mpz_t *, int, mpz_t, int threadID);
     void dereference_ptr_write_var(priv_ptr, mpz_t, int, mpz_t, int threadID);
 
-    Mult *Mul;
+    // Mult *Mul;
     static int creation;
 };
 

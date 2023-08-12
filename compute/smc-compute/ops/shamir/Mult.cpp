@@ -19,19 +19,18 @@
 */
 #include "Mult.h"
 
-Mult::Mult(NodeNetwork nodeNet, int nodeID, SecretShare *s) {
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
+// Mult::Mult(NodeNetwork nodeNet, int nodeID, SecretShare *s) {
+//     net = nodeNet;
+//     id = nodeID;
+//     ss = s;
+// }
 
-Mult::~Mult() {
-    // TODO Auto-generated destructor stub
-}
+// Mult::~Mult() {
+//     // TODO Auto-generated destructor stub
+// }
 
-// This protocol performs integer multiplication as defined by Gennaro, Rabin, and Rabin (PODC 1998)
-// In the 3-party setting, the program switches to the optimized multiplication proposed by Blanton, Kang, and Yuan (ACNS 2020)
-void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
+// This protocol performs the optimized multiplication proposed by Blanton, Kang, and Yuan (ACNS 2020)
+void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     // bool vers = true;
     if (peers == 3) {
@@ -172,42 +171,5 @@ void Mult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID) {
         }
         free(temp);
 
-        //     printf("GRR legacy multiplication\n");
-        //      mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        //     mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
-        //     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
-
-        //     for (int i = 0; i < peers; i++) {
-        //         data[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        //         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        //     }
-        //     // initialziation
-        //     for (int i = 0; i < peers; i++) {
-        //         for (int j = 0; j < size; j++) {
-        //             mpz_init(data[i][j]);
-        //             mpz_init(buffer[i][j]);
-        //         }
-        //     }
-        //     for (int i = 0; i < size; i++)
-        //         mpz_init(temp[i]);
-        //     // start computation
-        //     ss->modMul(temp, A, B, size);
-        //     ss->getShares(data, temp, size);
-        //     net.multicastToPeers(data, buffer, size, threadID);
-        //     ss->reconstructSecret(C, buffer, size);
-        //     // free memory
-        //     for (int i = 0; i < peers; i++) {
-        //         for (int j = 0; j < size; j++) {
-        //             mpz_clear(data[i][j]);
-        //             mpz_clear(buffer[i][j]);
-        //         }
-        //         free(data[i]);
-        //         free(buffer[i]);
-        //     }
-        //     free(data);
-        //     free(buffer);
-        //     for (int i = 0; i < size; i++)
-        //         mpz_clear(temp[i]);
-        //     free(temp);
     }
 }

@@ -164,6 +164,7 @@ void PRSS::setPolynomials() {
         poly.insert(std::pair<std::string, std::vector<int>>(Strkey, coefficients));
     }
     polynomials = poly;
+    // std::cout<<"polysize = "<<polynomials.size()<<std::endl;
 }
 
 int PRSS::computePolynomials(std::vector<int> polys, int point) {

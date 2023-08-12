@@ -22,7 +22,7 @@
 
 IntAppRcr::IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     T = new TruncPr(nodeNet, poly, nodeID, s);
     No = new Norm(nodeNet, poly, nodeID, s);
     ss = s;
@@ -64,7 +64,7 @@ void IntAppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID) {
     No->doOperation(c, v, b, k, 0, size, threadID);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
-    Mul->doOperation(c, c, v, size, threadID);
+    Mult(c, c, v, size, threadID, net, id, ss);
     T->doOperation(w, c, 2 * k, k, size, threadID);
     // free the memory
     for (int i = 0; i < size; ++i) {

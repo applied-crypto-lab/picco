@@ -37,7 +37,7 @@ public:
 private:
     B2U *B2u;
     Inv *Iv;
-    Mult *Mul;
+    // Mult *Mul;
     LTZ *Ltz;
     Random *Rand;
 };

@@ -561,7 +561,7 @@ private:
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
 
-    Mult *Mul;
+    // Mult *Mul;
     LTZ *Lt;
     EQZ *Eq;
     DotProduct *DProd;

@@ -20,7 +20,7 @@
 #include "DotProduct.h"
 
 DotProduct::DotProduct(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int NodeID, SecretShare *s) {
-    Mul = new Mult(nodeNet, NodeID, s);
+    // Mul = new Mult(nodeNet, NodeID, s);
     net = nodeNet;
     id = NodeID;
     ss = s;

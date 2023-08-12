@@ -24,7 +24,7 @@ Norm::Norm() {
 }
 
 Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Bt = new BitDec(nodeNet, poly, nodeID, s);
     Pre = new PreOr(nodeNet, poly, nodeID, s);
@@ -72,7 +72,7 @@ void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, in
     Lt->doOperation(s, b, k, size, threadID);
     ss->modMul(s, s, two, size);
     ss->modSub(s, one, s, size);
-    Mul->doOperation(x, s, b, size, threadID);
+        Mult(x, s, b, size, threadID, net, id, ss);
     Bt->doOperation(xb, x, k, k, size, threadID);
     for (int i = 0; i < k; ++i)
         for (int j = 0; j < size; ++j)
@@ -96,8 +96,8 @@ void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, in
         }
     }
 
-    Mul->doOperation(c, x, v, size, threadID);
-    Mul->doOperation(vp, s, v, size, threadID);
+        Mult(c, x, v, size, threadID, net, id, ss);
+        Mult(vp, s, v, size, threadID, net, id, ss);
 
     // free the memory
     for (int i = 0; i < size; ++i) {

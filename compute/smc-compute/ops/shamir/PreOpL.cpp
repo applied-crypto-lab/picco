@@ -19,21 +19,21 @@
 */
 #include "PreOpL.h"
 
-PreOpL::PreOpL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    M = new Mult(nodeNet, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
+// PreOpL::PreOpL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
+//     // M = new Mult(nodeNet, nodeID, s);
+//     net = nodeNet;
+//     id = nodeID;
+//     ss = s;
+// }
 
-PreOpL::~PreOpL() {
-    // TODO Auto-generated destructor stub
-}
+// PreOpL::~PreOpL() {
+//     // TODO Auto-generated destructor stub
+// }
 
 // Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
 // Protocol 4.2 page 41
 // D1 contains the propagation bit and D2 contains the generation bit
-void PreOpL::doOperation(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID) {
+void PreOpL(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID ,NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     // initialization
@@ -44,8 +44,8 @@ void PreOpL::doOperation(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int
     // start computation
     ss->copy(D2[0], C[0], size);
     for (int i = 1; i < K; i++) {
-        M->doOperation(temp1, D1[i], C[i - 1], size, threadID);
-        M->doOperation(temp2, temp1, D2[i], size, threadID);
+        Mult(temp1, D1[i], C[i - 1], size, threadID, net, id, ss);
+        Mult(temp2, temp1, D2[i], size, threadID, net, id, ss);
         ss->modAdd(C[i], temp1, D2[i], size);
         ss->modSub(C[i], C[i], temp2, size);
     }

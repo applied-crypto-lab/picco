@@ -22,7 +22,7 @@
 Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     B2u = new B2U(nodeNet, poly, nodeID, s);
     Iv = new Inv(nodeNet, poly, nodeID, s);
-    Mul = new Mult(nodeNet, nodeID, s);
+    // Mul = new Mult(nodeNet, nodeID, s);
     Ltz = new LTZ(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s);
 
@@ -91,11 +91,11 @@ void Mod2MS::doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, 
         if (i != 0)
             ss->modMul(pow2K[i], pow2K[i - 1], 2);
         ss->modSub(temp, 1, X[i], size);
-        Mul->doOperation(temp, temp, R[i], size, threadID);
+        Mult(temp, temp, R[i], size, threadID, net, id, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R1, R1, temp, size);
 
-        Mul->doOperation(temp, X[i], R[i], size, threadID);
+        Mult(temp, X[i], R[i], size, threadID, net, id, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R2, R2, temp, size);
     }
@@ -123,7 +123,7 @@ void Mod2MS::doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, 
     Ltz->doOperation(T1, temp, L, size, threadID);
     // line 10
     ss->modSub(result, CC, R2, size);
-    Mul->doOperation(temp, T1, X[L], size, threadID);
+    Mult(temp, T1, X[L], size, threadID, net, id, ss);
     ss->modAdd(result, temp, result, size);
     ss->copy(X[L], powM, size);
 

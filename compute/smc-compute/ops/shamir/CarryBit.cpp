@@ -21,7 +21,7 @@
 
 CarryBit::CarryBit(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    M = new Mult(nodeNet, nodeID, s);
+    // M = new Mult(nodeNet, nodeID, s);
     ss = s;
     net = nodeNet;
     id = nodeID;
@@ -35,8 +35,8 @@ void CarryBit::doOperation(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int s
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);
-    M->doOperation(D21, D21, D11, size, threadID);
-    M->doOperation(temp, D21, D12, size, threadID);
+    Mult(D21, D21, D11, size, threadID, net, id, ss);
+    Mult(temp, D21, D12, size, threadID, net, id, ss);
     ss->modAdd(D22, D22, temp, size);
 
     for (int i = 0; i < size; i++)
