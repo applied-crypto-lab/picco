@@ -40,8 +40,9 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
     mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
     mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+    // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
 
+    // these are needed for Step 5 multiplication
     mpz_t **buffer1 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer2 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
 
@@ -50,24 +51,20 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
         mpz_init(S[i]);
         mpz_init(V[i]);
         mpz_init(U[i]);
-        // mpz_init(W[i]);
-        mpz_init(results[i]);
+        // mpz_init(results[i]);
     }
 
     for (int i = 0; i < size; i++)
-
-    for (int i = 0; i < peers; i++) {
-        buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-        buffer2[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-        // buffer3[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-        for (int j = 0; j < length * size; j++) {
-            mpz_init(buffer1[i][j]);
-            mpz_init(buffer2[i][j]);
-            // mpz_init(buffer3[i][j]);
+        for (int i = 0; i < peers; i++) {
+            buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+            buffer2[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+            for (int j = 0; j < length * size; j++) {
+                mpz_init(buffer1[i][j]);
+                mpz_init(buffer2[i][j]);
+            }
         }
-    }
 
-    mpz_t field; 
+    mpz_t field;
     mpz_init(field);
     ss->getFieldSize(field);
     Rand->generateRandValue(id, field, length * size, R, threadID); //
@@ -79,29 +76,31 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     ss->reconstructSecret(U, buffer1, length * size);
     clearBuffer(buffer1, peers, length * size);
 
-    // step 5, multiplication (not using the mult object?)
+    // step 5, multiplication (not using the mult object?) -- i think its because theres this offset by one of R, whoever originally wrote this's logic
+    // (length - 1) * size total multiplications
     for (int i = 0; i < length - 1; i++)
         for (size_t j = 0; j < size; j++) {
             // ss->modMul(V[i * size + j], R[i * size + j + 1], S[i * size + j]);
-            ss->modMul(V[j * size + i], R[j * size + i + 1], S[j * size + i]); // i think this is the correct version?
-    }
-    ss->getShares(buffer1, V, length * size);
-    net.multicastToPeers(buffer1, buffer2, length * size, threadID);
-    ss->reconstructSecret(V, buffer2, length * size);
+            // i think this is the correct version?
+            ss->modMul(V[j * size + i], R[j * size + i + 1], S[j * size + i]);
+        }
+    ss->getShares(buffer1, V, (length - 1) * size);
+    net.multicastToPeers(buffer1, buffer2, (length - 1) * size, threadID);
+    ss->reconstructSecret(V, buffer2, (length - 1) * size);
     clearBuffer(buffer1, peers, length * size);
     // end step 5
 
-    //computing all the inverses of u (used in steps 7 and 8, only need to be done once)
-    ss->modInv(U, U, length * size); 
+    // computing all the inverses of u (used in steps 7 and 8, only need to be done once)
+    ss->modInv(U, U, length * size);
 
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
     for (int i = 1; i < length; i++) {
         // step 7
-        ss->modMul(R[i], V[i - 1], U[i - 1]); 
+        ss->modMul(R[i], V[i - 1], U[i - 1]);
     }
 
     // step 8
-    ss->modMul(S, S, U, length*size);
+    ss->modMul(S, S, U, length * size);
 
     // step 9, MulPub (can't be replaced with Open)
     for (int i = 0; i < length; i++)
@@ -112,14 +111,16 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     ss->reconstructSecret(U, buffer1, size * length);
     // end step 9
 
-
     for (int i = 0; i < size; i++)
-        mpz_set(R[i], U[i]); // reusing R, 
+        mpz_set(R[i], U[i]); // reusing R, setting all the m_1's to first (size) elements of R
+
     ss->copy(B[0], result[0], size); // all the a_0's are stored in b[0]
     for (int i = 1; i < length; i++) {
-        for (int m = 0; m < size; m++) {
-            ss->modMul(R[m], R[m], U[i * size + m]);
-            ss->modMul(result[i][m], S[i], R[m]);
+        for (int j = 0; j < size; j++) {
+            // computing prod(m_i, i = 1, j)
+            ss->modMul(R[j], R[j], U[i * size + j]);
+            // computing [p_j] = [z_j] * prod(m_i, i = 1, j)
+            ss->modMul(result[i][j], S[i], R[j]);
         }
     }
 
@@ -145,8 +146,7 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     free(V);
     free(U);
 
-    for (int i = 0; i < length * size; i++)
-        mpz_clear(results[i]);
-    free(results);
-
+    // for (int i = 0; i < length * size; i++)
+    //     mpz_clear(results[i]);
+    // free(results);
 }
