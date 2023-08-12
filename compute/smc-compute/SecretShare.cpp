@@ -377,8 +377,14 @@ void SecretShare::modInv(mpz_t result, mpz_t value) {
 }
 
 void SecretShare::modInv(mpz_t *result, mpz_t *values, int size) {
+
+    mpz_t temp;
+    mpz_init(temp);
+    mpz_sub_ui(temp, fieldSize, 2);
     for (int i = 0; i < size; i++)
-        modInv(result[i], values[i]);
+        modPow(result[i], values[i], temp);
+        // modInv(result[i], values[i]); // highly inefficient
+    mpz_clear(temp);
 }
 
 void SecretShare::modSqrt(mpz_t result, mpz_t x) {

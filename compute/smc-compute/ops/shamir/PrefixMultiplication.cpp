@@ -33,63 +33,105 @@ PrefixMultiplication::~PrefixMultiplication() {}
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.2 page 11
+// B[length][size]
 void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, int size, int threadID) {
     int peers = ss->getPeers();
-    mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * length);
-    mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * length);
-    mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * length);
-    mpz_t *W = (mpz_t *)malloc(sizeof(mpz_t) * length);
-    mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * length);
-    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * length);
+    mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+    mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+    mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+    mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+    // mpz_t *W = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
 
     mpz_t **buffer1 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer2 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
+    // mpz_t **buffer3 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length * size; i++) {
         mpz_init(R[i]);
         mpz_init(S[i]);
         mpz_init(V[i]);
-        mpz_init(W[i]);
         mpz_init(U[i]);
+        // mpz_init(W[i]);
         mpz_init(temp[i]);
+        mpz_init(results[i]);
     }
 
     for (int i = 0; i < size; i++)
         mpz_init(temp1[i]);
 
     for (int i = 0; i < peers; i++) {
-        buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length);
-        buffer2[i] = (mpz_t *)malloc(sizeof(mpz_t) * length);
-        for (int j = 0; j < length; j++) {
+        buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+        buffer2[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+        // buffer3[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
+        for (int j = 0; j < length * size; j++) {
             mpz_init(buffer1[i][j]);
             mpz_init(buffer2[i][j]);
+            // mpz_init(buffer3[i][j]);
         }
     }
 
-    // Rand->generateRandValue(id, ss->getBits(), length, R, threadID);
-    // Rand->generateRandValue(id, ss->getBits(), length, S, threadID);
-    mpz_t field; //
+    mpz_t field; 
     mpz_init(field);
     ss->getFieldSize(field);
-    Rand->generateRandValue(id, field, length, R, threadID); //
-    Rand->generateRandValue(id, field, length, S, threadID); //
+    Rand->generateRandValue(id, field, length * size, R, threadID); //
+    Rand->generateRandValue(id, field, length * size, S, threadID); //
 
-    // line 4, MulPub (can't be replaced with Open)
-    ss->modMul(temp, R, S, length);
-    net.broadcastToPeers(temp, length, buffer1, threadID);
-    ss->reconstructSecret(U, buffer1, length);
-    clearBuffer(buffer1, peers, length);
+    // step 4, MulPub (can't be replaced with Open)
+    ss->modMul(U, R, S, length * size);
+    net.broadcastToPeers(U, length * size, buffer1, threadID);
+    ss->reconstructSecret(U, buffer1, length * size);
+    clearBuffer(buffer1, peers, length * size);
 
-    // line 5, multiplication (not using the mult opbject?)
+    // step 5, multiplication (not using the mult object?)
     for (int i = 0; i < length - 1; i++)
-        ss->modMul(V[i], R[i + 1], S[i]);
+        for (size_t j = 0; j < size; j++) {
+            // ss->modMul(V[i * size + j], R[i * size + j + 1], S[i * size + j]);
+            ss->modMul(V[j * size + i], R[j * size + i + 1], S[j * size + i]); // i think this is the correct version?
+    }
+    ss->getShares(buffer1, V, length * size);
+    net.multicastToPeers(buffer1, buffer2, length * size, threadID);
+    ss->reconstructSecret(V, buffer2, length * size);
+    clearBuffer(buffer1, peers, length * size);
+    // end step 5
 
-    ss->getShares(buffer1, V, length);
-    net.multicastToPeers(buffer1, buffer2, length, threadID);
-    ss->reconstructSecret(V, buffer2, length);
-    // end line 5
-    /************ free memory ********************/
+    //computing all the inverses of u (used in steps 7 and 8, only need to be done once)
+    ss->modInv(U, U, length * size); 
+
+    // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
+    for (int i = 1; i < length; i++) {
+        // mpz_t temp;
+        // mpz_init(temp);
+        // ss->modInv(temp, U[i - 1]);
+        // step 7
+        ss->modMul(R[i], V[i - 1], U[i - 1]); 
+    }
+
+    // step 8
+    ss->modMul(S, S, U, length*size);
+
+    // step 9, MulPub (can't be replaced with Open)
+    for (int i = 0; i < length; i++)
+        for (int m = 0; m < size; m++)
+            // computing m_i <- [a_i] * [w_i]
+            ss->modMul(U[i * size + m], B[i][m], R[i * size + m]); // CHECK INDICES FOR U/R/B
+    net.broadcastToPeers(U, size * length, buffer1, threadID);
+    ss->reconstructSecret(U, buffer1, size * length);
+    // end step 9
+
+
+    for (int i = 0; i < size; i++)
+        mpz_set(R[i], U[i]); // reusing R, 
+    ss->copy(B[0], result[0], size);
+    for (int i = 1; i < length; i++) {
+        for (int m = 0; m < size; m++) {
+            ss->modMul(R[m], R[m], U[i * size + m]);
+            ss->modMul(result[i][m], S[i], R[m]);
+        }
+    }
+
     for (int i = 0; i < peers; i++) {
         for (int j = 0; j < length; j++) {
             mpz_clear(buffer1[i][j]);
@@ -100,57 +142,19 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     }
     free(buffer1);
     free(buffer2);
-    /*********************************************/
-    mpz_t **buffer3 = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
-    for (int i = 0; i < peers; i++) {
-        buffer3[i] = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-        for (int j = 0; j < length * size; j++)
-            mpz_init(buffer3[i][j]);
-    }
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * length * size);
-    for (int i = 0; i < length * size; i++)
-        mpz_init(results[i]);
-
-    mpz_set(W[0], R[0]);
-    for (int i = 1; i < length; i++) {
-        mpz_t temp;
-        mpz_init(temp);
-        ss->modInv(temp, U[i - 1]);
-        ss->modMul(W[i], V[i - 1], temp);
-    }
-
-    ss->modInv(temp, U, length);
-    ss->modMul(S, S, temp, length);
-
-    for (int i = 0; i < length; i++)
-        for (int m = 0; m < size; m++)
-            ss->modMul(results[i * size + m], B[i][m], W[i]);
-
-    net.broadcastToPeers(results, size * length, buffer3, threadID);
-    ss->reconstructSecret(results, buffer3, size * length);
-
-    for (int i = 0; i < size; i++)
-        mpz_set(temp1[i], results[i]);
-    ss->copy(B[0], result[0], size);
-    for (int i = 1; i < length; i++) {
-        for (int m = 0; m < size; m++) {
-            ss->modMul(temp1[m], temp1[m], results[i * size + m]);
-            ss->modMul(result[i][m], S[i], temp1[m]);
-        }
-    }
 
     for (int i = 0; i < length; i++) {
         mpz_clear(R[i]);
         mpz_clear(S[i]);
         mpz_clear(V[i]);
-        mpz_clear(W[i]);
+        // mpz_clear(W[i]);
         mpz_clear(U[i]);
         mpz_clear(temp[i]);
     }
     free(R);
     free(S);
     free(V);
-    free(W);
+    // free(W);
     free(U);
     free(temp);
 
@@ -161,10 +165,10 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
         mpz_clear(temp1[i]);
     free(temp1);
 
-    for (int i = 0; i < peers; i++) {
-        for (int j = 0; j < length * size; j++)
-            mpz_clear(buffer3[i][j]);
-        free(buffer3[i]);
-    }
-    free(buffer3);
+    // for (int i = 0; i < peers; i++) {
+    //     for (int j = 0; j < length * size; j++)
+    //         mpz_clear(buffer3[i][j]);
+    //     free(buffer3[i]);
+    // }
+    // free(buffer3);
 }
