@@ -67,8 +67,8 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     mpz_t field;
     mpz_init(field);
     ss->getFieldSize(field);
-    Rand->generateRandValue(id, field, length * size, R, threadID); //
-    Rand->generateRandValue(id, field, length * size, S, threadID); //
+    Rand->generateRandValue(id, field, length * size, R, threadID); 
+    Rand->generateRandValue(id, field, length * size, S, threadID); 
 
     // step 4, MulPub (can't be replaced with Open)
     ss->modMul(U, R, S, length * size);
@@ -76,12 +76,12 @@ void PrefixMultiplication::doOperation(mpz_t **B, mpz_t **result, int length, in
     ss->reconstructSecret(U, buffer1, length * size);
     clearBuffer(buffer1, peers, length * size);
 
-    // step 5, multiplication (not using the mult object?) -- i think its because theres this offset by one of R, whoever originally wrote this's logic
+    // step 5, multiplication (not using the mult object?) 
+    // i think its because theres this offset by one of R, whoever originally wrote this's logic
     // (length - 1) * size total multiplications
     for (int i = 0; i < length - 1; i++)
         for (size_t j = 0; j < size; j++) {
-            // ss->modMul(V[i * size + j], R[i * size + j + 1], S[i * size + j]);
-            // i think this is the correct version?
+            // double check for correctness
             ss->modMul(V[j * size + i], R[j * size + i + 1], S[j * size + i]);
         }
     ss->getShares(buffer1, V, (length - 1) * size);
