@@ -106,7 +106,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *c_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // mpz_t *c_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *sum = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t temp1, temp2, const1, const2, constK, constm, const2K, const2m;
 
@@ -128,7 +128,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     for (int i = 0; i < size; ++i) {
         mpz_init(C[i]);
         mpz_init(c[i]);
-        mpz_init(c_test[i]);
+        // mpz_init(c_test[i]);
         mpz_init(S[i]);
         mpz_init(sum[i]);
     }
@@ -147,10 +147,11 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
             mpz_init(V[i][j]);
     }
 
-    Open(shares, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    for (size_t i = 0; i < size; i++) {
-        gmp_printf("c_test[%i]  -- %Zd \n", i, c_test[i]);
-    }
+    // testing
+    // Open(shares, c_test, size, threadID, net, ss); // Line 2 of EQZ
+    // for (size_t i = 0; i < size; i++) {
+    //     gmp_printf("c_test[%i]  -- %Zd \n", i, c_test[i]);
+    // }
 
     Rand->PRandM(K, K, size, V, threadID);   // generating r', r'_k-1,...,r'_0
     ss->modAdd(C, shares, V[K], size);       // Line 2 of EQZ
@@ -234,15 +235,6 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
 
     // int test_size = 4;
 
-    // PreMul->doOperation_original(T, T, m, test_size, threadID);
-    // for (int i = 0; i < m; i++) {
-    //     Open(T[i], c_test, test_size, threadID, net, ss); // Line 2 of EQZ
-    //     printf("original[%i]  -- ", i);
-    //     for (int j = 0; j < test_size; j++) {
-    //         gmp_printf("%Zd , ", c_test[j]);
-    //     }
-    //     printf("\n");
-    // }
     // PreMul->doOperation(T_test, T_test, m, test_size, threadID);
     // for (int i = 0; i < m; i++) {
     //     Open(T_test[i], c_test, test_size, threadID, net, ss); // Line 2 of EQZ
@@ -264,10 +256,12 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         }
         ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
     }
-    Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    for (size_t i = 0; i < size; i++) {
-        gmp_printf("EQZ_result[1][%i]  -- %Zd \n", i, c_test[i]);
-    }
+    
+    // used for testing
+    // Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
+    // for (size_t i = 0; i < size; i++) {
+    //     gmp_printf("EQZ_result[1][%i]  -- %Zd \n", i, c_test[i]);
+    // }
 
     /*Free the memory*/
     mpz_clear(temp1);
@@ -281,13 +275,13 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     for (int i = 0; i < size; ++i) {
         mpz_clear(C[i]);
         mpz_clear(c[i]);
-        mpz_clear(c_test[i]);
+        // mpz_clear(c_test[i]);
         mpz_clear(sum[i]);
         mpz_clear(S[i]);
     }
     free(C);
     free(c);
-    free(c_test);
+    // free(c_test);
     free(sum);
     free(S);
 
