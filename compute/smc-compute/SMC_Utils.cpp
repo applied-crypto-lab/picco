@@ -30,7 +30,7 @@
 
 // Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
-    test_type(15);
+    // test_type(15);
 
     std::cout << "SMC_Utils constructor\n";
     mpz_t modulus;
@@ -3735,7 +3735,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         char strkey[mpz_t_size + 1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end
         // strkey[0] = '\0';
         memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size);
-        printf("%s\n", strkey);
+        // printf("%s\n", strkey);
         // std::string Strkey (strkey);
         // std::cout<<Strkey<<std::endl;
         // for (int c = 0; strkey[c] != '\0'; c++)
@@ -3745,7 +3745,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         position += mpz_t_size;
     }
     for (size_t i = 0; i < keysize; i++) {
-        gmp_printf("Key[%i]: %Zu\n", i, Keys[i]);
+        // gmp_printf("Key[%i]: %Zu\n", i, Keys[i]);
     }
 
     memcpy(Coefficients, decrypt + sizeof(int) * 3 + mpz_t_size * keysize, sizeof(int) * coefsize);
@@ -3767,10 +3767,10 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         }
         // std::cout<<"temp.size = "<<temp.size()<<std::endl;
         // std::cout << Strkey << " temp = ";
-        for (size_t j = 0; j < temp.size(); j++) {
-            std::cout << temp.at(j) << ", ";
-        }
-        std::cout << std::endl;
+        // for (size_t j = 0; j < temp.size(); j++) {
+        //     std::cout << temp.at(j) << ", ";
+        // }
+        // std::cout << std::endl;
 
         polynomials.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
     }

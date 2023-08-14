@@ -44,7 +44,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
-    gmp_printf("fieldSize %Zu\n", fieldSize);
+    // gmp_printf("fieldSize %Zu\n", fieldSize);
     unsigned int i;
     // initialize arrays of indices
     sendToIDs = (unsigned int *)malloc(sizeof(unsigned int) * threshold);
@@ -548,7 +548,7 @@ void SecretShare::computeLagrangeWeights() {
 
         modInv(temp, denom);
         modMul(lagrangeWeightsThreshold[i], nom, temp);
-        gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n", i, t2, lagrangeWeightsThreshold[i]);
+        // gmp_printf("lagrangeWeightsThreshold[%i]: %Zu, %Zu\n", i, t2, lagrangeWeightsThreshold[i]);
     }
 
     // third set of coefficients

@@ -1306,7 +1306,7 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
             sendDataToPeer((int) sendtoIDs[i], data, k * count, count, size); 
             getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size); 
             // gmp_printf("send %Zu to %u, recv %Zu from %u, dst_idx %i \n", data[0], sendtoIDs[i], buffer[idx][0], RecvFromIDs[idx],idx);
-            gmp_printf("to %u, from %u, idx %i: (%Zu, %Zu)\n",  sendtoIDs[i], RecvFromIDs[idx],idx, data[0], buffer[idx][0]);
+            // gmp_printf("to %u, from %u, idx %i: (%Zu, %Zu)\n",  sendtoIDs[i], RecvFromIDs[idx],idx, data[0], buffer[idx][0]);
             // gmp_printf("recvied %Zu\n", buffer[idx][0]);
             // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size); 
         }
