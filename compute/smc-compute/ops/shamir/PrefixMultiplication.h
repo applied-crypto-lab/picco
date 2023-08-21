@@ -22,6 +22,7 @@
 
 #include "Operation.h"
 #include "Random.h"
+#include "Mult.h"
 
 class PrefixMultiplication : public Operation {
 

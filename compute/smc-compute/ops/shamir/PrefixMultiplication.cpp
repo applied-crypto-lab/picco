@@ -33,7 +33,7 @@ PrefixMultiplication::~PrefixMultiplication() {}
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.2 page 11
-// input[length_k][size]
+// input[length_k][size], ojbectively the worst way to organize the data but oh well
 void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length_k, int size, int threadID) {
     // printf("Testing prefix mult...\n");
     // printf("length_k = %i,   size = %i \n", length_k, size);
@@ -41,6 +41,10 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     int peers = ss->getPeers();
     mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
     mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
+
+    mpz_t *R_buff = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
+    mpz_t *S_buff = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
+
     mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
     mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
 
@@ -51,6 +55,10 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     for (int i = 0; i < length_k * size; i++) {
         mpz_init(R[i]);
         mpz_init(S[i]);
+
+        mpz_init(R_buff[i]);
+        mpz_init(S_buff[i]);
+
         mpz_init(V[i]);
         mpz_init(U[i]);
     }
@@ -79,25 +87,39 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
 
     // computing all the inverses of u (used in steps 7 and 8, only needs to be done once)
     ss->modInv(U, U, length_k * size);
-    // FINE UP TO HERE ????????????????????????????
 
-    // step 5, multiplication (not using the mult object?)
-    // i think its because theres this offset by one of R, whoever originally wrote this's logic
-    // (length_k - 1) * size total multiplicationsa
+    // step 5, multiplication 
+    // moving R,S values into correct locations 
+    // (length_k - 1) * size total multiplications
+    int r_idx, s_idx;
     for (int i = 0; i < length_k - 1; i++) {
         for (int j = 0; j < size; j++) {
-            int r_idx = (i + 1) * size + j;
-            int s_idx = i * size + j;
-            // printf("r_idx = %i \t s_idx = %i\n", r_idx, s_idx);
-            ss->modMul(V[s_idx], R[r_idx], S[s_idx]);
+            r_idx = (i + 1) * size + j;
+            s_idx = i * size + j;
+            mpz_set(R_buff[r_idx], R[r_idx]);
+            mpz_set(S_buff[r_idx], S[r_idx]);
         }
-        // printf("--\n");
     }
+    Mult(V, R_buff, S_buff, (length_k - 1) * size, threadID, net, id, ss);
 
-    ss->getShares(buffer1, V, length_k * size);
-    net.multicastToPeers(buffer1, buffer2, length_k * size, threadID);
-    ss->reconstructSecret(V, buffer2, length_k * size);
-    clearBuffer(buffer1, peers, length_k * size);
+    // // step 5, multiplication (not using the mult object?)
+    // // i think its because theres this offset by one of R, whoever originally wrote this's logic
+    // // (length_k - 1) * size total multiplications
+    // int r_idx, s_idx;
+    // for (int i = 0; i < length_k - 1; i++) {
+    //     for (int j = 0; j < size; j++) {
+    //         r_idx = (i + 1) * size + j;
+    //         s_idx = i * size + j;
+    //         // printf("r_idx = %i \t s_idx = %i\n", r_idx, s_idx);
+    //         ss->modMul(V[s_idx], R[r_idx], S[s_idx]);
+    //     }
+    //     // printf("--\n");
+    // }
+
+    // ss->getShares(buffer1, V, length_k * size);
+    // net.multicastToPeers(buffer1, buffer2, length_k * size, threadID);
+    // ss->reconstructSecret(V, buffer2, length_k * size);
+    // clearBuffer(buffer1, peers, length_k * size);
     // end step 5
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
     for (int i = 1; i < length_k; i++) {
@@ -151,11 +173,15 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     for (int i = 0; i < length_k; i++) {
         mpz_clear(R[i]);
         mpz_clear(S[i]);
+        mpz_clear(R_buff[i]);
+        mpz_clear(S_buff[i]);
         mpz_clear(V[i]);
         mpz_clear(U[i]);
     }
     free(R);
     free(S);
+    free(R_buff);
+    free(S_buff);
     free(V);
     free(U);
 }
