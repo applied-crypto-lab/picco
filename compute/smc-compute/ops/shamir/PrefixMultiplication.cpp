@@ -63,15 +63,14 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
         mpz_init(U[i]);
     }
 
-    for (int i = 0; i < size; i++)
-        for (int i = 0; i < peers; i++) {
-            buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
-            buffer2[i] = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
-            for (int j = 0; j < length_k * size; j++) {
-                mpz_init(buffer1[i][j]);
-                mpz_init(buffer2[i][j]);
-            }
+    for (int i = 0; i < peers; i++) {
+        buffer1[i] = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
+        buffer2[i] = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
+        for (int j = 0; j < length_k * size; j++) {
+            mpz_init(buffer1[i][j]);
+            mpz_init(buffer2[i][j]);
         }
+    }
 
     mpz_t field;
     mpz_init(field);
