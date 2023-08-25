@@ -197,6 +197,8 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t* data, int start, int amount, int
 		EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
 		unsigned char *ciphertext = (unsigned char*) malloc(buffer_size * sizeof(unsigned char));
 		aes_encrypt(en_temp, (unsigned char*)buffer, ciphertext, &buffer_size);
+
+		sendDataToPeer(id, 1, &buffer_size);
 		sendDataToPeer(id, buffer_size, ciphertext);
 		free(buffer);
 		free(ciphertext);
@@ -364,6 +366,8 @@ void NodeNetwork::getDataFromPeer(int id, mpz_t* data, int start, int amount, in
 		EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
 		int buffer_size = unit_size * write_amount;
 		char* buffer = (char*) malloc(sizeof(char) * buffer_size);
+
+		getDataFromPeer(id, 1, &buffer_size);
 		getDataFromPeer(id, buffer_size, (unsigned char*)buffer);
 		unsigned char *plaintext = (unsigned char*) malloc(buffer_size * sizeof(unsigned char));
 		aes_decrypt(de_temp, plaintext, (unsigned char*) buffer, &buffer_size);
@@ -823,7 +827,7 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t* data, int start, int amount, int
 		aes_encrypt(en_temp, (unsigned char*)buffer, ciphertext, &buffer_size);
 		sendDataToPeer(id, 1, &threadID);
 		sendDataToPeer(id, 3, info);
-		//sendDataToPeer(id, 1, &buffer_size);
+		sendDataToPeer(id, 1, &buffer_size);
 		sendDataToPeer(id, buffer_size, ciphertext);
 		free(buffer);
 		free(info);
