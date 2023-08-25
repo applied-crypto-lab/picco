@@ -63,7 +63,6 @@ public:
     // Get the ID of the compute Node
     int getID();
     int getNumOfThreads();
-	int get_unit_size();
     void getRounds(int, int *, int *);
     // void handle_write(const boost::system::error_code& error);
     // Close all the connections to peers
@@ -73,8 +72,8 @@ public:
     void init_keys(int peer, int nRead);
     void gen_keyiv();
     void get_keyiv(char *key_iv);
-	void aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, unsigned char *ciphertext, int *len);
-	void aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, unsigned char *ciphertext, int *len);
+    unsigned char *aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len);
+    unsigned char *aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
 
     // Close
     void mpzFromString(char *, mpz_t *, int *, int);
