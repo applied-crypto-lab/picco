@@ -101,7 +101,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     int peers = ss->getPeers();
     int m = ceil(log2(K)); // originally was set to 8 for no reason
     // printf("K = %i, m = %i\n",K,m);
-    mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *r_pp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *bitK = (mpz_t *)malloc(sizeof(mpz_t) * K);
     mpz_t *bitm = (mpz_t *)malloc(sizeof(mpz_t) * m);
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -109,7 +109,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *c_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *sum = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t temp1, temp2, const1, const2, constK, constm, const2K, const2m;
+    mpz_t temp1, temp2, const1, const2, constK, constK_m1, constm, const2K_m1, const2K, const2m;
 
     // initialization
     mpz_init(temp1);
@@ -117,9 +117,12 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_init_set_ui(const1, 1);
     mpz_init_set_ui(const2, 2);
     mpz_init_set_ui(constK, K);
+    mpz_init_set_ui(constK_m1, K - 1);
     mpz_init_set_ui(constm, m);
     mpz_init(const2K);
+    mpz_init(const2K_m1);
     mpz_init(const2m);
+    ;
     // printf("K: %i\n", K);
     for (int i = 0; i < K; i++)
         mpz_init(bitK[i]);
@@ -130,7 +133,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         mpz_init(C[i]);
         mpz_init(c[i]);
         mpz_init(c_test[i]);
-        mpz_init(S[i]);
+        mpz_init(r_pp[i]);
         mpz_init(sum[i]);
     }
 
@@ -160,13 +163,15 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     //     gmp_printf("c_test[%i]  -- %Zd \n", i, c_test[i]);
     // }
 
-    Rand->PRandM(K, K, size, V, threadID);   // generating r', r'_k-1,...,r'_0
-    Rand->PRandInt(K, K, size, S, threadID); // generating r''
+    Rand->PRandM(K, K, size, V, threadID);      // generating r', r'_k-1,...,r'_0
+    Rand->PRandInt(K, K, size, r_pp, threadID); // generating r''
 
-    ss->modAdd(C, shares, V[K], size);       // Line 2 of EQZ
-    ss->modPow(const2K, const2, constK); // Line 2 of EQZ
-    ss->modMul(S, S, const2K, size);     // Line 2 of EQZ
-    ss->modAdd(C, C, S, size);           // Line 2 of EQZ
+    ss->modAdd(C, shares, V[K], size);         // Line 2 of EQZ
+    ss->modPow(const2K, const2, constK);       // Line 2 of EQZ
+    ss->modPow(const2K_m1, const2, constK_m1); // New
+    ss->modMul(r_pp, r_pp, const2K, size);     // Line 2 of EQZ
+    ss->modAdd(C, C, const2K_m1, size);        // New
+    ss->modAdd(C, C, r_pp, size);              // Line 2 of EQZ
 
     Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
 
@@ -183,12 +188,12 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
 
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
     Rand->PRandM(K, m, size, U, threadID);
-    Rand->PRandInt(K, m, size, S, threadID);
+    Rand->PRandInt(K, m, size, r_pp, threadID);
 
-    ss->modAdd(C, sum, U[m], size);       //reusing C
+    ss->modAdd(C, sum, U[m], size); // reusing C
     ss->modPow(const2m, const2, constm);
-    ss->modMul(S, S, const2m, size );
-    ss->modAdd(C, C, S, size);
+    ss->modMul(r_pp, r_pp, const2m, size);
+    ss->modAdd(C, C, r_pp, size);
     // for (int i = 0; i < size; i++)
     //     ss->modAdd(C[i], U[m][0], sum[i]);
     // net.broadcastToPeers(C, size, resultShares, threadID);
@@ -207,7 +212,6 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         }
     }
 
-    
     /************ EQZ (PART 3): evaluate symmetric function  *************/
     mpz_t **T = (mpz_t **)malloc(sizeof(mpz_t *) * m);
     mpz_t **T_test = (mpz_t **)malloc(sizeof(mpz_t *) * m);
@@ -271,7 +275,6 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
     free(U);
 
-
     mpz_clear(temp1);
     mpz_clear(temp2);
     mpz_clear(const2);
@@ -279,19 +282,21 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_clear(const2m);
     mpz_clear(constK);
     mpz_clear(const1);
+    mpz_clear(constK_m1);
+    mpz_clear(const2K_m1);
 
     for (int i = 0; i < size; ++i) {
         mpz_clear(C[i]);
         mpz_clear(c[i]);
         mpz_clear(c_test[i]);
         mpz_clear(sum[i]);
-        mpz_clear(S[i]);
+        mpz_clear(r_pp[i]);
     }
     free(C);
     free(c);
     free(c_test);
     free(sum);
-    free(S);
+    free(r_pp);
 
     for (int i = 0; i < K; i++)
         mpz_clear(bitK[i]);
