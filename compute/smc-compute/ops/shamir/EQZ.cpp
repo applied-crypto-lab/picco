@@ -187,8 +187,8 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
 
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
-    Rand->PRandM(K, m, size, U, threadID);
-    Rand->PRandInt(K, m, size, r_pp, threadID);
+    Rand->PRandM(K, m, size, U, threadID);      // generating r', r'_m-1,...,r'_0
+    Rand->PRandInt(K, m, size, r_pp, threadID); // generating r''
 
     ss->modAdd(C, sum, U[m], size); // reusing C
     ss->modPow(const2m, const2, constm);
