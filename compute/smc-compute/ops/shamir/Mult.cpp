@@ -19,16 +19,6 @@
 */
 #include "Mult.h"
 
-// Mult::Mult(NodeNetwork nodeNet, int nodeID, SecretShare *s) {
-//     net = nodeNet;
-//     id = nodeID;
-//     ss = s;
-// }
-
-// Mult::~Mult() {
-//     // TODO Auto-generated destructor stub
-// }
-
 // This protocol performs the optimized multiplication proposed by Blanton, Kang, and Yuan (ACNS 2020)
 void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
