@@ -95,12 +95,12 @@ EQZ::~EQZ() {
 // Computation for Equality, Comparison, Bits and Exponentiation", 2006
 // This is the only protocol that used the "coefficients" parameter, and hence why it was relegated to an EQZ class member (created/filled in constructor)
 void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadID) {
-    for (size_t i = 0; i < size; i++) {
-        gmp_printf("shares[%i]  -- %Zd \n", i, shares[i]);
-    }
+    // for (size_t i = 0; i < size; i++) {
+    //     gmp_printf("shares[%i]  -- %Zd \n", i, shares[i]);
+    // }
     int peers = ss->getPeers();
-    int m = log2(K); //originally was set to 8 for no reason
-    printf("K = %i, m = %i\n",K,m);
+    int m = ceil(log2(K)); // originally was set to 8 for no reason
+    // printf("K = %i, m = %i\n",K,m);
     mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *bitK = (mpz_t *)malloc(sizeof(mpz_t) * K);
     mpz_t *bitm = (mpz_t *)malloc(sizeof(mpz_t) * m);
@@ -253,9 +253,9 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
 
     // used for testing
     Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    // for (size_t i = 0; i < size; i++) {
-    //     gmp_printf("EQZ_result[1][%i]  -- %Zd \n", i, c_test[i]);
-    // }
+    for (size_t i = 0; i < size; i++) {
+        gmp_printf("EQZ_result[%i]  -- %Zd \n", i, c_test[i]);
+    }
 
     /*Free the memory*/
     for (int i = 0; i < K + 2; ++i) {
