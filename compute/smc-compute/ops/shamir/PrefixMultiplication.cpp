@@ -90,18 +90,25 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     // step 5, multiplication 
     // moving R,S values into correct locations 
     // (length_k - 1) * size total multiplications
+
+    // printf("R_buff size, S_buff size = (%i, %i)\n",length_k * size, length_k * size);
     int r_idx, s_idx;
     for (int i = 0; i < length_k - 1; i++) {
         for (int j = 0; j < size; j++) {
             r_idx = (i + 1) * size + j;
             s_idx = i * size + j;
-            mpz_set(R_buff[r_idx], R[r_idx]);
-            mpz_set(S_buff[r_idx], S[r_idx]);
+            // printf("r_idx, s_idx = (%i, %i)\n", r_idx, s_idx);
+            mpz_set(R_buff[s_idx], R[r_idx]);
+            mpz_set(S_buff[s_idx], S[s_idx]);
         }
+        // printf("\n");
     }
+    // printf("length_k = %i, size = %i\n",length_k,size);
+    // printf("(length_k - 1) * size = %i\n", (length_k - 1) * size);
     Mult(V, R_buff, S_buff, (length_k - 1) * size, threadID, net, id, ss);
 
-    // // step 5, multiplication (not using the mult object?)
+    // step 5, multiplication (not using the mult object?)
+
     // // i think its because theres this offset by one of R, whoever originally wrote this's logic
     // // (length_k - 1) * size total multiplications
     // int r_idx, s_idx;
@@ -119,7 +126,9 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     // net.multicastToPeers(buffer1, buffer2, length_k * size, threadID);
     // ss->reconstructSecret(V, buffer2, length_k * size);
     // clearBuffer(buffer1, peers, length_k * size);
+    
     // end step 5
+
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
     for (int i = 1; i < length_k; i++) {
         for (int j = 0; j < size; j++) {
@@ -138,8 +147,8 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
             ss->modMul(U[i * size + j], input[i][j], R[i * size + j]);
         }
     }
-    net.broadcastToPeers(U, size * length_k, buffer1, threadID);
-    ss->reconstructSecret(U, buffer1, size * length_k);
+    net.broadcastToPeers(U, length_k * size, buffer1, threadID);
+    ss->reconstructSecret(U, buffer1, length_k * size);
     // end step 9
 
     for (int i = 0; i < size; i++)
@@ -279,8 +288,8 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
 //         for (int j = 0; j < size; j++)
 //             ss->modMul(results[i * size + j], B[i][j], W[i]);
 
-//     net.broadcastToPeers(results, size * length_k, buffer3, threadID);
-//     ss->reconstructSecret(results, buffer3, size * length_k);
+//     net.broadcastToPeers(results, length_k * size, buffer3, threadID);
+//     ss->reconstructSecret(results, buffer3, length_k * size);
 
 //     for (int i = 0; i < size; i++)
 //         mpz_set(temp1[i], results[i]);
