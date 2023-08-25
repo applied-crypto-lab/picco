@@ -20,26 +20,28 @@
 
 #include "Random.h"
 
-int isFirst = 0;
-int *isFirst_thread;
-int isInitialized = 0;
+int rand_isFirst = 0;
+int *rand_isFirst_thread;
+int rand_isInitialized = 0;
 
 gmp_randstate_t *rstates;
 gmp_randstate_t **rstates_thread;
 pthread_mutex_t mutex;
 
+// constructor
+// moving all this functionality into SecretShare?
 Random::Random(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     ss = s;
     id = nodeID;
     net = nodeNet;
     polynomials = poly;
     int numOfThreads = nodeNet.getNumOfThreads();
-    if (!isInitialized) {
-        isInitialized = 1;
+    if (!rand_isInitialized) {
+        rand_isInitialized = 1;
         pthread_mutex_init(&mutex, NULL);
-        isFirst_thread = (int *)malloc(sizeof(int) * numOfThreads);
+        rand_isFirst_thread = (int *)malloc(sizeof(int) * numOfThreads);
         for (int i = 0; i < numOfThreads; i++)
-            isFirst_thread[i] = 0;
+            rand_isFirst_thread[i] = 0;
         rstates_thread = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * poly.size());
         for (int i = 0; i < poly.size(); i++)
             rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numOfThreads);
@@ -79,7 +81,7 @@ void Random::generateRandValue(int nodeID, int bits, int size, mpz_t *results) {
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
 
-    if (isFirst == 0)
+    if (rand_isFirst == 0)
         getNextRandValue(0, 0, polynomials, NULL);
 
     /*************** Evaluate the polynomials on points ******************/
@@ -149,7 +151,7 @@ void Random::generateRandValue(int nodeID, int bits, int size, mpz_t *results, i
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
 
-    if (isFirst_thread[threadID] == 0)
+    if (rand_isFirst_thread[threadID] == 0)
         getNextRandValue(0, 0, polynomials, NULL, threadID);
 
     /*************** Evaluate the polynomials on points ******************/
@@ -221,7 +223,7 @@ void Random::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results) 
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
 
-    if (isFirst == 0)
+    if (rand_isFirst == 0)
         getNextRandValue(0, 0, polynomials, NULL);
 
     /*************** Evaluate the polynomials on points ******************/
@@ -291,7 +293,7 @@ void Random::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, 
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
 
-    if (isFirst_thread[threadID] == 0)
+    if (rand_isFirst_thread[threadID] == 0)
         getNextRandValue(0, 0, polynomials, NULL, threadID);
 
     /*************** Evaluate the polynomials on points ******************/
@@ -356,22 +358,28 @@ void Random::PRandM(int K, int M, int size, mpz_t **result) {
 
     for (i = 0; i < size; i++)
         mpz_init(temp[i]);
+    // printf("PRandBit\n");
 
     PRandBit(size * M, tempResult);
 
     for (i = 0; i < size; i++) {
+        // using result[M] as accumulator for summation
         mpz_set(result[M][i], tempResult[i]);
+        // storing result[0] properly
         mpz_set(result[0][i], tempResult[i]);
     }
 
+    // printf("math\n");
     for (i = 1; i < M; i++) {
         pow = pow << 1;
         for (j = 0; j < size; j++) {
             mpz_set(result[i][j], tempResult[i * size + j]);
             mpz_mul_ui(temp[j], result[i][j], pow);
         }
+        // should be adding what is stored at result[0] to temp, and storing the output in result[M], and it should be OUTSIDE the loop?????
         ss->modAdd(result[M], result[M], temp, size);
     }
+    // ss->modAdd(result[M], result[0], temp, size); // correct version??
 
     // free the memory
     for (i = 0; i < size * M; i++)
@@ -394,17 +402,20 @@ void Random::PRandM(int K, int M, int size, mpz_t **result, int threadID) {
     unsigned long i, j;
 
     // do initialization
-    for (i = 0; i < size * M; i++)
+    for (i = 0; i < size * M; i++) {
         mpz_init(tempResult[i]);
-
-    for (i = 0; i < size; i++)
+    }
+    for (i = 0; i < size; i++) {
         mpz_init(temp[i]);
-
+    }
     PRandBit(size * M, tempResult, threadID);
-
-    for (i = 0; i < size; i++)
+    for (i = 0; i < size; i++) {
+        // using result[M] as accumulator for summation
         mpz_set(result[M][i], tempResult[i]);
-
+        // storing result[0] where it actually is going to go
+        mpz_set(result[0][i], tempResult[i]);
+    }
+    
     for (i = 1; i < M; i++) {
         pow = pow << 1;
         for (j = 0; j < size; j++) {
@@ -416,6 +427,110 @@ void Random::PRandM(int K, int M, int size, mpz_t **result, int threadID) {
 
     // free the memory
     for (i = 0; i < size * M; i++)
+        mpz_clear(tempResult[i]);
+    free(tempResult);
+
+    for (i = 0; i < size; i++)
+        mpz_clear(temp[i]);
+    free(temp);
+}
+
+// in the event we need to generate two batches of random values simultaneously, with different M's
+void Random::PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2, int threadID) {
+    if (threadID == -1) {
+        PRandM_two(K, M_1, M_2, size, result_1, result_2);
+        return;
+    }
+    mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * (M_1 + M_2));
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    unsigned long pow = 1;
+    unsigned long i, j;
+
+    // do initialization
+    for (i = 0; i < size * (M_1 + M_2); i++)
+        mpz_init(tempResult[i]);
+
+    for (i = 0; i < size; i++)
+        mpz_init(temp[i]);
+
+    PRandBit(size * (M_1 + M_2), tempResult, threadID);
+
+    for (i = 0; i < size; i++) {
+        mpz_set(result_1[0][i], tempResult[i]);                    // first M_1*size half
+        mpz_set(result_1[M_1][i], tempResult[i]);                  // first M_1*size half
+        mpz_set(result_2[0][i], tempResult[size * M_1 + i]);       // second M_2*size half
+        mpz_set(result_2[M_2][i], tempResult[size * M_1 + i]);     // second M_2*size half
+    }
+    for (i = 1; i < M_1; i++) {
+        pow = pow << 1;
+        for (j = 0; j < size; j++) {
+            mpz_set(result_1[i][j], tempResult[i * size + j]);
+            mpz_mul_ui(temp[j], result_1[i][j], pow);
+        }
+        ss->modAdd(result_1[M_1], result_1[M_1], temp, size);
+    }
+    pow = 1; // resetting pow
+    for (i = 1; i < M_2; i++) {
+        pow = pow << 1;
+        for (j = 0; j < size; j++) {
+            mpz_set(result_2[i][j], tempResult[size * M_1 + i * size + j]);
+            mpz_mul_ui(temp[j], result_2[i][j], pow);
+        }
+        ss->modAdd(result_2[M_2], result_2[M_2], temp, size);
+    }
+
+    // free the memory
+    for (i = 0; i < size * (M_1 + M_2); i++)
+        mpz_clear(tempResult[i]);
+    free(tempResult);
+
+    for (i = 0; i < size; i++)
+        mpz_clear(temp[i]);
+    free(temp);
+}
+
+// version without threadID
+void Random::PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2) {
+    mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * (M_1 + M_2));
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    unsigned long pow = 1;
+    unsigned long i, j;
+
+    // do initialization
+    for (i = 0; i < size * (M_1 + M_2); i++)
+        mpz_init(tempResult[i]);
+
+    for (i = 0; i < size; i++)
+        mpz_init(temp[i]);
+
+    PRandBit(size * (M_1 + M_2), tempResult);
+
+    for (i = 0; i < size; i++) {
+        mpz_set(result_1[0][i], tempResult[i]);                    // first M_1*size half
+        mpz_set(result_1[M_1][i], tempResult[i]);                  // first M_1*size half
+        mpz_set(result_2[0][i], tempResult[size * M_1 + i]);       // second M_2*size half
+        mpz_set(result_2[M_2][i], tempResult[size * M_1 + i]);     // second M_2*size half
+    }
+    for (i = 1; i < M_1; i++) {
+        pow = pow << 1;
+        for (j = 0; j < size; j++) {
+            mpz_set(result_1[i][j], tempResult[i * size + j]);
+            mpz_mul_ui(temp[j], result_1[i][j], pow);
+        }
+        ss->modAdd(result_1[M_1], result_1[M_1], temp, size);
+    }
+    pow = 1; // resetting pow
+    for (i = 1; i < M_2; i++) {
+        pow = pow << 1;
+        for (j = 0; j < size; j++) {
+            mpz_set(result_2[i][j], tempResult[size * M_1 + i * size + j]);
+            mpz_mul_ui(temp[j], result_2[i][j], pow);
+        }
+        ss->modAdd(result_2[M_2], result_2[M_2], temp, size);
+    }
+
+    // free the memory
+    for (i = 0; i < size * (M_1 + M_2); i++)
         mpz_clear(tempResult[i]);
     free(tempResult);
 
@@ -466,7 +581,9 @@ void Random::PRandBit(int size, mpz_t *results) {
     generateRandValue(id, field, size, u);
     ss->modMul(v, u, u, size);
     // mulpub, cant be replaced with open
-    net.broadcastToPeers(v, size, resultShares, -1); 
+    // printf("bcast\n");
+    net.broadcastToPeers(v, size, resultShares, -1);
+    // printf("reconstructSecret\n");
     ss->reconstructSecret(v, resultShares, size);
     ss->modSqrt(v, v, size);
     ss->modInv(v, v, size);
@@ -549,9 +666,8 @@ void Random::PRandBit(int size, mpz_t *results, int threadID) {
     free(v);
 }
 
-
 void Random::getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value) {
-    if (isFirst == 0) {
+    if (rand_isFirst == 0) {
         std::map<std::string, std::vector<int>>::iterator it;
         mpz_t *keys = (mpz_t *)malloc(sizeof(mpz_t) * poly.size());
         int k = 0;
@@ -565,7 +681,7 @@ void Random::getNextRandValue(int id, int bits, std::map<std::string, std::vecto
             gmp_randinit_default(rstates[i]);
             gmp_randseed(rstates[i], keys[i]);
         }
-        isFirst = 1;
+        rand_isFirst = 1;
     } else
         mpz_urandomb(value, rstates[id], bits);
 }
@@ -575,7 +691,7 @@ void Random::getNextRandValue(int id, int bits, std::map<std::string, std::vecto
         getNextRandValue(id, bits, poly, value);
         return;
     }
-    if (isFirst_thread[threadID] == 0) {
+    if (rand_isFirst_thread[threadID] == 0) {
         std::map<std::string, std::vector<int>>::iterator it;
         mpz_t *keys = (mpz_t *)malloc(sizeof(mpz_t) * poly.size());
         int k = 0;
@@ -588,13 +704,13 @@ void Random::getNextRandValue(int id, int bits, std::map<std::string, std::vecto
             gmp_randinit_default(rstates_thread[i][threadID]);
             gmp_randseed(rstates_thread[i][threadID], keys[i]);
         }
-        isFirst_thread[threadID] = 1;
+        rand_isFirst_thread[threadID] = 1;
     } else
         mpz_urandomb(value, rstates_thread[id][threadID], bits);
 }
 
 void Random::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value) {
-    if (isFirst == 0) {
+    if (rand_isFirst == 0) {
         std::map<std::string, std::vector<int>>::iterator it;
         mpz_t *keys = (mpz_t *)malloc(sizeof(mpz_t) * poly.size());
         int k = 0;
@@ -608,7 +724,7 @@ void Random::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vect
             gmp_randinit_default(rstates[i]);
             gmp_randseed(rstates[i], keys[i]);
         }
-        isFirst = 1;
+        rand_isFirst = 1;
     } else
         mpz_urandomm(value, rstates[id], mod);
 }
@@ -618,7 +734,7 @@ void Random::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vect
         getNextRandValue(id, mod, poly, value);
         return;
     }
-    if (isFirst_thread[threadID] == 0) {
+    if (rand_isFirst_thread[threadID] == 0) {
         std::map<std::string, std::vector<int>>::iterator it;
         mpz_t *keys = (mpz_t *)malloc(sizeof(mpz_t) * poly.size());
         int k = 0;
@@ -631,7 +747,7 @@ void Random::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vect
             gmp_randinit_default(rstates_thread[i][threadID]);
             gmp_randseed(rstates_thread[i][threadID], keys[i]);
         }
-        isFirst_thread[threadID] = 1;
+        rand_isFirst_thread[threadID] = 1;
     } else
         mpz_urandomm(value, rstates_thread[id][threadID], mod);
 }

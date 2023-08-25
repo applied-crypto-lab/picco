@@ -34,6 +34,10 @@ public:
     void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, int threadID);
     void PRandM(int K, int M, int size, mpz_t **result);
     void PRandM(int K, int M, int size, mpz_t **result, int threadID);
+
+    void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2, int threadID);
+    void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2);
+
     void PRandBit(int size, mpz_t *results);
     void PRandBit(int size, mpz_t *results, int threadID);
     void PRandInt(int K, int M, int size, mpz_t *result);
