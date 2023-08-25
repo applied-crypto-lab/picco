@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p bin # making bin directory if does not exist
 cd src/picco	
 make clean
 make
