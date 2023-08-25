@@ -177,6 +177,7 @@ unsigned char **NodeNetwork::getPRGseeds() {
     return prgSeeds;
 }
 
+<<<<<<< HEAD
 void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size) {
     try {
         int read_amount = 0;
@@ -204,6 +205,36 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
     }
+=======
+void NodeNetwork::sendDataToPeer(int id, mpz_t* data, int start, int amount, int size){
+	try{
+		int read_amount = 0;
+		if(start+amount > size)
+			read_amount = size-start;
+		else
+			read_amount = amount;
+
+		int unit_size = get_unit_size();
+		int buffer_size = unit_size * read_amount;
+		char* buffer = (char*) malloc(sizeof(char) * buffer_size);
+		char* pointer = buffer;
+		memset(buffer, 0, buffer_size);
+		for(int i = start; i < start+read_amount; i++){
+			mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
+			pointer += unit_size;
+		}
+		EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+		unsigned char *ciphertext = (unsigned char*) malloc(buffer_size * sizeof(unsigned char));
+		aes_encrypt(en_temp, (unsigned char*)buffer, ciphertext, &buffer_size);
+
+		sendDataToPeer(id, 1, &buffer_size);
+		sendDataToPeer(id, buffer_size, ciphertext);
+		free(buffer);
+		free(ciphertext);
+	}catch(std::exception& e){
+		std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+	}
+>>>>>>> refs/remotes/origin/master
 }
 
 void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
@@ -352,6 +383,7 @@ void NodeNetwork::getDataFromPeer(int id, int size, unsigned char *buffer) {
     }
 }
 
+<<<<<<< HEAD
 void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, int size) {
     try {
         int write_amount = 0;
@@ -379,6 +411,39 @@ void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, in
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
     }
+=======
+
+void NodeNetwork::getDataFromPeer(int id, mpz_t* data, int start, int amount, int size){
+	try{
+		int write_amount = 0;
+		if(start+amount > size)
+			write_amount = size-start;
+		else
+			write_amount = amount;
+
+		int unit_size = get_unit_size();
+		EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+		int buffer_size = unit_size * write_amount;
+		char* buffer = (char*) malloc(sizeof(char) * buffer_size);
+
+		getDataFromPeer(id, 1, &buffer_size);
+		getDataFromPeer(id, buffer_size, (unsigned char*)buffer);
+		unsigned char *plaintext = (unsigned char*) malloc(buffer_size * sizeof(unsigned char));
+		aes_decrypt(de_temp, plaintext, (unsigned char*) buffer, &buffer_size);
+
+		unsigned char *ptext_ptr = plaintext;
+		for(int i = start; i < start+write_amount; i++)
+		{
+			mpz_import(data[i], unit_size, -1, 1, -1, 0, ptext_ptr);
+			ptext_ptr += unit_size;
+		}
+
+		free(plaintext);
+		free(buffer);
+	}catch(std::exception& e){
+		std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+	}
+>>>>>>> refs/remotes/origin/master
 }
 
 /* unlike what the name suggests, this function sends different data to each peer and receives different data from each peer */
@@ -794,6 +859,7 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
     }
 }
 
+<<<<<<< HEAD
 void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size, int threadID) {
     try {
         int read_amount = 0;
@@ -830,6 +896,44 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
     }
+=======
+void NodeNetwork::sendDataToPeer(int id, mpz_t* data, int start, int amount, int size, int threadID){
+	try{
+		int read_amount = 0;
+		if(start+amount > size)
+			read_amount = size-start;
+		else
+			read_amount = amount;
+
+		int unit_size = get_unit_size();
+		int buffer_size = unit_size * read_amount;
+		int* info = (int*) malloc(sizeof(int) * 3);
+		info[0] = start;
+		info[1] = amount;
+		info[2] = size;
+
+		char* buffer = (char*) malloc(sizeof(char) * buffer_size);
+		char* pointer = buffer;
+		memset(buffer, 0, buffer_size);
+		for(int i = start; i < start+read_amount; i++){
+			mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
+			pointer += unit_size;
+		}
+
+		EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+		unsigned char *ciphertext = (unsigned char*) malloc(buffer_size * sizeof(unsigned char));
+		aes_encrypt(en_temp, (unsigned char*)buffer, ciphertext, &buffer_size);
+		sendDataToPeer(id, 1, &threadID);
+		sendDataToPeer(id, 3, info);
+		sendDataToPeer(id, 1, &buffer_size);
+		sendDataToPeer(id, buffer_size, ciphertext);
+		free(buffer);
+		free(info);
+		free(ciphertext);
+	}catch(std::exception& e){
+		std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+	}
+>>>>>>> refs/remotes/origin/master
 }
 
 void NodeNetwork::requestConnection(int numOfPeers) {
