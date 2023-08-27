@@ -29,6 +29,13 @@ EQZ::EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int 
     id = NodeID;
     ss = s;
 
+    setCoef();
+}
+
+void EQZ::setCoef() {
+    // printf("setCoef\n");
+    // combined code for m=5 (uses coef5) and m=8 (uses coef)
+    // memory for coef (of size 9) and coef5 (of size 6) was assumed to be allocated elsewhere
     mpz_t temp1, temp2, zero;
     mpz_init(temp1);
     mpz_init(temp2);
@@ -75,14 +82,44 @@ EQZ::EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int 
     mpz_set(coef[0], temp1);
     ss->modSub(coef[0], zero, coef[0]);
 
+    // code for coef5
+    for (int i = 0; i < 6; i++)
+        mpz_init(coef5[i]);
+    // the polynomial is f(x) = (x^5 - 20x^4 + 155x^3 - 580x^2 + 1044x - 600)^(120^-1)
+
+    mpz_set_ui(temp1, 120);
+    mpz_set_ui(temp2, 600);
+    ss->modInv(temp1, temp1);
+    mpz_set(coef5[5], temp1);
+    ss->modMul(coef5[5], coef5[5], temp2);
+    ss->modSub(coef5[5], zero, coef5[5]);
+
+    // gmp_printf("temp1 %Zd \n", temp1);
+    // gmp_printf("temp2 %Zd \n", temp2);
+    
+    mpz_set_ui(temp2, 1044);
+    mpz_set(coef5[4], temp1);
+    ss->modMul(coef5[4], coef5[4], temp2);
+
+    mpz_set_ui(temp2, 580);
+    mpz_set(coef5[3], temp1);
+    ss->modMul(coef5[3], coef5[3], temp2);
+    ss->modSub(coef5[3], zero, coef5[3]);
+
+    mpz_set_ui(temp2, 155);
+    mpz_set(coef5[2], temp1);
+    ss->modMul(coef5[2], coef5[2], temp2);
+
+    mpz_set_ui(temp2, 20);
+    mpz_set(coef5[1], temp1);
+    ss->modMul(coef5[1], coef5[1], temp2);
+    ss->modSub(coef5[1], zero, coef5[1]);
+
+    mpz_set(coef5[0], temp1);
+
     mpz_clear(zero);
     mpz_clear(temp1);
     mpz_clear(temp2);
-
-    // for (int i = 0; i < 9; i++) { // Not optimal, pass this thing by pointer somehow
-    //     mpz_init(coef[i]);
-    //     mpz_set(coef[i][i]);
-    // }
 }
 
 EQZ::~EQZ() {
@@ -99,8 +136,14 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     //     gmp_printf("shares[%i]  -- %Zd \n", i, shares[i]);
     // }
     int peers = ss->getPeers();
-    int m = ceil(log2(K)); // originally was set to 8 for no reason
-    // printf("K = %i, m = %i\n",K,m);
+    int m;
+    if (ceil(log2(K)) <= 5) {
+        m = 5;
+    } else {
+        m = 8;
+    }
+
+    // printf("K = %i, m = %i\n", K, m);
     mpz_t *r_pp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *bitK = (mpz_t *)malloc(sizeof(mpz_t) * K);
     mpz_t *bitm = (mpz_t *)malloc(sizeof(mpz_t) * m);
@@ -122,8 +165,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_init(const2K);
     mpz_init(const2K_m1);
     mpz_init(const2m);
-    ;
-    // printf("K: %i\n", K);
+
     for (int i = 0; i < K; i++)
         mpz_init(bitK[i]);
     for (int i = 0; i < m; i++)
@@ -242,24 +284,44 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     //     }
     //     printf("\n");
     // }
-
-    for (int i = 0; i < size; i++) {
-        mpz_set(temp2, coef[m]);
-        mpz_set_ui(result[i], 0);
-        ss->modAdd(result[i], result[i], temp2);
-        for (int j = 0; j < m; j++) {
-            mpz_set(temp2, coef[m - j - 1]);
-            ss->modMul(temp1, T[j][i], temp2);
-            ss->modAdd(result[i], result[i], temp1);
+    // printf("conditional\n");
+    // using two separate coefficients, not ideal but should work for now
+    if (m == 8) {
+        for (int i = 0; i < size; i++) {
+            mpz_set(temp2, coef[m]);
+            mpz_set_ui(result[i], 0);
+            ss->modAdd(result[i], result[i], temp2);
+            for (int j = 0; j < m; j++) {
+                mpz_set(temp2, coef[m - j - 1]);
+                ss->modMul(temp1, T[j][i], temp2);
+                ss->modAdd(result[i], result[i], temp1);
+            }
+            ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
         }
-        ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
+
+    } else if (m == 5) {
+        for (int i = 0; i < size; i++) {
+            mpz_set(temp2, coef5[m]);
+            mpz_set_ui(result[i], 0);
+            ss->modAdd(result[i], result[i], temp2);
+            for (int j = 0; j < m; j++) {
+                mpz_set(temp2, coef5[m - j - 1]);
+                ss->modMul(temp1, T[j][i], temp2);
+                ss->modAdd(result[i], result[i], temp1);
+            }
+            ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
+        }
+
+    } else {
+        printf("ERROR, m is not 5 or 8\n");
+        return;
     }
 
     // used for testing
-    Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    for (size_t i = 0; i < size; i++) {
-        gmp_printf("EQZ_result[%i]  -- %Zd \n", i, c_test[i]);
-    }
+    // Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
+    // for (size_t i = 0; i < size; i++) {
+    //     gmp_printf("EQZ_result[%i]  -- %Zd \n", i, c_test[i]);
+    // }
 
     /*Free the memory*/
     for (int i = 0; i < K + 2; ++i) {

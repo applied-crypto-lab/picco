@@ -36,10 +36,13 @@ public:
     void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
     void doOperation_EQZ(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID);
     void doOperation_EQZ(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID);
+    void setCoef();
+
 private:
     PrefixMultiplication *PreMul;
     Random *Rand;
     mpz_t coef[9];                                      
+    mpz_t coef5[6];                                      
 
 };
 
