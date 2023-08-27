@@ -87,8 +87,8 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     // computing all the inverses of u (used in steps 7 and 8, only needs to be done once)
     ss->modInv(U, U, length_k * size);
 
-    // step 5, multiplication 
-    // moving R,S values into correct locations 
+    // step 5, multiplication
+    // moving R,S values into correct locations
     // (length_k - 1) * size total multiplications
 
     // printf("R_buff size, S_buff size = (%i, %i)\n",length_k * size, length_k * size);
@@ -126,7 +126,7 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     // net.multicastToPeers(buffer1, buffer2, length_k * size, threadID);
     // ss->reconstructSecret(V, buffer2, length_k * size);
     // clearBuffer(buffer1, peers, length_k * size);
-    
+
     // end step 5
 
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
@@ -168,7 +168,7 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     }
 
     for (int i = 0; i < peers; i++) {
-        for (int j = 0; j < length_k; j++) {
+        for (int j = 0; j < length_k * size; j++) {
             mpz_clear(buffer1[i][j]);
             mpz_clear(buffer2[i][j]);
         }
@@ -178,7 +178,7 @@ void PrefixMultiplication::doOperation(mpz_t **input, mpz_t **result, int length
     free(buffer1);
     free(buffer2);
 
-    for (int i = 0; i < length_k; i++) {
+    for (int i = 0; i < length_k * size; i++) {
         mpz_clear(R[i]);
         mpz_clear(S[i]);
         mpz_clear(R_buff[i]);
