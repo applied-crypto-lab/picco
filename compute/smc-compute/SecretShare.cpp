@@ -35,12 +35,14 @@
  * id - the ID of the current party, and
  * keys - an array of 16-byte keys of size threshold, which are used as PRG seeds in optimized multiplication.
  */
-SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned char *keys[KEYSIZE]) {
+SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned char *keys[KEYSIZE], std::map<std::string, std::vector<int>> _polynomials) {
 
     // keys are properly passed using the getter function, so they are now private members of NodeNetwork
     peers = p;
     threshold = t;
     myid = id;
+
+    polynomials = _polynomials;
 
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
@@ -100,6 +102,18 @@ unsigned int *SecretShare::getSendToIDs() {
 unsigned int *SecretShare::getRecvFromIDs() {
     return recvFromIDs;
 }
+
+void SecretShare::print_poly() {
+
+    for (auto &[key, value] : polynomials) {
+        std::cout << key << ", ";
+        for (size_t j = 0; j < value.size(); j++) {
+            std::cout << value.at(j) << ", ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 
 /* the function creates n=peers shares of the second argument */
 void SecretShare::getShares(mpz_t *shares, mpz_t secret) {
@@ -340,8 +354,6 @@ void SecretShare::modPow2(mpz_t *result, mpz_t *exponent, int size) {
     mpz_clear(base);
 }
 
-
-
 void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
     for (int i = 0; i < size; i++)
         mpz_powm(result[i], base[i], exponent[i], fieldSize);
@@ -383,7 +395,7 @@ void SecretShare::modInv(mpz_t *result, mpz_t *values, int size) {
     mpz_sub_ui(temp, fieldSize, 2);
     for (int i = 0; i < size; i++)
         modPow(result[i], values[i], temp);
-        // modInv(result[i], values[i]); // highly inefficient
+    // modInv(result[i], values[i]); // highly inefficient
     mpz_clear(temp);
 }
 

@@ -44,10 +44,14 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     nNet = *nodeNet;
 
     std::cout << "Creating SecretShare\n";
-    ss = new SecretShare(numOfPeers, threshold, modulus, id, nNet.getPRGseeds());
 
     clientConnect();
     receivePolynomials(privatekey_filename);
+
+    ss = new SecretShare(numOfPeers, threshold, modulus, id, nNet.getPRGseeds(), polynomials);
+    
+
+    ss->print_poly();
 
     // initialize input and output streams
     inputStreams = new std::ifstream[numOfInputPeers];

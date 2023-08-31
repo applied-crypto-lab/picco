@@ -33,7 +33,7 @@
 class SecretShare {
 
 public:
-    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE]);
+    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE],std::map<std::string, std::vector<int>>);
 
     unsigned int getPeers();
     unsigned int getThreshold();
@@ -41,6 +41,8 @@ public:
 
     unsigned int *getSendToIDs();
     unsigned int *getRecvFromIDs();
+
+    void print_poly();
 
     // Create n shares of a secret or multiple secrets
     void getShares(mpz_t *, mpz_t);
@@ -116,6 +118,9 @@ public:
     void getCoef(int id);
 
     void PRG(mpz_t **output, uint size, uint start_ind);
+
+    std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
+
 
 private:
     mpz_t fieldSize;
