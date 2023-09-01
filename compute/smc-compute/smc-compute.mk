@@ -3,18 +3,21 @@ CPP_SRCS += \
 ../smc-compute/NodeConfiguration.cpp \
 ../smc-compute/NodeNetwork.cpp \
 ../smc-compute/SecretShare.cpp \
+../smc-compute/ShamirUtil.cpp \
 ../smc-compute/SMC_Utils.cpp
 
 OBJS += \
 ./smc-compute/NodeConfiguration.o \
 ./smc-compute/NodeNetwork.o \
 ./smc-compute/SecretShare.o \
+./smc-compute/ShamirUtil.o \
 ./smc-compute/SMC_Utils.o
 
 CPP_DEPS += \
 ./smc-compute/NodeConfiguration.d \
 ./smc-compute/NodeNetwork.d \
 ./smc-compute/SecretShare.d \
+./smc-compute/ShamirUtil.d \
 ./smc-compute/SMC_Utils.d
 
 #Supply the rules for building the source

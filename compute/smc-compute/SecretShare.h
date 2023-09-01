@@ -23,6 +23,7 @@
 
 #include "NodeNetwork.h"
 #include "SecretShare.h"
+#include "ShamirUtil.h"
 #include "stdint.h"
 #include <cstdlib>
 #include <gmp.h>
@@ -33,7 +34,7 @@
 class SecretShare {
 
 public:
-    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE],std::map<std::string, std::vector<int>>);
+    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE], std::map<std::string, std::vector<int>>);
 
     unsigned int getPeers();
     unsigned int getThreshold();
@@ -121,7 +122,6 @@ public:
 
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
 
-
 private:
     mpz_t fieldSize;
     unsigned int threshold;
@@ -161,15 +161,5 @@ private:
     int id_m1;
     mpz_t id_p1_inv;
 };
-
-// substitute for % operator to (properly) handle negative numbers
-int modulo(int a, int b);
-
-void smc_batch_free_operator(mpz_t **op, int size);
-void smc_batch_free_operator(mpz_t ***op, int size);
-int smc_compute_len(int alen, int blen);
-
-void convertFloat(float value, int K, int L, mpz_t **elements);
-void convertDouble(double value, int K, int L, mpz_t **elements);
 
 #endif
