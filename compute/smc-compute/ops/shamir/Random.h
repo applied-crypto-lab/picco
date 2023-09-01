@@ -32,16 +32,7 @@ public:
     void generateRandValue(int nodeID, int bits, int size, mpz_t *results, int threadID);
     void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results);
     void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, int threadID);
-    void PRandM(int K, int M, int size, mpz_t **result);
-    void PRandM(int K, int M, int size, mpz_t **result, int threadID);
-
-    void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2, int threadID);
-    void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2);
-
-    void PRandBit(int size, mpz_t *results);
-    void PRandBit(int size, mpz_t *results, int threadID);
-    void PRandInt(int K, int M, int size, mpz_t *result);
-    void PRandInt(int K, int M, int size, mpz_t *result, int threadID);
+  
     // static gmp_randstate_t *rstates;
     // static gmp_randstate_t **rstates_thread;
     // static int isFirst;
@@ -52,11 +43,19 @@ public:
     static void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value);
     void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
 
+
+  void PRandM(int K, int M, int size, mpz_t **result);
+    void PRandM(int K, int M, int size, mpz_t **result, int threadID);
+    void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2, int threadID);
+    void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2);
+    void PRandBit(int size, mpz_t *results);
+    void PRandBit(int size, mpz_t *results, int threadID);
+    void PRandInt(int K, int M, int size, mpz_t *result);
+    void PRandInt(int K, int M, int size, mpz_t *result, int threadID);
 private:
     // int numOfThreads;
     // static pthread_mutex_t mutex;
 };
 
-long long nChoosek(long long n, long long k);
 
 #endif /* OPERATION_SHAMIR_H_ */

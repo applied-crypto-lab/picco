@@ -29,6 +29,8 @@
 #include <vector>
 
 int modulo(int a, int b);
+long long nChoosek(long long n, long long k);
+
 
 void smc_batch_free_operator(mpz_t **op, int size);
 void smc_batch_free_operator(mpz_t ***op, int size);

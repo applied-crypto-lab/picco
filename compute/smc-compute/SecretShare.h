@@ -34,7 +34,7 @@
 class SecretShare {
 
 public:
-    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned char *[KEYSIZE], std::map<std::string, std::vector<int>>);
+    SecretShare(unsigned int, unsigned int, mpz_t, unsigned int, unsigned int, unsigned char *[KEYSIZE], std::map<std::string, std::vector<int>>);
 
     unsigned int getPeers();
     unsigned int getThreshold();
@@ -120,13 +120,27 @@ public:
 
     void PRG(mpz_t **output, uint size, uint start_ind);
 
-    std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
+    int computePolynomials(std::vector<int> polys, int point);
+    void generateRandValue(int nodeID, int bits, int size, mpz_t *results);
+    void generateRandValue(int nodeID, int bits, int size, mpz_t *results, int threadID);
+    void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results);
+    void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, int threadID);
+
+    void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value);
+    void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
+    void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value);
+    void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
 
 private:
+    std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
+
     mpz_t fieldSize;
     unsigned int threshold;
     unsigned int peers;
     unsigned int myid;
+
+    unsigned int numThreads;
+
 
     std::vector<long> coefficients;
     // coeffiicents for polynomial reconstruction on point 0 from all shares
@@ -160,6 +174,14 @@ private:
     int id_p1;
     int id_m1;
     mpz_t id_p1_inv;
+
+    // from Random.cpp
+    int rand_isFirst;
+    int *rand_isFirst_thread;
+    // int rand_isInitialized;
+    gmp_randstate_t *rstates;
+    gmp_randstate_t **rstates_thread;
+    pthread_mutex_t mutex;
 };
 
 #endif
