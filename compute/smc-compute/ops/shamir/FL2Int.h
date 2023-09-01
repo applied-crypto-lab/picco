@@ -18,7 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef FL2INT_SHAMIR_H_
-#define INT2FL_SHAMIR_H_
+#define FL2INT_SHAMIR_H_
 
 #include "FLRound.h"
 #include "Inv.h"
