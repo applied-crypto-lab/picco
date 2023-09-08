@@ -176,7 +176,6 @@ private:
     mpz_t id_p1_inv;
 
     // from Random.cpp
-    int rand_isFirst;
     int *rand_isFirst_thread;
     // int rand_isInitialized;
     gmp_randstate_t *rstates;

@@ -33,11 +33,6 @@ public:
     void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results);
     void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, int threadID);
   
-    // static gmp_randstate_t *rstates;
-    // static gmp_randstate_t **rstates_thread;
-    // static int isFirst;
-    // static int isInitialized;
-    // static int *isFirst_thread;
     static void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value);
     void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
     static void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value);

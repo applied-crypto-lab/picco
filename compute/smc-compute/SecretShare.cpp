@@ -82,21 +82,14 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
         gmp_randseed(rstatesMult[i], seed);
     }
-    rand_isFirst = 0;
-    // rand_isInitialized = 0;
-
-    // ONLY FOR TESTING
-    int numOfThreads = 1; 
-    // if (!rand_isInitialized) {
-    //     rand_isInitialized = 1;
     pthread_mutex_init(&mutex, NULL);
-    rand_isFirst_thread = (int *)malloc(sizeof(int) * numOfThreads);
-    for (int i = 0; i < numOfThreads; i++) {
+    rand_isFirst_thread = (int *)malloc(sizeof(int) * numThreads);
+    for (int i = 0; i < numThreads; i++) {
         rand_isFirst_thread[i] = 0;
     }
     rstates_thread = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * polynomials.size());
     for (int i = 0; i < polynomials.size(); i++) {
-        rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numOfThreads);
+        rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
     }
     std::map<std::string, std::vector<int>>::iterator it;
     mpz_t *temp_keys = (mpz_t *)malloc(sizeof(mpz_t) * polynomials.size());

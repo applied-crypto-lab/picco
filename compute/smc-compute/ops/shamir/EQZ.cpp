@@ -94,9 +94,6 @@ void EQZ::setCoef() {
     ss->modMul(coef5[5], coef5[5], temp2);
     ss->modSub(coef5[5], zero, coef5[5]);
 
-    // gmp_printf("temp1 %Zd \n", temp1);
-    // gmp_printf("temp2 %Zd \n", temp2);
-    
     mpz_set_ui(temp2, 1044);
     mpz_set(coef5[4], temp1);
     ss->modMul(coef5[4], coef5[4], temp2);
