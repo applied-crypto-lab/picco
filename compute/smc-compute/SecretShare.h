@@ -121,6 +121,10 @@ public:
     void PRG(mpz_t **output, uint size, uint start_ind);
 
     int computePolynomials(std::vector<int> polys, int point);
+
+    void randInit(unsigned char *keys[KEYSIZE]);
+
+
     void generateRandValue(int nodeID, int bits, int size, mpz_t *results);
     void generateRandValue(int nodeID, int bits, int size, mpz_t *results, int threadID);
     void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results);
