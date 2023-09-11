@@ -123,6 +123,7 @@ public:
     int computePolynomials(std::vector<int> polys, int point);
 
     void randInit(unsigned char *keys[KEYSIZE]);
+    void randInit_thread(int threadID);
 
 
     void generateRandValue(int nodeID, int bits, int size, mpz_t *results);
