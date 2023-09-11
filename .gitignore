@@ -40,10 +40,12 @@ picco-utility
 int_*
 comparison/*
 .vscode
-output_*
-input_*
-result_*
 *.txt
 runtime-config-*
 compute/sample-programs/non-thread/eqz_mine.c
 *.x
+
+# share directories
+inputs/
+outputs/
+shares/
