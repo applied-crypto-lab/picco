@@ -38,7 +38,9 @@ Random::Random(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     int numOfThreads = nodeNet.getNumOfThreads();
     if (!Rand_rand_isInitialized) {
         Rand_rand_isInitialized = 1;
-        pthread_mutex_init(&Rand_mutex, NULL);
+        // DOES THIS EVEN DO ANYTHING????
+        // ITS INITALIZED AND NEVER CALLED/CHANGED
+        pthread_mutex_init(&Rand_mutex, NULL); 
         Rand_rand_isFirst_thread = (int *)malloc(sizeof(int) * numOfThreads);
         for (int i = 0; i < numOfThreads; i++) {
             Rand_rand_isFirst_thread[i] = 0;
@@ -83,6 +85,8 @@ void Random::generateRandValue(int nodeID, int bits, int size, mpz_t *results) {
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
 
+    // initalizes the keys if rand_isFirst == 0
+    // else, do nothing? since value is set to NULL
     if (Rand_rand_isFirst == 0)
         getNextRandValue(0, 0, polynomials, NULL);
 
@@ -752,4 +756,112 @@ void Random::PRandBit(int size, mpz_t *results, int threadID) {
     }
     free(u);
     free(v);
+}
+
+// "new" sets of random protocols that don't use OOP 
+// everything above now resides in SecretShare and will get removed
+
+void PRandInt(int K, int M, int size, mpz_t *result, int threadID, int nodeID, SecretShare *ss) {
+    // why is this set this way?
+    int bits = 48 + K - M;
+    //  generateRandValue checks if threadID is -1 and calls appropriate version
+    ss->generateRandValue(nodeID, bits, size, result, threadID);
+}
+
+void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    // if (threadID == -1) {
+    //     PRandBit(size, results);
+    //     return;
+    // }
+    int peers = ss->getPeers();
+    mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
+    mpz_t *u = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *v = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t const1, inv2;
+
+    // initialization
+    mpz_init_set_ui(const1, 1);
+    mpz_init_set_ui(inv2, 2);
+    ss->modInv(inv2, inv2);
+
+    for (int i = 0; i < peers; i++) {
+        resultShares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int j = 0; j < size; j++)
+            mpz_init(resultShares[i][j]);
+    }
+
+    for (int i = 0; i < size; i++) {
+        mpz_init(u[i]);
+        mpz_init(v[i]);
+    }
+    /***********************************************************/
+    mpz_t field;
+    mpz_init(field);
+    ss->getFieldSize(field);
+    ss->generateRandValue(id, field, size, u, threadID);
+    ss->modMul(v, u, u, size);
+    net.broadcastToPeers(v, size, resultShares, threadID);
+    ss->reconstructSecret(v, resultShares, size);
+    ss->modSqrt(v, v, size);
+    ss->modInv(v, v, size);
+    ss->modMul(results, v, u, size);
+    ss->modAdd(results, results, const1, size);
+    ss->modMul(results, results, inv2, size);
+
+    // free the memory
+    mpz_clear(inv2);
+    mpz_clear(const1);
+    for (int i = 0; i < peers; i++) {
+        for (int j = 0; j < size; j++)
+            mpz_clear(resultShares[i][j]);
+        free(resultShares[i]);
+    }
+    free(resultShares);
+
+    for (int i = 0; i < size; i++) {
+        mpz_clear(u[i]);
+        mpz_clear(v[i]);
+    }
+    free(u);
+    free(v);
+}
+
+void PRandM(int K, int M, int size, mpz_t **result, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * M);
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    unsigned long pow = 1;
+    unsigned long i, j;
+
+    // do initialization
+    for (i = 0; i < size * M; i++) {
+        mpz_init(tempResult[i]);
+    }
+    for (i = 0; i < size; i++) {
+        mpz_init(temp[i]);
+    }
+    PRandBit(size * M, tempResult, threadID, net, id, ss);
+    for (i = 0; i < size; i++) {
+        // using result[M] as accumulator for summation
+        mpz_set(result[M][i], tempResult[i]);
+        // storing result[0] where it actually is going to go
+        mpz_set(result[0][i], tempResult[i]);
+    }
+
+    for (i = 1; i < M; i++) {
+        pow = pow << 1;
+        for (j = 0; j < size; j++) {
+            mpz_set(result[i][j], tempResult[i * size + j]);
+            mpz_mul_ui(temp[j], result[i][j], pow);
+        }
+        ss->modAdd(result[M], result[M], temp, size);
+    }
+
+    // free the memory
+    for (i = 0; i < size * M; i++)
+        mpz_clear(tempResult[i]);
+    free(tempResult);
+
+    for (i = 0; i < size; i++)
+        mpz_clear(temp[i]);
+    free(temp);
 }
