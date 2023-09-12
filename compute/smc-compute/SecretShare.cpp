@@ -120,17 +120,19 @@ void SecretShare::randInit_thread(int threadID) {
     if (threadID == -1) {
         return;
     }
-    std::map<std::string, std::vector<int>>::iterator it;
-    mpz_t *temp_keys = (mpz_t *)malloc(sizeof(mpz_t) * polynomials.size());
-    int k = 0;
-    for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        mpz_init(temp_keys[k]);
-        mpz_set_str(temp_keys[k], ((*it).first).c_str(), 10);
-        k++;
-    }
-    for (int i = 0; i < polynomials.size(); i++) {
-        gmp_randinit_default(rstates_thread[i][threadID]);
-        gmp_randseed(rstates_thread[i][threadID], temp_keys[i]);
+    if (Rand_rand_isFirst_thread[threadID] == 0) {
+        std::map<std::string, std::vector<int>>::iterator it;
+        mpz_t *temp_keys = (mpz_t *)malloc(sizeof(mpz_t) * polynomials.size());
+        int k = 0;
+        for (it = polynomials.begin(); it != polynomials.end(); it++) {
+            mpz_init(temp_keys[k]);
+            mpz_set_str(temp_keys[k], ((*it).first).c_str(), 10);
+            k++;
+        }
+        for (int i = 0; i < polynomials.size(); i++) {
+            gmp_randinit_default(rstates_thread[i][threadID]);
+            gmp_randseed(rstates_thread[i][threadID], temp_keys[i]);
+        }
     }
 }
 
@@ -963,8 +965,10 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
     std::vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
-    if (rand_isFirst_thread[threadID] == 0)
-        getNextRandValue(0, 0, polynomials, NULL, threadID);
+    if (rand_isFirst_thread[threadID] == 0) {
+        randInit_thread(threadID);
+        rand_isFirst_thread[threadID] = 1;
+    }
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
@@ -1105,8 +1109,11 @@ void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *resu
     std::vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
-    if (rand_isFirst_thread[threadID] == 0)
-        getNextRandValue(0, 0, polynomials, NULL, threadID);
+    if (rand_isFirst_thread[threadID] == 0) {
+        randInit_thread(threadID);
+        rand_isFirst_thread[threadID] = 1;
+    }
+    // getNextRandValue(0, 0, polynomials, NULL, threadID);
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
@@ -1165,10 +1172,6 @@ void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, std::
     if (threadID == -1) {
         getNextRandValue(id, bits, polynomials, value);
         return;
-    }
-    if (rand_isFirst_thread[threadID] == 0) {
-        randInit_thread(threadID);
-        rand_isFirst_thread[threadID] = 1;
     } else
         mpz_urandomb(value, rstates_thread[id][threadID], bits);
 }
@@ -1183,10 +1186,6 @@ void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, std:
     if (threadID == -1) {
         getNextRandValue(id, mod, polynomials, value);
         return;
-    }
-    if (rand_isFirst_thread[threadID] == 0) {
-        randInit_thread(threadID);
-        rand_isFirst_thread[threadID] = 1;
     } else
         mpz_urandomm(value, rstates_thread[id][threadID], mod);
 }
