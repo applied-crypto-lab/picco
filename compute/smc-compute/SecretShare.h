@@ -29,7 +29,15 @@
 #include <gmp.h>
 #include <iostream>
 #include <math.h>
+#include <numeric>
 #include <vector>
+#include <functional> 
+#include <algorithm> 
+
+#define COEFF_BOUND 8  // specifies the number of sets of coefs we generate for symmetric function evaluation
+#define COEFF_OFFSET 2 // specifies what m value we start with (m = 2)
+
+using std::vector;
 
 class SecretShare {
 
@@ -42,6 +50,8 @@ public:
 
     unsigned int *getSendToIDs();
     unsigned int *getRecvFromIDs();
+
+    void initCoef();
 
     void print_poly();
 
@@ -115,7 +125,6 @@ public:
     // computation for 3P multiplication, to be removed
     void getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size);
     void Seed(unsigned char *key_0, unsigned char *key_1);
-    void checkSeed();
     void getCoef(int id);
 
     void PRG(mpz_t **output, uint size, uint start_ind);
@@ -125,16 +134,19 @@ public:
     void randInit(unsigned char *keys[KEYSIZE]);
     void randInit_thread(int threadID);
 
-
-    void generateRandValue(int nodeID, int bits, int size, mpz_t *results);
-    void generateRandValue(int nodeID, int bits, int size, mpz_t *results, int threadID);
-    void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results);
-    void generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, int threadID);
+    void generateRandValue(int bits, int size, mpz_t *results);
+    void generateRandValue(int bits, int size, mpz_t *results, int threadID);
+    void generateRandValue(mpz_t mod, int size, mpz_t *results);
+    void generateRandValue(mpz_t mod, int size, mpz_t *results, int threadID);
 
     void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value);
     void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
     void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value);
     void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
+
+    int getCoefIndex(int k);
+
+    mpz_t **coef;
 
 private:
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
@@ -142,10 +154,9 @@ private:
     mpz_t fieldSize;
     unsigned int threshold;
     unsigned int peers;
-    unsigned int myid;
+    unsigned int myID;
 
     unsigned int numThreads;
-
 
     std::vector<long> coefficients;
     // coeffiicents for polynomial reconstruction on point 0 from all shares
@@ -160,10 +171,11 @@ private:
     gmp_randstate_t rstate;
 
     // peers to whom a share or shares will be sent, numbered consequently
-    // from myid (myid+1, ..., myid+t)
+    // from myID (myID+1, ..., myID+t)
+    void checkSeed();
     unsigned int *sendToIDs;
-    // peers to receive shares from or generate via PRGs, numbered from myid
-    // in the decreasing order (myid-t, ..., myid-1) ***this is ultimately INCREASING order
+    // peers to receive shares from or generate via PRGs, numbered from myID
+    // in the decreasing order (myID-t, ..., myID-1) ***this is ultimately INCREASING order
     // e.g. for id = 3, recvFromIDs[0] = 4, recvFromIDs[1] = 5
     unsigned int *recvFromIDs;
 
@@ -187,5 +199,17 @@ private:
     gmp_randstate_t **rstates_thread;
     pthread_mutex_t mutex;
 };
+
+vector<int> generateCoef(int m, uint &inv_term);
+vector<int> multiply_poly(vector<int> A, vector<int> B);
+
+template <typename T>
+int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+uint gcd(uint a, uint b) ;
+
+uint lcm(uint a, uint b) ;
 
 #endif

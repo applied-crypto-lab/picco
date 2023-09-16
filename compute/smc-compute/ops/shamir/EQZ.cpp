@@ -85,11 +85,12 @@ void EQZ::setCoef() {
     // code for coef5
     for (int i = 0; i < 6; i++)
         mpz_init(coef5[i]);
-    // the polynomial is f(x) = (x^5 - 20x^4 + 155x^3 - 580x^2 + 1044x - 600)^(120^-1)
+    // the polynomial is f(x) = (x^5 - 20x^4 + 155x^3 - 580x^2 + 1044x - 600)*(120^-1)
 
     mpz_set_ui(temp1, 120);
-    mpz_set_ui(temp2, 600);
     ss->modInv(temp1, temp1);
+
+    mpz_set_ui(temp2, 600);
     mpz_set(coef5[5], temp1);
     ss->modMul(coef5[5], coef5[5], temp2);
     ss->modSub(coef5[5], zero, coef5[5]);
@@ -139,6 +140,11 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     } else {
         m = 8;
     }
+
+    // to be commented in once ss->coef is verified to be correct
+    // MAKE SURE TO COMMENT ABOVE OUT
+    // int m = ceil(log2(K));
+    // int m_index = ss->getCoefIndex(K); 
 
     // printf("K = %i, m = %i\n", K, m);
     mpz_t *r_pp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -282,7 +288,10 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     //     printf("\n");
     // }
     // printf("conditional\n");
+
     // using two separate coefficients, not ideal but should work for now
+
+    // replace with ss->coef[m_idx][...] below
     if (m == 8) {
         for (int i = 0; i < size; i++) {
             mpz_set(temp2, coef[m]);

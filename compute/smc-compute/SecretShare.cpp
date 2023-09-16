@@ -35,12 +35,12 @@
  * id - the ID of the current party, and
  * keys - an array of 16-byte keys of size threshold, which are used as PRG seeds in optimized multiplication.
  */
-SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned int _numThreads, unsigned char *keys[KEYSIZE], std::map<std::string, std::vector<int>> _polynomials) {
+SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int id, unsigned int _numThreads, unsigned char *keys[KEYSIZE], std::map<std::string, vector<int>> _polynomials) {
 
     // keys are properly passed using the getter function, so they are now private members of NodeNetwork
     peers = p;
     threshold = t;
-    myid = id;
+    myID = id;
 
     polynomials = _polynomials;
     numThreads = _numThreads;
@@ -56,11 +56,11 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 
     // IDs range between 1 and n=peers
     for (i = 0; i < threshold; i++) {
-        sendToIDs[i] = ((myid + i) % peers) + 1;
-        if ((threshold - i) >= myid)
-            recvFromIDs[i] = myid + peers - threshold + i;
+        sendToIDs[i] = ((myID + i) % peers) + 1;
+        if ((threshold - i) >= myID)
+            recvFromIDs[i] = myID + peers - threshold + i;
         else
-            recvFromIDs[i] = myid - threshold + i;
+            recvFromIDs[i] = myID - threshold + i;
     }
 
     for (int i = 0; i < threshold; i++) {
@@ -101,7 +101,7 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
         rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
     }
 
-    std::map<std::string, std::vector<int>>::iterator it;
+    std::map<std::string, vector<int>>::iterator it;
     mpz_t *temp_keys = (mpz_t *)malloc(sizeof(mpz_t) * polynomials.size());
     int k = 0;
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
@@ -120,8 +120,8 @@ void SecretShare::randInit_thread(int threadID) {
     if (threadID == -1) {
         return;
     }
-    if (Rand_rand_isFirst_thread[threadID] == 0) {
-        std::map<std::string, std::vector<int>>::iterator it;
+    if (rand_isFirst_thread[threadID] == 0) {
+        std::map<std::string, vector<int>>::iterator it;
         mpz_t *temp_keys = (mpz_t *)malloc(sizeof(mpz_t) * polynomials.size());
         int k = 0;
         for (it = polynomials.begin(); it != polynomials.end(); it++) {
@@ -134,6 +134,129 @@ void SecretShare::randInit_thread(int threadID) {
             gmp_randseed(rstates_thread[i][threadID], temp_keys[i]);
         }
     }
+}
+
+// initializes coefficients for symmteric function evaluation (used in EQZ)
+// starts with m = 2, goes up to COEFF_BOUND-1 sets of coefs
+// each row is of size (m+1), which corresponds to
+// the number of coef's for a degree m poly
+// example: legend-- [index][size]
+// coef[0][3] (m = 2)
+// coef[1][4] (m = 4)
+// coef[2][5] (m = 5)
+// ...
+// coef[COEFF_BOUND - 1][COEFF_BOUND + 2 + 1] (m = COEFF_BOUND + 2 + 1)
+void SecretShare::initCoef() {
+    mpz_t **coef = (mpz_t **)malloc(sizeof(mpz_t *) * COEFF_BOUND);
+    for (int i = 0; i < COEFF_BOUND; ++i) {
+        coef[i] = (mpz_t *)malloc(sizeof(mpz_t) * (COEFF_OFFSET + i + 1)); // 2 is the offset of where we start, 1 is for poly degree
+        for (int j = 0; j < (COEFF_OFFSET + i + 1); ++j)
+            mpz_init(coef[i][j]);
+    }
+    mpz_t temp1, temp2, zero;
+    mpz_init(temp1);
+    mpz_init(temp2);
+    mpz_init_set_ui(zero, 0);
+
+    for (size_t m = 0; m < COEFF_BOUND; m++) {
+        uint inv_term;
+        vector<int> ret_coef = generateCoef(m, inv_term);
+
+        // setting the divisor
+        mpz_set_ui(temp1, inv_term);
+        modInv(temp1, temp1);
+
+        for (int i = 0; i < ret_coef.size(); i++) {
+            uint tmp = abs(ret_coef.at(i)); // making sure this is positive, will deal with negatives below
+            mpz_set_ui(temp2, tmp);
+            mpz_set(coef[m][i], temp1);
+            modMul(coef[m][i], coef[m][i], temp2);
+            // if the coefficient is negative, flip the sign
+            if (ret_coef.at(i) < 0) {
+                modSub(coef[m][i], zero, coef[m][i]);
+            }
+        }
+    }
+
+    mpz_clear(zero);
+    mpz_clear(temp1);
+    mpz_clear(temp2);
+}
+
+// returns the appropriate set of coefs to use based on the input K value
+// in the event we need something for m = 1, it would get changed here AND ABOVE
+// to be called in the beginning of EQZ
+int SecretShare::getCoefIndex(int K) {
+    return ceil(log2(K)) - 2;
+}
+
+vector<int> generateCoef(int m, uint &inv_term) {
+    vector<vector<int>> polys;
+    vector<int> denoms;
+    vector<int> result(m + 1, 0); // used as accumulator for later
+
+    for (int i = 2; i <= m + 1; i++) {
+        vector<int> poly_accum{0, 1};
+        int denom = 1;
+        for (int j = 1; j <= m + 1; j++) {
+            if (i != j) {
+                vector<int> poly_tmp{1, (-1) * j};
+                poly_accum = multiply_poly(poly_accum, poly_tmp);
+                denom *= ((-1) * j + i);
+            }
+        }
+        for (int j = 0; j < poly_accum.size(); j++) {
+            poly_accum.at(j) *= sign(denom);
+        }
+        denom *= sign(denom); // ensuring all denoms are positive
+        polys.push_back(poly_accum);
+        denoms.push_back(denom);
+    }
+    inv_term = std::accumulate(denoms.begin(), denoms.end(), 1, lcm);
+    int constant;
+    for (size_t i = 0; i < polys.size(); i++) {
+        constant = inv_term / denoms.at(i);
+        for (int j = 0; j < polys.at(i).size(); j++) {
+            polys.at(i).at(j) *= constant;
+        }
+        for (int j = 0; j < result.size(); j++) {
+            result.at(j) += polys.at(i).at(j); // element-wise addition
+        }
+    }
+
+    return result;
+}
+
+vector<int> multiply_poly(vector<int> A, vector<int> B) {
+    int m = A.size();
+    int n = B.size();
+    vector<int> prod(m + n - 1, 0);
+    // Multiply two polynomials term by term
+    // Take ever term of first polynomial
+    for (int i = 0; i < m; i++) {
+        // Multiply the current term of first polynomial
+        // with every term of second polynomial.
+        for (int j = 0; j < n; j++)
+            prod[i + j] += A[i] * B[j];
+    }
+    return prod;
+}
+
+uint gcd(uint a, uint b) {
+    for (;;) {
+        if (a == 0)
+            return b;
+        b %= a;
+        if (b == 0)
+            return a;
+        a %= b;
+    }
+}
+
+uint lcm(uint a, uint b) {
+    uint temp = gcd(a, b);
+
+    return temp ? (a / temp * b) : 0;
 }
 
 unsigned int SecretShare::getPeers() {
@@ -550,7 +673,7 @@ void SecretShare::computeSharingMatrix() {
  * this function pre-computed Largrange coefficients for:
  * 1) reconstructing a secret from n=peers shares, which corresponds to evaluating the polynomial at point 0;
  * 2) reconstructing a secret from threshold+1 shares using points at indices stored in recvFromIDs (used by Open); and
- * 3) evaluating a polynomial on threshold+1 points at indices stored in sendToIDs as well as myid, where the polynomial is encoded using threshold+1 values at indices stored in recvFromIDs and point 0.
+ * 3) evaluating a polynomial on threshold+1 points at indices stored in sendToIDs as well as myID, where the polynomial is encoded using threshold+1 values at indices stored in recvFromIDs and point 0.
  */
 void SecretShare::computeLagrangeWeights() {
     mpz_t nom, denom, t1, t2, temp;
@@ -595,13 +718,13 @@ void SecretShare::computeLagrangeWeights() {
         mpz_set_ui(nom, 1);
         mpz_set_ui(denom, 1);
         if (i == threshold)
-            mpz_set_ui(t2, myid);
+            mpz_set_ui(t2, myID);
         else
             mpz_set_ui(t2, recvFromIDs[i]);
         for (l = 0; l < threshold + 1; l++) {
             if (l != i) {
                 if (l == threshold)
-                    mpz_set_ui(t1, myid);
+                    mpz_set_ui(t1, myID);
                 else
                     mpz_set_ui(t1, recvFromIDs[l]);
                 modMul(nom, nom, t1);
@@ -625,7 +748,7 @@ void SecretShare::computeLagrangeWeights() {
             mpz_init(lagrangeWeightsMult[i][j]);
     }
 
-    // weights at row i (i.e., in largrangeWeightsMult[i]) correspond to polynomial evaluation on point sendToIDs[i] and row threshold corresponds to evaluation on point myid
+    // weights at row i (i.e., in largrangeWeightsMult[i]) correspond to polynomial evaluation on point sendToIDs[i] and row threshold corresponds to evaluation on point myID
     // the denominator is independent of the point and needs to be computed only once
     // column j corresponds to the coefficient on point recvFromIDs[j] in the interpolation set; the point at position j=threshold is 0
     for (j = 0; j < threshold + 1; j++) {
@@ -653,7 +776,7 @@ void SecretShare::computeLagrangeWeights() {
         for (i = 0; i < threshold + 1; i++) {
             mpz_set_ui(nom, 1);
             if (i == threshold)
-                mpz_set_ui(t2, myid);
+                mpz_set_ui(t2, myID);
             else
                 mpz_set_ui(t2, sendToIDs[i]);
 
@@ -720,7 +843,7 @@ void SecretShare::reconstructSecretMult(mpz_t *result, mpz_t **y, int size) {
 }
 /*
  * reconstruction of a number of secrets from threshold+1 shares each.
- * the shares are expected to correspond to points at indices stored in recvFromIDs as well as myid.
+ * the shares are expected to correspond to points at indices stored in recvFromIDs as well as myID.
  */
 void SecretShare::reconstructSecretFromMin(mpz_t *result, mpz_t **y, unsigned int size) {
     mpz_t temp;
@@ -749,7 +872,7 @@ void SecretShare::reconstructSecretFromMin_test(mpz_t *result, mpz_t **y, unsign
     for (i = 0; i < size; i++) {
         for (j = 0; j < threshold + 1; j++) {
             if (j == threshold)
-                index = myid - 1;
+                index = myID - 1;
             else
                 index = recvFromIDs[j] - 1;
             printf("index %i\n", index);
@@ -763,7 +886,7 @@ void SecretShare::reconstructSecretFromMin_test(mpz_t *result, mpz_t **y, unsign
 /*
  * for each set of threshold+1 input shares, evaluate a polynomial represented by them on another set of threshold+1 points.
  * input is of size (threshold+1)*size, i.e., a row stores size shares from a single party.
- * ouput result is also of size (threshold+1)*size, a row stores size shares for a single party (parties in sendToIDs and myid).
+ * ouput result is also of size (threshold+1)*size, a row stores size shares for a single party (parties in sendToIDs and myID).
  */
 void SecretShare::getSharesMul(mpz_t **result, mpz_t **input, unsigned int size) {
     mpz_t temp;
@@ -816,9 +939,9 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
     for (int i = 0; i < size; i++) {
         mpz_sub(coefficient, rand[i], temp[i]);
         mpz_mul(coefficient, coefficient, id_p1_inv);
-        mpz_mul_ui(data[myid - 1][i], coefficient, myid); // for id
-        mpz_add(data[myid - 1][i], data[myid - 1][i], temp[i]);
-        mpz_mod(data[myid - 1][i], data[myid - 1][i], fieldSize);
+        mpz_mul_ui(data[myID - 1][i], coefficient, myID); // for id
+        mpz_add(data[myID - 1][i], data[myID - 1][i], temp[i]);
+        mpz_mod(data[myID - 1][i], data[myID - 1][i], fieldSize);
         mpz_mul_ui(data[id_m1 - 1][i], coefficient, id_m1); // for id-1
         mpz_add(data[id_m1 - 1][i], data[id_m1 - 1][i], temp[i]);
         mpz_mod(data[id_m1 - 1][i], data[id_m1 - 1][i], fieldSize);
@@ -838,21 +961,14 @@ void SecretShare::PRG(mpz_t **output, uint size, uint start_ind) {
         }
     }
 }
-void SecretShare::checkSeed() {
-    if (seeded == 0) {
-        printf("not seeded\n");
-    } else {
-        printf("seeded\n");
-    }
-}
 
 void SecretShare::getCoef(int id) {
-    myid = id;
-    id_p1 = (myid + 1) % (peers + 1);
+    myID = id;
+    id_p1 = (myID + 1) % (peers + 1);
     if (id_p1 == 0)
         id_p1 = 1;
 
-    id_m1 = (myid - 1) % (peers + 1);
+    id_m1 = (myID - 1) % (peers + 1);
     if (id_m1 == 0)
         id_m1 = peers;
 
@@ -863,15 +979,15 @@ void SecretShare::getCoef(int id) {
 
 // random generation functions, was previously in Random.cpp
 
-int SecretShare::computePolynomials(std::vector<int> polys, int point) {
+int SecretShare::computePolynomials(vector<int> polys, int point) {
     int result = 0;
     for (unsigned int i = 0; i < polys.size(); i++)
         result += pow(point, (polys.size() - 1 - i)) * polys[i];
     return result;
 }
 
-void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *results) {
-    std::map<std::string, std::vector<int>>::iterator it;
+void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
+    std::map<std::string, vector<int>>::iterator it;
     mpz_t zero, rand, temp;
     int polysize = polynomials.size();
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
@@ -888,8 +1004,8 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
     }
 
     int index = 0;
-    std::vector<long> polyOutput;
-    std::vector<long> denominator;
+    vector<long> polyOutput;
+    vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
     // if (rand_isFirst == 0)
@@ -897,9 +1013,9 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        std::vector<int> polys = (*it).second;
+        vector<int> polys = (*it).second;
         denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, nodeID));
+        polyOutput.push_back(computePolynomials((*it).second, myID));
     }
 
     for (int m = 0; m < polysize; m++) {
@@ -939,12 +1055,12 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
     mpz_clear(rand);
 }
 
-void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *results, int threadID) {
+void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int threadID) {
     if (threadID == -1) {
-        generateRandValue(nodeID, bits, size, results);
+        generateRandValue(bits, size, results);
         return;
     }
-    std::map<std::string, std::vector<int>>::iterator it;
+    std::map<std::string, vector<int>>::iterator it;
     mpz_t zero, rand, temp;
     int polysize = polynomials.size();
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
@@ -961,8 +1077,8 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
     }
 
     int index = 0;
-    std::vector<long> polyOutput;
-    std::vector<long> denominator;
+    vector<long> polyOutput;
+    vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
     if (rand_isFirst_thread[threadID] == 0) {
@@ -972,9 +1088,9 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        std::vector<int> polys = (*it).second;
+        vector<int> polys = (*it).second;
         denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, nodeID));
+        polyOutput.push_back(computePolynomials((*it).second, myID));
     }
 
     for (int m = 0; m < polysize; m++) {
@@ -1013,12 +1129,12 @@ void SecretShare::generateRandValue(int nodeID, int bits, int size, mpz_t *resul
     /*for(unsigned int i = 0; i < 2 ; i++){
         polys = polynomials.find(oldseed[i])->second;
         polynomials.erase(oldseed[i]);
-        polynomials.insert(std::pair<uint64_t, std::vector<int> >(newseed[i], polys));
+        polynomials.insert(std::pair<uint64_t, vector<int> >(newseed[i], polys));
     }*/
 }
 
-void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results) {
-    std::map<std::string, std::vector<int>>::iterator it;
+void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
+    std::map<std::string, vector<int>>::iterator it;
     mpz_t zero, rand, temp;
     int polysize = polynomials.size();
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
@@ -1035,15 +1151,15 @@ void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *resu
     }
 
     int index = 0;
-    std::vector<long> polyOutput;
-    std::vector<long> denominator;
+    vector<long> polyOutput;
+    vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        std::vector<int> polys = (*it).second;
+        vector<int> polys = (*it).second;
         denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, nodeID));
+        polyOutput.push_back(computePolynomials((*it).second, myID));
     }
 
     for (int m = 0; m < polysize; m++) {
@@ -1083,12 +1199,12 @@ void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *resu
     mpz_clear(rand);
 }
 
-void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, int threadID) {
+void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int threadID) {
     if (threadID == -1) {
-        generateRandValue(nodeID, mod, size, results);
+        generateRandValue(mod, size, results);
         return;
     }
-    std::map<std::string, std::vector<int>>::iterator it;
+    std::map<std::string, vector<int>>::iterator it;
     mpz_t zero, rand, temp;
     int polysize = polynomials.size();
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
@@ -1105,8 +1221,8 @@ void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *resu
     }
 
     int index = 0;
-    std::vector<long> polyOutput;
-    std::vector<long> denominator;
+    vector<long> polyOutput;
+    vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
     if (rand_isFirst_thread[threadID] == 0) {
@@ -1117,9 +1233,9 @@ void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *resu
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        std::vector<int> polys = (*it).second;
+        vector<int> polys = (*it).second;
         denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, nodeID));
+        polyOutput.push_back(computePolynomials((*it).second, myID));
     }
 
     for (int m = 0; m < polysize; m++) {
@@ -1158,17 +1274,17 @@ void SecretShare::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *resu
     /*for(unsigned int i = 0; i < 2 ; i++){
         polys = polynomials.find(oldseed[i])->second;
         polynomials.erase(oldseed[i]);
-        polynomials.insert(std::pair<uint64_t, std::vector<int> >(newseed[i], polys));
+        polynomials.insert(std::pair<uint64_t, vector<int> >(newseed[i], polys));
     }*/
 }
 
 // depracated, to be removed
-void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> polynomials, mpz_t value) {
+void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, vector<int>> polynomials, mpz_t value) {
     mpz_urandomb(value, rstates[id], bits);
 }
 
 // depracated, to be removed
-void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> polynomials, mpz_t value, int threadID) {
+void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, vector<int>> polynomials, mpz_t value, int threadID) {
     if (threadID == -1) {
         getNextRandValue(id, bits, polynomials, value);
         return;
@@ -1177,12 +1293,12 @@ void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, std::
 }
 
 // depracated, to be removed
-void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> polynomials, mpz_t value) {
+void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, vector<int>> polynomials, mpz_t value) {
     mpz_urandomm(value, rstates[id], mod);
 }
 
 // depracated, to be removed
-void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> polynomials, mpz_t value, int threadID) {
+void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, vector<int>> polynomials, mpz_t value, int threadID) {
     if (threadID == -1) {
         getNextRandValue(id, mod, polynomials, value);
         return;
