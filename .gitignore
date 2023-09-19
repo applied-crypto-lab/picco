@@ -49,3 +49,4 @@ compute/sample-programs/non-thread/eqz_mine.c
 inputs/
 outputs/
 shares/
+compute/test_op*
