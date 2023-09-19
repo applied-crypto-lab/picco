@@ -28,13 +28,16 @@
 class SDiv : public Operation {
 public:
     SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
+    SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, int K1);
     virtual ~SDiv();
     void doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID);
+    void doOperation_2(mpz_t *Y, mpz_t *A, mpz_t *B, int size);
 
 private:
     // Mult *Mul;
     TruncPr *Truncpr;
     Mod2M *Mod;
+    int K;
 };
 
 #endif /* SDIV_SHAMIR_H_ */

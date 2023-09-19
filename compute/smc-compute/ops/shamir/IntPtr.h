@@ -22,6 +22,7 @@
 
 #include "Mult.h"
 #include "Operation.h"
+
 typedef struct listnode_int_ *listnode_int;
 typedef struct list_int_ *list_int;
 typedef struct priv_int_ptr_ *priv_int_ptr;

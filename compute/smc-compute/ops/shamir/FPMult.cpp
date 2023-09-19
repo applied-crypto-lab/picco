@@ -35,7 +35,7 @@ void FPMult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size) {
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);
     ss->modMul(temp, A, B, size);
-    T->doOperation(C, temp, 2 * K, F, size);
+    T->doOperation(C, temp, 2 * K, F, size, -1);
     for (int i = 0; i < size; i++)
         mpz_clear(temp[i]);
     free(temp);
