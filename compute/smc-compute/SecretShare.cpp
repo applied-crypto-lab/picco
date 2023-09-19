@@ -73,6 +73,8 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     computeLagrangeWeights();
 
     randInit(keys);
+
+    initCoef();
 }
 
 void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
@@ -149,6 +151,7 @@ void SecretShare::randInit_thread(int threadID) {
 void SecretShare::initCoef() {
     mpz_t **coef = (mpz_t **)malloc(sizeof(mpz_t *) * COEFF_BOUND);
     for (int i = 0; i < COEFF_BOUND; ++i) {
+        printf("dim coef[%i][%i]\n", i, COEFF_OFFSET + i + 1);
         coef[i] = (mpz_t *)malloc(sizeof(mpz_t) * (COEFF_OFFSET + i + 1)); // 2 is the offset of where we start, 1 is for poly degree
         for (int j = 0; j < (COEFF_OFFSET + i + 1); ++j)
             mpz_init(coef[i][j]);
@@ -160,8 +163,13 @@ void SecretShare::initCoef() {
 
     for (size_t m = 0; m < COEFF_BOUND; m++) {
         uint inv_term;
-        vector<int> ret_coef = generateCoef(m, inv_term);
-
+        vector<int> ret_coef = generateCoef(COEFF_OFFSET + m, inv_term);
+/*         std::cout << " m + COEFF_OFFSET =  " << m + COEFF_OFFSET << "     ";
+        for (size_t i = 0; i < ret_coef.size(); i++) {
+            std::cout << ", " << ret_coef.at(i);
+        }
+        std::cout << " --- inv " << inv_term << std::endl;
+ */
         // setting the divisor
         mpz_set_ui(temp1, inv_term);
         modInv(temp1, temp1);
@@ -169,13 +177,16 @@ void SecretShare::initCoef() {
         for (int i = 0; i < ret_coef.size(); i++) {
             uint tmp = abs(ret_coef.at(i)); // making sure this is positive, will deal with negatives below
             mpz_set_ui(temp2, tmp);
+            // gmp_printf("%Zd\t", temp2);
             mpz_set(coef[m][i], temp1);
             modMul(coef[m][i], coef[m][i], temp2);
             // if the coefficient is negative, flip the sign
             if (ret_coef.at(i) < 0) {
                 modSub(coef[m][i], zero, coef[m][i]);
             }
+            // gmp_printf("")
         }
+        // printf("\n");
     }
 
     mpz_clear(zero);
@@ -187,7 +198,19 @@ void SecretShare::initCoef() {
 // in the event we need something for m = 1, it would get changed here AND ABOVE
 // to be called in the beginning of EQZ
 int SecretShare::getCoefIndex(int K) {
-    return ceil(log2(K)) - 2;
+    try {
+        if (ceil(log2(K)) > COEFF_BOUND) {
+            throw std::runtime_error("K is too large. Increase COEFF_BOUND and recompile. ");
+        } 
+        if (K <= 1) {
+            throw std::runtime_error("K < 2, meaning m < 1. Something went very wrong in configuration.");
+        }
+
+    } catch (std::exception &e) {
+        std::cout << "An exception was caught: " << e.what() << "\n";
+        throw std::exception();
+    }
+    return ceil(log2(K)) - COEFF_OFFSET;
 }
 
 vector<int> generateCoef(int m, uint &inv_term) {
@@ -196,7 +219,7 @@ vector<int> generateCoef(int m, uint &inv_term) {
     vector<int> result(m + 1, 0); // used as accumulator for later
 
     for (int i = 2; i <= m + 1; i++) {
-        vector<int> poly_accum{0, 1};
+        vector<int> poly_accum{1};
         int denom = 1;
         for (int j = 1; j <= m + 1; j++) {
             if (i != j) {

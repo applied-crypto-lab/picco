@@ -33,9 +33,10 @@
 #include <vector>
 #include <functional> 
 #include <algorithm> 
+#include <exception>
 
-#define COEFF_BOUND 8  // specifies the number of sets of coefs we generate for symmetric function evaluation
-#define COEFF_OFFSET 2 // specifies what m value we start with (m = 2)
+#define COEFF_BOUND 10  // specifies the number of sets of coefs we generate for symmetric function evaluation
+#define COEFF_OFFSET 1 // specifies what m value we start with (m = 1), DO NOT CHANGE !!!!!!!!!
 
 using std::vector;
 
