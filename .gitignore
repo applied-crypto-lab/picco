@@ -40,7 +40,7 @@ picco-utility
 int_*
 comparison/*
 .vscode
-*.txt
+# *.txt
 runtime-config-*
 compute/sample-programs/non-thread/eqz_mine.c
 *.x
@@ -50,3 +50,5 @@ inputs/
 outputs/
 shares/
 compute/test_op*
+compute/build*
+compute/notes.txt
