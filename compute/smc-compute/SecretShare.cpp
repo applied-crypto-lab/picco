@@ -151,7 +151,7 @@ void SecretShare::randInit_thread(int threadID) {
 void SecretShare::initCoef() {
     mpz_t **coef = (mpz_t **)malloc(sizeof(mpz_t *) * COEFF_BOUND);
     for (int i = 0; i < COEFF_BOUND; ++i) {
-        printf("dim coef[%i][%i]\n", i, COEFF_OFFSET + i + 1);
+        // printf("dim coef[%i][%i]\n", i, COEFF_OFFSET + i + 1);
         coef[i] = (mpz_t *)malloc(sizeof(mpz_t) * (COEFF_OFFSET + i + 1)); // 2 is the offset of where we start, 1 is for poly degree
         for (int j = 0; j < (COEFF_OFFSET + i + 1); ++j)
             mpz_init(coef[i][j]);
@@ -195,8 +195,7 @@ void SecretShare::initCoef() {
 }
 
 // returns the appropriate set of coefs to use based on the input K value
-// in the event we need something for m = 1, it would get changed here AND ABOVE
-// to be called in the beginning of EQZ
+// thows errors if K is too large (resolve by increaseing COEFF_BOUND), or K <= 1 which means m < 0 which is problematic
 int SecretShare::getCoefIndex(int K) {
     try {
         if (ceil(log2(K)) > COEFF_BOUND) {
