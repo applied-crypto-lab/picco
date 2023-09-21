@@ -1025,7 +1025,6 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     vector<long> polyOutput;
     vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
@@ -1098,7 +1097,6 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     vector<long> polyOutput;
     vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
@@ -1172,7 +1170,6 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     vector<long> polyOutput;
     vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
@@ -1242,7 +1239,6 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     vector<long> polyOutput;
     vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
