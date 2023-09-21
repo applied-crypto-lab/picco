@@ -149,7 +149,7 @@ void SecretShare::randInit_thread(int threadID) {
 // ...
 // coef[COEFF_BOUND - 1][COEFF_BOUND + 2 + 1] (m = COEFF_BOUND + 2 + 1)
 void SecretShare::initCoef() {
-    mpz_t **coef = (mpz_t **)malloc(sizeof(mpz_t *) * COEFF_BOUND);
+    coef = (mpz_t **)malloc(sizeof(mpz_t *) * COEFF_BOUND);
     for (int i = 0; i < COEFF_BOUND; ++i) {
         // printf("dim coef[%i][%i]\n", i, COEFF_OFFSET + i + 1);
         coef[i] = (mpz_t *)malloc(sizeof(mpz_t) * (COEFF_OFFSET + i + 1)); // 2 is the offset of where we start, 1 is for poly degree
@@ -164,12 +164,12 @@ void SecretShare::initCoef() {
     for (size_t m = 0; m < COEFF_BOUND; m++) {
         uint inv_term;
         vector<int> ret_coef = generateCoef(COEFF_OFFSET + m, inv_term);
-/*         std::cout << " m + COEFF_OFFSET =  " << m + COEFF_OFFSET << "     ";
-        for (size_t i = 0; i < ret_coef.size(); i++) {
-            std::cout << ", " << ret_coef.at(i);
-        }
-        std::cout << " --- inv " << inv_term << std::endl;
- */
+        // std::cout << " m + COEFF_OFFSET =  " << m + COEFF_OFFSET << "     ";
+        // for (size_t i = 0; i < ret_coef.size(); i++) {
+        //     std::cout << ", " << ret_coef.at(i);
+        // }
+        // std::cout << " --- inv " << inv_term << std::endl;
+        // printf("\n");
         // setting the divisor
         mpz_set_ui(temp1, inv_term);
         modInv(temp1, temp1);
@@ -177,18 +177,18 @@ void SecretShare::initCoef() {
         for (int i = 0; i < ret_coef.size(); i++) {
             uint tmp = abs(ret_coef.at(i)); // making sure this is positive, will deal with negatives below
             mpz_set_ui(temp2, tmp);
-            // gmp_printf("%Zd\t", temp2);
             mpz_set(coef[m][i], temp1);
             modMul(coef[m][i], coef[m][i], temp2);
             // if the coefficient is negative, flip the sign
             if (ret_coef.at(i) < 0) {
                 modSub(coef[m][i], zero, coef[m][i]);
             }
-            // gmp_printf("")
+            // gmp_printf("(%i, %Zd) ", ret_coef.at(i), coef[m][i]);
+
+            // gmp_printf("");
         }
         // printf("\n");
     }
-
     mpz_clear(zero);
     mpz_clear(temp1);
     mpz_clear(temp2);
