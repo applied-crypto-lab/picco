@@ -90,7 +90,7 @@ void BitDec::doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int thread
     // start computation
     Rand->PRandInt(K, M, size, R1, threadID);
     ss->modMul(R1, R1, pow2M, size);
-    Rand->PRandM(K, M, size, R, threadID);
+    Rand->PRandM(M, size, R, threadID);
     ss->modAdd(temp, A, pow2K, size);
     ss->modAdd(temp, temp, pow2S, size);
     ss->modSub(temp, temp, R[M], size);

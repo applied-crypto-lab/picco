@@ -80,7 +80,6 @@ void Random::generateRandValue(int nodeID, int bits, int size, mpz_t *results) {
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     std::vector<long> polyOutput;
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
@@ -152,7 +151,6 @@ void Random::generateRandValue(int nodeID, int bits, int size, mpz_t *results, i
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     std::vector<long> polyOutput;
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
@@ -224,7 +222,6 @@ void Random::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results) 
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     std::vector<long> polyOutput;
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
@@ -294,7 +291,6 @@ void Random::generateRandValue(int nodeID, mpz_t mod, int size, mpz_t *results, 
         mpz_init(temp3[i]);
     }
 
-    int index = 0;
     std::vector<long> polyOutput;
     std::vector<long> denominator;
     long long combinations = nChoosek(ss->getPeers(), ss->getThreshold());
@@ -438,7 +434,7 @@ void Random::getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vect
 /*
  * this assumes that M is <= 64
  */
-void Random::PRandM(int K, int M, int size, mpz_t **result) {
+void Random::PRandM(int M, int size, mpz_t **result) {
     mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * M);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     unsigned long pow = 1;
@@ -483,9 +479,9 @@ void Random::PRandM(int K, int M, int size, mpz_t **result) {
     free(temp);
 }
 
-void Random::PRandM(int K, int M, int size, mpz_t **result, int threadID) {
+void Random::PRandM(int M, int size, mpz_t **result, int threadID) {
     if (threadID == -1) {
-        PRandM(K, M, size, result);
+        PRandM(M, size, result);
         return;
     }
     mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * M);
@@ -838,7 +834,7 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
 // result[M+1][size]
 // result[0][size],...,result[M-1][size] contains the individual bits
 // result[M][size] contains the random value itself
-void PRandM(int K, int M, int size, mpz_t **result, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * M);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     unsigned long pow = 1;

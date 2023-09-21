@@ -187,7 +187,7 @@ void PrivIndex::doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int d
     gettimeofday(&tv1, NULL);
     // start computation
     /*** Lookup: LINE 1: PRandM(log_n, log_n) ***/
-    Rand->PRandM(K, K, size, U, threadID);
+    Rand->PRandM(K, size, U, threadID);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < K + 1; j++)
             mpz_set(U1[i][j], U[j][i]);
@@ -299,7 +299,6 @@ void PrivIndex::doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int d
 
     // initialization
     int **bitArray = (int **)malloc(sizeof(int *) * dim);
-    int ind, val;
     for (int i = 0; i < dim; i++)
         bitArray[i] = (int *)malloc(sizeof(int) * K);
     for (int i = 0; i < m * size * dim; i++) {

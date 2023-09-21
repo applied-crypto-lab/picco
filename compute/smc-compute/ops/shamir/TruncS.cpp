@@ -90,7 +90,7 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
     // do the computation
 
     Bt->doOperation(M, K, X, size, threadID);
-    Rand->PRandM(K, K, size, R, threadID);
+    Rand->PRandM(K, size, R, threadID);
 
     for (int i = 0; i < K; i++) {
         if (i != 0)

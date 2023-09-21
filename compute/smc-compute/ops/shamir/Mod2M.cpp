@@ -73,7 +73,7 @@ void Mod2M::doOperation(mpz_t *result, mpz_t *shares1, int K, int M, int size, i
     // start comutation.
     Rand->PRandInt(K, M, size, C, threadID);
     ss->modMul(C, C, pow2M, size);
-    Rand->PRandM(K, M, size, R, threadID);
+    Rand->PRandM(M, size, R, threadID);
     ss->modAdd(C, C, shares, size);
     ss->modAdd(C, C, R[M], size);
     ss->modAdd(C, C, pow2K1, size);

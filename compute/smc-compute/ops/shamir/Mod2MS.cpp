@@ -85,7 +85,7 @@ void Mod2MS::doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, 
     mpz_init_set_ui(constL, L);
     ss->modPow(pow2L, const2, constL);
     B2u->doOperation(M, L, X, size, threadID);
-    Rand->PRandM(L, L, size, R, threadID);
+    Rand->PRandM(L, size, R, threadID);
 
     for (int i = 0; i < L; i++) {
         if (i != 0)

@@ -79,7 +79,7 @@ void B2U::doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID) {
 
     // start computation.
     Pw2->doOperation(pow2A, A, L, size, threadID);
-    Rand->PRandM(L, L, size, R, threadID);
+    Rand->PRandM(L, size, R, threadID);
     Rand->PRandInt(L, L, size, C, threadID);
     ss->modMul(C, C, pow2L, size);
     ss->modAdd(C, C, pow2A, size);

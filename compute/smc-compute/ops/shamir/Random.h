@@ -39,8 +39,8 @@ public:
     void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
 
 
-  void PRandM(int K, int M, int size, mpz_t **result);
-    void PRandM(int K, int M, int size, mpz_t **result, int threadID);
+  void PRandM(int M, int size, mpz_t **result);
+    void PRandM(int M, int size, mpz_t **result, int threadID);
     void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2, int threadID);
     void PRandM_two(int K, int M_1, int M_2, int size, mpz_t **result_1, mpz_t **result_2);
     void PRandBit(int size, mpz_t *results);
@@ -55,6 +55,6 @@ private:
 void PRandInt(int K, int M, int size, mpz_t *result, int threadID, SecretShare *ss) ;
 void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
-void PRandM(int K, int M, int size, mpz_t **result, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /* OPERATION_SHAMIR_H_ */

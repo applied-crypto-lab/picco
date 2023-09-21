@@ -208,7 +208,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     //     gmp_printf("c_test[%i]  -- %Zd \n", i, c_test[i]);
     // }
 
-    Rand->PRandM(K, K, size, V, threadID);      // generating r', r'_k-1,...,r'_0
+    Rand->PRandM(K, size, V, threadID);      // generating r', r'_k-1,...,r'_0
     Rand->PRandInt(K, K, size, r_pp, threadID); // generating r''
 
     ss->modAdd(C, shares, V[K], size);         // Line 2 of EQZ
@@ -232,7 +232,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
 
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
-    Rand->PRandM(K, m, size, U, threadID);      // generating r', r'_m-1,...,r'_0
+    Rand->PRandM(m, size, U, threadID);      // generating r', r'_m-1,...,r'_0
     Rand->PRandInt(K, m, size, r_pp, threadID); // generating r''
 
     ss->modAdd(C, sum, U[m], size); // reusing C

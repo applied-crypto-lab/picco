@@ -70,7 +70,7 @@ void TruncPr::doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, 
     // start comutation.
     /**************/
     Rand->PRandInt(K, M, size, temp, threadID);
-    Rand->PRandM(K, M, size, R, threadID);
+    Rand->PRandM(M, size, R, threadID);
 
     ss->modMul(temp, temp, pow2M, size);
     ss->modAdd(C, C, temp, size);

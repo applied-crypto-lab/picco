@@ -67,7 +67,7 @@ void Mod2::doOperation(mpz_t *A, mpz_t *result, int K, int size, int threadID) {
     ss->modPow(const2K1, const2, constK1);
 
     mpz_init(Bit[0]);
-    Rand->PRandM(K, 1, size, R, threadID);
+    Rand->PRandM(1, size, R, threadID);
     Rand->PRandInt(K, 1, size, S, threadID);
     ss->modAdd(C, A, R[0], size);
     ss->modMul(S, S, const2, size);
