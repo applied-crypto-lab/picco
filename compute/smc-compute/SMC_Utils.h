@@ -543,6 +543,9 @@ public:
 
     void test_type(int);
 
+    void smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID);
+
+
     std::map<std::string, std::vector<int>> polynomials; // temporarily public
     // mpz_t coef[9];                                       // temporarily public
     int id;                                              // temporarily public;

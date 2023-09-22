@@ -3733,7 +3733,11 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     int *Coefficients = (int *)malloc(sizeof(int) * coefsize);
     int position = 0;
     for (int i = 0; i < keysize; i++) {
-        char strkey[mpz_t_size + 1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end
+        // char strkey[mpz_t_size + 1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end
+
+        char strkey[mpz_t_size + 1]; // clang doesnt like the above version
+        memset(strkey, 0x00, mpz_t_size + 1);
+
         // strkey[0] = '\0';
         memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size);
         // printf("%s\n", strkey);
@@ -3759,7 +3763,8 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
 
     for (int i = 0; i < keysize; i++) {
         char strkey[mpz_t_size + 1];
-        strkey[0] = 0;
+        memset(strkey, 0x00, mpz_t_size + 1);
+        // strkey[0] = 0;
         mpz_get_str(strkey, 10, Keys[i]);
         std::string Strkey = strkey;
         std::vector<int> temp;
@@ -3787,240 +3792,6 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     // }
 }
 
-// void SMC_Utils::setCoef() {
-//     mpz_t temp1, temp2, zero;
-//     mpz_init(temp1);
-//     mpz_init(temp2);
-//     mpz_init_set_ui(zero, 0);
-
-//     for (int i = 0; i < 9; i++)
-//         mpz_init(coef[i]);
-
-//     mpz_set(coef[8], zero);
-
-//     mpz_set_ui(temp1, 40320);
-//     mpz_set_ui(temp2, 109584);
-//     ss->modInv(temp1, temp1);
-//     mpz_set(coef[7], temp1);
-//     ss->modMul(coef[7], coef[7], temp2);
-
-//     mpz_set_ui(temp2, 118124);
-//     mpz_set(coef[6], temp1);
-//     ss->modMul(coef[6], coef[6], temp2);
-//     ss->modSub(coef[6], zero, coef[6]);
-
-//     mpz_set_ui(temp2, 67284);
-//     mpz_set(coef[5], temp1);
-//     ss->modMul(coef[5], coef[5], temp2);
-
-//     mpz_set_ui(temp2, 22449);
-//     mpz_set(coef[4], temp1);
-//     ss->modMul(coef[4], coef[4], temp2);
-//     ss->modSub(coef[4], zero, coef[4]);
-
-//     mpz_set_ui(temp2, 4536);
-//     mpz_set(coef[3], temp1);
-//     ss->modMul(coef[3], coef[3], temp2);
-
-//     mpz_set_ui(temp2, 546);
-//     mpz_set(coef[2], temp1);
-//     ss->modMul(coef[2], coef[2], temp2);
-//     ss->modSub(coef[2], zero, coef[2]);
-
-//     mpz_set_ui(temp2, 36);
-//     mpz_set(coef[1], temp1);
-//     ss->modMul(coef[1], coef[1], temp2);
-
-//     mpz_set(coef[0], temp1);
-//     ss->modSub(coef[0], zero, coef[0]);
-
-//     mpz_clear(zero);
-//     mpz_clear(temp1);
-//     mpz_clear(temp2);
-// }
-
-// void SMC_Utils::convertFloat(float value, int K, int L, mpz_t **elements) {
-//     unsigned int *newptr = (unsigned int *)&value;
-//     int s = *newptr >> 31;
-//     int e = *newptr & 0x7f800000;
-//     e >>= 23;
-//     int m = 0;
-//     m = *newptr & 0x007fffff;
-
-//     int z;
-//     long v, p, k;
-//     mpz_t significant, one, two, tmp, tmpm;
-//     mpz_init(significant);
-//     mpz_init(tmp);
-//     mpz_init_set_ui(one, 1);
-//     mpz_init_set_ui(two, 2);
-//     mpz_init(tmpm);
-
-//     if (e == 0 && m == 0) {
-//         s = 0;
-//         z = 1;
-//         // v = 0;
-//         mpz_set_ui(significant, 0);
-//         p = 0;
-//     } else {
-//         z = 0;
-//         if (L < 8) {
-//             k = (1 << L) - 1;
-//             /*check for overflow*/
-//             if (e - 127 - K + 1 > k) {
-//                 p = k;
-//                 mpz_mul_2exp(significant, one, K);
-//                 mpz_sub_ui(significant, significant, 1);
-//                 // v = (1 << K) - 1;
-//                 /*check for underflow*/
-//             } else if (e - 127 - K + 1 < -k) {
-//                 p = -k;
-//                 mpz_set_ui(significant, 1);
-//                 // v = 1;
-//             } else {
-//                 p = e - 127 - K + 1;
-//                 m = m + (1 << 23);
-//                 mpz_set_si(tmpm, m);
-//                 if (K < 24) {
-//                     mpz_pow_ui(tmp, two, 24 - K);
-//                     mpz_div(significant, tmpm, tmp);
-//                     // v = (m >> (24 - K));
-//                 } else {
-//                     mpz_mul_2exp(significant, tmpm, K - 24);
-//                     // v = m << (K - 24);
-//                 }
-//             }
-//         } else {
-//             p = e - 127 - K + 1;
-//             m = m + (1 << 23);
-//             mpz_set_si(tmpm, m);
-//             if (K < 24) {
-//                 mpz_pow_ui(tmp, two, 24 - K);
-//                 mpz_div(significant, tmpm, tmp);
-//                 // v = (m >> (24 - K));
-//             } else {
-//                 mpz_set(significant, tmpm);
-//                 mpz_mul_2exp(significant, significant, K - 24);
-//                 // v = m;
-//                 // v = v << (K - 24);
-//             }
-//         }
-//     }
-
-//     // assignments;
-//     mpz_set((*elements)[0], significant);
-//     mpz_set_si((*elements)[1], p);
-//     mpz_set_si((*elements)[2], z);
-//     mpz_set_si((*elements)[3], s);
-
-//     // clear the memory
-//     mpz_clear(one);
-//     mpz_clear(two);
-//     mpz_clear(tmp);
-//     mpz_clear(tmpm);
-//     mpz_clear(significant);
-// }
-
-// void SMC_Utils::convertDouble(double value, int K, int L, mpz_t **elements) {
-//     unsigned long *newptr = (unsigned long *)&value;
-//     int s = (int)(*newptr >> 63);
-//     unsigned long temp = (1 << 11);
-//     temp--;
-//     temp = temp << 52;
-//     temp = (*newptr & temp);
-//     temp = temp >> 52;
-//     int e = (int)temp;
-//     unsigned long m = 0;
-//     temp = 1;
-//     temp = temp << 52;
-//     temp--;
-//     m = (*newptr & temp);
-
-//     int z;
-//     long v, p, k;
-
-//     mpz_t significant, tmp, tmpm, one, two;
-//     mpz_init(significant);
-//     mpz_init(tmp);
-//     mpz_init(tmpm);
-//     mpz_init_set_ui(one, 1);
-//     mpz_init_set_ui(two, 2);
-
-//     if (e == 0 && m == 0) {
-//         s = 0;
-//         z = 1;
-//         // v = 0;
-//         mpz_set_ui(significant, 0);
-//         p = 0;
-//     } else {
-//         z = 0;
-//         if (L < 11) {
-//             k = (1 << L);
-//             k--;
-//             /*check for overflow*/
-//             if (e - 1023 - K + 1 > k) {
-//                 p = k;
-//                 mpz_mul_2exp(significant, one, K);
-//                 mpz_sub_ui(significant, significant, 1);
-//                 // v = (1 << K);
-//                 // v--;
-//                 /*check for underflow*/
-//             } else if (e - 1023 - K + 1 < -k) {
-//                 p = -k;
-//                 mpz_set_ui(significant, 1);
-//                 // v = 1;
-//             } else {
-//                 p = e - 1023 - K + 1;
-//                 k = 1;
-//                 k = k << 52;
-//                 m = m + k;
-//                 mpz_set_si(tmpm, m);
-
-//                 if (K < 53) {
-//                     mpz_pow_ui(tmp, two, 53 - K);
-//                     mpz_div(significant, tmpm, tmp);
-//                     // v = (m >> (53 - K));
-//                 } else {
-//                     mpz_mul_2exp(significant, tmpm, K - 53);
-//                     // v = m << (K - 53);
-//                 }
-//             }
-//         } else {
-//             p = e - 1023 - K + 1;
-//             k = 1;
-//             k = k << 52;
-//             m = m + k;
-//             mpz_set_ui(tmpm, m);
-
-//             if (K < 53) {
-//                 mpz_pow_ui(tmp, two, 53 - K);
-//                 mpz_div(significant, tmpm, tmp);
-//                 // v = (m >> (53 - K));
-//             } else {
-//                 mpz_mul_2exp(significant, tmpm, K - 53);
-//                 // v = m << (K - 53);
-//             }
-//         }
-//     }
-
-//     mpz_set((*elements)[0], significant);
-//     mpz_set_si((*elements)[1], p);
-//     mpz_set_si((*elements)[2], z);
-//     mpz_set_si((*elements)[3], s);
-
-//     // free the memory
-//     mpz_clear(one);
-//     mpz_clear(two);
-//     mpz_clear(tmp);
-//     mpz_clear(tmpm);
-//     mpz_clear(significant);
-
-//     //(*elements)[0] = v;
-//     //(*elements)[1] = p;
-//     //(*elements)[2] = z;
-//     //(*elements)[3] = s;
-// }
-
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
 
@@ -4043,6 +3814,107 @@ std::vector<std::string> SMC_Utils::splitfunc(const char *str, const char *delim
         token = strtok_r(NULL, delim, &saveptr);
     }
     return result;
+}
+
+void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID) {
+
+    int K = alen;
+    int M = ceil(log2(K));
+
+    printf("Testing PRandInt for (K = %i, M = %i), size = %i)\n", K, M, size);
+    PRandInt(K, M, size, a, threadID, ss);
+    // for (int i = 0; i < size; i++) {
+    //     gmp_printf("a[%i] %Zu\n", i, a[i]);
+    // }
+    Open(a, b, size, threadID, nNet, ss);
+    for (int i = 0; i < size; i++) {
+        gmp_printf("result[%i] %Zu\n", i, b[i]);
+    }
+
+    printf("Testing PRandBit for (K = %i, M = %i), size = %i)\n", K, M, size);
+    PRandBit(size, a, threadID, nNet, id, ss);
+    // for (int i = 0; i < size; i++) {
+    //     gmp_printf("a[%i] %Zu\n", i, a[i]);
+    // }
+    Open(a, a, size, threadID, nNet, ss);
+    for (int i = 0; i < size; i++) {
+        gmp_printf("result[%i] %Zu\n", i, a[i]);
+    }
+
+    K = 32;
+    int Kp1 = K + 1;
+    M = ceil(log2(K));
+    mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (Kp1));
+    for (int i = 0; i < Kp1; ++i) {
+        V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int j = 0; j < size; ++j)
+            mpz_init(V[i][j]);
+    }
+
+    mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *res_check = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; ++i) {
+        mpz_init(res[i]);
+        mpz_init(res_check[i]);
+    }
+
+    PRandM(K, size, V, threadID, nNet, id, ss); // generating r', r'_k-1,...,r'_0
+
+    printf("Testing PRandM for (K = %i, M = %i), size = %i)\n", K, M, size);
+
+    // for (int i = 0; i < Kp1 - 1; i++) {
+    //     Open(V[i], res, size, threadID, nNet, ss);
+    //     for (int j = 0; j < size; j++) {
+    //         gmp_printf("%Zu ", res[j]);
+    //     }
+    //     printf("\n");
+    // }
+    unsigned long pow = 1;
+
+    // Open(V[0], res, size, threadID, nNet, ss);
+    for (int j = 0; j < size; j++) {
+        mpz_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
+    }
+    mpz_t temp;
+    mpz_init(temp);
+
+    for (int i = 1; i < Kp1 - 1; i++) {
+        pow = pow << 1;
+        // Open(V[i], res, size, threadID, nNet, ss);
+        for (int j = 0; j < size; j++) {
+            mpz_mul_ui(temp, V[i][j], pow);
+            ss->modAdd(res_check[j], res_check[j], temp);
+
+        }
+    }
+
+    Open(V[Kp1 - 1], res, size, threadID, nNet, ss);
+    for (int j = 0; j < size; j++) {
+        gmp_printf("result[%i] %Zu\n", j, res[j]);
+    }
+
+
+    Open(res_check, res, size, threadID, nNet, ss);
+    for (int j = 0; j < size; j++) {
+        gmp_printf("res_check[%i] %Zu\n", j, res[j]);
+    }
+
+
+
+
+
+    for (int i = 0; i < Kp1; ++i) {
+        for (int j = 0; j < size; ++j)
+            mpz_clear(V[i][j]);
+        free(V[i]);
+    }
+
+    for (int i = 0; i < size; ++i) {
+        mpz_clear(res[i]);
+        mpz_clear(res_check[i]);
+    }
+    free(res_check);
+    free(res);
 }
 
 // proof of concept type-specifc implementations
