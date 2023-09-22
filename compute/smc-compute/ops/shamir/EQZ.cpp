@@ -131,23 +131,24 @@ EQZ::~EQZ() {
 // This is the only protocol that used the "coefficients" parameter, and hence why it was relegated to an EQZ class member (created/filled in constructor)
 void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadID) {
     // for (size_t i = 0; i < size; i++) {
-    //     gmp_printf("shares[%i]  -- %Zd \n", i, shares[i]);
+    //     gmp_printf("shares[%i]  = %Zd \n", i, shares[i]);
     // }
     int peers = ss->getPeers();
-    int m;
-    if (ceil(log2(K)) <= 5) {
-        m = 5;
-    } else {
-        m = 8;
-    }
+    // int m;
+    // if (ceil(log2(K)) <= 5) {
+    //     m = 5;
+    // } else {
+    //     m = 8;
+    // }
 
     // to be commented in once ss->coef is verified to be correct
     // MAKE SURE TO COMMENT ABOVE OUT
-    // int m = ceil(log2(K));
-    // int m_index = ss->getCoefIndex(K); 
+    int m = ceil(log2(K));
+    int m_idx = ss->getCoefIndex(K);
 
-    // printf("K = %i, m = %i\n", K, m);
+    printf("K = %i, m = %i, m_idx = %i\n", K, m, m_idx);
     mpz_t *r_pp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *r_pp_2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *bitK = (mpz_t *)malloc(sizeof(mpz_t) * K);
     mpz_t *bitm = (mpz_t *)malloc(sizeof(mpz_t) * m);
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -169,6 +170,10 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     mpz_init(const2K_m1);
     mpz_init(const2m);
 
+    ss->modPow(const2K, const2, constK);
+    ss->modPow(const2K_m1, const2, constK_m1); // New
+    ss->modPow(const2m, const2, constm);
+
     for (int i = 0; i < K; i++)
         mpz_init(bitK[i]);
     for (int i = 0; i < m; i++)
@@ -179,6 +184,7 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         mpz_init(c[i]);
         mpz_init(c_test[i]);
         mpz_init(r_pp[i]);
+        mpz_init(r_pp_2[i]);
         mpz_init(sum[i]);
     }
 
@@ -189,60 +195,58 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
 
     /**************** EQZ (PART 1): LINE 1-3 ******************/
-    mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 2));
-    for (int i = 0; i < K + 2; ++i) {
+    mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
+    for (int i = 0; i < K + 1; ++i) {
         V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; ++j)
             mpz_init(V[i][j]);
     }
-    mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (m + 2));
-    for (int i = 0; i < m + 2; ++i) {
+    mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (m + 1));
+    for (int i = 0; i < m + 1; ++i) {
         U[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; ++j)
             mpz_init(U[i][j]);
     }
 
     // testing
-    // Open(shares, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    // for (size_t i = 0; i < size; i++) {
-    //     gmp_printf("c_test[%i]  -- %Zd \n", i, c_test[i]);
-    // }
+    Open(shares, c_test, size, threadID, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        gmp_printf("input[%i]  = %Zd \n", i, c_test[i]);
+    }
 
-    Rand->PRandM(K, size, V, threadID);      // generating r', r'_k-1,...,r'_0
-    Rand->PRandInt(K, K, size, r_pp, threadID); // generating r''
+    PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
+    PRandInt(K, K, size, r_pp, threadID, ss);  // generating r'' (problem, along with 2^{k-1} + ....)
 
-    ss->modAdd(C, shares, V[K], size);         // Line 2 of EQZ
-    ss->modPow(const2K, const2, constK);       // Line 2 of EQZ
-    ss->modPow(const2K_m1, const2, constK_m1); // New
-    ss->modMul(r_pp, r_pp, const2K, size);     // Line 2 of EQZ
-    ss->modAdd(C, C, const2K_m1, size);        // New
-    ss->modAdd(C, C, r_pp, size);              // Line 2 of EQZ
+    ss->modAdd(C, shares, V[K], size);     // [r'] + [a]
+    ss->modMul(r_pp, r_pp, const2K, size); // 2^k*[r'']
+    // ss->modAdd(C, C, const2K_m1, size);    // ([r'] + [a]) + 2^{k-1} (problem, along with PRandInt)
+    ss->modAdd(C, C, r_pp, size); // (2^{k-1} + [r'] + [a]) + 2^k*[r'']
 
-    Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
+    Open(C, c, size, threadID, net, ss);
 
     for (int i = 0; i < size; i++) {
-        binarySplit(c[i], bitK, K);   // Line 3 of EQZ
-        for (int j = 0; j < K; j++) { // Line 4 of EQZ
-            ss->modAdd(temp1, bitK[j], V[j][i]);
-            ss->modMul(temp2, bitK[j], V[j][i]);
-            ss->modMul(temp2, temp2, const2);
-            ss->modSub(temp1, temp1, temp2);
-            ss->modAdd(sum[i], sum[i], temp1);
+        binarySplit(c[i], bitK, K);              // Line 3 of EQZ
+        for (int j = 0; j < K; j++) {            // Line 4 of EQZ
+            ss->modAdd(temp1, bitK[j], V[j][i]); // [c_i]+[r_i]
+            ss->modMul(temp2, bitK[j], V[j][i]); // [c_i]*[r_i]
+            ss->modMul(temp2, temp2, const2);    // ([c_i]*[r_i]) * 2
+            ss->modSub(temp1, temp1, temp2);     // ([c_i]+[r_i]) - (2*[c_i]*[r_i])
+            ss->modAdd(sum[i], sum[i], temp1);   // [sum_i] = temp1 + sum_i-1 + ... + sum_0
         }
     }
 
+    Open(sum, c_test, size, threadID, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        gmp_printf("sum[%i] = %Zd \n", i, c_test[i]);
+    }
+
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
-    Rand->PRandM(m, size, U, threadID);      // generating r', r'_m-1,...,r'_0
-    Rand->PRandInt(K, m, size, r_pp, threadID); // generating r''
+    PRandM(m, size, U, threadID, net, id, ss);  // generating r', r'_m-1,...,r'_0
+    PRandInt(K, m, size, r_pp_2, threadID, ss); // generating r''
 
     ss->modAdd(C, sum, U[m], size); // reusing C
-    ss->modPow(const2m, const2, constm);
-    ss->modMul(r_pp, r_pp, const2m, size);
-    ss->modAdd(C, C, r_pp, size);
-    // for (int i = 0; i < size; i++)
-    //     ss->modAdd(C[i], U[m][0], sum[i]);
-    // net.broadcastToPeers(C, size, resultShares, threadID);
-    // ss->reconstructSecret(c, resultShares, size);
+    ss->modMul(r_pp_2, r_pp_2, const2m, size);
+    ss->modAdd(C, C, r_pp_2, size);
     Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
 
     for (int i = 0; i < size; i++) {
@@ -257,86 +261,69 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         }
     }
 
+    // adding 1 to the sum of all the bits, as prescribed by symmetric func. evaluation
+    ss->modAdd(sum, sum, const1, size);
+
     /************ EQZ (PART 3): evaluate symmetric function  *************/
     mpz_t **T = (mpz_t **)malloc(sizeof(mpz_t *) * m);
-    mpz_t **T_test = (mpz_t **)malloc(sizeof(mpz_t *) * m);
     for (int i = 0; i < m; ++i) {
         T[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        T_test[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; ++j) {
             mpz_init(T[i][j]);
-            mpz_init(T_test[i][j]);
         }
     }
+
     for (int i = 0; i < m; i++) {
         ss->copy(sum, T[i], size); // original
-        // ss->copy(shares, T[i], size);      // for testing
-        // ss->copy(shares, T_test[i], size); // for testing
     }
 
+    // works as expected
     PreMul->doOperation(T, T, m, size, threadID);
 
-    // int test_size = 4;
-
-    // PreMul->doOperation(T_test, T_test, m, test_size, threadID);
-    // for (int i = 0; i < m; i++) {
-    //     Open(T_test[i], c_test, test_size, threadID, net, ss); // Line 2 of EQZ
-    //     printf("corrected[%i]  -- ", i);
-    //     for (int j = 0; j < test_size; j++) {
-    //         gmp_printf("%Zd , ", c_test[j]);
-    //     }
-    //     printf("\n");
-    // }
-    // printf("conditional\n");
-
-    // using two separate coefficients, not ideal but should work for now
-
-    // replace with ss->coef[m_idx][...] below
-    if (m == 8) {
-        for (int i = 0; i < size; i++) {
-            mpz_set(temp2, coef[m]);
-            mpz_set_ui(result[i], 0);
-            ss->modAdd(result[i], result[i], temp2);
-            for (int j = 0; j < m; j++) {
-                mpz_set(temp2, coef[m - j - 1]);
-                ss->modMul(temp1, T[j][i], temp2);
-                ss->modAdd(result[i], result[i], temp1);
-            }
-            ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
+    // the sum of all the bits
+    // symmetric function evaluation works: f(1) = 0, f(2,3,...,m) = 1
+    // something wrong above with the input summation
+    for (int i = 0; i < size; i++) {
+        mpz_set(temp2, ss->coef[m_idx][m]);
+        mpz_set_ui(result[i], 0);
+        ss->modAdd(result[i], result[i], temp2);
+        for (int j = 0; j < m; j++) {
+            // gmp_printf("coef[%i][%i] %Zd\n",m_idx, m - j - 1,ss->coef[m_idx][m - j - 1]);
+            mpz_set(temp2, ss->coef[m_idx][m - j - 1]);
+            ss->modMul(temp1, T[j][i], temp2);
+            ss->modAdd(result[i], result[i], temp1);
         }
-
-    } else if (m == 5) {
-        for (int i = 0; i < size; i++) {
-            mpz_set(temp2, coef5[m]);
-            mpz_set_ui(result[i], 0);
-            ss->modAdd(result[i], result[i], temp2);
-            for (int j = 0; j < m; j++) {
-                mpz_set(temp2, coef5[m - j - 1]);
-                ss->modMul(temp1, T[j][i], temp2);
-                ss->modAdd(result[i], result[i], temp1);
-            }
-            ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
-        }
-
-    } else {
-        printf("ERROR, m is not 5 or 8\n");
-        return;
     }
 
+    ss->modSub(result, const1, result, size); // Line 5 of EQZ
     // used for testing
-    // Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    // for (size_t i = 0; i < size; i++) {
-    //     gmp_printf("EQZ_result[%i]  -- %Zd \n", i, c_test[i]);
-    // }
+    Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
+    for (size_t i = 0; i < size; i++) {
+        gmp_printf("result[%i]  = %Zd \n", i, c_test[i]);
+    }
+
+    // replace with ss->coef[m_idx][...] below
+    // if (m == 8) {
+    //     for (int i = 0; i < size; i++) {
+    //         mpz_set(temp2, coef[m]);
+    //         mpz_set_ui(result[i], 0);
+    //         ss->modAdd(result[i], result[i], temp2);
+    //         for (int j = 0; j < m; j++) {
+    //             mpz_set(temp2, coef[m - j - 1]);
+    //             ss->modMul(temp1, T[j][i], temp2);
+    //             ss->modAdd(result[i], result[i], temp1);
+    //         }
+    //         ss->modSub(result[i], const1, result[i]); // Line 5 of EQZ
+    //     }
 
     /*Free the memory*/
-    for (int i = 0; i < K + 2; ++i) {
+    for (int i = 0; i < K + 1; ++i) {
         for (int j = 0; j < size; ++j)
             mpz_clear(V[i][j]);
         free(V[i]);
     }
     free(V);
-    for (int i = 0; i < m + 2; ++i) {
+    for (int i = 0; i < m + 1; ++i) {
         for (int j = 0; j < size; ++j)
             mpz_clear(U[i][j]);
         free(U[i]);
@@ -359,12 +346,14 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         mpz_clear(c_test[i]);
         mpz_clear(sum[i]);
         mpz_clear(r_pp[i]);
+        mpz_clear(r_pp_2[i]);
     }
     free(C);
     free(c);
     free(c_test);
     free(sum);
     free(r_pp);
+    free(r_pp_2);
 
     for (int i = 0; i < K; i++)
         mpz_clear(bitK[i]);
@@ -384,13 +373,10 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < size; ++j) {
             mpz_clear(T[i][j]);
-            mpz_clear(T_test[i][j]);
         }
         free(T[i]);
-        free(T_test[i]);
     }
     free(T);
-    free(T_test);
 }
 
 void EQZ::doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID) {
