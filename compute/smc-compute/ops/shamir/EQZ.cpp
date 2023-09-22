@@ -215,11 +215,12 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
 
     PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
-    PRandInt(K, K, size, r_pp, threadID, ss);  // generating r'' (problem, along with 2^{k-1} + ....)
+    PRandInt(K, K, size, r_pp, threadID, ss);  // generating r'' 
 
     ss->modAdd(C, shares, V[K], size);     // [r'] + [a]
     ss->modMul(r_pp, r_pp, const2K, size); // 2^k*[r'']
-    // ss->modAdd(C, C, const2K_m1, size);    // ([r'] + [a]) + 2^{k-1} (problem, along with PRandInt)
+    // The below line is in the original protocol but somehow causes results to be incorrect
+    // ss->modAdd(C, C, const2K_m1, size);    // ([r'] + [a]) + 2^{k-1} 
     ss->modAdd(C, C, r_pp, size); // (2^{k-1} + [r'] + [a]) + 2^k*[r'']
 
     Open(C, c, size, threadID, net, ss);
@@ -242,11 +243,11 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
 
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
     PRandM(m, size, U, threadID, net, id, ss);  // generating r', r'_m-1,...,r'_0
-    PRandInt(K, m, size, r_pp_2, threadID, ss); // generating r''
+    PRandInt(K, m, size, r_pp, threadID, ss); // generating r'' (NEEDS TO BE DIFFERENT THAN r_pp, WAS GETTING INCORRECT RESULTS WHEN RE-USING r_pp????)
 
     ss->modAdd(C, sum, U[m], size); // reusing C
-    ss->modMul(r_pp_2, r_pp_2, const2m, size);
-    ss->modAdd(C, C, r_pp_2, size);
+    ss->modMul(r_pp, r_pp, const2m, size);
+    ss->modAdd(C, C, r_pp, size);
     Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
 
     for (int i = 0; i < size; i++) {

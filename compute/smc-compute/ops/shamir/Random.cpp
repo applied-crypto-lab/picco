@@ -764,6 +764,10 @@ void Random::PRandBit(int size, mpz_t *results, int threadID) {
 void PRandInt(int K, int M, int size, mpz_t *result, int threadID, SecretShare *ss) {
     // why is this set this way?
     int bits = 48 + K - M;
+    // sanitizing destination (so the results variable can be reused in something like EQZ)
+    for (int i = 0; i < size; i++) {
+        mpz_set_ui(result[i], 0);
+    }
     //  generateRandValue checks if threadID is -1 and calls appropriate version
     ss->generateRandValue(bits, size, result, threadID);
 }
@@ -827,8 +831,7 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
     free(v);
 }
 
-
-// Does NOT follow PRandM specification exactly - does not generate [r''] since it can be performed separately and hence optimized 
+// Does NOT follow PRandM specification exactly - does not generate [r''] since it can be performed separately and hence optimized
 // produces a secret shared random value [r'] and its individual bits [b_{m-1}],...,[b_0]
 // results is organized as follows:
 // result[M+1][size]
