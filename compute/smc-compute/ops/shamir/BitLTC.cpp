@@ -22,7 +22,7 @@
 
 BitLTC::BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
+    // PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
     Mod = new Mod2(nodeNet, poly, nodeID, s);
     ss = s;
     net = nodeNet;
@@ -80,7 +80,7 @@ void BitLTC::doOperation(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, in
             mpz_set(d[K - 1 - i][j], temp[j]);
     }
 
-    PreMul->doOperation(d, d, K, size, threadID);
+    doOperation_PrefixMult(d, d, K, size, threadID, net, id, ss);
 
     for (int m = 0; m < size; m++) {
         mpz_set_ui(temp[m], 0);

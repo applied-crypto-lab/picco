@@ -33,7 +33,7 @@ public:
 
 private:
     BitDec *Bd;
-    PrefixMultiplication *PreMul;
+    // PrefixMultiplication *PreMul;
 };
 
 #endif /* POW2_SHAMIR_H_ */

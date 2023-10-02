@@ -22,7 +22,7 @@
 Pow2::Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Bd = new BitDec(nodeNet, poly, nodeID, s);
-    PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
+    // PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -59,7 +59,7 @@ void Pow2::doOperation(mpz_t *result, mpz_t *A, int L, int size, int threadID) {
         ss->modSub(S[i], temp, S[i], size);
         ss->modAdd(S[i], S[i], const1, size);
     }
-    PreMul->doOperation(S, S, M, size, threadID);
+    doOperation_PrefixMult(S, S, M, size, threadID, net, id, ss);
     ss->copy(S[M - 1], result, size);
     // free the memory
     for (int i = 0; i < M + 1; i++) {

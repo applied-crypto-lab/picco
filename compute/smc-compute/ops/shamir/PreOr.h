@@ -32,7 +32,7 @@ public:
 
 private:
     Mod2 *M2;
-    PrefixMultiplication *PreMul;
+    // PrefixMultiplication *PreMul;
 };
 
 #endif /* PREOR_SHAMIR_H_ */

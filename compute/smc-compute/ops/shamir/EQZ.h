@@ -31,7 +31,7 @@ class EQZ : public Operation {
 public:
     EQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~EQZ();
-    void doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threaID);
+    void doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadID);
 
     void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
     void doOperation_EQZ(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID);
@@ -39,11 +39,14 @@ public:
     void setCoef();
 
 private:
-    PrefixMultiplication *PreMul;
+    // PrefixMultiplication *PreMul;
     Random *Rand;
     mpz_t coef[9];                                      
     mpz_t coef5[6];                                      
 
 };
+
+void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
 
 #endif /* EQZ_SHAMIR_H_ */
