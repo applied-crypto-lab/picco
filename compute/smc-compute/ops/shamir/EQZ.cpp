@@ -130,23 +130,12 @@ EQZ::~EQZ() {
 // Computation for Equality, Comparison, Bits and Exponentiation", 2006
 // This is the only protocol that used the "coefficients" parameter, and hence why it was relegated to an EQZ class member (created/filled in constructor)
 void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadID) {
-    // for (size_t i = 0; i < size; i++) {
-    //     gmp_printf("shares[%i]  = %Zd \n", i, shares[i]);
-    // }
     int peers = ss->getPeers();
-    // int m;
-    // if (ceil(log2(K)) <= 5) {
-    //     m = 5;
-    // } else {
-    //     m = 8;
-    // }
-
-    // to be commented in once ss->coef is verified to be correct
-    // MAKE SURE TO COMMENT ABOVE OUT
+    
     int m = ceil(log2(K));
     int m_idx = ss->getCoefIndex(K);
 
-    printf("K = %i, m = %i, m_idx = %i\n", K, m, m_idx);
+    // printf("K = %i, m = %i, m_idx = %i\n", K, m, m_idx);
     mpz_t *r_pp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *r_pp_2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *bitK = (mpz_t *)malloc(sizeof(mpz_t) * K);
@@ -209,10 +198,10 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
     }
 
     // testing
-    Open(shares, c_test, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        gmp_printf("input[%i]  = %Zd \n", i, c_test[i]);
-    }
+    // Open(shares, c_test, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     gmp_printf("input[%i]  = %Zd \n", i, c_test[i]);
+    // }
 
     PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
     PRandInt(K, K, size, r_pp, threadID, ss);  // generating r'' 
@@ -236,10 +225,10 @@ void EQZ::doOperation(mpz_t *shares, mpz_t *result, int K, int size, int threadI
         }
     }
 
-    Open(sum, c_test, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        gmp_printf("sum[%i] = %Zd \n", i, c_test[i]);
-    }
+    // Open(sum, c_test, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     gmp_printf("sum[%i] = %Zd \n", i, c_test[i]);
+    // }
 
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
     PRandM(m, size, U, threadID, net, id, ss);  // generating r', r'_m-1,...,r'_0
