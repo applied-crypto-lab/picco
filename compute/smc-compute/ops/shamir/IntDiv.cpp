@@ -68,7 +68,6 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, int *b, int k, int size, in
 
 void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
     int lambda = 8;
-    int peers = ss->getPeers();
     mpz_t const0, const1, const2, constk;
     mpz_init_set_ui(const0, 0);
     mpz_init_set_ui(const1, 1);
@@ -172,7 +171,6 @@ void IntDiv::doOperation(mpz_t result, mpz_t a, mpz_t b, int k, int threadID) {
 }
 
 void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
-    int peers = ss->getPeers();
     // Set theta
     double t = k / 3.5;
     int theta = ceil(log2(t));

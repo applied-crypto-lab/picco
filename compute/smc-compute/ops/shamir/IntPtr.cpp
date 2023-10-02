@@ -436,7 +436,6 @@ int IntPtr::is_repeated_listnode(list_int list, listnode_int node, int level) {
 void IntPtr::merge_and_shrink_int_ptr(priv_int_ptr assign_ptr, priv_int_ptr right_ptr) {
     list_int list = right_ptr->list;
     listnode_int node = list->head->next;
-    int index = 0;
     while (node != list->tail) {
         if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1)) {
             listnode_int tmp = create_listnode();
@@ -565,7 +564,7 @@ void IntPtr::read_write_helper(priv_int_ptr ptr, priv_int_ptr result, mpz_t priv
 
 int IntPtr::list_size(list_int list) {
     int index = 0;
-    listnode_int node = list->head->next, node1;
+    listnode_int node = list->head->next;
     while (node != list->tail) {
         index++;
         node = node->next;

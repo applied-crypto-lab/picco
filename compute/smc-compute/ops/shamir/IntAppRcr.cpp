@@ -41,7 +41,6 @@ void IntAppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID) {
     mpz_init(temp);
     mpz_init(alpha);
 
-    int peers = ss->getPeers();
 
     mpf_t num1, num2;
     mpf_init(num1);

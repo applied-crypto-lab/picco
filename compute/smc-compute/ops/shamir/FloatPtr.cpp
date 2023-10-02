@@ -459,7 +459,6 @@ int FloatPtr::is_repeated_listnode(list_float list, listnode_float node, int lev
 void FloatPtr::merge_and_shrink_float_ptr(priv_float_ptr assign_ptr, priv_float_ptr right_ptr) {
     list_float list = right_ptr->list;
     listnode_float node = list->head->next;
-    int index = 0;
     while (node != list->tail) {
         if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1)) {
             listnode_float tmp = create_listnode();
@@ -590,7 +589,7 @@ void FloatPtr::read_write_helper(priv_float_ptr ptr, priv_float_ptr result, mpz_
 
 int FloatPtr::list_size(list_float list) {
     int index = 0;
-    listnode_float node = list->head->next, node1;
+    listnode_float node = list->head->next;
     while (node != list->tail) {
         index++;
         node = node->next;

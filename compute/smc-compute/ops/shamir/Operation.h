@@ -43,4 +43,10 @@ public:
     int id;
 };
 
+void binarySplit(mpz_t v, mpz_t *result, int K);
+void binarySplit(int v, int *result, int K);
+
+void clearBuffer(mpz_t **buffer, int firstDimSize, int secondDimSize);
+void clearBuffer(mpz_t *buffer, int firstDimSize);
+
 #endif /* OPERATION_SHAMIR_H_ */

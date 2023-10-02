@@ -367,7 +367,6 @@ int PrivPtr::is_repeated_listnode(dlist list, listnode node, int level, int type
 void PrivPtr::merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr) {
     dlist list = right_ptr->list;
     listnode node = list->head->next;
-    int index = 0;
     while (node != list->tail) {
         if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1, assign_ptr->type)) {
             listnode tmp = create_listnode();
@@ -614,7 +613,7 @@ void PrivPtr::read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, 
 
 int PrivPtr::list_size(dlist list) {
     int index = 0;
-    listnode node = list->head->next, node1;
+    listnode node = list->head->next;
     while (node != list->tail) {
         index++;
         node = node->next;

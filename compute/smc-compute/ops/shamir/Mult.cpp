@@ -24,8 +24,8 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
 
     int peers = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int id_p1;
-    int id_m1;
+    // int id_p1;
+    // int id_m1;
 
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t **rand_buff = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));

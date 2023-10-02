@@ -42,7 +42,7 @@ void AppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int f, int size, int threadI
     mpz_init(temp);
     mpz_init(alpha);
 
-    int peers = ss->getPeers();
+    // int peers = ss->getPeers();
 
     mpf_t num1, num2;
     mpf_init(num1);

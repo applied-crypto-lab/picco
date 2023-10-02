@@ -53,7 +53,7 @@ void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
         }
     }
     /***********************************************************************/
-    int peers = ss->getPeers();
+    // int peers = ss->getPeers();
     mpz_t beta, const1, const2, constK, const2K;
     mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *Y = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -154,7 +154,7 @@ void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLDiv, page 6
 void FLDiv::doOperation(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID) {
-    int peers = ss->getPeers();
+    // int peers = ss->getPeers();
     mpz_t beta, const1, const2, constK;
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);

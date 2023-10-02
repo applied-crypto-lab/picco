@@ -46,7 +46,6 @@ void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, in
     mpz_init_set_ui(two, 2);
     mpz_init(temp);
 
-    int peers = ss->getPeers();
     // initialization
     mpz_t *s = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *x = (mpz_t *)malloc(sizeof(mpz_t) * size);

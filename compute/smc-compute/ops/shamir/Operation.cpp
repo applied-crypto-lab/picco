@@ -85,3 +85,50 @@ double Operation::time_diff(
 
     return (elapsed);
 }
+
+void binarySplit(mpz_t v1, mpz_t *result, int K) {
+    mpz_t rem;
+    mpz_init(rem);
+    mpz_t v;
+    mpz_init_set(v, v1);
+    int i = 0;
+    do {
+        mpz_mod_ui(rem, v, 2);
+        mpz_set(result[i], rem);
+        mpz_div_ui(v, v, 2);
+        i++;
+    } while ((mpz_cmp_ui(v, 0) > 0) && i < K);
+    if (i < K) {
+        for (int j = i; j < K; j++) {
+            mpz_set_ui(rem, 0);
+            mpz_set(result[j], rem);
+        }
+    }
+    mpz_clear(rem);
+}
+
+void binarySplit(int v, int *result, int K) {
+    int rem;
+    int i = 0;
+    do {
+        rem = v % 2;
+        result[i] = rem;
+        v = v / 2;
+        i++;
+    } while (v > 0);
+
+    if (i < K)
+        for (int j = i; j < K; j++)
+            result[j] = 0;
+}
+
+void clearBuffer(mpz_t **buffer, int firstDimSize, int secondDimSize) {
+    for (int i = 0; i < firstDimSize; i++)
+        for (int j = 0; j < secondDimSize; j++)
+            mpz_set_ui(buffer[i][j], 0);
+}
+
+void clearBuffer(mpz_t *buffer, int firstDimSize) {
+    for (int i = 0; i < firstDimSize; i++)
+        mpz_set_ui(buffer[i], 0);
+}
