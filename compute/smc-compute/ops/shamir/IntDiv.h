@@ -44,7 +44,7 @@ private:
     // Mult *Mul;
     IntAppRcr *App;
     TruncPr *T;
-    EQZ *Eq;
+    // EQZ *Eq;
     LTZ *Lt;
 };
 

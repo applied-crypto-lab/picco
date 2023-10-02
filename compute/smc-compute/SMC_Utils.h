@@ -563,7 +563,7 @@ private:
 
     // Mult *Mul;
     LTZ *Lt;
-    EQZ *Eq;
+    // EQZ *Eq;
     DotProduct *DProd;
     BitOps *BOps;
     Trunc *T;

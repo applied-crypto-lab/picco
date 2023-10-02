@@ -34,7 +34,7 @@ public:
 private:
     // Mult *Mul;
     LTZ *Lt;
-    EQZ *Eq;
+    // EQZ *Eq;
 };
 
 #endif /* FLOATLTZ_SHAMIR_H_ */

@@ -38,7 +38,7 @@ public:
 
 private:
     LTZ *Lt;
-    EQZ *Eq;
+    // EQZ *Eq;
     // Mult *Mul;
     Trunc *T;
     BitDec *Bd;

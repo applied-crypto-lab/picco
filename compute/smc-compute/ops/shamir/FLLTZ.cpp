@@ -22,7 +22,7 @@
 FLLTZ::FLLTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    // Eq = new EQZ(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -86,7 +86,7 @@ void FLLTZ::doOperation(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int
     Lt->doOperation(a, temp1, L, size, threadID);
     // line 2
     ss->modSub(temp1, A[1], B[1], size);
-    Eq->doOperation(temp1, c, L, size, threadID);
+    doOperation_EQZ(temp1, c, L, size, threadID, net, id, ss);
     // line 3
     ss->modMul(temp1, A[3], const2, size);
     ss->modSub(temp2, const1, temp1, size);

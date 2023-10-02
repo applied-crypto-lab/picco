@@ -24,7 +24,7 @@ FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, 
     // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     T = new Trunc(nodeNet, poly, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    // Eq = new EQZ(nodeNet, poly, nodeID, s);
     Bd = new BitDec(nodeNet, poly, nodeID, s);
     Preor = new PreOr(nodeNet, poly, nodeID, s);
     P2 = new Pow2(nodeNet, poly, nodeID, s);
@@ -154,7 +154,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
 
     // long E = EQZ(ss->modSub(A[1], B[1]), 31);
     ss->modSub(temp1, A[1], B[1], size);
-    Eq->doOperation(temp1, E, L, size, threadID);
+    doOperation_EQZ(temp1, E, L, size, threadID, net, id, ss);
 
     // long AA = LTZ(ss->modSub(A[0], B[0]), 31);
     ss->modSub(temp1, A[0], B[0], size);
@@ -292,7 +292,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
     Mult(temp2, temp2, temp3, size, threadID, net, id, ss);
     Mult(temp2, temp2, V, size, threadID, net, id, ss);
     ss->modAdd(V, temp2, temp1, size);
-    Eq->doOperation(V, Z, K, size, threadID);
+    doOperation_EQZ(V, Z, K, size, threadID, net, id, ss);
     // line 23
 
     ss->modSub(temp1, const1, B[2], size);

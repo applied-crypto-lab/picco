@@ -23,7 +23,7 @@ PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>
 
     // Mul = new Mult(nodeNet, nodeID, s);
     Bd = new BitDec(nodeNet, poly, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    // Eq = new EQZ(nodeNet, poly, nodeID, s);
     Rand = new Random(nodeNet, poly, nodeID, s); //
     net = nodeNet;
     id = nodeID;

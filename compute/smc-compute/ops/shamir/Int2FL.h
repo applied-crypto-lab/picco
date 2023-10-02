@@ -41,7 +41,7 @@ private:
     PreOr *Pre;
     BitDec *Bd;
     Trunc *T;
-    EQZ *Eq;
+    // EQZ *Eq;
 };
 
 #endif /* INT2FL_H */

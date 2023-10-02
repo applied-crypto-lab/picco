@@ -37,7 +37,7 @@ public:
 private:
     LTZ *Lt;
     Mod2M *Mod;
-    EQZ *Eq;
+    // EQZ *Eq;
     // Mult *Mul;
     Mod2MS *Md2m;
     FLAdd *Fladd;

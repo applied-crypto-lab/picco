@@ -25,7 +25,7 @@ IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     App = new IntAppRcr(nodeNet, poly, nodeID, s);
     // need to use
     T = new TruncPr(nodeNet, poly, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    // Eq = new EQZ(nodeNet, poly, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;

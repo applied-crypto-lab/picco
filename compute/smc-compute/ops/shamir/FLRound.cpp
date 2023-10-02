@@ -23,7 +23,7 @@ FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> po
 
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    // Eq = new EQZ(nodeNet, poly, nodeID, s);
     // Mul = new Mult(nodeNet, nodeID, s);
     Md2m = new Mod2MS(nodeNet, poly, nodeID, s);
     Fladd = new FLAdd(nodeNet, poly, nodeID, s);
@@ -117,7 +117,7 @@ void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K,
     ss->modSub(temp1, (long)0, temp1, size);
     Md2m->doOperation(V2, A[0], temp1, powM, L, size, threadID);
     // line 4
-    Eq->doOperation(V2, c, L, size, threadID);
+    doOperation_EQZ(V2, c, L, size, threadID, net, id, ss);
 
     // line 5
     ss->modAdd(temp1, mode, A[3], size);
@@ -132,7 +132,7 @@ void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K,
 
     // line 6
     ss->modSub(temp1, constPower2L, V, size);
-    Eq->doOperation(temp1, d, L + 1, size, threadID);
+    doOperation_EQZ(temp1, d, L + 1, size, threadID, net, id, ss);
 
     // line 7
     ss->modMul(temp1, d, constPower2L1, size);
@@ -157,7 +157,7 @@ void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K,
     Mult(result[3], A[3], temp1, size, threadID, net, id, ss);
 
     // line 10
-    Eq->doOperation(V, temp2, L, size, threadID);
+    doOperation_EQZ(V, temp2, L, size, threadID, net, id, ss);
     Mult(temp1, temp2, A[2], size, threadID, net, id, ss);
     ss->modAdd(temp2, temp2, A[2], size);
     ss->modSub(result[2], temp2, temp1, size);

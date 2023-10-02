@@ -32,7 +32,7 @@ public:
 
 private:
     // Mult *Mul;
-    EQZ *Eq;
+    // EQZ *Eq;
 };
 
 #endif /* FLOATEQZ_SHAMIR_H_ */

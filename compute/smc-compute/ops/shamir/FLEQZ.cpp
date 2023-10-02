@@ -21,7 +21,6 @@
 
 FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     // Mul = new Mult(nodeNet, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -71,10 +70,10 @@ void FLEQZ::doOperation(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int
     }
     // compute b1 = v_a == v_b
     ss->modSub(temp1, A[0], B[0], size);
-    Eq->doOperation(temp1, b1, K, size, threadID);
+    doOperation_EQZ(temp1, b1, K, size, threadID, net, id, ss);
     // compute b2 = p_a == p_b
     ss->modSub(temp1, A[1], B[1], size);
-    Eq->doOperation(temp1, b2, L, size, threadID);
+    doOperation_EQZ(temp1, b2, L, size, threadID, net, id, ss);
 
     // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
     ss->modAdd(temp1, A[3], B[3], size);

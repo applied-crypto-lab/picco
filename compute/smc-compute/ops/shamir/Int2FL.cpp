@@ -29,7 +29,7 @@ Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
 
     // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Eq = new EQZ(nodeNet, poly, nodeID, s);
+    // Eq = new EQZ(nodeNet, poly, nodeID, s);
     Bd = new BitDec(nodeNet, poly, nodeID, s);
     Pre = new PreOr(nodeNet, poly, nodeID, s);
     T = new Trunc(nodeNet, poly, nodeID, s);
@@ -84,7 +84,7 @@ void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int 
     // line 2
     Lt->doOperation(results[3], A, gamma, size, threadID);
     // line 3
-    Eq->doOperation(A, results[2], gamma, size, threadID);
+    doOperation_EQZ(A, results[2], gamma, size, threadID, net, id, ss);
     // line 4
     ss->modMul(temp1, results[3], const2, size);
     ss->modSub(temp1, const1, temp1, size);
