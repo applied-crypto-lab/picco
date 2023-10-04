@@ -22,7 +22,7 @@
 
 Inv::Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Rand = new Random(nodeNet, poly, nodeID, s);
+     // Rand = new Random(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;

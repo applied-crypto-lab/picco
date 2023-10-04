@@ -33,7 +33,7 @@ public:
 
 private:
     // AddBitwise *Add;
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* BITDEC_SHAMIR_H_ */

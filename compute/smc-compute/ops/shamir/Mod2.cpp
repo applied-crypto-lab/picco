@@ -22,7 +22,7 @@
 
 Mod2::Mod2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Rand = new Random(nodeNet, poly, nodeID, s);
+     // Rand = new Random(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     polynomials = poly;
@@ -67,8 +67,8 @@ void Mod2::doOperation(mpz_t *A, mpz_t *result, int K, int size, int threadID) {
     ss->modPow(const2K1, const2, constK1);
 
     mpz_init(Bit[0]);
-    Rand->PRandM(1, size, R, threadID);
-    Rand->PRandInt(K, 1, size, S, threadID);
+    PRandM(1, size, R, threadID, net, id, ss);
+    PRandInt(K, 1, size, S, threadID, ss);
     ss->modAdd(C, A, R[0], size);
     ss->modMul(S, S, const2, size);
     if (K > 1)

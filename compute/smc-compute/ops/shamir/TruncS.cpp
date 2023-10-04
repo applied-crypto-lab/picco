@@ -25,7 +25,7 @@ TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Bt = new B2U(nodeNet, poly, nodeID, s);
     In = new Inv(nodeNet, poly, nodeID, s);
-    Rand = new Random(nodeNet, poly, nodeID, s);
+     // Rand = new Random(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -90,7 +90,7 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
     // do the computation
 
     Bt->doOperation(M, K, X, size, threadID);
-    Rand->PRandM(K, size, R, threadID);
+    PRandM(K, size, R, threadID, net, id, ss);
 
     for (int i = 0; i < K; i++) {
         if (i != 0)
@@ -105,7 +105,7 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
         ss->modAdd(R2, R2, temp, size);
     }
 
-    Rand->PRandInt(K, K, size, temp, threadID);
+    PRandInt(K, K, size, temp, threadID, ss);
     ss->modMul(temp, temp, pow2L, size);
     ss->modAdd(R1, R1, temp, size);
 

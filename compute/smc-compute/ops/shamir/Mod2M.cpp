@@ -25,7 +25,7 @@ Mod2M::Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, 
     net = nodeNet;
     polynomials = poly;
     id = nodeID;
-    Rand = new Random(nodeNet, poly, nodeID, s);
+     // Rand = new Random(nodeNet, poly, nodeID, s);
 }
 
 Mod2M::~Mod2M() {
@@ -71,9 +71,9 @@ void Mod2M::doOperation(mpz_t *result, mpz_t *shares1, int K, int M, int size, i
     ss->modPow(pow2K1, const2, constK1);
 
     // start comutation.
-    Rand->PRandInt(K, M, size, C, threadID);
+    PRandInt(K, M, size, C, threadID, ss);
     ss->modMul(C, C, pow2M, size);
-    Rand->PRandM(M, size, R, threadID);
+    PRandM(M, size, R, threadID, net, id, ss);
     ss->modAdd(C, C, shares, size);
     ss->modAdd(C, C, R[M], size);
     ss->modAdd(C, C, pow2K1, size);

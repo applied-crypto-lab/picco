@@ -41,7 +41,7 @@ private:
     // Mult *Mul;
     B2U *Bt;
     Inv *In;
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* TRUNCS_SHAMIR_H_ */

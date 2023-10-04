@@ -39,7 +39,7 @@ private:
     Inv *Iv;
     // Mult *Mul;
     LTZ *Ltz;
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* MOD2M1_SHAMIR_H_ */

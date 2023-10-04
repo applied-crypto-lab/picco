@@ -31,7 +31,7 @@ public:
     void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
 
 private:
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* TRUNCPR_SHAMIR_H_ */

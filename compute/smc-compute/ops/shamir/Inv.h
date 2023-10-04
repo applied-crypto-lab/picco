@@ -31,7 +31,7 @@ public:
     void doOperation(mpz_t *shares, mpz_t *results, int size, int threadID);
 
 private:
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* INV_SHAMIR_H_ */

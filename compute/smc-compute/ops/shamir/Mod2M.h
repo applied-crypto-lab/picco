@@ -33,7 +33,7 @@ public:
 
 private:
     BitLTC *B;
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* MOD2M_SHAMIR_H_ */

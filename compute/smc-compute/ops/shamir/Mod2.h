@@ -32,7 +32,7 @@ public:
     void doOperation(mpz_t *A, mpz_t *result, int K, int size, int threadID);
 
 private:
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* MOD2_SHAMIR_H_ */

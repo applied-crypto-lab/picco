@@ -24,7 +24,7 @@ B2U::B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int 
     Pw2 = new Pow2(nodeNet, poly, nodeID, s);
     // Mul = new Mult(nodeNet, nodeID, s);
     Por = new PreOr(nodeNet, poly, nodeID, s);
-    Rand = new Random(nodeNet, poly, nodeID, s);
+     // Rand = new Random(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -79,8 +79,8 @@ void B2U::doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID) {
 
     // start computation.
     Pw2->doOperation(pow2A, A, L, size, threadID);
-    Rand->PRandM(L, size, R, threadID);
-    Rand->PRandInt(L, L, size, C, threadID);
+    PRandM(L, size, R, threadID, net, id, ss);
+    PRandInt(L, L, size, C, threadID, ss);
     ss->modMul(C, C, pow2L, size);
     ss->modAdd(C, C, pow2A, size);
     ss->modAdd(C, C, R[L], size);

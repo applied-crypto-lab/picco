@@ -63,7 +63,7 @@ private:
     // Mult *Mul;
     BitDec *Bd;
     // EQZ *Eq;
-    Random *Rand;
+    // Random *Rand;
 };
 
 #endif /* PRIVINDEX_SHAMIR_H_ */

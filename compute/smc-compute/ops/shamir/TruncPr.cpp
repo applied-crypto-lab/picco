@@ -26,7 +26,7 @@ TruncPr::TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> po
     net = nodeNet;
     id = nodeID;
     ss = s;
-    Rand = new Random(nodeNet, poly, nodeID, s);
+     // Rand = new Random(nodeNet, poly, nodeID, s);
 }
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
@@ -69,8 +69,8 @@ void TruncPr::doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, 
 
     // start comutation.
     /**************/
-    Rand->PRandInt(K, M, size, temp, threadID);
-    Rand->PRandM(M, size, R, threadID);
+    PRandInt(K, M, size, temp, threadID, ss);
+    PRandM(M, size, R, threadID, net, id, ss);
 
     ss->modMul(temp, temp, pow2M, size);
     ss->modAdd(C, C, temp, size);

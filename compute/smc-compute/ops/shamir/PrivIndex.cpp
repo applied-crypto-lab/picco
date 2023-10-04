@@ -24,7 +24,7 @@ PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>
     // Mul = new Mult(nodeNet, nodeID, s);
     Bd = new BitDec(nodeNet, poly, nodeID, s);
     // Eq = new EQZ(nodeNet, poly, nodeID, s);
-    Rand = new Random(nodeNet, poly, nodeID, s); //
+     // Rand = new Random(nodeNet, poly, nodeID, s); //
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -187,7 +187,7 @@ void PrivIndex::doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int d
     gettimeofday(&tv1, NULL);
     // start computation
     /*** Lookup: LINE 1: PRandM(log_n, log_n) ***/
-    Rand->PRandM(K, size, U, threadID);
+    PRandM(K, size, U, threadID, net, id, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < K + 1; j++)
             mpz_set(U1[i][j], U[j][i]);
@@ -208,7 +208,7 @@ void PrivIndex::doOperationRead(mpz_t *index, mpz_t *array, mpz_t *result, int d
             ss->modSub(B[i][j], const1, B[i][j]);
 
     /*** Lookup: LINE 3: c = Output(j + 2^log_n*r' + r) ***/
-    Rand->PRandInt(K, K, size, S, threadID);
+    PRandInt(K, K, size, S, threadID, ss);
     ss->modPow(pow2K, const2, constK);
     ss->modMul(S, S, pow2K, size);
     ss->modAdd(C, index, r, size);
