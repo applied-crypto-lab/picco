@@ -36,7 +36,6 @@ public:
     void doOperation(mpz_t *values, mpz_t **results, int gamma, int K, int size, int threadID);
 
 private:
-    // Mult *Mul;
     LTZ *Lt;
     PreOr *Pre;
     BitDec *Bd;

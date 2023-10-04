@@ -35,7 +35,6 @@ public:
     void doOperationPub(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
 
 private:
-    // Mult *Mul;
     Trunc *T;
     LTZ *Lt;
     SDiv *Sdiv;

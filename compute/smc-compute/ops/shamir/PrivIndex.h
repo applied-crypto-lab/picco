@@ -60,7 +60,6 @@ public:
 
 
 private:
-    // Mult *Mul;
     BitDec *Bd;
     // EQZ *Eq;
     // Random *Rand;

@@ -35,9 +35,7 @@ public:
     void doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID);
 
 private:
-    // Random *Rand;
     Pow2 *Pw2;
-    // Mult *Mul;
     PreOr *Por;
 };
 

@@ -41,7 +41,6 @@ public:
     void doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID);
 
 private:
-    // Mult *Mul;
     IntAppRcr *App;
     TruncPr *T;
     // EQZ *Eq;

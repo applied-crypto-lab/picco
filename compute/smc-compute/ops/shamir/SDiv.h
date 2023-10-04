@@ -34,7 +34,6 @@ public:
     void doOperation_2(mpz_t *Y, mpz_t *A, mpz_t *B, int size);
 
 private:
-    // Mult *Mul;
     TruncPr *Truncpr;
     Mod2M *Mod;
     int K;

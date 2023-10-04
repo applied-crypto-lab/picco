@@ -38,7 +38,6 @@ private:
     LTZ *Lt;
     Mod2M *Mod;
     // EQZ *Eq;
-    // Mult *Mul;
     Mod2MS *Md2m;
     FLAdd *Fladd;
 };
