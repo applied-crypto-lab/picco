@@ -254,7 +254,7 @@ void NodeNetwork::getDataFromPeer(int id, int size, long long *buffer) {
 
 void NodeNetwork::sendDataToPeer(int id, int size, unsigned char *data) {
     try {
-        int on = 1;
+        // int on = 1;
         unsigned char *p = data;
         int bytes_read = sizeof(unsigned char) * size;
         int sockfd = peer2sock.find(id)->second;
@@ -386,7 +386,7 @@ void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer,
     int peers = config->getPeerCount();
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
-    int sendIdx = 0, getIdx = 0;
+    // int sendIdx = 0, getIdx = 0;
     for (int i = 0; i < peers + 1; i++) {
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         data[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -410,9 +410,9 @@ void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer,
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     int id = getID();
     int peers = config->getPeerCount();
-    struct timeval tv1, tv2;
+    // struct timeval tv1, tv2;
 
-    int sendIdx = 0, getIdx = 0;
+    // int sendIdx = 0, getIdx = 0;
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
@@ -465,7 +465,7 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
 
 /* this function sends identical data to all other peers and receives data from all of them */
 void NodeNetwork::broadcastToPeers(long long *data, int size, long long **result) {
-    int id = getID();
+    // int id = getID();
     int peers = config->getPeerCount();
     mpz_t **buffers = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     mpz_t *data1 = (mpz_t *)malloc(size * sizeof(mpz_t));
@@ -506,7 +506,7 @@ void *NodeNetwork::managerWorkHelper(void *net) {
 
 void *NodeNetwork::managerWork() {
     fd_set socketDescriptorSet;
-    int fdmax = 0, nReady = 0, index = 0, nbytes, threadID;
+    int fdmax = 0, nReady = 0, index = 0, threadID;
     int peers = config->getPeerCount();
     FD_ZERO(&socketDescriptorSet);
     std::map<int, int>::iterator it;
@@ -578,7 +578,7 @@ void *NodeNetwork::managerWork() {
 }
 
 void NodeNetwork::getDataFromPeerToBuffer(int socketID, int peerID, int threadID, int **info) {
-    int start, write_amount = 0;
+    int write_amount = 0;
     int *data = (int *)malloc(sizeof(int) * 3);
     getDataFromPeer(peerID, 3, data);
     (*info)[0] = data[0];
@@ -594,7 +594,7 @@ void NodeNetwork::getDataFromPeerToBuffer(int socketID, int peerID, int threadID
 }
 
 void NodeNetwork::restoreDataToBuffer(int socketID, int peerID, int threadID, int **info) {
-    int id = config->getID();
+    // int id = config->getID();
     int start = (*info)[0], amount = (*info)[1], size = (*info)[2];
     pthread_mutex_lock(&buffer_mutex);
     while (comm_flags[peerID - 1][threadID] == 0) {
@@ -627,7 +627,7 @@ void NodeNetwork::restoreDataToBuffer(int socketID, int peerID, int threadID, in
 }
 
 void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
-    int id = config->getID();
+    // int id = config->getID();
     int *info = (int *)malloc(sizeof(int) * 3);
     getDataFromPeer(peerID, 3, info);
     pthread_mutex_lock(&buffer_mutex);
@@ -670,7 +670,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
     test_flags[threadID]++;
     int id = getID();
     int peers = config->getPeerCount();
-    struct timeval tv1, tv2;
+    // struct timeval tv1, tv2;
     if (size == 0)
         return;
     if (threadID == -1) {
@@ -693,7 +693,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
             mode = 0;
         }
     }
-    int sendIdx = 0, getIdx = 0;
+    // int sendIdx = 0, getIdx = 0;
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
     for (int i = 0; i <= peers; i++)
@@ -703,7 +703,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
     for (int i = 0; i <= peers; i++)
         comm_flags[i][threadID] = 1;
     pthread_cond_signal(&buffer_conditional_variables[threadID]);
-    gettimeofday(&tv1, NULL);
+    // gettimeofday(&tv1, NULL);
     pthread_mutex_unlock(&buffer_mutex);
 
     for (int i = 1; i <= peers + 1; i++) {
@@ -718,7 +718,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
                 }
                 pthread_mutex_lock(&socket_mutex);
                 while (unit_flags[threadID] == 0) {
-                    gettimeofday(&tv1, NULL);
+                    // gettimeofday(&tv1, NULL);
                     pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
                 }
                 unit_flags[threadID] = 0;
@@ -759,7 +759,7 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
             mode = 0;
         }
     }
-    int sendIdx = 0, getIdx = 0;
+    // int sendIdx = 0, getIdx = 0;
     int rounds = 0, count = 0;
     getRounds(size, &count, &rounds);
     for (int i = 0; i <= peers; i++)

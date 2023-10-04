@@ -73,7 +73,7 @@ void convertFloat(float value, int K, int L, mpz_t **elements) {
     m = *newptr & 0x007fffff;
 
     int z;
-    long v, p, k;
+    long p, k;
     mpz_t significant, one, two, tmp, tmpm;
     mpz_init(significant);
     mpz_init(tmp);
@@ -162,7 +162,7 @@ void convertDouble(double value, int K, int L, mpz_t **elements) {
     m = (*newptr & temp);
 
     int z;
-    long v, p, k;
+    long p, k;
 
     mpz_t significant, tmp, tmpm, one, two;
     mpz_init(significant);

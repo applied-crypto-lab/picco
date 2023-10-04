@@ -75,25 +75,7 @@ void FL2Int::doOperation(mpz_t **values1, mpz_t *results, int L, int K, int gamm
         mpz_init(pow2[i]);
     }
 
-    /*****************************************************************/
-    /*mpz_t** resultShares = (mpz_t**)malloc(sizeof(mpz_t*)*3);
-    for(int i=0; i<3; ++i){
-                resultShares[i] = (mpz_t*)malloc(sizeof(mpz_t) * size);
-                for(int j=0; j<size; ++j)
-                        mpz_init(resultShares[i][j]);
-        }
-    /*****************************************************************/
-    // line 1
     Flround->doOperation(values, valuesP, modes, L, K, size, threadID);
-    /********************************************/
-    /*for(int i = 0; i < 4; i++){
-            net.broadcastToPeers(valuesP[i], size, resultShares, threadID);
-                ss->reconstructSecret(temp1, resultShares, size);
-            for(int j = 0; j < size; j++)
-            gmp_printf("%Zd ", temp1[j]);
-            printf("\n");
-    }
-    /********************************************/
     // line 2
     ss->modSub(temp1, valuesP[1], gamma - 1, size);
     Lt->doOperation(a, temp1, K, size, threadID);
