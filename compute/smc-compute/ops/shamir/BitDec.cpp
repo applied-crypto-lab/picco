@@ -20,23 +20,9 @@
 
 #include "BitDec.h"
 
-BitDec::BitDec(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // Add = new AddBitwise(nodeNet, poly, nodeID, s);
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-BitDec::~BitDec() {
-    // TODO Auto-generated destructor stub
-}
-
 // Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
 // Protocol 5.14 page 57
-void BitDec::doOperation(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID) {
+void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t *R1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
