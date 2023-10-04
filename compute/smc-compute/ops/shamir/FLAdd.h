@@ -38,9 +38,7 @@ public:
 
 private:
     LTZ *Lt;
-    // EQZ *Eq;
     Trunc *T;
-    BitDec *Bd;
     PreOr *Preor;
     Pow2 *P2;
     Inv *In;

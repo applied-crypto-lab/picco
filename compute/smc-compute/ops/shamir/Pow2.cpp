@@ -20,10 +20,6 @@
 #include "Pow2.h"
 
 Pow2::Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    Bd = new BitDec(nodeNet, poly, nodeID, s);
-    // PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
-
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -51,7 +47,7 @@ void Pow2::doOperation(mpz_t *result, mpz_t *A, int L, int size, int threadID) {
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);
     // start computation
-    Bd->doOperation(S, A, M, M, size, threadID);
+    doOperation_bitDec(S, A, M, M, size, threadID, net, id, ss);
     for (int i = 0; i < M; i++) {
         mpz_set_ui(constI, pow(2, i));
         ss->modPow(pow2M, const2, constI);

@@ -32,7 +32,6 @@ public:
     void doOperation(mpz_t *result, mpz_t *A, int L, int size, int threadID);
 
 private:
-    BitDec *Bd;
     // PrefixMultiplication *PreMul;
 };
 

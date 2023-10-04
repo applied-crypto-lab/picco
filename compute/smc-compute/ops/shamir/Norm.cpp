@@ -19,16 +19,9 @@
 */
 #include "Norm.h"
 
-Norm::Norm() {
-    // TODO Auto-generated constructor stub
-}
-
 Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Bt = new BitDec(nodeNet, poly, nodeID, s);
     Pre = new PreOr(nodeNet, poly, nodeID, s);
-
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -71,8 +64,8 @@ void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, in
     Lt->doOperation(s, b, k, size, threadID);
     ss->modMul(s, s, two, size);
     ss->modSub(s, one, s, size);
-        Mult(x, s, b, size, threadID, net, id, ss);
-    Bt->doOperation(xb, x, k, k, size, threadID);
+    Mult(x, s, b, size, threadID, net, id, ss);
+    doOperation_bitDec(xb, x, k, k, size, threadID, net, id, ss);
     for (int i = 0; i < k; ++i)
         for (int j = 0; j < size; ++j)
             mpz_set(xb1[k - i - 1][j], xb[i][j]);

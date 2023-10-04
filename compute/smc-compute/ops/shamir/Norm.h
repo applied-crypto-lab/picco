@@ -29,7 +29,6 @@
 
 class Norm : public Operation {
 public:
-    Norm();
     Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
     virtual ~Norm();
     void doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID);
@@ -37,7 +36,6 @@ public:
 private:
     LTZ *Lt;
     PreOr *Pre;
-    BitDec *Bt;
 };
 
 #endif /* NORM_SHAMIR_H_ */

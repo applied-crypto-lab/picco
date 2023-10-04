@@ -20,11 +20,6 @@
 #include "PrivIndex.h"
 
 PrivIndex::PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // Mul = new Mult(nodeNet, nodeID, s);
-    Bd = new BitDec(nodeNet, poly, nodeID, s);
-    // Eq = new EQZ(nodeNet, poly, nodeID, s);
-     // Rand = new Random(nodeNet, poly, nodeID, s); //
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -325,7 +320,7 @@ void PrivIndex::doOperationWrite(mpz_t *index, mpz_t *array, mpz_t *value, int d
     compute_private_conditions(temp3, out_cond, priv_cond, counter, size);
     for (int i = 0; i < dim; i++)
         binarySplit(i, bitArray[i], K);
-    Bd->doOperation(U, index, K, K, size, threadID);
+    doOperation_bitDec(U, index, K, K, size, threadID, net, id, ss);
     for (int i = 0; i < size; i++)
         for (int j = 0; j < K + 1; j++)
             mpz_set(U1[i][j], U[j][i]);
@@ -484,7 +479,6 @@ void PrivIndex::AllOr(mpz_t **array, int begin, int size, mpz_t **result, int ba
         }
         ss->modAdd(add_b, u1, v1, oPos);
         Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // 1 rou, net, id, ssnd
-        // std::cout << "	1Mul->do: " << oPos << std::endl;
         ss->modSub(u1, add_b, mul_b, oPos);
 
         int oPos2 = 0;

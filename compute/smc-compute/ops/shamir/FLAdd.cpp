@@ -21,11 +21,8 @@
 
 FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Mul = new Mult(nodeNet, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     T = new Trunc(nodeNet, poly, nodeID, s);
-    // Eq = new EQZ(nodeNet, poly, nodeID, s);
-    Bd = new BitDec(nodeNet, poly, nodeID, s);
     Preor = new PreOr(nodeNet, poly, nodeID, s);
     P2 = new Pow2(nodeNet, poly, nodeID, s);
     In = new Inv(nodeNet, poly, nodeID, s);
@@ -241,7 +238,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
     T->doOperation(V, temp2, 2 * K + 1, K - 1, size, threadID);
 
     // line 15 and 16
-    Bd->doOperation(H, V, K + 2, K + 2, size, threadID);
+    doOperation_bitDec(H, V, K + 2, K + 2, size, threadID, net, id, ss);
     mpz_t tmp;
     mpz_init(tmp);
 
