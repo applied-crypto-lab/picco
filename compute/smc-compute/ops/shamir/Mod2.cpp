@@ -20,22 +20,9 @@
 
 #include "Mod2.h"
 
-Mod2::Mod2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    polynomials = poly;
-    ss = s;
-}
-
-Mod2::~Mod2() {
-    // TODO Auto-generated destructor stub
-}
-
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.4 page 7
-void Mod2::doOperation(mpz_t *A, mpz_t *result, int K, int size, int threadID) {
+void doOperation_Mod2(mpz_t *A, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * 2);
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);

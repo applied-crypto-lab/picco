@@ -30,7 +30,7 @@ FL2Int::FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     Flround = new FLRound(nodeNet, poly, nodeID, s);
     Mod2ms = new Mod2MS(nodeNet, poly, nodeID, s);
-    P = new Pow2(nodeNet, poly, nodeID, s);
+    // P = new Pow2(nodeNet, poly, nodeID, s);
     I = new Inv(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
@@ -108,7 +108,7 @@ void FL2Int::doOperation(mpz_t **values1, mpz_t *results, int L, int K, int gamm
     // line 8
     Mult(temp1, c, valuesP[1], size, threadID, net, id, ss);
     ss->modSub(temp1, (long)0, temp1, size);
-    P->doOperation(pow2, temp1, L, size, threadID);
+    doOperation_Pow2(pow2, temp1, L, size, threadID, net, id, ss);
 
     // line 9
     I->doOperation(pow2, pow2, size, threadID);
@@ -133,7 +133,7 @@ void FL2Int::doOperation(mpz_t **values1, mpz_t *results, int L, int K, int gamm
     ss->modSub(temp1, 1, c, size);
     Mult(temp1, temp1, a, size, threadID, net, id, ss);
     Mult(temp1, temp1, valuesP[1], size, threadID, net, id, ss);
-    P->doOperation(pow2, temp1, gamma - 1, size, threadID);
+    doOperation_Pow2(pow2, temp1, gamma - 1, size, threadID, net, id, ss);
     // line 14
     ss->modSub(temp1, 1, valuesP[2], size);
     ss->modMul(temp2, valuesP[3], 2, size);

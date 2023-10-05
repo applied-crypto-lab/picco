@@ -82,7 +82,7 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     // Eq = new EQZ(*nodeNet, polynomials, id, ss);
     T = new Trunc(*nodeNet, polynomials, id, ss);
     Ts = new TruncS(*nodeNet, polynomials, id, ss);
-    P = new Pow2(*nodeNet, polynomials, id, ss);
+    // P = new Pow2(*nodeNet, polynomials, id, ss);
     BOps = new BitOps(*nodeNet, polynomials, id, ss);
     DProd = new DotProduct(*nodeNet, polynomials, id, ss);
     PI = new PrivIndex(*nodeNet, polynomials, id, ss);
@@ -1570,7 +1570,7 @@ void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
         ss->modPow2(result, b, size);
         ss->modMul(result, a, result, size);
     } else {
-        P->doOperation(result, b, blen, size, threadID);
+        doOperation_Pow2(result, b, blen, size, threadID, nNet, id, ss);
         Mult(result, result, a, size, threadID, nNet, id, ss);
     }
 }

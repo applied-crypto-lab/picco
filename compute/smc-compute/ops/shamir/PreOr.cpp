@@ -20,8 +20,6 @@
 #include "PreOr.h"
 
 PreOr::PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    M2 = new Mod2(nodeNet, poly, nodeID, s);
-    // PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -60,7 +58,7 @@ void PreOr::doOperation(mpz_t **result, mpz_t **C, int K, int size, int threadID
             mpz_set(c[i * size + j], b[i][j]);
         }
     }
-    M2->doOperation(c, c, K, K * size, threadID);
+    doOperation_Mod2(c, c, K, K * size, threadID, net, id, ss);
     for (int i = 1; i < K; i++)
         for (int j = 0; j < size; ++j)
             ss->modSub(result[i][j], 1, c[i * size + j]);

@@ -24,15 +24,6 @@
 #ifndef POW2_SHAMIR_H_
 #define POW2_SHAMIR_H_
 
-class Pow2 : public Operation {
-
-public:
-    Pow2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Pow2();
-    void doOperation(mpz_t *result, mpz_t *A, int L, int size, int threadID);
-
-private:
-    // PrefixMultiplication *PreMul;
-};
+void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* POW2_SHAMIR_H_ */

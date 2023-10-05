@@ -30,9 +30,6 @@ public:
     virtual ~BitLTC();
     void doOperation(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID);
 
-private:
-    // PrefixMultiplication *PreMul;
-    Mod2 *Mod;
 };
 
 #endif /* BITLTC_SHAMIR_H_ */

@@ -30,9 +30,6 @@ public:
     virtual ~PreOr();
     void doOperation(mpz_t **result, mpz_t **A, int K, int size, int threadID);
 
-private:
-    Mod2 *M2;
-    // PrefixMultiplication *PreMul;
 };
 
 #endif /* PREOR_SHAMIR_H_ */

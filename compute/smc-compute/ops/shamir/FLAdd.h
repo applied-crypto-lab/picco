@@ -40,7 +40,6 @@ private:
     LTZ *Lt;
     Trunc *T;
     PreOr *Preor;
-    Pow2 *P2;
     Inv *In;
 };
 

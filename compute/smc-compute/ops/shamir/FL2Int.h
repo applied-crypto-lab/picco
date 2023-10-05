@@ -39,7 +39,6 @@ private:
     LTZ *Lt;
     FLRound *Flround;
     Mod2MS *Mod2ms;
-    Pow2 *P;
     Inv *I;
 };
 

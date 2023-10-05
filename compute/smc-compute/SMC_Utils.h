@@ -579,7 +579,6 @@ private:
     Int2FL *I2F;
     FL2Int *F2I;
     IntDiv *Idiv;
-    Pow2 *P;
     // Handle client connections and polynomail stuff
     void clientConnect();
     void receivePolynomials(std::string privatekey_filename);

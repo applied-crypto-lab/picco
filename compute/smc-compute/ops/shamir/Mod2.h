@@ -24,15 +24,6 @@
 #include "Operation.h"
 #include "Random.h"
 
-class Mod2 : public Operation {
-public:
-    Mod2();
-    Mod2(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Mod2();
-    void doOperation(mpz_t *A, mpz_t *result, int K, int size, int threadID);
 
-private:
-    // Random *Rand;
-};
-
+void doOperation_Mod2(mpz_t *A, mpz_t *result, int K, int size, int threadID,NodeNetwork net, int id, SecretShare *ss);
 #endif /* MOD2_SHAMIR_H_ */

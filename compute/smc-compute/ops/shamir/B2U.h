@@ -35,7 +35,7 @@ public:
     void doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID);
 
 private:
-    Pow2 *Pw2;
+    // Pow2 *Pw2;
     PreOr *Por;
 };
 
