@@ -85,7 +85,7 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     // P = new Pow2(*nodeNet, polynomials, id, ss);
     // BOps = new BitOps(*nodeNet, polynomials, id, ss);
     // DProd = new DotProduct(*nodeNet, polynomials, id, ss);
-    PI = new PrivIndex(*nodeNet, polynomials, id, ss);
+    // PI = new PrivIndex(*nodeNet, polynomials, id, ss);
     PP = new PrivPtr(net, id, ss);
     // Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
     // I2F = new Int2FL(*nodeNet, polynomials, id, ss);
@@ -1599,13 +1599,13 @@ void SMC_Utils::smc_dot(mpz_t **a, mpz_t **b, int size, int array_size, mpz_t *r
 
 // one-dimension private integer singular read
 void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t *array, mpz_t result, int dim, std::string type, int threadID) {
-    PI->doOperation_int(index, array, result, dim, 0, threadID);
+    doOperation_PrivIndex_int(index, array, result, dim, 0, threadID, net, id, ss);
     // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_init_set(index_tmp[0], index);
     // mpz_init(result_tmp[0]);
 
-    // PI->doOperationRead(index_tmp, array, result_tmp, dim, 1, threadID, 0);
+    // doOperation_PrivIndex_Read(index_tmp, array, result_tmp, dim, 1, threadID, 0, net, id, ss);
     // mpz_set(result, result_tmp[0]);
 
     // smc_batch_free_operator(&index_tmp, 1);
@@ -1615,7 +1615,7 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t *array, mpz_t result, int 
 // two-dimension private integer singular read
 void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, std::string type, int threadID) {
 
-    PI->doOperation_int_arr(index, array, result, dim1, dim2, 0, threadID);
+    doOperation_PrivIndex_int_arr(index, array, result, dim1, dim2, 0, threadID, net, id, ss);
 
     // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * dim1 * dim2);
@@ -1627,7 +1627,7 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t result, int
     //     for (int j = 0; j < dim2; j++)
     //         mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
 
-    // PI->doOperationRead(index_tmp, array_tmp, result_tmp, dim1 * dim2, 1, threadID, 0);
+    // doOperation_PrivIndex_Read(index_tmp, array_tmp, result_tmp, dim1 * dim2, 1, threadID, 0, net, id, ss);
     // mpz_set(result, result_tmp[0]);
 
     // smc_batch_free_operator(&index_tmp, 1);
@@ -1637,7 +1637,7 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t result, int
 
 // one-dimension private float singular read
 void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t *result, int dim, std::string type, int threadID) {
-    PI->doOperation_float(index, array, result, dim, 1, threadID);
+    doOperation_PrivIndex_float(index, array, result, dim, 1, threadID, net, id, ss);
     // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * 4 * dim);
     // mpz_init_set(index_tmp[0], index);
@@ -1645,7 +1645,7 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t *result, in
     //     for (int j = 0; j < 4; j++)
     //         mpz_init_set(array_tmp[4 * i + j], array[i][j]);
 
-    // PI->doOperationRead(index_tmp, array_tmp, result, dim, 1, threadID, 1);
+    // doOperation_PrivIndex_Read(index_tmp, array_tmp, result, dim, 1, threadID, 1, net, id, ss);
 
     // smc_batch_free_operator(&index_tmp, 1);
     // smc_batch_free_operator(&array_tmp, 4 * dim);
@@ -1653,7 +1653,7 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t *result, in
 
 // two-dimension private float singular read
 void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t ***array, mpz_t *result, int dim1, int dim2, std::string type, int threadID) {
-    PI->doOperation_float_arr(index, array, result, dim1, dim2, 0, threadID);
+    doOperation_PrivIndex_float_arr(index, array, result, dim1, dim2, 0, threadID, net, id, ss);
 
     // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * 4 * dim1 * dim2);
@@ -1663,7 +1663,7 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t ***array, mpz_t *result, i
     //         for (int k = 0; k < 4; k++)
     //             mpz_init_set(array_tmp[4 * (i * dim2 + j) + k], array[i][j][k]);
 
-    // PI->doOperationRead(index_tmp, array_tmp, result, dim1 * dim2, 1, threadID, 1);
+    // doOperation_PrivIndex_Read(index_tmp, array_tmp, result, dim1 * dim2, 1, threadID, 1, net, id, ss);
 
     // smc_batch_free_operator(&index_tmp, 1);
     // smc_batch_free_operator(&array_tmp, 4 * dim1 * dim2);
@@ -1672,9 +1672,9 @@ void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t ***array, mpz_t *result, i
 // one-dimension private integer singular write
 void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t *array, int len_sig, int len_exp, int value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
 
-    PI->doOperationWrite((mpz_t *)index, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write((mpz_t *)index, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
-    // PI->doOperationWrite_int(index_tmp, array, value_tmp, dim, 1, out_cond, priv_cond, counter, threadID, 0);
+    // doOperation_PrivIndex_Write_int(index_tmp, array, value_tmp, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     // mpz_t val;
     // mpz_init_set_si(val, value);
@@ -1684,14 +1684,14 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t *array, int len_sig, int 
 
 void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t *array, int len_sig, int len_exp, mpz_t value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
 
-    PI->doOperationWrite((mpz_t *)index, array, (mpz_t *)value, dim, 1, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write((mpz_t *)index, array, (mpz_t *)value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     //     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     //     mpz_t *value_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     //     mpz_init_set(index_tmp[0], index);
     //     mpz_init_set(value_tmp[0], value);
 
-    //     PI->doOperationWrite(index_tmp, array, value_tmp, dim, 1, out_cond, priv_cond, counter, threadID, 0);
+    //     doOperation_PrivIndex_Write(index_tmp, array, value_tmp, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     //     smc_batch_free_operator(&index_tmp, 1);
     //     smc_batch_free_operator(&value_tmp, 1);
@@ -1700,7 +1700,7 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t *array, int len_sig, int 
 // two-dimension private integer singular write
 void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, int value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
 
-    PI->doOperationWrite_2d((mpz_t *)index, array, &value, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write_2d((mpz_t *)index, array, &value, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     // mpz_t val;
     // mpz_init_set_si(val, value);
@@ -1709,7 +1709,7 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int
 }
 
 void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, mpz_t value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
-    PI->doOperationWrite_2d((mpz_t *)index, array, (mpz_t *)value, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write_2d((mpz_t *)index, array, (mpz_t *)value, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * dim1 * dim2);
@@ -1721,7 +1721,7 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int
     //     for (int j = 0; j < dim2; j++)
     //         mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
 
-    // PI->doOperationWrite(index_tmp, array_tmp, value_tmp, dim1 * dim2, 1, out_cond, priv_cond, counter, threadID, 0);
+    // doOperation_PrivIndex_Write(index_tmp, array_tmp, value_tmp, dim1 * dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     // for (int i = 0; i < dim1; i++)
     //     for (int j = 0; j < dim2; j++)
@@ -1751,7 +1751,7 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int
         for (int j = 0; j < 4; j++)
             mpz_init_set(array_tmp[4 * i + j], array[i][j]);
 
-    PI->doOperationWrite(index_tmp, array_tmp, value, dim, 1, out_cond, priv_cond, counter, threadID, 1);
+    doOperation_PrivIndex_Write(index_tmp, array_tmp, value, dim, 1, out_cond, priv_cond, counter, threadID, 1, net, id, ss);
 
     for (int i = 0; i < dim; i++)
         for (int j = 0; j < 4; j++)
@@ -1781,7 +1781,7 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t ***array, int len_sig, in
             for (int k = 0; k < 4; k++)
                 mpz_init_set(array_tmp[4 * (i * dim2 + j) + k], array[i][j][k]);
 
-    PI->doOperationWrite(index_tmp, array_tmp, value, dim1 * dim2, 1, out_cond, priv_cond, counter, threadID, 1);
+    doOperation_PrivIndex_Write(index_tmp, array_tmp, value, dim1 * dim2, 1, out_cond, priv_cond, counter, threadID, 1, net, id, ss);
 
     for (int i = 0; i < dim1; i++)
         for (int j = 0; j < dim2; j++)
@@ -1794,7 +1794,7 @@ void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t ***array, int len_sig, in
 
 // one-dimension private integer batch read
 void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t *arrays, mpz_t *results, int dim, int size, std::string type, int threadID) {
-    PI->doOperationRead(indices, arrays, results, dim, size, threadID, 0);
+    doOperation_PrivIndex_Read(indices, arrays, results, dim, size, threadID, 0, net, id, ss);
 }
 
 // two-dimension private integer batch read
@@ -1803,7 +1803,7 @@ void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t **array, mpz_t *results
     for (int i = 0; i < dim1; i++)
         for (int j = 0; j < dim2; j++)
             mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
-    PI->doOperationRead(indices, array_tmp, results, dim1 * dim2, size, threadID, 0);
+    doOperation_PrivIndex_Read(indices, array_tmp, results, dim1 * dim2, size, threadID, 0, net, id, ss);
     smc_batch_free_operator(&array_tmp, dim1 * dim2);
 }
 
@@ -1818,7 +1818,7 @@ void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t **array, mpz_t **result
     for (int i = 0; i < 4 * size; i++)
         mpz_init(result_tmp[i]);
 
-    PI->doOperationRead(indices, array_tmp, result_tmp, dim, size, threadID, 1);
+    doOperation_PrivIndex_Read(indices, array_tmp, result_tmp, dim, size, threadID, 1, net, id, ss);
 
     for (int i = 0; i < size; i++)
         for (int j = 0; j < 4; j++)
@@ -1840,7 +1840,7 @@ void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t ***array, mpz_t **resul
     for (int i = 0; i < 4 * size; i++)
         mpz_init(result_tmp[i]);
 
-    PI->doOperationRead(indices, array_tmp, result_tmp, dim1 * dim2, size, threadID, 1);
+    doOperation_PrivIndex_Read(indices, array_tmp, result_tmp, dim1 * dim2, size, threadID, 1, net, id, ss);
 
     for (int i = 0; i < size; i++)
         for (int j = 0; j < 4; j++)
@@ -1853,7 +1853,7 @@ void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t ***array, mpz_t **resul
 // one-dimension private integer batch write
 void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, int len_exp, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
 
-    PI->doOperationWrite(indices, array, values, dim, size, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write(indices, array, values, dim, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     // mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
     // for (int i = 0; i < size; i++)
@@ -1863,7 +1863,7 @@ void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, i
 }
 
 void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, int len_exp, mpz_t *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
-    PI->doOperationWrite(indices, array, values, dim, size, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write(indices, array, values, dim, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
 void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
@@ -1881,7 +1881,7 @@ void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, 
         for (int j = 0; j < dim2; j++)
             mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
 
-    PI->doOperationWrite(indices, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0);
+    doOperation_PrivIndex_Write(indices, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 
     for (int i = 0; i < dim1; i++)
         for (int j = 0; j < dim2; j++)
@@ -1914,7 +1914,7 @@ void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, 
         for (int j = 0; j < 4; j++)
             mpz_init_set(value_tmp[i * 4 + j], values[i][j]);
 
-    PI->doOperationWrite(indices, array_tmp, value_tmp, dim, size, out_cond, priv_cond, counter, threadID, 1);
+    doOperation_PrivIndex_Write(indices, array_tmp, value_tmp, dim, size, out_cond, priv_cond, counter, threadID, 1, net, id, ss);
 
     for (int i = 0; i < dim; i++)
         for (int j = 0; j < 4; j++)
@@ -1949,7 +1949,7 @@ void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig,
         for (int j = 0; j < 4; j++)
             mpz_init_set(value_tmp[4 * i + j], values[i][j]);
 
-    PI->doOperationWrite(indices, array_tmp, value_tmp, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 1);
+    doOperation_PrivIndex_Write(indices, array_tmp, value_tmp, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 1, net, id, ss);
 
     for (int i = 0; i < dim1; i++)
         for (int j = 0; j < dim2; j++)
@@ -3884,7 +3884,6 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
         for (int j = 0; j < size; j++) {
             mpz_mul_ui(temp, V[i][j], pow);
             ss->modAdd(res_check[j], res_check[j], temp);
-
         }
     }
 
@@ -3893,15 +3892,10 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
         gmp_printf("result[%i] %Zu\n", j, res[j]);
     }
 
-
     Open(res_check, res, size, threadID, net, ss);
     for (int j = 0; j < size; j++) {
         gmp_printf("res_check[%i] %Zu\n", j, res[j]);
     }
-
-
-
-
 
     for (int i = 0; i < Kp1; ++i) {
         for (int j = 0; j < size; ++j)

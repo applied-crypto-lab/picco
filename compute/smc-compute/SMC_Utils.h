@@ -574,7 +574,7 @@ private:
     // FLEQZ *Fleqz;
     // FLDiv *Fldiv;
     // FPDiv *Fpdiv;
-    PrivIndex *PI;
+    // PrivIndex *PI;
     PrivPtr *PP;
     // Int2FL *I2F;
     // FL2Int *F2I;
