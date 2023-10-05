@@ -91,10 +91,10 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     I2F = new Int2FL(*nodeNet, polynomials, id, ss);
     F2I = new FL2Int(*nodeNet, polynomials, id, ss);
     // Fladd = new FLAdd(*nodeNet, polynomials, id, ss);
-    Flmult = new FLMult(*nodeNet, polynomials, id, ss);
+    // Flmult = new FLMult(*nodeNet, polynomials, id, ss);
     // Fldiv = new FLDiv(*nodeNet, polynomials, id, ss);
-    Flltz = new FLLTZ(*nodeNet, polynomials, id, ss);
-    Fleqz = new FLEQZ(*nodeNet, polynomials, id, ss);
+    // Flltz = new FLLTZ(*nodeNet, polynomials, id, ss);
+    // Fleqz = new FLEQZ(*nodeNet, polynomials, id, ss);
     // Fpdiv = new FPDiv(*nodeNet, polynomials, id, ss);
     // for test purposes
 }
@@ -858,7 +858,7 @@ void SMC_Utils::smc_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int
     /*********************************************************/
 
     if (!strcmp(op.c_str(), "*"))
-        Flmult->doOperation(as, bs, results, len_sig, 1, threadID);
+        doOperation_FLMult(as, bs, results, len_sig, 1, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "+"))
         doOperation_FLAdd(as, bs, results, len_sig, len_exp, 1, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "/"))
@@ -896,9 +896,9 @@ void SMC_Utils::smc_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int 
     /***********************************************/
 
     if (!strcmp(op.c_str(), "<0"))
-        Flltz->doOperation(as, bs, results, len_sig, len_exp, 1, threadID);
+        doOperation_FLLTZ(as, bs, results, len_sig, len_exp, 1, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "=="))
-        Fleqz->doOperation(as, bs, results, len_sig, len_exp, 1, threadID);
+        doOperation_FLEQZ(as, bs, results, len_sig, len_exp, 1, threadID, net, id, ss);
 
     mpz_set(result, results[0]);
 
@@ -913,7 +913,7 @@ void SMC_Utils::smc_batch_fop_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, i
     int len_sig = 0, len_exp = 0;
     smc_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size);
     if (!strcmp(op.c_str(), "*"))
-        Flmult->doOperation(a, b, result, len_sig, size, threadID);
+        doOperation_FLMult(a, b, result, len_sig, size, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "+"))
         doOperation_FLAdd(a, b, result, len_sig, len_exp, size, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "/"))
@@ -926,9 +926,9 @@ void SMC_Utils::smc_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, in
     int len_sig = 0, len_exp = 0;
     smc_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size);
     if (!strcmp(op.c_str(), "<0"))
-        Flltz->doOperation(a, b, result, len_sig, len_exp, size, threadID);
+        doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "=="))
-        Fleqz->doOperation(a, b, result, len_sig, len_exp, size, threadID);
+        doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, id, ss);
 }
 
 /* All Comparisons */

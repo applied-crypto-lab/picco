@@ -569,9 +569,9 @@ private:
     // Trunc *T;
     // TruncS *Ts;
     // FLAdd *Fladd;
-    FLMult *Flmult;
-    FLLTZ *Flltz;
-    FLEQZ *Fleqz;
+    // FLMult *Flmult;
+    // FLLTZ *Flltz;
+    // FLEQZ *Fleqz;
     // FLDiv *Fldiv;
     // FPDiv *Fpdiv;
     PrivIndex *PI;

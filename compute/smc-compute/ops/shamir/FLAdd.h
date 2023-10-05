@@ -30,6 +30,6 @@
 #include "PreOr.h"
 #include "Trunc.h"
 
-    void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* FLOATADD_SHAMIR_H_ */

@@ -19,20 +19,7 @@
 */
 #include "FLMult.h"
 
-FLMult::FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    // T = new Trunc(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-FLMult::~FLMult() {
-    // TODO Auto-generated destructor stub
-}
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLMult, page 6
@@ -40,7 +27,7 @@ FLMult::~FLMult() {
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/
 /*A[3](B[3]) contains a sign bit S*/
-void FLMult::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size, int threadID) {
+    void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss){
 
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);

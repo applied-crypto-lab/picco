@@ -33,5 +33,5 @@ public:
 private:
     // EQZ *Eq;
 };
-
+void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net, int id, SecretShare *ss) ;
 #endif /* FLOATEQZ_SHAMIR_H_ */

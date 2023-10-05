@@ -19,20 +19,20 @@
 */
 #include "FLEQZ.h"
 
-FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // Mul = new Mult(nodeNet, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
+// FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
+//     // Mul = new Mult(nodeNet, nodeID, s);
+//     net = nodeNet;
+//     id = nodeID;
+//     ss = s;
+// }
 
-FLEQZ::~FLEQZ() {
-    // TODO Auto-generated destructor stub
-}
+// FLEQZ::~FLEQZ() {
+//     // TODO Auto-generated destructor stub
+// }
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Based on Protocol FLLT, page 9
-void FLEQZ::doOperation(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID) {
+void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net, int id, SecretShare *ss) {
 
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);

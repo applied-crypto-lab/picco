@@ -25,15 +25,6 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class FLLTZ : public Operation {
-public:
-    FLLTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FLLTZ();
-    void doOperation(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID);
-
-private:
-    // LTZ *Lt;
-    // EQZ *Eq;
-};
+void doOperation_FLLTZ(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* FLOATLTZ_SHAMIR_H_ */
