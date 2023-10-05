@@ -20,7 +20,7 @@
 #include "Mod2MS.h"
 
 Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    B2u = new B2U(nodeNet, poly, nodeID, s);
+    // B2u = new B2U(nodeNet, poly, nodeID, s);
     Iv = new Inv(nodeNet, poly, nodeID, s);
     // Mul = new Mult(nodeNet, nodeID, s);
     Ltz = new LTZ(nodeNet, poly, nodeID, s);
@@ -84,7 +84,7 @@ void Mod2MS::doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, 
     mpz_init_set_ui(const2, 2);
     mpz_init_set_ui(constL, L);
     ss->modPow(pow2L, const2, constL);
-    B2u->doOperation(M, L, X, size, threadID);
+    doOperation_B2U(M, L, X, size, threadID, net, id, ss);
     PRandM(L, size, R, threadID, net, id, ss);
 
     for (int i = 0; i < L; i++) {

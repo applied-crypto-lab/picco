@@ -19,19 +19,10 @@
 */
 #include "TruncPr.h"
 
-TruncPr::~TruncPr() {}
-
-TruncPr::TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-}
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.1, page 6
-void TruncPr::doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID) {
+void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));

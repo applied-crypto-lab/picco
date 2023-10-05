@@ -28,7 +28,7 @@ Int2FL::Int2FL() {
 Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Pre = new PreOr(nodeNet, poly, nodeID, s);
+    // Pre = new PreOr(nodeNet, poly, nodeID, s);
     T = new Trunc(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
@@ -94,7 +94,7 @@ void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int 
             mpz_set(S[i][j], S[lambda - i - 1][j]);
             mpz_set(S[lambda - i - 1][j], tmp);
         }
-    Pre->doOperation(S, S, lambda, size, threadID);
+    doOperation_PreOr(S, S, lambda, size, threadID, net, id, ss);
     // line 7
     for (int i = 0; i < lambda; i++) {
         for (int j = 0; j < size; j++)

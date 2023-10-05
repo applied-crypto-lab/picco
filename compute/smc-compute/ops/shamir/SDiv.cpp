@@ -23,7 +23,7 @@ SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, in
 
     // Mul = new Mult(nodeNet, nodeID, s);
     Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
+    // Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -35,7 +35,7 @@ SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, in
 
     // Mul = new Mult(nodeNet, nodeID, s);
     Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
+    // Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -84,7 +84,7 @@ void SDiv::doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int thread
     for (int i = 1; i <= sita - 1; i++) {
         ss->modSub(temp, const2K1, X1, 2 * size);
         Mult(temp, XY, temp, 2 * size, threadID, net, id, ss);
-        Truncpr->doOperation(XY, temp, 2 * K + 1, K, 2 * size, threadID);
+        doOperation_TruncPr(XY, temp, 2 * K + 1, K, 2 * size, threadID, net, id, ss);
         for (int j = 0; j < size; j++) {
             mpz_set(X1[j], XY[size + j]);
             mpz_set(X1[size + j], XY[size + j]);
@@ -98,7 +98,7 @@ void SDiv::doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int thread
 
     ss->modSub(temp1, const2K1, temp1, size);
     Mult(temp1, Y, temp1, size, threadID, net, id, ss);
-    Truncpr->doOperation(Y, temp1, 2 * K + 1, K, size, threadID);
+    doOperation_TruncPr(Y, temp1, 2 * K + 1, K, size, threadID, net, id, ss);
 
     // free the memory
     mpz_clear(const2);
@@ -171,14 +171,14 @@ void SDiv::doOperation_2(mpz_t *Y, mpz_t *A, mpz_t *B, int size) {
             gmp_printf("temp2 : %Zd\n", temp[i]); */
         /********/
         Mult(temp3, Y, temp2, size,-1, net, id, ss);
-        Truncpr->doOperation(Y, temp3, 2 * K + 1, K, size, -1);
+        doOperation_TruncPr(Y, temp3, 2 * K + 1, K, size, -1, net, id, ss);
         ss->modSub(temp2, const2K1, X, size);
         Mult(temp3, X, temp2, size,-1, net, id, ss);
-        Truncpr->doOperation(X, temp3, 2 * K + 1, K, size, -1);
+        doOperation_TruncPr(X, temp3, 2 * K + 1, K, size, -1, net, id, ss);
     }
     ss->modSub(temp2, const2K1, X, size);
     Mult(temp3, Y, temp2, size,-1, net, id, ss);
-    Truncpr->doOperation(Y, temp3, 2 * K + 1, K, size, -1);
+    doOperation_TruncPr(Y, temp3, 2 * K + 1, K, size, -1, net, id, ss);
     // free the memory
     mpz_clear(const2);
     mpz_clear(constK1);

@@ -42,8 +42,6 @@ public:
 
 private:
     IntAppRcr *App;
-    TruncPr *T;
-    // EQZ *Eq;
     LTZ *Lt;
 };
 

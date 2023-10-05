@@ -19,13 +19,6 @@
 */
 #include "PreOr.h"
 
-PreOr::PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-PreOr::~PreOr() {}
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.4, page 12
@@ -33,7 +26,7 @@ PreOr::~PreOr() {}
 // C[K][size]
 // K = Number of things in a single prefix operations
 // size = Number of prefix operations to do in parallel
-void PreOr::doOperation(mpz_t **result, mpz_t **C, int K, int size, int threadID) {
+void doOperation_PreOr(mpz_t **result, mpz_t **C, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t **b = (mpz_t **)malloc(sizeof(mpz_t *) * K);
     mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * K * size);
     // initialization

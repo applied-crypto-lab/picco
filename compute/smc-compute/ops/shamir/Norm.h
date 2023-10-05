@@ -35,7 +35,7 @@ public:
 
 private:
     LTZ *Lt;
-    PreOr *Pre;
+    // PreOr *Pre;
 };
 
 #endif /* NORM_SHAMIR_H_ */

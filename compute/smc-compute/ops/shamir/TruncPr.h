@@ -24,14 +24,6 @@
 #include "Operation.h"
 #include "Random.h"
 
-class TruncPr : public Operation {
-public:
-    TruncPr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~TruncPr();
-    void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
-
-private:
-    // Random *Rand;
-};
+void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* TRUNCPR_SHAMIR_H_ */

@@ -24,7 +24,7 @@ IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     // Mul = new Mult(nodeNet, nodeID, s);
     App = new IntAppRcr(nodeNet, poly, nodeID, s);
     // need to use
-    T = new TruncPr(nodeNet, poly, nodeID, s);
+    // T = new TruncPr(nodeNet, poly, nodeID, s);
     // Eq = new EQZ(nodeNet, poly, nodeID, s);
     Lt = new LTZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
@@ -116,7 +116,7 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     }
 
     ss->modMul(temp, temp, a_tmp, size);
-    T->doOperation(result, temp, 2 * k + lambda, k + lambda, size, threadID);
+    doOperation_TruncPr(result, temp, 2 * k + lambda, k + lambda, size, threadID, net, id, ss);
 
     ss->copy(result, c, size);
     ss->modMul(temp, c, denom, size);
@@ -249,18 +249,18 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     Mult(x, b_tmp, w, size, threadID, net, id, ss);
     Mult(y, a_tmp, w, size, threadID, net, id, ss);
     ss->modSub(x, alpha, x, size);
-    T->doOperation(y, y, 2 * k, k - lambda, size, threadID);
+    doOperation_TruncPr(y, y, 2 * k, k - lambda, size, threadID, net, id, ss);
 
     for (int i = 0; i < theta - 1; i++) {
         ss->modAdd(temp, x, alpha, size);
         Mult(y, y, temp, size, threadID, net, id, ss);
         Mult(x, x, x, size, threadID, net, id, ss);
-        T->doOperation(y, y, 2 * k + lambda, k, size, threadID);
-        T->doOperation(x, x, 2 * k, k, size, threadID);
+        doOperation_TruncPr(y, y, 2 * k + lambda, k, size, threadID, net, id, ss);
+        doOperation_TruncPr(x, x, 2 * k, k, size, threadID, net, id, ss);
     }
     ss->modAdd(x, x, alpha, size);
     Mult(y, y, x, size, threadID, net, id, ss);
-    T->doOperation(result, y, 2 * k + lambda, k + lambda, size, threadID);
+    doOperation_TruncPr(result, y, 2 * k + lambda, k + lambda, size, threadID, net, id, ss);
     /******************** VERSION 1 ***************************/
     /**********************************************************/
     ss->copy(result, c, size);

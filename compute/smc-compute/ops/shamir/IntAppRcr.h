@@ -33,7 +33,7 @@ public:
 
 private:
     Norm *No;
-    TruncPr *T;
+    // TruncPr *T;
 };
 
 #endif /* INTAPPRCR_SHAMIR_H_ */

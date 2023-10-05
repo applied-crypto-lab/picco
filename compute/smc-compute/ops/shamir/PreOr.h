@@ -24,12 +24,6 @@
 #include "Operation.h"
 #include "PrefixMultiplication.h"
 
-class PreOr : public Operation {
-public:
-    PreOr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~PreOr();
-    void doOperation(mpz_t **result, mpz_t **A, int K, int size, int threadID);
-
-};
+void doOperation_PreOr(mpz_t **result, mpz_t **A, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* PREOR_SHAMIR_H_ */

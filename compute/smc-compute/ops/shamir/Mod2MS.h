@@ -35,7 +35,7 @@ public:
     void doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *InvM, int L, int size, int threadID);
 
 private:
-    B2U *B2u;
+    // B2U *B2u;
     Inv *Iv;
     LTZ *Ltz;
     // Random *Rand;

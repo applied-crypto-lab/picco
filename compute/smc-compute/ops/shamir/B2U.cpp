@@ -20,22 +20,10 @@
 
 #include "B2U.h"
 
-B2U::B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // Pw2 = new Pow2(nodeNet, poly, nodeID, s);
-    // Mul = new Mult(nodeNet, nodeID, s);
-    Por = new PreOr(nodeNet, poly, nodeID, s);
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-B2U::~B2U() {}
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol B2U, page 4
-void B2U::doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID) {
+void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t *pow2A = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -101,7 +89,7 @@ void B2U::doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID) {
         ss->modSub(temp1, temp1, temp, size);
         ss->copy(temp1, R[i], size);
     }
-    Por->doOperation(R, R, L, size, threadID);
+    doOperation_PreOr(R, R, L, size, threadID, net, id, ss);
     for (int i = 0; i < L; i++)
         ss->modSub(result[i], const1, R[i], size);
     ss->copy(pow2A, result[L], size);

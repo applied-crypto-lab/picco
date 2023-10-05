@@ -39,7 +39,7 @@ public:
 private:
     LTZ *Lt;
     Trunc *T;
-    PreOr *Preor;
+    // PreOr *Preor;
     Inv *In;
 };
 

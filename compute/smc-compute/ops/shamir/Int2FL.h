@@ -37,7 +37,7 @@ public:
 
 private:
     LTZ *Lt;
-    PreOr *Pre;
+    // PreOr *Pre;
     Trunc *T;
     // EQZ *Eq;
 };

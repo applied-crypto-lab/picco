@@ -28,15 +28,6 @@
 #ifndef B2U_SHAMIR_H_
 #define B2U_SHAMIR_H_
 
-class B2U : public Operation {
-public:
-    B2U(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~B2U();
-    void doOperation(mpz_t *A, int L, mpz_t **result, int size, int threadID);
-
-private:
-    // Pow2 *Pw2;
-    PreOr *Por;
-};
+    void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* B2U_SHAMIR_H_ */

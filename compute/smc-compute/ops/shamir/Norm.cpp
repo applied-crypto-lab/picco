@@ -21,7 +21,7 @@
 
 Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Pre = new PreOr(nodeNet, poly, nodeID, s);
+    // Pre = new PreOr(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -69,7 +69,7 @@ void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, in
     for (int i = 0; i < k; ++i)
         for (int j = 0; j < size; ++j)
             mpz_set(xb1[k - i - 1][j], xb[i][j]);
-    Pre->doOperation(xb1, xb1, k, size, threadID);
+    doOperation_PreOr(xb1, xb1, k, size, threadID, net, id, ss);
     for (int i = 0; i < k; i++)
         for (int j = 0; j < size; j++)
             mpz_set(xb[i][j], xb1[k - i - 1][j]);

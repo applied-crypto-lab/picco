@@ -33,7 +33,6 @@ public:
 
 private:
     AppRcr *App;
-    TruncPr *T;
 };
 
 #endif /* FPDIV_SHAMIR_H_ */
