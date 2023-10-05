@@ -22,8 +22,8 @@
 FLMult::FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     // Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
-    T = new Trunc(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // T = new Trunc(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -119,16 +119,16 @@ void FLMult::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int siz
     /*compute v1 * v2*/
     for (int i = 0; i < size; i++)
         mpz_set(V[i], temp5[i]);
-    T->doOperation(V, V, 2 * K, K - 1, size, threadID);
+    doOperation_Trunc(V, V, 2 * K, K - 1, size, threadID, net, id, ss);
     ss->modSub(temp1, V, constP2L, size);
-    Lt->doOperation(A1, temp1, K + 1, size, threadID);
+    doOperation_LTZ(A1, temp1, K + 1, size, threadID, net, id, ss);
 
     Mult(temp1, V, A1, size, threadID, net, id, ss);
     ss->modMul(temp2, temp1, const2, size);
 
     ss->modSub(temp1, V, temp1, size);
     ss->modAdd(temp1, temp1, temp2, size);
-    T->doOperation(result[0], temp1, K + 1, 1, size, threadID);
+    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
 
     /*computes the power*/
     ss->modSub(temp1, const1, result[2], size);

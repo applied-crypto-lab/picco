@@ -34,7 +34,7 @@ public:
     void doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID);
 
 private:
-    LTZ *Lt;
+    // LTZ *Lt;
     // PreOr *Pre;
 };
 

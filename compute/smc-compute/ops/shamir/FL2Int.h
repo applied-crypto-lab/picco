@@ -36,7 +36,7 @@ public:
     void doOperation(mpz_t **values, mpz_t *results, int K, int L, int gamma, int size, int threadID);
 
 private:
-    LTZ *Lt;
+    // LTZ *Lt;
     FLRound *Flround;
     Mod2MS *Mod2ms;
     Inv *I;

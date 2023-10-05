@@ -21,8 +21,8 @@
 
 FLDiv::FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
     // Mul = new Mult(nodeNet, nodeID, s);
-    T = new Trunc(nodeNet, poly, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // T = new Trunc(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
     Sdiv = new SDiv(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
@@ -85,17 +85,17 @@ void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
         mpz_div(temp1[i], const2K, temp1[i]);
         ss->modMul(Y[i], Y[i], temp1[i]);
     }
-    T->doOperation(Y, Y, 2 * K, K, size, threadID);
+    doOperation_Trunc(Y, Y, 2 * K, K, size, threadID, net, id, ss);
     // line 2
     ss->modSub(temp1, Y, beta, size);
-    Lt->doOperation(b, temp1, K + 1, size, threadID);
+    doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
     // line 3
     ss->modSub(temp1, const1, b, size);
     Mult(temp1, temp1, Y, size, threadID, net, id, ss);
     Mult(temp2, b, Y, size, threadID, net, id, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
-    T->doOperation(result[0], temp1, K + 1, 1, size, threadID);
+    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
     // line 4
     ss->modSub(temp1, const1, A[2], size);
     ss->modSub(temp2, A[1], B[1], size);
@@ -196,14 +196,14 @@ void FLDiv::doOperation(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size
     Sdiv->doOperation(Y, Y, temp1, K, size, threadID);
     // line 2
     ss->modSub(temp1, Y, beta, size);
-    Lt->doOperation(b, temp1, K + 1, size, threadID);
+    doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
     // line 3
     ss->modSub(temp1, const1, b, size);
     Mult(temp1, temp1, Y, size, threadID, net, id, ss);
     Mult(temp2, b, Y, size, threadID, net, id, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
-    T->doOperation(result[0], temp1, K + 1, 1, size, threadID);
+    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
     // line 4
     ss->modSub(temp1, const1, A[2], size);
     ss->modSub(temp2, A[1], B[1], size);

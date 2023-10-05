@@ -35,8 +35,8 @@ public:
     void doOperation(mpz_t **A, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID);
 
 private:
-    LTZ *Lt;
-    Mod2M *Mod;
+    // LTZ *Lt;
+    // Mod2M *Mod;
     // EQZ *Eq;
     Mod2MS *Md2m;
     FLAdd *Fladd;

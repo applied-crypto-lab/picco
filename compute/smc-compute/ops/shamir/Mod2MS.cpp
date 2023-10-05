@@ -23,7 +23,7 @@ Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     // B2u = new B2U(nodeNet, poly, nodeID, s);
     Iv = new Inv(nodeNet, poly, nodeID, s);
     // Mul = new Mult(nodeNet, nodeID, s);
-    Ltz = new LTZ(nodeNet, poly, nodeID, s);
+    // Ltz = new LTZ(nodeNet, poly, nodeID, s);
      // Rand = new Random(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
@@ -120,7 +120,7 @@ void Mod2MS::doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, 
     }
     // line 9
     ss->modSub(temp, CC, R2, size);
-    Ltz->doOperation(T1, temp, L, size, threadID);
+    doOperation_LTZ(T1, temp, L, size, threadID, net, id, ss);
     // line 10
     ss->modSub(result, CC, R2, size);
     Mult(temp, T1, X[L], size, threadID, net, id, ss);

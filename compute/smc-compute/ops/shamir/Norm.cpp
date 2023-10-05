@@ -20,7 +20,7 @@
 #include "Norm.h"
 
 Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
     // Pre = new PreOr(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
@@ -61,7 +61,7 @@ void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, in
         }
     }
     // start computation
-    Lt->doOperation(s, b, k, size, threadID);
+    doOperation_LTZ(s, b, k, size, threadID, net, id, ss);
     ss->modMul(s, s, two, size);
     ss->modSub(s, one, s, size);
     Mult(x, s, b, size, threadID, net, id, ss);

@@ -21,8 +21,8 @@
 
 FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
-    T = new Trunc(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // T = new Trunc(nodeNet, poly, nodeID, s);
     // Preor = new PreOr(nodeNet, poly, nodeID, s);
     // P2 = new Pow2(nodeNet, poly, nodeID, s);
     In = new Inv(nodeNet, poly, nodeID, s);
@@ -147,7 +147,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
     // start computation
     // long X = LTZ(ss->modSub(A[1], B[1]), 31);
     ss->modSub(temp1, A[1], B[1], size);
-    Lt->doOperation(X, temp1, L, size, threadID);
+    doOperation_LTZ(X, temp1, L, size, threadID, net, id, ss);
 
     // long E = EQZ(ss->modSub(A[1], B[1]), 31);
     ss->modSub(temp1, A[1], B[1], size);
@@ -155,7 +155,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
 
     // long AA = LTZ(ss->modSub(A[0], B[0]), 31);
     ss->modSub(temp1, A[0], B[0], size);
-    Lt->doOperation(AA, temp1, K, size, threadID);
+    doOperation_LTZ(AA, temp1, K, size, threadID, net, id, ss);
 
     /*compute the higher and smaller power out of two*/
     Mult(temp3, X, B[1], size, threadID, net, id, ss);
@@ -207,7 +207,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
     // line 9
     ss->modSub(temp1, Pmax, Pmin, size);
     ss->modSub(temp2, constK, temp1, size);
-    Lt->doOperation(Y, temp2, L, size, threadID);
+    doOperation_LTZ(Y, temp2, L, size, threadID, net, id, ss);
 
     // line 10
     ss->modSub(temp1, const1, Y, size);
@@ -235,7 +235,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
     ss->modMul(temp3, temp3, constP2K, size);
     In->doOperation(pow2, temp1, size, threadID);
     Mult(temp2, temp3, temp1, size, threadID, net, id, ss);
-    T->doOperation(V, temp2, 2 * K + 1, K - 1, size, threadID);
+    doOperation_Trunc(V, temp2, 2 * K + 1, K - 1, size, threadID, net, id, ss);
 
     // line 15 and 16
     doOperation_bitDec(H, V, K + 2, K + 2, size, threadID, net, id, ss);
@@ -273,7 +273,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
 
     // line 19
     Mult(temp1, P1, V, size, threadID, net, id, ss);
-    T->doOperation(V, temp1, K + 2, 2, size, threadID);
+    doOperation_Trunc(V, temp1, K + 2, 2, size, threadID, net, id, ss);
 
     // line 20
     ss->modSub(temp1, Pmax, P0, size);

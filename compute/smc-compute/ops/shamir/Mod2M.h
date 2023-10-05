@@ -24,16 +24,6 @@
 #include "BitLTC.h"
 #include "Operation.h"
 #include "Random.h"
-
-class Mod2M : public Operation {
-public:
-    Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Mod2M();
-    void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
-
-private:
-    BitLTC *B;
-    // Random *Rand;
-};
+void doOperation_Mod2M(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID,NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* MOD2M_SHAMIR_H_ */

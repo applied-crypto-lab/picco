@@ -27,7 +27,7 @@ FL2Int::FL2Int() {
 FL2Int::FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     // Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
     Flround = new FLRound(nodeNet, poly, nodeID, s);
     Mod2ms = new Mod2MS(nodeNet, poly, nodeID, s);
     // P = new Pow2(nodeNet, poly, nodeID, s);
@@ -78,13 +78,13 @@ void FL2Int::doOperation(mpz_t **values1, mpz_t *results, int L, int K, int gamm
     Flround->doOperation(values, valuesP, modes, L, K, size, threadID);
     // line 2
     ss->modSub(temp1, valuesP[1], gamma - 1, size);
-    Lt->doOperation(a, temp1, K, size, threadID);
+    doOperation_LTZ(a, temp1, K, size, threadID, net, id, ss);
     // line 3
     ss->modSub(temp1, gamma - L - 1, valuesP[1], size);
-    Lt->doOperation(b, temp1, K, size, threadID);
+    doOperation_LTZ(b, temp1, K, size, threadID, net, id, ss);
 
     // line 4
-    Lt->doOperation(c, valuesP[1], K, size, threadID);
+    doOperation_LTZ(c, valuesP[1], K, size, threadID, net, id, ss);
 
     // line 5
     ss->modSub(temp1, gamma - 1, valuesP[1], size);

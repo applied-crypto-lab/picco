@@ -562,11 +562,11 @@ private:
     std::ofstream *outputStreams;
 
     
-    LTZ *Lt;
+    // LTZ *Lt;
     // EQZ *Eq;
     DotProduct *DProd;
     BitOps *BOps;
-    Trunc *T;
+    // Trunc *T;
     TruncS *Ts;
     FLAdd *Fladd;
     FLMult *Flmult;

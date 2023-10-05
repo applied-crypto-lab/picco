@@ -27,9 +27,9 @@ Int2FL::Int2FL() {
 // Protocol Int2FL, page 9
 Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
     // Pre = new PreOr(nodeNet, poly, nodeID, s);
-    T = new Trunc(nodeNet, poly, nodeID, s);
+    // T = new Trunc(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -79,7 +79,7 @@ void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int 
     }
     int lambda = gamma - 1;
     // line 2
-    Lt->doOperation(results[3], A, gamma, size, threadID);
+    doOperation_LTZ(results[3], A, gamma, size, threadID, net, id, ss);
     // line 3
     doOperation_EQZ(A, results[2], gamma, size, threadID, net, id, ss);
     // line 4
@@ -113,7 +113,7 @@ void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int 
     Mult(results[1], results[1], temp1, size, threadID, net, id, ss);
     // line 9 and 10
     if (lambda > K)
-        T->doOperation(results[0], A, lambda, lambda - K, size, threadID);
+        doOperation_Trunc(results[0], A, lambda, lambda - K, size, threadID, net, id, ss);
     else {
         ss->modPow(temp1[0], const2, K - lambda);
         for (int i = 1; i < size; i++)

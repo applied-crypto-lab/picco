@@ -19,20 +19,9 @@
 */
 #include "Trunc.h"
 
-Trunc::Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    ss = s;
-    Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    polynomials = poly;
-    id = nodeID;
-}
 
-Trunc::~Trunc() {
-    // TODO Auto-generated destructor stub
-}
-
-void Trunc::doOperation(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID) {
+void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t const2, power, const2M, constInv2M;
     // initialization
@@ -46,7 +35,7 @@ void Trunc::doOperation(mpz_t *result, mpz_t *shares1, int K, int M, int size, i
     for (int i = 0; i < size; i++)
         mpz_init_set(shares[i], shares1[i]);
     // start computation
-    Mod->doOperation(result, shares, K, M, size, threadID);
+    doOperation_Mod2M(result, shares, K, M, size, threadID, net, id, ss);
     ss->modSub(result, shares, result, size);
     ss->modMul(result, result, constInv2M, size);
 

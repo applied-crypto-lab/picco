@@ -5,14 +5,6 @@
 #include "Mod2M.h"
 #include "Operation.h"
 
-class Trunc : public Operation {
-public:
-    Trunc(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Trunc();
-    void doOperation(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID);
-
-private:
-    Mod2M *Mod;
-};
+void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* TRUNC_SHAMIR_H_ */

@@ -32,7 +32,7 @@ public:
     void doOperation(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID);
 
 private:
-    LTZ *Lt;
+    // LTZ *Lt;
     // EQZ *Eq;
 };
 

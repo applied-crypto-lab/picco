@@ -20,22 +20,9 @@
 
 #include "BitLTC.h"
 
-BitLTC::BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // PreMul = new PrefixMultiplication(nodeNet, poly, nodeID, s);
-    ss = s;
-    net = nodeNet;
-    polynomials = poly;
-    id = nodeID;
-}
-
-BitLTC::~BitLTC() {
-    // TODO Auto-generated destructor stub
-}
-
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.5 page 13 (BitLTC1)
-void BitLTC::doOperation(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID) {
+void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t **d = (mpz_t **)malloc(sizeof(mpz_t *) * K);
     mpz_t **a = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);

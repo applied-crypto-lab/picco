@@ -32,8 +32,8 @@ public:
     void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
 
 private:
-    Trunc *T;
-    LTZ *Lt;
+    // Trunc *T;
+    // LTZ *Lt;
 };
 
 #endif /* FLMULT_SHAMIR_H_ */

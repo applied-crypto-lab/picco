@@ -19,22 +19,10 @@
 */
 #include "Mod2M.h"
 
-Mod2M::Mod2M(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    ss = s;
-    B = new BitLTC(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    polynomials = poly;
-    id = nodeID;
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-}
-
-Mod2M::~Mod2M() {
-    // TODO Auto-generated destructor stub
-}
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.2 page 7
-void Mod2M::doOperation(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID) {
+void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -82,7 +70,7 @@ void Mod2M::doOperation(mpz_t *result, mpz_t *shares1, int K, int M, int size, i
     Open(C, C, size, threadID, net, ss);
 
     ss->mod(C, C, pow2M, size);
-    B->doOperation(C, R, U, M, size, threadID);
+    doOperation_BitLTC(C, R, U, M, size, threadID, net, id, ss);
     ss->modMul(U, U, pow2M, size);
     ss->modAdd(result, C, U, size);
     ss->modSub(result, result, R[M], size);

@@ -36,9 +36,9 @@ public:
     void doOperation(mpz_t *values, mpz_t **results, int gamma, int K, int size, int threadID);
 
 private:
-    LTZ *Lt;
+    // LTZ *Lt;
     // PreOr *Pre;
-    Trunc *T;
+    // Trunc *T;
     // EQZ *Eq;
 };
 

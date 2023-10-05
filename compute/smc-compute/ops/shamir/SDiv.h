@@ -35,7 +35,7 @@ public:
 
 private:
     // TruncPr *Truncpr;
-    Mod2M *Mod;
+    // Mod2M *Mod;
     int K;
 };
 

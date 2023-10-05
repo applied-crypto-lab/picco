@@ -21,8 +21,8 @@
 
 FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Mod = new Mod2M(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // Mod = new Mod2M(nodeNet, poly, nodeID, s);
     // Eq = new EQZ(nodeNet, poly, nodeID, s);
     // Mul = new Mult(nodeNet, nodeID, s);
     Md2m = new Mod2MS(nodeNet, poly, nodeID, s);
@@ -104,12 +104,12 @@ void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K,
     free(constOneHalf);
     free(A1);
     // line 1
-    Lt->doOperation(a, A[1], K, size, threadID);
+    doOperation_LTZ(a, A[1], K, size, threadID, net, id, ss);
 
     // line 2
     ss->modSub(temp1, A[1], 1, size);
     ss->modAdd(temp1, temp1, L, size);
-    Lt->doOperation(b, temp1, K, size, threadID);
+    doOperation_LTZ(b, temp1, K, size, threadID, net, id, ss);
     // line 3
     ss->modSub(temp1, 1, b, size);
     Mult(temp1, temp1, a, size, threadID, net, id, ss);

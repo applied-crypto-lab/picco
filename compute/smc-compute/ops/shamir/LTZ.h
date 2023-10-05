@@ -24,22 +24,13 @@
 #include "Operation.h"
 #include "Trunc.h"
 
-class LTZ : public Operation {
 
-public:
-    LTZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~LTZ();
-    void doOperation(mpz_t *result, mpz_t *shares, int K, int size, int threadID);
+void doOperation_LTZ(mpz_t *result, mpz_t *shares, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
-    void doOperation_LT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
-    void doOperation_LT(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID);
-    void doOperation_LT(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID);
-    void doOperation_LT(mpz_t result, int a, mpz_t b, int alen, int blen, int resultlen, int threadID);
+void doOperation_LT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_LT(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_LT(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_LT(mpz_t result, int a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
-    // void doOperation_GT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID);
-
-private:
-    Trunc *T;
-};
 
 #endif /* LTZ_SHAMIR_H_ */

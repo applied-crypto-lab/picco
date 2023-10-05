@@ -22,7 +22,7 @@
 TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     // Mul = new Mult(nodeNet, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
     // Bt = new B2U(nodeNet, poly, nodeID, s);
     In = new Inv(nodeNet, poly, nodeID, s);
      // Rand = new Random(nodeNet, poly, nodeID, s);
@@ -125,7 +125,7 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
     }
     // line 9
     ss->modSub(temp, CC, R2, size);
-    Lt->doOperation(T1, temp, K, size, threadID);
+    doOperation_LTZ(T1, temp, K, size, threadID, net, id, ss);
     // line 10
     ss->modSub(result, CC, R2, size);
     Mult(temp, T1, X[K], size, threadID, net, id, ss);

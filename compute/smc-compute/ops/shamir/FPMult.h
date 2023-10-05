@@ -30,7 +30,7 @@ public:
     void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size);
 
 private:
-    Trunc *T;
+    // Trunc *T;
 };
 
 #endif /* FPMULT_SHAMIR_H_ */

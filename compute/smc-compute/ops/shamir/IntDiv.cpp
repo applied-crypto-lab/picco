@@ -26,7 +26,7 @@ IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     // need to use
     // T = new TruncPr(nodeNet, poly, nodeID, s);
     // Eq = new EQZ(nodeNet, poly, nodeID, s);
-    Lt = new LTZ(nodeNet, poly, nodeID, s);
+    // Lt = new LTZ(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -95,7 +95,7 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
 
     /***************************************************/
     // compute the sign of a
-    Lt->doOperation(lt, a, k, size, threadID);
+    doOperation_LTZ(lt, a, k, size, threadID, net, id, ss);
     ss->modSub(sign, const1, lt, size);
     ss->modSub(sign, sign, lt, size);
     // make a to be a positive value
@@ -122,7 +122,7 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     ss->modMul(temp, c, denom, size);
     ss->modSub(temp, temp, a_tmp, size);
     ss->modSub(temp, temp, const1, size);
-    Lt->doOperation(lt, temp, k, size, threadID);
+    doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
     ss->modAdd(lt, lt, c, size);
     ss->modSub(result, lt, const1, size);
     Mult(result, result, sign, size, threadID, net, id, ss);
@@ -217,7 +217,7 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
         mpz_set(temp1[size + i], b[i]);
     }
 
-    Lt->doOperation(temp1, temp1, k, 2 * size, threadID);
+    doOperation_LTZ(temp1, temp1, k, 2 * size, threadID, net, id, ss);
 
     // compute the sign of a
     for (int i = 0; i < size; i++)
@@ -266,13 +266,13 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     ss->copy(result, c, size);
     Mult(temp, c, b_tmp, size, threadID, net, id, ss);
     ss->modSub(temp, a_tmp, temp, size);
-    Lt->doOperation(lt, temp, k, size, threadID);
+    doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
     ss->modAdd(c, c, temp, size);
     Mult(temp, c, b_tmp, size, threadID, net, id, ss);
     ss->modSub(temp, a_tmp, temp, size);
-    Lt->doOperation(lt, temp, k, size, threadID);
+    doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
     ss->modSub(temp, const1, temp, size);

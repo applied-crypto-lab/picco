@@ -24,12 +24,6 @@
 #include "Operation.h"
 #include "PrefixMultiplication.h"
 
-class BitLTC : public Operation {
-public:
-    BitLTC(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~BitLTC();
-    void doOperation(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID);
-
-};
+void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* BITLTC_SHAMIR_H_ */

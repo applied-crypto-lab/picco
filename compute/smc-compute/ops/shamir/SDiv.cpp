@@ -22,7 +22,7 @@
 SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
     // Mul = new Mult(nodeNet, nodeID, s);
-    Mod = new Mod2M(nodeNet, poly, nodeID, s);
+    // Mod = new Mod2M(nodeNet, poly, nodeID, s);
     // Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
@@ -34,7 +34,7 @@ SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, in
 SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, int K1) {
 
     // Mul = new Mult(nodeNet, nodeID, s);
-    Mod = new Mod2M(nodeNet, poly, nodeID, s);
+    // Mod = new Mod2M(nodeNet, poly, nodeID, s);
     // Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
 
     net = nodeNet;

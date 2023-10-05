@@ -42,7 +42,7 @@ public:
 
 private:
     IntAppRcr *App;
-    LTZ *Lt;
+    // LTZ *Lt;
 };
 
 #endif /* INTDIV_SHAMIR_H_ */

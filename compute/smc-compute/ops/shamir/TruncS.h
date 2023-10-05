@@ -37,7 +37,7 @@ public:
     void doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID);
 
 private:
-    LTZ *Lt;
+    // LTZ *Lt;
     Inv *In;
     // Random *Rand;
 };
