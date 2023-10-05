@@ -25,18 +25,10 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-class SDiv : public Operation {
-public:
-    SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, int K1);
-    virtual ~SDiv();
-    void doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID);
-    void doOperation_2(mpz_t *Y, mpz_t *A, mpz_t *B, int size);
+void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
-private:
-    // TruncPr *Truncpr;
-    // Mod2M *Mod;
-    int K;
-};
+void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwork net, int id, SecretShare *ss) ;
+
+
 
 #endif /* SDIV_SHAMIR_H_ */

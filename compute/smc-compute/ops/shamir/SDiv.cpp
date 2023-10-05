@@ -19,36 +19,8 @@
 */
 #include "SDiv.h"
 
-SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    // Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-
-SDiv::SDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s, int K1) {
-
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    // Truncpr = new TruncPr(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-    K = K1;
-}
-
-
-SDiv::~SDiv() {
-    // TODO Auto-generated destructor stub
-}
-
-void SDiv::doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID) {
+void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t const2, constK1, const2K1;
     mpz_t *X1 = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
     mpz_t *XY = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
@@ -121,7 +93,7 @@ void SDiv::doOperation(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int thread
 }
 
 // from the SDiv2 file, unsure what the fundamental difference with the above implementation beyond the multithreading argument
-void SDiv::doOperation_2(mpz_t *Y, mpz_t *A, mpz_t *B, int size) {
+void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t const2, constK1;
     mpz_t *X = (mpz_t *)malloc(sizeof(mpz_t) * size);

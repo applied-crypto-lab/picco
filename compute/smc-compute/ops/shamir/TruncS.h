@@ -30,16 +30,6 @@
 #include "Open.h"
 #include "Random.h"
 
-class TruncS : public Operation {
-public:
-    TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~TruncS();
-    void doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID);
-
-private:
-    // LTZ *Lt;
-    Inv *In;
-    // Random *Rand;
-};
+void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* TRUNCS_SHAMIR_H_ */

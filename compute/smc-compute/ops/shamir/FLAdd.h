@@ -40,7 +40,7 @@ private:
     // LTZ *Lt;
     // Trunc *T;
     // PreOr *Preor;
-    Inv *In;
+    // Inv *In;
 };
 
 #endif /* FLOATADD_SHAMIR_H_ */

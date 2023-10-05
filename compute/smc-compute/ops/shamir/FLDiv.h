@@ -27,17 +27,7 @@
 #include "Trunc.h"
 #include "TruncPr.h"
 
-class FLDiv : public Operation {
-public:
-    FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FLDiv();
-    void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
-    void doOperationPub(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
-
-private:
-    // Trunc *T;
-    // LTZ *Lt;
-    SDiv *Sdiv;
-};
+void doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID);
+void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
 #endif /* FLDIV_SHAMIR_H_ */

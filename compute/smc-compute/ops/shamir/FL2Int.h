@@ -39,7 +39,7 @@ private:
     // LTZ *Lt;
     FLRound *Flround;
     Mod2MS *Mod2ms;
-    Inv *I;
+    // Inv *I;
 };
 
 #endif /* INT2FL_H */

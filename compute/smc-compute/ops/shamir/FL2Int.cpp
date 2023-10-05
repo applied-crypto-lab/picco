@@ -31,7 +31,7 @@ FL2Int::FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
     Flround = new FLRound(nodeNet, poly, nodeID, s);
     Mod2ms = new Mod2MS(nodeNet, poly, nodeID, s);
     // P = new Pow2(nodeNet, poly, nodeID, s);
-    I = new Inv(nodeNet, poly, nodeID, s);
+    // I = new Inv(nodeNet, poly, nodeID, s);
     net = nodeNet;
     id = nodeID;
     ss = s;
@@ -111,7 +111,7 @@ void FL2Int::doOperation(mpz_t **values1, mpz_t *results, int L, int K, int gamm
     doOperation_Pow2(pow2, temp1, L, size, threadID, net, id, ss);
 
     // line 9
-    I->doOperation(pow2, pow2, size, threadID);
+    doOperation_Inv(pow2, pow2, size, threadID, net, id, ss);
 
     // line 10
     Mult(temp1, c, pow2, size, threadID, net, id, ss);

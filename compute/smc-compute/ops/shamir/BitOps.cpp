@@ -19,20 +19,11 @@
 */
 #include "BitOps.h"
 
-BitOps::BitOps(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int NodeID, SecretShare *s) {
-    // Mul = new Mult(nodeNet, NodeID, s);
-    net = nodeNet;
-    id = NodeID;
-    ss = s;
-}
-
-BitOps::~BitOps() {}
-
-void BitOps::BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
+void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     Mult(result, A, B, size, threadID, net, id, ss);
 }
 
-void BitOps::BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
+void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);
@@ -46,7 +37,7 @@ void BitOps::BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
     free(C);
 }
 
-void BitOps::BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID) {
+void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);

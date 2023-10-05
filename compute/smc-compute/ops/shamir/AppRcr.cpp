@@ -19,23 +19,9 @@
 */
 #include "AppRcr.h"
 
-AppRcr::AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // T = new TruncPr(nodeNet, poly, nodeID, s);
-    // No = new Norm(nodeNet, poly, nodeID, s);
-    ss = s;
-    net = nodeNet;
-    id = nodeID;
-}
-
-AppRcr::~AppRcr() {
-    // TODO Auto-generated destructor stub
-}
-
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.4, page 14
-void AppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID) {
+void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t one, two, temp, alpha;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);

@@ -20,19 +20,8 @@
 
 #include "Inv.h"
 
-Inv::Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-Inv::~Inv() {
-    // TODO Auto-generated destructor stub
-}
-
-void Inv::doOperation(mpz_t *shares, mpz_t *results, int size, int threadID) {
+void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);

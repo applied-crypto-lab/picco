@@ -24,15 +24,6 @@
 #include "Mult.h"
 #include "Operation.h"
 #include "TruncPr.h"
-
-class FPDiv : public Operation {
-public:
-    FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FPDiv();
-    void doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID);
-
-private:
-    AppRcr *App;
-};
+void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /* FPDIV_SHAMIR_H_ */

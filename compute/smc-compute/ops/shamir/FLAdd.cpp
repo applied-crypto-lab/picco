@@ -25,7 +25,7 @@ FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, 
     // T = new Trunc(nodeNet, poly, nodeID, s);
     // Preor = new PreOr(nodeNet, poly, nodeID, s);
     // P2 = new Pow2(nodeNet, poly, nodeID, s);
-    In = new Inv(nodeNet, poly, nodeID, s);
+    // In = new Inv(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -233,7 +233,7 @@ void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, i
     Mult(temp3, temp2, temp3, size, threadID, net, id, ss);
     ss->modAdd(temp3, temp1, temp3, size);
     ss->modMul(temp3, temp3, constP2K, size);
-    In->doOperation(pow2, temp1, size, threadID);
+    doOperation_Inv(pow2, temp1, size, threadID, net, id, ss);
     Mult(temp2, temp3, temp1, size, threadID, net, id, ss);
     doOperation_Trunc(V, temp2, 2 * K + 1, K - 1, size, threadID, net, id, ss);
 

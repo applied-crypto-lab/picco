@@ -557,7 +557,7 @@ private:
     SecretShare *ss;
     FILE *inputFile;
     NodeConfiguration *nodeConfig;
-    NodeNetwork nNet;
+    NodeNetwork net;
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
 
@@ -565,15 +565,15 @@ private:
     // LTZ *Lt;
     // EQZ *Eq;
     DotProduct *DProd;
-    BitOps *BOps;
+    // BitOps *BOps;
     // Trunc *T;
-    TruncS *Ts;
+    // TruncS *Ts;
     FLAdd *Fladd;
     FLMult *Flmult;
     FLLTZ *Flltz;
     FLEQZ *Fleqz;
-    FLDiv *Fldiv;
-    FPDiv *Fpdiv;
+    // FLDiv *Fldiv;
+    // FPDiv *Fpdiv;
     PrivIndex *PI;
     PrivPtr *PP;
     Int2FL *I2F;

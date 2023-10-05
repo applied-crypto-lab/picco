@@ -19,26 +19,10 @@
 */
 #include "TruncS.h"
 
-TruncS::TruncS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    // Bt = new B2U(nodeNet, poly, nodeID, s);
-    In = new Inv(nodeNet, poly, nodeID, s);
-     // Rand = new Random(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-TruncS::~TruncS() {
-    // TODO Auto-generated destructor stub
-}
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Trunc, page 4
-void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID) {
+void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss){
     int peers = ss->getPeers();
     mpz_t **X = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 2));
@@ -130,7 +114,7 @@ void TruncS::doOperation(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int
     ss->modSub(result, CC, R2, size);
     Mult(temp, T1, X[K], size, threadID, net, id, ss);
     ss->modAdd(result, temp, result, size);
-    In->doOperation(X[K], temp, size, threadID);
+    doOperation_Inv(X[K], temp, size, threadID, net, id, ss);
     ss->modSub(result, A, result, size);
     Mult(result, result, temp, size, threadID, net, id, ss);
 

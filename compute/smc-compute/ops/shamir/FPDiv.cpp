@@ -19,22 +19,8 @@
 */
 #include "FPDiv.h"
 
-FPDiv::FPDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Mul = new Mult(nodeNet, nodeID, s);
-    App = new AppRcr(nodeNet, poly, nodeID, s);
-    // need to use
-    // T = new TruncPr(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-FPDiv::~FPDiv() {
-    // TODO Auto-generated destructor stub
-}
-
-void FPDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID) {
+void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     // Set theta
     double t = k / 3.5;
@@ -59,7 +45,7 @@ void FPDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int siz
         mpz_init(temp[i]);
     }
 
-    App->doOperation(w, b, k, f, size, threadID);
+    doOperation_AppRcr(w, b, k, f, size, threadID, net, id, ss);
   
     Mult(x, b, w, size, threadID, net, id, ss);
     Mult(y, a, w, size, threadID, net, id, ss);

@@ -24,14 +24,9 @@
 #include "Operation.h"
 #include "Random.h"
 
-class Inv : public Operation {
-public:
-    Inv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Inv();
-    void doOperation(mpz_t *shares, mpz_t *results, int size, int threadID);
 
-private:
-    // Random *Rand;
-};
+
+void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
 
 #endif /* INV_SHAMIR_H_ */

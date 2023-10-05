@@ -19,22 +19,9 @@
 */
 #include "FLDiv.h"
 
-FLDiv::FLDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // T = new Trunc(nodeNet, poly, nodeID, s);
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    Sdiv = new SDiv(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-FLDiv::~FLDiv() {}
-
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
-// Protocol FLDiv with public divisonr, page 6
-void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID) {
+// Protocol FLDiv with public divisor, page 6
+void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -153,7 +140,7 @@ void FLDiv::doOperationPub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLDiv, page 6
-void FLDiv::doOperation(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID) {
+void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     // int peers = ss->getPeers();
     mpz_t beta, const1, const2, constK;
     /***********************************************************************/
@@ -193,7 +180,7 @@ void FLDiv::doOperation(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size
 
     ss->modAdd(temp1, B[0], B[2], size);
     ss->copy(A[0], Y, size);
-    Sdiv->doOperation(Y, Y, temp1, K, size, threadID);
+    doOperation_SDiv(Y, Y, temp1, K, size, threadID, net, id, ss);
     // line 2
     ss->modSub(temp1, Y, beta, size);
     doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
