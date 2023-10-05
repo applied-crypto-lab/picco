@@ -19,18 +19,7 @@
 */
 #include "FPMult.h"
 
-FPMult::FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // T = new Trunc(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-FPMult::~FPMult() {
-    // TODO Auto-generated destructor stub
-}
-
-void FPMult::doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size) {
+void doOperation_FPMult(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);

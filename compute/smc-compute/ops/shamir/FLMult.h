@@ -25,16 +25,6 @@
 #include "Operation.h"
 #include "Trunc.h"
 
-// class FLMult : public Operation {
-// public:
-//     FLMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-//     virtual ~FLMult();
-//     void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID);
-
-// private:
-//     // Trunc *T;
-//     // LTZ *Lt;
-// };
-    void doOperation_FLMult(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_FLMult(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* FLMULT_SHAMIR_H_ */

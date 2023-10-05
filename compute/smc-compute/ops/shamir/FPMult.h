@@ -23,14 +23,7 @@
 #include "Operation.h"
 #include "Trunc.h"
 
-class FPMult : public Operation {
-public:
-    FPMult(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FPMult();
-    void doOperation(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size);
 
-private:
-    // Trunc *T;
-};
+void doOperation_FPMult(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* FPMULT_SHAMIR_H_ */

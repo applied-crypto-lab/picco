@@ -24,18 +24,6 @@
 #include "Random.h"
 #include "Mult.h"
 
-// class PrefixMultiplication : public Operation {
-
-// public:
-//     PrefixMultiplication(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-//     virtual ~PrefixMultiplication();
-//     void doOperation(mpz_t **B, mpz_t **result, int size, int length, int threadID);
-//     // void doOperation_original(mpz_t **B, mpz_t **result, int size, int length, int threadID);
-
-// private:
-//     Random *Rand;
-// };
-
 void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 
