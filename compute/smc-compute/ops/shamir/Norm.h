@@ -27,15 +27,6 @@
 #include "Operation.h"
 #include "PreOr.h"
 
-class Norm : public Operation {
-public:
-    Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Norm();
-    void doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID);
-
-private:
-    // LTZ *Lt;
-    // PreOr *Pre;
-};
+void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID);
 
 #endif /* NORM_SHAMIR_H_ */

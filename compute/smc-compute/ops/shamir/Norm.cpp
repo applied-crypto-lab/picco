@@ -19,21 +19,10 @@
 */
 #include "Norm.h"
 
-Norm::Norm(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    // Pre = new PreOr(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-Norm::~Norm() {
-    // TODO Auto-generated destructor stub
-}
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.5, page 14
-void Norm::doOperation(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID) {
+void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t one, two, temp;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);

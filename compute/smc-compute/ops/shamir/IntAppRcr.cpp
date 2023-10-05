@@ -24,7 +24,7 @@ IntAppRcr::IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>
 
     // Mul = new Mult(nodeNet, nodeID, s);
     // T = new TruncPr(nodeNet, poly, nodeID, s);
-    No = new Norm(nodeNet, poly, nodeID, s);
+    // No = new Norm(nodeNet, poly, nodeID, s);
     ss = s;
     net = nodeNet;
     id = nodeID;
@@ -60,7 +60,7 @@ void IntAppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID) {
     mpf_mul(num2, num2, num1);
     mpz_set_f(temp, num2);
     ss->modMul(alpha, temp, one);
-    No->doOperation(c, v, b, k, 0, size, threadID);
+    doOperation_Norm(c, v, b, k, 0, size, threadID, net, id, ss);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
     Mult(c, c, v, size, threadID, net, id, ss);
