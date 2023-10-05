@@ -23,7 +23,7 @@ AppRcr::AppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly
 
     // Mul = new Mult(nodeNet, nodeID, s);
     // T = new TruncPr(nodeNet, poly, nodeID, s);
-    No = new Norm(nodeNet, poly, nodeID, s);
+    // No = new Norm(nodeNet, poly, nodeID, s);
     ss = s;
     net = nodeNet;
     id = nodeID;
@@ -63,7 +63,7 @@ void AppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int f, int size, int threadI
     mpz_set_f(temp, num2);
     ss->modMul(alpha, temp, one);
     // finish the rest of computation
-    No->doOperation(c, v, b, k, f, size, threadID);
+    doOperation_Norm(c, v, b, k, f, size, threadID, net, id, ss);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
     Mult(c, c, v, size, threadID, net, id, ss);
