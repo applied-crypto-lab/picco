@@ -28,18 +28,8 @@
 #include "Operation.h"
 #include "Pow2.h"
 
-class FL2Int : public Operation {
-public:
-    FL2Int();
-    FL2Int(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FL2Int();
-    void doOperation(mpz_t **values, mpz_t *results, int K, int L, int gamma, int size, int threadID);
 
-private:
-    // LTZ *Lt;
-    FLRound *Flround;
-    Mod2MS *Mod2ms;
-    // Inv *I;
-};
+void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+
 
 #endif /* INT2FL_H */

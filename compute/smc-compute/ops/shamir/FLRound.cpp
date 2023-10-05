@@ -19,25 +19,10 @@
 */
 #include "FLRound.h"
 
-FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    // Mod = new Mod2M(nodeNet, poly, nodeID, s);
-    // Eq = new EQZ(nodeNet, poly, nodeID, s);
-    // Mul = new Mult(nodeNet, nodeID, s);
-    Md2m = new Mod2MS(nodeNet, poly, nodeID, s);
-    // Fladd = new FLAdd(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-FLRound::~FLRound() {}
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLRound, page 8
-void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID) {
+void doOperation_FLRound(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     mpz_t constPower2L, constPower2L1, const2, constL, constL1;
     mpz_init(constPower2L);
@@ -115,7 +100,7 @@ void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K,
     Mult(temp1, temp1, a, size, threadID, net, id, ss);
     Mult(temp1, temp1, A[1], size, threadID, net, id, ss);
     ss->modSub(temp1, (long)0, temp1, size);
-    Md2m->doOperation(V2, A[0], temp1, powM, L, size, threadID);
+    doOperation_Mod2MS(V2, A[0], temp1, powM, L, size, threadID, net, id, ss);
     // line 4
     doOperation_EQZ(V2, c, L, size, threadID, net, id, ss);
 

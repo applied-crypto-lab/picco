@@ -28,17 +28,5 @@
 #ifndef MOD2MS_SHAMIR_H_
 #define MOD2MS_SHAMIR_H_
 
-class Mod2MS : public Operation {
-public:
-    Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Mod2MS();
-    void doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *InvM, int L, int size, int threadID);
-
-private:
-    // B2U *B2u;
-    // Inv *Iv;
-    // LTZ *Ltz;
-    // Random *Rand;
-};
-
+void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 #endif /* MOD2M1_SHAMIR_H_ */

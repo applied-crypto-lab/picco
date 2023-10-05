@@ -27,22 +27,13 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-class IntDiv : public Operation {
-public:
-    IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~IntDiv();
-    void doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID);
-    void doOperation(mpz_t result, mpz_t a, mpz_t b, int k, int threadID);
-    void doOperation(mpz_t result, int a, mpz_t b, int k, int threadID);
-    void doOperation(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID);
+void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
-    void doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID);
-    void doOperationPub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID);
-    void doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID);
-
-private:
-    IntAppRcr *App;
-    // LTZ *Lt;
-};
 
 #endif /* INTDIV_SHAMIR_H_ */

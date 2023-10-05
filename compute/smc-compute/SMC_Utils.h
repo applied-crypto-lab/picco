@@ -576,9 +576,9 @@ private:
     // FPDiv *Fpdiv;
     PrivIndex *PI;
     PrivPtr *PP;
-    Int2FL *I2F;
-    FL2Int *F2I;
-    IntDiv *Idiv;
+    // Int2FL *I2F;
+    // FL2Int *F2I;
+    // IntDiv *Idiv;
     // Handle client connections and polynomail stuff
     void clientConnect();
     void receivePolynomials(std::string privatekey_filename);

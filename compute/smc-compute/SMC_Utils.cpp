@@ -87,9 +87,9 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     // DProd = new DotProduct(*nodeNet, polynomials, id, ss);
     PI = new PrivIndex(*nodeNet, polynomials, id, ss);
     PP = new PrivPtr(net, id, ss);
-    Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
-    I2F = new Int2FL(*nodeNet, polynomials, id, ss);
-    F2I = new FL2Int(*nodeNet, polynomials, id, ss);
+    // Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
+    // I2F = new Int2FL(*nodeNet, polynomials, id, ss);
+    // F2I = new FL2Int(*nodeNet, polynomials, id, ss);
     // Fladd = new FLAdd(*nodeNet, polynomials, id, ss);
     // Flmult = new FLMult(*nodeNet, polynomials, id, ss);
     // Fldiv = new FLDiv(*nodeNet, polynomials, id, ss);
@@ -642,27 +642,27 @@ void SMC_Utils::smc_mult(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int b
 
 /* SMC Integer Division*/
 void SMC_Utils::smc_div(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    Idiv->doOperation(result, a, b, resultlen, threadID);
+    doOperation_IntDiv(result, a, b, resultlen, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    Idiv->doOperationPub(result, a, b, resultlen, threadID);
+    doOperation_IntDiv_Pub(result, a, b, resultlen, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    Idiv->doOperation(result, a, b, resultlen, threadID);
+    doOperation_IntDiv(result, a, b, resultlen, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Idiv->doOperation(result, a, b, resultlen, size, threadID);
+    doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Idiv->doOperation(result, a, b, resultlen, size, threadID);
+    doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    Idiv->doOperationPub(result, a, b, resultlen, size, threadID);
+    doOperation_IntDiv_Pub(result, a, b, resultlen, size, threadID, net, id, ss);
 }
 
 /* SMC Floating-point division */
@@ -2100,7 +2100,7 @@ void SMC_Utils::smc_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, 
         mpz_init(results[0][i]);
     mpz_init_set(values[0], value);
 
-    I2F->doOperation(values, results, gamma, K, 1, threadID);
+    doOperation_Int2FL(values, results, gamma, K, 1, threadID, net, id, ss);
 
     for (int i = 0; i < 4; i++)
         mpz_set(result[i], results[0][i]);
@@ -2136,7 +2136,7 @@ void SMC_Utils::smc_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, 
     for (int i = 0; i < 4; i++)
         mpz_init_set(values[0][i], value[i]);
     mpz_init(results[0]);
-    F2I->doOperation(values, results, K, L, gamma, 1, threadID);
+    doOperation_FL2Int(values, results, K, L, gamma, 1, threadID, net, id, ss);
     mpz_set(result, results[0]);
     smc_batch_free_operator(&values, 1);
     smc_batch_free_operator(&results, 1);
@@ -2233,7 +2233,7 @@ void SMC_Utils::smc_batch_BOP_int(mpz_t *result, mpz_t *a, mpz_t *b, int resultl
     } else if (op == "/") {
         smc_div(a, b, alen, blen, result, resultlen, size, type, threadID);
     } else if (op == "/P") {
-        Idiv->doOperationPub(result, a, b, resultlen, size, threadID);
+        doOperation_IntDiv_Pub(result, a, b, resultlen, size, threadID, net, id, ss);
     } else if (op == "=") {
         smc_set(a, result, alen, resultlen, size, type, threadID);
     } else if (op == ">>") {
@@ -3251,7 +3251,7 @@ void SMC_Utils::smc_batch_int2fl(mpz_t *a, mpz_t **result, int adim, int resultd
         for (int j = 0; j < 4; j++)
             mpz_init(result_tmp[i][j]);
     }
-    I2F->doOperation(a_tmp, result_tmp, alen, resultlen_sig, size, threadID);
+    doOperation_Int2FL(a_tmp, result_tmp, alen, resultlen_sig, size, threadID, net, id, ss);
     /* consider the private condition */
     mpz_t *result_new = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
     mpz_t *result_org = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
@@ -3379,7 +3379,7 @@ void SMC_Utils::smc_batch_fl2int(mpz_t **a, mpz_t *result, int adim, int resultd
     for (int i = 0; i < size; i++)
         mpz_init(result_tmp[i]);
 
-    F2I->doOperation(a_tmp, result_tmp, alen_sig, alen_exp, blen, size, threadID);
+    doOperation_FL2Int(a_tmp, result_tmp, alen_sig, alen_exp, blen, size, threadID, net, id, ss);
 
     /* consider private conditions */
     mpz_t *result_org = (mpz_t *)malloc(sizeof(mpz_t) * size);

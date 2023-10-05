@@ -25,15 +25,6 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-class IntAppRcr : public Operation {
-public:
-    IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~IntAppRcr();
-    void doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID);
-
-private:
-    // Norm *No;
-    // TruncPr *T;
-};
+void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /* INTAPPRCR_SHAMIR_H_ */

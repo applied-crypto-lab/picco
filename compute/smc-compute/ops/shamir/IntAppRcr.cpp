@@ -20,21 +20,8 @@
 
 #include "IntAppRcr.h"
 
-IntAppRcr::IntAppRcr(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // T = new TruncPr(nodeNet, poly, nodeID, s);
-    // No = new Norm(nodeNet, poly, nodeID, s);
-    ss = s;
-    net = nodeNet;
-    id = nodeID;
-}
-
-IntAppRcr::~IntAppRcr() {
-    // TODO Auto-generated destructor stub
-}
-
-void IntAppRcr::doOperation(mpz_t *w, mpz_t *b, int k, int size, int threadID) {
+void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t one, two, temp, alpha;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);

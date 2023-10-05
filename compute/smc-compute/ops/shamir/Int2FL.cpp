@@ -19,27 +19,10 @@
 */
 #include "Int2FL.h"
 
-Int2FL::Int2FL() {
-    // TODO Auto-generated constructor stub
-}
-
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Int2FL, page 9
-Int2FL::Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    // Pre = new PreOr(nodeNet, poly, nodeID, s);
-    // T = new Trunc(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-Int2FL::~Int2FL() {
-    // TODO Auto-generated destructor stub
-}
-
-void Int2FL::doOperation(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID) {
+void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     for (int i = 0; i < 4; i++) {

@@ -28,18 +28,6 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class FLRound : public Operation {
-public:
-    FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FLRound();
-    void doOperation(mpz_t **A, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID);
-
-private:
-    // LTZ *Lt;
-    // Mod2M *Mod;
-    // EQZ *Eq;
-    Mod2MS *Md2m;
-    // FLAdd *Fladd;
-};
+void doOperation_FLRound(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /* FLROUND_SHAMIR_H_ */

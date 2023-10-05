@@ -19,23 +19,23 @@
 */
 #include "Mod2MS.h"
 
-Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-    // B2u = new B2U(nodeNet, poly, nodeID, s);
-    // Iv = new Inv(nodeNet, poly, nodeID, s);
-    // Mul = new Mult(nodeNet, nodeID, s);
-    // Ltz = new LTZ(nodeNet, poly, nodeID, s);
-     // Rand = new Random(nodeNet, poly, nodeID, s);
+// Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
+//     // B2u = new B2U(nodeNet, poly, nodeID, s);
+//     // Iv = new Inv(nodeNet, poly, nodeID, s);
+//     // Mul = new Mult(nodeNet, nodeID, s);
+//     // Ltz = new LTZ(nodeNet, poly, nodeID, s);
+//      // Rand = new Random(nodeNet, poly, nodeID, s);
 
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
+//     net = nodeNet;
+//     id = nodeID;
+//     ss = s;
+// }
 
-Mod2MS::~Mod2MS() {}
+// Mod2MS::~Mod2MS() {}
 
 // Source: ???
 // Protocol XX page Y
-void Mod2MS::doOperation(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID) {
+void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **X = (mpz_t **)malloc(sizeof(mpz_t *) * (L + 1));
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (L + 2));

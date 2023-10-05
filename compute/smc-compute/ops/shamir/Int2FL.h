@@ -28,18 +28,7 @@
 #include "PreOr.h"
 #include "Trunc.h"
 
-class Int2FL : public Operation {
-public:
-    Int2FL();
-    Int2FL(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~Int2FL();
-    void doOperation(mpz_t *values, mpz_t **results, int gamma, int K, int size, int threadID);
 
-private:
-    // LTZ *Lt;
-    // PreOr *Pre;
-    // Trunc *T;
-    // EQZ *Eq;
-};
+void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /* INT2FL_H */

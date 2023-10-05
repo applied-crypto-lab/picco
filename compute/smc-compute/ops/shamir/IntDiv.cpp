@@ -19,24 +19,8 @@
 */
 #include "IntDiv.h"
 #include <math.h>
-IntDiv::IntDiv(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
 
-    // Mul = new Mult(nodeNet, nodeID, s);
-    App = new IntAppRcr(nodeNet, poly, nodeID, s);
-    // need to use
-    // T = new TruncPr(nodeNet, poly, nodeID, s);
-    // Eq = new EQZ(nodeNet, poly, nodeID, s);
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-IntDiv::~IntDiv() {
-    // TODO Auto-generated destructor stub
-}
-
-void IntDiv::doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID) {
+void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -46,7 +30,7 @@ void IntDiv::doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID) {
     mpz_init_set_si(op2[0], b);
     mpz_init(results[0]);
 
-    doOperationPub(results, op1, op2, k, 1, threadID);
+    doOperation_IntDiv_Pub(results, op1, op2, k, 1, threadID, net, id, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -57,16 +41,16 @@ void IntDiv::doOperationPub(mpz_t result, mpz_t a, int b, int k, int threadID) {
 }
 
 
-void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID) {
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(btmp[i], b[i]);
-    doOperationPub(result, a, btmp, k, size, threadID);
+    doOperation_IntDiv_Pub(result, a, btmp, k, size, threadID, net, id, ss);
     smc_batch_free_operator(&btmp, size);
 }
 
 
-void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int lambda = 8;
     mpz_t const0, const1, const2, constk;
     mpz_init_set_ui(const0, 0);
@@ -151,7 +135,7 @@ void IntDiv::doOperationPub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     mpz_clear(constk);
 }
 
-void IntDiv::doOperation(mpz_t result, mpz_t a, mpz_t b, int k, int threadID) {
+void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -161,7 +145,7 @@ void IntDiv::doOperation(mpz_t result, mpz_t a, mpz_t b, int k, int threadID) {
     mpz_init(results[0]);
 
     // alen and blen could be negative when a and b are coverted from public values
-    doOperation(results, op1, op2, k, 1, threadID);
+    doOperation_IntDiv(results, op1, op2, k, 1, threadID, net, id, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -170,7 +154,7 @@ void IntDiv::doOperation(mpz_t result, mpz_t a, mpz_t b, int k, int threadID) {
     smc_batch_free_operator(&results, 1);
 }
 
-void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID) {
+void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     // Set theta
     double t = k / 3.5;
     int theta = ceil(log2(t));
@@ -245,7 +229,7 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     ss->copy(temp, b_tmp, size);
 
     /***********************************************/
-    App->doOperation(w, temp, k, size, threadID);
+    doOperation_IntAppRcr(w, temp, k, size, threadID, net, id, ss);
     Mult(x, b_tmp, w, size, threadID, net, id, ss);
     Mult(y, a_tmp, w, size, threadID, net, id, ss);
     ss->modSub(x, alpha, x, size);
@@ -310,7 +294,7 @@ void IntDiv::doOperation(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int
     free(b_tmp);
 }
 
-void IntDiv::doOperation(mpz_t result, int a, mpz_t b, int k, int threadID) {
+void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) {
  
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -321,7 +305,7 @@ void IntDiv::doOperation(mpz_t result, int a, mpz_t b, int k, int threadID) {
     mpz_init(results[0]);
 
     // alen and blen could be negative when a and b are coverted from public values
-    doOperation(results, op1, op2, k, 1, threadID);
+    doOperation_IntDiv(results, op1, op2, k, 1, threadID, net, id, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -331,10 +315,10 @@ void IntDiv::doOperation(mpz_t result, int a, mpz_t b, int k, int threadID) {
 
 }
 
-void IntDiv::doOperation(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID) {
+void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(atmp[i], a[i]);
-    doOperation(result, atmp, b, k, size, threadID);
+    doOperation_IntDiv(result, atmp, b, k, size, threadID, net, id, ss);
     smc_batch_free_operator(&atmp, size);
 }
