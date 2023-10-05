@@ -23,15 +23,7 @@
 #include "Mult.h"
 #include "Operation.h"
 
-class DotProduct : public Operation {
-public:
-    DotProduct(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~DotProduct();
-    void doOperation(mpz_t *a, mpz_t *b, mpz_t result, int size, int threadID);
-    void doOperation(mpz_t **a, mpz_t **b, mpz_t *result, int num_vec, int size_vec, int threadID);
-
-private:
-    // Mult *Mul;
-};
+void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 #endif /*DOTPRODUCT_H*/

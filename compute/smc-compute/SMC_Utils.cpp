@@ -84,13 +84,13 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     // Ts = new TruncS(*nodeNet, polynomials, id, ss);
     // P = new Pow2(*nodeNet, polynomials, id, ss);
     // BOps = new BitOps(*nodeNet, polynomials, id, ss);
-    DProd = new DotProduct(*nodeNet, polynomials, id, ss);
+    // DProd = new DotProduct(*nodeNet, polynomials, id, ss);
     PI = new PrivIndex(*nodeNet, polynomials, id, ss);
     PP = new PrivPtr(net, id, ss);
     Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
     I2F = new Int2FL(*nodeNet, polynomials, id, ss);
     F2I = new FL2Int(*nodeNet, polynomials, id, ss);
-    Fladd = new FLAdd(*nodeNet, polynomials, id, ss);
+    // Fladd = new FLAdd(*nodeNet, polynomials, id, ss);
     Flmult = new FLMult(*nodeNet, polynomials, id, ss);
     // Fldiv = new FLDiv(*nodeNet, polynomials, id, ss);
     Flltz = new FLLTZ(*nodeNet, polynomials, id, ss);
@@ -860,7 +860,7 @@ void SMC_Utils::smc_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int
     if (!strcmp(op.c_str(), "*"))
         Flmult->doOperation(as, bs, results, len_sig, 1, threadID);
     else if (!strcmp(op.c_str(), "+"))
-        Fladd->doOperation(as, bs, results, len_sig, len_exp, 1, threadID);
+        doOperation_FLAdd(as, bs, results, len_sig, len_exp, 1, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "/"))
         doOperation_FLDiv(as, bs, results, len_sig, 1, threadID, net, id, ss);
 
@@ -915,7 +915,7 @@ void SMC_Utils::smc_batch_fop_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, i
     if (!strcmp(op.c_str(), "*"))
         Flmult->doOperation(a, b, result, len_sig, size, threadID);
     else if (!strcmp(op.c_str(), "+"))
-        Fladd->doOperation(a, b, result, len_sig, len_exp, size, threadID);
+        doOperation_FLAdd(a, b, result, len_sig, len_exp, size, threadID, net, id, ss);
     else if (!strcmp(op.c_str(), "/"))
         doOperation_FLDiv(a, b, result, len_sig, size, threadID, net, id, ss);
     smc_process_results(result, resultlen_sig, resultlen_exp, len_sig, len_exp, size, threadID);
@@ -1590,11 +1590,11 @@ void SMC_Utils::smc_shl(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int
 
 // Dot Product
 void SMC_Utils::smc_dot(mpz_t *a, mpz_t *b, int size, mpz_t result, int threadID) {
-    DProd->doOperation(a, b, result, size, threadID);
+    doOperation_DotProduct(a, b, result, size, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dot(mpz_t **a, mpz_t **b, int size, int array_size, mpz_t *result, std::string type, int threadID) {
-    DProd->doOperation(a, b, result, size, array_size, threadID);
+    doOperation_DotProduct(a, b, result, size, array_size, threadID, net, id, ss);
 }
 
 // one-dimension private integer singular read

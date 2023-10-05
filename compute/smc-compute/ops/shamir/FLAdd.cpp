@@ -19,22 +19,6 @@
 */
 #include "FLAdd.h"
 
-FLAdd::FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // Lt = new LTZ(nodeNet, poly, nodeID, s);
-    // T = new Trunc(nodeNet, poly, nodeID, s);
-    // Preor = new PreOr(nodeNet, poly, nodeID, s);
-    // P2 = new Pow2(nodeNet, poly, nodeID, s);
-    // In = new Inv(nodeNet, poly, nodeID, s);
-
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-
-FLAdd::~FLAdd() {
-    // TODO Auto-generated destructor stub
-}
 /**************************/
 // notice that in this implementation K is the same as "L" specified in the paper and vice versa.
 /**************************/
@@ -45,7 +29,8 @@ FLAdd::~FLAdd() {
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/
 /*A[3](B[3]) contains a sign bit S*/
-void FLAdd::doOperation(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID) {
+    void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1,  int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss){
+
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **result = (mpz_t **)malloc(sizeof(mpz_t *) * 4);

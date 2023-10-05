@@ -564,11 +564,11 @@ private:
     
     // LTZ *Lt;
     // EQZ *Eq;
-    DotProduct *DProd;
+    // DotProduct *DProd;
     // BitOps *BOps;
     // Trunc *T;
     // TruncS *Ts;
-    FLAdd *Fladd;
+    // FLAdd *Fladd;
     FLMult *Flmult;
     FLLTZ *Flltz;
     FLEQZ *Fleqz;

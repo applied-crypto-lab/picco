@@ -19,16 +19,7 @@
 */
 #include "DotProduct.h"
 
-DotProduct::DotProduct(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int NodeID, SecretShare *s) {
-    // Mul = new Mult(nodeNet, NodeID, s);
-    net = nodeNet;
-    id = NodeID;
-    ss = s;
-}
-
-DotProduct::~DotProduct() {}
-
-void DotProduct::doOperation(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID) {
+void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -74,8 +65,8 @@ void DotProduct::doOperation(mpz_t *a, mpz_t *b, mpz_t result, int array_size, i
     mpz_clear(data[0]);
     free(data);
 }
+void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
-void DotProduct::doOperation(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID) {
     int peers = ss->getPeers();
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);

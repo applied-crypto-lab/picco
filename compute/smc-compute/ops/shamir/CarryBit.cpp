@@ -19,19 +19,7 @@
 */
 #include "CarryBit.h"
 
-CarryBit::CarryBit(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-
-    // M = new Mult(nodeNet, nodeID, s);
-    ss = s;
-    net = nodeNet;
-    id = nodeID;
-}
-
-CarryBit::~CarryBit() {
-    // TODO Auto-generated destructor stub
-}
-
-void CarryBit::doOperation(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int size, int threadID) {
+void doOperation_CarryBit(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);

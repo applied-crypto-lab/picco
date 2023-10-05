@@ -30,17 +30,6 @@
 #include "PreOr.h"
 #include "Trunc.h"
 
-class FLAdd : public Operation {
-public:
-    FLAdd(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s);
-    virtual ~FLAdd();
-    void doOperation(mpz_t **A, mpz_t **B, mpz_t **result, int K, int L, int size, int threadID);
-
-private:
-    // LTZ *Lt;
-    // Trunc *T;
-    // PreOr *Preor;
-    // Inv *In;
-};
+    void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 #endif /* FLOATADD_SHAMIR_H_ */

@@ -26,7 +26,7 @@ FLRound::FLRound(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> po
     // Eq = new EQZ(nodeNet, poly, nodeID, s);
     // Mul = new Mult(nodeNet, nodeID, s);
     Md2m = new Mod2MS(nodeNet, poly, nodeID, s);
-    Fladd = new FLAdd(nodeNet, poly, nodeID, s);
+    // Fladd = new FLAdd(nodeNet, poly, nodeID, s);
 
     net = nodeNet;
     id = nodeID;
@@ -86,7 +86,7 @@ void FLRound::doOperation(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K,
     }
 
     // line 0
-    Fladd->doOperation(A1, constOneHalf, A1, L, K, size, threadID);
+    doOperation_FLAdd(A1, constOneHalf, A1, L, K, size, threadID, net, id, ss);
     for (int i = 0; i < 4; i++) {
         A[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; j++)

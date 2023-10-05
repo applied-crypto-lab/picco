@@ -39,7 +39,7 @@ private:
     // Mod2M *Mod;
     // EQZ *Eq;
     Mod2MS *Md2m;
-    FLAdd *Fladd;
+    // FLAdd *Fladd;
 };
 
 #endif /* FLROUND_SHAMIR_H_ */
