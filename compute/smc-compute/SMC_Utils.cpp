@@ -77,26 +77,6 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
         ss->Seed((nodeNet->key_0), (nodeNet->key_1));
     }
     // setCoef();
-    // Mul = new Mult(net, id, ss);
-    // Lt = new LTZ(*nodeNet, polynomials, id, ss);
-    // Eq = new EQZ(*nodeNet, polynomials, id, ss);
-    // T = new Trunc(*nodeNet, polynomials, id, ss);
-    // Ts = new TruncS(*nodeNet, polynomials, id, ss);
-    // P = new Pow2(*nodeNet, polynomials, id, ss);
-    // BOps = new BitOps(*nodeNet, polynomials, id, ss);
-    // DProd = new DotProduct(*nodeNet, polynomials, id, ss);
-    // PI = new PrivIndex(*nodeNet, polynomials, id, ss);
-    PP = new PrivPtr(net, id, ss);
-    // Idiv = new IntDiv(*nodeNet, polynomials, id, ss);
-    // I2F = new Int2FL(*nodeNet, polynomials, id, ss);
-    // F2I = new FL2Int(*nodeNet, polynomials, id, ss);
-    // Fladd = new FLAdd(*nodeNet, polynomials, id, ss);
-    // Flmult = new FLMult(*nodeNet, polynomials, id, ss);
-    // Fldiv = new FLDiv(*nodeNet, polynomials, id, ss);
-    // Flltz = new FLLTZ(*nodeNet, polynomials, id, ss);
-    // Fleqz = new FLEQZ(*nodeNet, polynomials, id, ss);
-    // Fpdiv = new FPDiv(*nodeNet, polynomials, id, ss);
-    // for test purposes
 }
 
 /* Specific SMC Utility Functions */
@@ -1961,127 +1941,127 @@ void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig,
 }
 
 priv_ptr SMC_Utils::smc_new_ptr(int level, int type) {
-    return PP->create_ptr(level, type);
+    return create_ptr(level, type);
 }
 
 priv_ptr *SMC_Utils::smc_new_ptr(int level, int type, int num) {
-    return PP->create_ptr(level, type, num);
+    return create_ptr(level, type, num);
 }
 
 /*************/
 void SMC_Utils::smc_set_int_ptr(priv_ptr ptr, mpz_t *var_loc, std::string type, int threadID) {
-    PP->set_ptr(ptr, var_loc, NULL, NULL, NULL, threadID);
+    set_ptr(ptr, var_loc, NULL, NULL, NULL, threadID);
 }
 
 void SMC_Utils::smc_set_float_ptr(priv_ptr ptr, mpz_t **var_loc, std::string type, int threadID) {
-    PP->set_ptr(ptr, NULL, var_loc, NULL, NULL, threadID);
+    set_ptr(ptr, NULL, var_loc, NULL, NULL, threadID);
 }
 
 void SMC_Utils::smc_set_struct_ptr(priv_ptr ptr, void *var_loc, std::string type, int threadID) {
-    PP->set_ptr(ptr, NULL, NULL, var_loc, NULL, threadID);
+    set_ptr(ptr, NULL, NULL, var_loc, NULL, threadID);
 }
 
 void SMC_Utils::smc_set_ptr(priv_ptr assign_ptr, priv_ptr *ptr_loc, std::string type, int threadID) {
-    PP->set_ptr(assign_ptr, NULL, NULL, NULL, ptr_loc, threadID);
+    set_ptr(assign_ptr, NULL, NULL, NULL, ptr_loc, threadID);
 }
 
 void SMC_Utils::smc_set_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, std::string type, int threadID) {
-    PP->set_ptr(assign_ptr, right_ptr, threadID);
+    set_ptr(assign_ptr, right_ptr, threadID);
 }
 
 void SMC_Utils::smc_set_ptr(priv_ptr ptr, int var_loc, std::string type, int threadID) {
 }
 /****************/
 void SMC_Utils::smc_update_int_ptr(priv_ptr ptr, mpz_t *var_loc, mpz_t private_tag, int index, int threadID) {
-    PP->update_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, index, threadID);
+    update_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, index, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_update_float_ptr(priv_ptr ptr, mpz_t **var_loc, mpz_t private_tag, int index, int threadID) {
-    PP->update_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, index, threadID);
+    update_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, index, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_update_struct_ptr(priv_ptr ptr, void *var_loc, mpz_t private_tag, int index, int threadID) {
-    PP->update_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, index, threadID);
+    update_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, index, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_update_ptr(priv_ptr ptr, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID) {
-    PP->update_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, index, threadID);
+    update_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, index, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID) {
-    PP->update_ptr(assign_ptr, right_ptr, private_tag, index, threadID);
+    update_ptr(assign_ptr, right_ptr, private_tag, index, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_add_int_ptr(priv_ptr ptr, mpz_t *var_loc, mpz_t private_tag, int threadID) {
-    PP->add_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, threadID);
+    add_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, threadID);
 }
 
 void SMC_Utils::smc_add_float_ptr(priv_ptr ptr, mpz_t **var_loc, mpz_t private_tag, int threadID) {
-    PP->add_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, threadID);
+    add_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, threadID);
 }
 
 void SMC_Utils::smc_add_struct_ptr(priv_ptr ptr, void *var_loc, mpz_t private_tag, int threadID) {
-    PP->add_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, threadID);
+    add_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, threadID);
 }
 
 void SMC_Utils::smc_add_ptr(priv_ptr ptr, priv_ptr *ptr_loc, mpz_t private_tag, int threadID) {
-    PP->add_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, threadID);
+    add_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, threadID);
 }
 
 /*******************/
 void SMC_Utils::smc_shrink_ptr(priv_ptr ptr, int current_index, int parent_index, int threadID) {
-    PP->shrink_ptr(ptr, current_index, parent_index, threadID);
+    shrink_ptr(ptr, current_index, parent_index, threadID);
 }
 /********************/
 void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, mpz_t result, int num_of_dereferences, mpz_t priv_cond, std::string type, int threadID) {
-    PP->dereference_ptr_read_var(ptr, result, num_of_dereferences, threadID);
+    dereference_ptr_read_var(ptr, result, num_of_dereferences, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, mpz_t *result, int num_of_dereferences, mpz_t priv_cond, std::string type, int threadID) {
-    PP->dereference_ptr_read_var(ptr, result, num_of_dereferences, threadID);
+    dereference_ptr_read_var(ptr, result, num_of_dereferences, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, priv_ptr result, int num_of_dereferences, mpz_t priv_cond, std::string type, int threadID) {
-    PP->dereference_ptr_read_ptr(ptr, result, num_of_dereferences, priv_cond, threadID);
+    dereference_ptr_read_ptr(ptr, result, num_of_dereferences, priv_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, mpz_t value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write_var(ptr, value, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write_var(ptr, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_int_ptr(priv_ptr ptr, mpz_t *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write(ptr, value, NULL, NULL, NULL, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write(ptr, value, NULL, NULL, NULL, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, mpz_t *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write_var(ptr, value, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write_var(ptr, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_float_ptr(priv_ptr ptr, mpz_t **value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write(ptr, NULL, value, NULL, NULL, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write(ptr, NULL, value, NULL, NULL, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_struct_ptr(priv_ptr ptr, void *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write(ptr, NULL, NULL, value, NULL, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write(ptr, NULL, NULL, value, NULL, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write(ptr, NULL, NULL, NULL, value, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write(ptr, NULL, NULL, NULL, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
-    PP->dereference_ptr_write_ptr(ptr, value, num_of_dereferences, private_cond, threadID);
+    dereference_ptr_write_ptr(ptr, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 /*******************************************/
 void SMC_Utils::smc_clear_ptr(priv_ptr *ptr) {
-    PP->clear_ptr(ptr);
+    clear_ptr(ptr);
 }
 void SMC_Utils::smc_free_ptr(priv_ptr *ptr) {
-    PP->destroy_ptr(ptr);
+    destroy_ptr(ptr);
 }
 
 void SMC_Utils::smc_free_ptr(priv_ptr **ptrs, int num) {
-    PP->destroy_ptr(ptrs, num);
+    destroy_ptr(ptrs, num);
 }
 
 void SMC_Utils::smc_int2fl(int value, mpz_t *result, int gamma, int K, int L, int threadID) {

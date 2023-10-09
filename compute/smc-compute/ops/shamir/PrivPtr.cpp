@@ -1,25 +1,32 @@
-#include "PrivPtr.h"
-PrivPtr::PrivPtr(NodeNetwork nodeNet, int nodeID, SecretShare *s) {
-    // Mul = new Mult(nodeNet, nodeID, s);
-    net = nodeNet;
-    id = nodeID;
-    ss = s;
-}
-int PrivPtr::creation = 0;
+/*
+   PICCO: A General Purpose Compiler for Private Distributed Computation
+   ** Copyright (C) from 2013 PICCO Team
+   ** Department of Computer Science and Engineering, University of Notre Dame
+   ** Department of Computer Science and Engineering, University of Buffalo (SUNY)
 
-PrivPtr::~PrivPtr() {
-}
-int PrivPtr::n = 0;
-listnode PrivPtr::create_listnode() {
-    // creation++;
-    // printf("%d\n", creation);
+   PICCO is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   PICCO is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
+*/
+#include "PrivPtr.h"
+
+listnode create_listnode() {
     listnode node = (listnode)malloc(sizeof(struct listnode_));
     mpz_init(node->priv_tag);
     node->prev = node->next = NULL;
     return node;
 }
 
-listnode PrivPtr::create_listnode(mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr ptr_loc, mpz_t private_tag, int index) {
+listnode create_listnode(mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr ptr_loc, mpz_t private_tag, int index) {
     listnode node = create_listnode();
     if (int_var_loc != NULL) {
         node->u.int_var_location = int_var_loc;
@@ -35,7 +42,7 @@ listnode PrivPtr::create_listnode(mpz_t *int_var_loc, mpz_t **float_var_loc, voi
     return node;
 }
 
-void PrivPtr::copy_listnode(listnode assign_node, listnode right_node, int level, int type) {
+void copy_listnode(listnode assign_node, listnode right_node, int level, int type) {
     if (level == 0) {
         if (type == 0)
             assign_node->u.int_var_location = right_node->u.int_var_location;
@@ -49,7 +56,7 @@ void PrivPtr::copy_listnode(listnode assign_node, listnode right_node, int level
     assign_node->if_index = right_node->if_index;
 }
 
-dlist PrivPtr::create_list() {
+dlist create_list() {
     dlist list = (dlist)malloc(sizeof(struct list_));
     list->head = create_listnode();
     list->tail = create_listnode();
@@ -58,7 +65,7 @@ dlist PrivPtr::create_list() {
     return list;
 }
 
-void PrivPtr::insert_to_rear(dlist list, listnode node) {
+void insert_to_rear(dlist list, listnode node) {
     listnode tmp = list->tail->prev;
     list->tail->prev = node;
     node->next = list->tail;
@@ -66,13 +73,13 @@ void PrivPtr::insert_to_rear(dlist list, listnode node) {
     tmp->next = node;
 }
 
-void PrivPtr::delete_from_list(listnode *node) {
+void delete_from_list(listnode *node) {
     (*node)->prev->next = (*node)->next;
     (*node)->next->prev = (*node)->prev;
     destroy_listnode(node);
 }
 
-void PrivPtr::clear_list(dlist *list) {
+void clear_list(dlist *list) {
     listnode tmp = (*list)->head->next;
     listnode tmp1;
     while (tmp != (*list)->tail) {
@@ -82,7 +89,7 @@ void PrivPtr::clear_list(dlist *list) {
     }
 }
 
-void PrivPtr::copy_list(dlist assign_list, dlist right_list, int level, int type) {
+void copy_list(dlist assign_list, dlist right_list, int level, int type) {
     listnode pre, cur;
     pre = assign_list->head;
     cur = right_list->head->next;
@@ -98,7 +105,7 @@ void PrivPtr::copy_list(dlist assign_list, dlist right_list, int level, int type
     assign_list->tail->prev = pre;
 }
 
-void PrivPtr::append_list(dlist front_list, dlist back_list) {
+void append_list(dlist front_list, dlist back_list) {
     listnode tmp1 = back_list->head->next;
     listnode tmp2 = NULL;
 
@@ -115,7 +122,7 @@ void PrivPtr::append_list(dlist front_list, dlist back_list) {
     return;
 }
 
-void PrivPtr::update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size, int threadID) {
+void update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     if (size == 0)
         return;
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -155,13 +162,13 @@ void PrivPtr::update_list_attributes(dlist list, mpz_t priv_cond, int if_index, 
     free(result);
 }
 
-void PrivPtr::destroy_listnode(listnode *node) {
+void destroy_listnode(listnode *node) {
     mpz_clear((*node)->priv_tag);
     free(*node);
     *node = NULL;
 }
 
-void PrivPtr::destroy_list(dlist *list) {
+void destroy_list(dlist *list) {
     listnode tmp = (*list)->head->next;
     listnode tmp1 = NULL;
     while (tmp != (*list)->tail) {
@@ -175,7 +182,7 @@ void PrivPtr::destroy_list(dlist *list) {
     *list = NULL;
 }
 
-priv_ptr PrivPtr::create_ptr(int level, int type) {
+priv_ptr create_ptr(int level, int type) {
     priv_ptr ptr = (priv_ptr)malloc(sizeof(struct priv_ptr_));
     ptr->list = create_list();
     ptr->size = 0;
@@ -184,27 +191,27 @@ priv_ptr PrivPtr::create_ptr(int level, int type) {
     return ptr;
 }
 
-priv_ptr *PrivPtr::create_ptr(int level, int type, int num) {
+priv_ptr *create_ptr(int level, int type, int num) {
     priv_ptr *ptrs = (priv_ptr *)malloc(sizeof(priv_ptr) * num);
     for (int i = 0; i < num; i++)
         ptrs[i] = create_ptr(level, type);
     return ptrs;
 }
 
-void PrivPtr::destroy_ptr(priv_ptr *ptr) {
+void destroy_ptr(priv_ptr *ptr) {
     destroy_list(&((*ptr)->list));
     free(*ptr);
     *ptr = NULL;
 }
 
-void PrivPtr::destroy_ptr(priv_ptr **ptrs, int num) {
+void destroy_ptr(priv_ptr **ptrs, int num) {
     for (int i = 0; i < num; i++)
         destroy_ptr(&((*ptrs)[i]));
     free(*ptrs);
     *ptrs = NULL;
 }
 
-void PrivPtr::set_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, int threadID) {
+void set_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, int threadID) {
     listnode node = create_listnode();
     if (int_var_loc != NULL) {
         node->u.int_var_location = int_var_loc;
@@ -226,20 +233,20 @@ void PrivPtr::set_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, v
     ptr->size = 1;
 }
 
-void PrivPtr::set_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, int threadID) {
+void set_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, int threadID) {
     clear_list(&(assign_ptr->list));
     copy_list(assign_ptr->list, right_ptr->list, right_ptr->level - 1, assign_ptr->type);
     assign_ptr->size = right_ptr->size;
     assign_ptr->level = right_ptr->level;
 }
 
-void PrivPtr::clear_ptr(priv_ptr *ptr) {
+void clear_ptr(priv_ptr *ptr) {
     clear_list(&((*ptr)->list));
     (*ptr)->size = 0;
     (*ptr)->level = 0;
 }
 
-void PrivPtr::add_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int threadID) {
+void add_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int threadID) {
     listnode node;
     if (ptr_loc != NULL)
         node = create_listnode(int_var_loc, float_var_loc, struct_var_loc, *ptr_loc, private_tag, -1);
@@ -250,7 +257,7 @@ void PrivPtr::add_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, v
     return;
 }
 
-void PrivPtr::update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID) {
+void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     listnode node;
     if (ptr_loc != NULL)
         node = create_listnode(int_var_loc, float_var_loc, struct_var_loc, *ptr_loc, private_tag, index);
@@ -265,7 +272,7 @@ void PrivPtr::update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc
         mpz_t priv_cond;
         mpz_init(priv_cond);
         ss->modSub(priv_cond, 1, private_tag);
-        update_list_attributes(ptr->list, priv_cond, -1, ptr->size, threadID);
+        update_list_attributes(ptr->list, priv_cond, -1, ptr->size, threadID, net, id, ss);
         insert_to_rear(ptr->list, node);
         ptr->size++;
         mpz_clear(priv_cond);
@@ -273,10 +280,10 @@ void PrivPtr::update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc
     }
 }
 
-void PrivPtr::update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID) {
+void update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     if (assign_ptr->size == 0) {
         copy_list(assign_ptr->list, right_ptr->list, right_ptr->level - 1, assign_ptr->type);
-        update_list_attributes(assign_ptr->list, private_tag, index, right_ptr->size, threadID);
+        update_list_attributes(assign_ptr->list, private_tag, index, right_ptr->size, threadID, net, id, ss);
         assign_ptr->size = right_ptr->size;
         return;
     } else {
@@ -286,16 +293,16 @@ void PrivPtr::update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_
         mpz_init(priv_cond);
         ss->modSub(priv_cond, 1, private_tag);
         copy_list(ptr->list, right_ptr->list, right_ptr->level - 1, assign_ptr->type);
-        update_list_attributes(ptr->list, private_tag, index, ptr->size, threadID);
-        update_list_attributes(assign_ptr->list, priv_cond, -1, assign_ptr->size, threadID);
-        merge_and_shrink_ptr(assign_ptr, ptr);
+        update_list_attributes(ptr->list, private_tag, index, ptr->size, threadID, net, id, ss);
+        update_list_attributes(assign_ptr->list, priv_cond, -1, assign_ptr->size, threadID, net, id, ss);
+        merge_and_shrink_ptr(assign_ptr, ptr, net, id, ss);
         mpz_clear(priv_cond);
         destroy_ptr(&ptr);
         return;
     }
 }
 
-void PrivPtr::shrink_ptr(priv_ptr ptr, int current_index, int parent_index, int threadID) {
+void shrink_ptr(priv_ptr ptr, int current_index, int parent_index, int threadID) {
     // first, find the first node in the list that appears in the matching if body
     listnode first = ptr->list->head->next;
     while (first != ptr->list->tail) {
@@ -325,7 +332,7 @@ void PrivPtr::shrink_ptr(priv_ptr ptr, int current_index, int parent_index, int 
     return;
 }
 
-int PrivPtr::compute_list_size(dlist list) {
+int compute_list_size(dlist list) {
     int size = 0;
     listnode node = list->head->next;
     while (node != list->tail) {
@@ -335,7 +342,7 @@ int PrivPtr::compute_list_size(dlist list) {
     return size;
 }
 
-void PrivPtr::append_ptr_list(priv_ptr assign_ptr, priv_ptr right_ptr) {
+void append_ptr_list(priv_ptr assign_ptr, priv_ptr right_ptr) {
     dlist list = right_ptr->list;
     listnode node = list->head->next;
     while (node != list->tail) {
@@ -345,7 +352,7 @@ void PrivPtr::append_ptr_list(priv_ptr assign_ptr, priv_ptr right_ptr) {
     return;
 }
 
-int PrivPtr::is_repeated_listnode(dlist list, listnode node, int level, int type) {
+int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNetwork net, int id, SecretShare *ss) {
     listnode tmp = list->head->next;
     while (tmp != list->tail) {
         if (level == 0) {
@@ -364,11 +371,11 @@ int PrivPtr::is_repeated_listnode(dlist list, listnode node, int level, int type
     return 0;
 }
 
-void PrivPtr::merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr) {
+void merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr,NodeNetwork net, int id, SecretShare *ss) {
     dlist list = right_ptr->list;
     listnode node = list->head->next;
     while (node != list->tail) {
-        if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1, assign_ptr->type)) {
+        if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1, assign_ptr->type, net, id, ss)) {
             listnode tmp = create_listnode();
             copy_listnode(tmp, node, assign_ptr->level - 1, assign_ptr->type);
             insert_to_rear(assign_ptr->list, tmp);
@@ -379,7 +386,7 @@ void PrivPtr::merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr) {
     return;
 }
 
-void PrivPtr::copy_nested_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t *R) {
+void copy_nested_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t *R) {
     int index = 0;
     dlist list = right_ptr->list;
     listnode node = list->head->next;
@@ -399,11 +406,11 @@ void PrivPtr::copy_nested_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t *R)
     }
 }
 
-void PrivPtr::reduce_dereferences(priv_ptr ptr, int dereferences, priv_ptr result_ptr, int threadID) {
+void reduce_dereferences(priv_ptr ptr, int dereferences, priv_ptr result_ptr, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     priv_ptr runner = create_ptr(0, ptr->type);
     set_ptr(runner, ptr, threadID);
     while (dereferences > 1) {
-        read_write_helper(runner, result_ptr, NULL, threadID);
+        read_write_helper(runner, result_ptr, NULL, threadID, net, id, ss);
         set_ptr(runner, result_ptr, threadID);
         dereferences--;
     }
@@ -412,7 +419,7 @@ void PrivPtr::reduce_dereferences(priv_ptr ptr, int dereferences, priv_ptr resul
     return;
 }
 // dereference read for pointer to integer
-void PrivPtr::dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int threadID) {
+void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     if (ptr->type != 0) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -422,7 +429,7 @@ void PrivPtr::dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferen
     priv_ptr tmp_ptr;
     set_ptr(copy_ptr, ptr, threadID);
     if (dereferences > 1) {
-        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID);
+        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, id, ss);
         tmp_ptr = ptr1;
     } else
         tmp_ptr = ptr;
@@ -466,7 +473,7 @@ void PrivPtr::dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferen
 }
 
 // dereference read of pointer to float
-void PrivPtr::dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int threadID) {
+void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     if (ptr->type != 1) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -477,7 +484,7 @@ void PrivPtr::dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int derefere
     priv_ptr tmp_ptr;
     set_ptr(copy_ptr, ptr, threadID);
     if (dereferences > 1) {
-        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID);
+        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, id, ss);
         tmp_ptr = ptr1;
     } else
         tmp_ptr = ptr;
@@ -528,22 +535,22 @@ void PrivPtr::dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int derefere
     destroy_ptr(&ptr1);
 }
 
-void PrivPtr::dereference_ptr_read_ptr(priv_ptr ptr, priv_ptr result, int dereferences, mpz_t priv_cond, int threadID) {
+void dereference_ptr_read_ptr(priv_ptr ptr, priv_ptr result, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     priv_ptr copy_ptr = create_ptr(ptr->level, ptr->type);
     priv_ptr ptr1 = create_ptr(ptr->level, ptr->type);
     set_ptr(ptr1, ptr, threadID);
     priv_ptr tmp_ptr;
     if (dereferences > 1) {
-        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID);
+        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, id, ss);
         tmp_ptr = copy_ptr;
     } else
         tmp_ptr = ptr;
-    read_write_helper(tmp_ptr, result, priv_cond, threadID);
+    read_write_helper(tmp_ptr, result, priv_cond, threadID, net, id, ss);
     destroy_ptr(&copy_ptr);
     destroy_ptr(&ptr1);
 }
 
-void PrivPtr::read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threadID) {
+void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     // compute the number of elements in the second layer of list of ptr
     int num = 0;
     dlist list = ptr->list;
@@ -586,7 +593,7 @@ void PrivPtr::read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, 
         mpz_t cond;
         mpz_init(cond);
         ss->modSub(cond, 1, priv_cond);
-        update_list_attributes(result->list, cond, -1, result->size, threadID);
+        update_list_attributes(result->list, cond, -1, result->size, threadID, net, id, ss);
         Mult(R, R, op3, num, threadID, net, id, ss);
     } else {
         clear_list(&(result->list));
@@ -596,7 +603,7 @@ void PrivPtr::read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, 
     result->level = ptr->level - 1;
     priv_ptr tmp_ptr = create_ptr(ptr->level - 1, ptr->type);
     copy_nested_ptr(tmp_ptr, ptr, R);
-    merge_and_shrink_ptr(result, tmp_ptr);
+    merge_and_shrink_ptr(result, tmp_ptr, net, id, ss);
     destroy_ptr(&tmp_ptr);
 
     for (int i = 0; i < num; i++) {
@@ -611,7 +618,7 @@ void PrivPtr::read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, 
     free(R);
 }
 
-int PrivPtr::list_size(dlist list) {
+int list_size(dlist list) {
     int index = 0;
     listnode node = list->head->next;
     while (node != list->tail) {
@@ -621,21 +628,21 @@ int PrivPtr::list_size(dlist list) {
     return index;
 }
 
-void PrivPtr::dereference_ptr_write(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, int dereferences, mpz_t priv_cond, int threadID) {
+void dereference_ptr_write(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     priv_ptr tmp_ptr = create_ptr(0, ptr->type);
     set_ptr(tmp_ptr, int_var_loc, float_var_loc, struct_var_loc, ptr_loc, threadID);
-    dereference_ptr_write_ptr(ptr, tmp_ptr, dereferences, priv_cond, threadID);
+    dereference_ptr_write_ptr(ptr, tmp_ptr, dereferences, priv_cond, threadID, net, id, ss);
     destroy_ptr(&tmp_ptr);
 }
 
-void PrivPtr::dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, mpz_t priv_cond, int threadID) {
+void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     priv_ptr copy_ptr = create_ptr(0, ptr->type);
     priv_ptr ptr1 = create_ptr(0, ptr->type);
     set_ptr(copy_ptr, ptr, threadID);
     priv_ptr tmp_ptr;
 
     if (dereferences > 1) {
-        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID);
+        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, id, ss);
         tmp_ptr = ptr1;
     } else
         tmp_ptr = ptr;
@@ -651,8 +658,8 @@ void PrivPtr::dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int derefe
         mpz_init(cond);
         if (priv_cond == NULL) {
             ss->modSub(cond, 1, node->priv_tag);
-            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID);
-            update_list_attributes(ptr2->list, node->priv_tag, -1, ptr2->size, threadID);
+            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, id, ss);
+            update_list_attributes(ptr2->list, node->priv_tag, -1, ptr2->size, threadID, net, id, ss);
         } else {
             mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
             mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -662,8 +669,8 @@ void PrivPtr::dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int derefe
             mpz_init(R[0]);
             Mult(R, op1, op2, 1, threadID, net, id, ss);
             ss->modSub(cond, 1, R[0]);
-            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID);
-            update_list_attributes(ptr2->list, R[0], -1, ptr2->size, threadID);
+            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, id, ss);
+            update_list_attributes(ptr2->list, R[0], -1, ptr2->size, threadID, net, id, ss);
 
             mpz_clear(op1[0]);
             mpz_clear(op2[0]);
@@ -673,7 +680,7 @@ void PrivPtr::dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int derefe
             free(op2);
             free(R);
         }
-        merge_and_shrink_ptr(assign_ptr, ptr2);
+        merge_and_shrink_ptr(assign_ptr, ptr2, net, id, ss);
         destroy_ptr(&ptr2);
         node = node->next;
     }
@@ -683,7 +690,7 @@ void PrivPtr::dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int derefe
 }
 
 // dereference write for pointer to float
-void PrivPtr::dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz_t priv_cond, int threadID) {
+void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     if (ptr->type != 1) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -695,7 +702,7 @@ void PrivPtr::dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int derefere
     set_ptr(ptr1, ptr, threadID);
 
     if (dereferences > 1) {
-        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID);
+        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, id, ss);
         tmp_ptr = copy_ptr;
     } else
         tmp_ptr = ptr;
@@ -762,7 +769,7 @@ void PrivPtr::dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int derefere
 }
 
 // dereference write to a pointer to int
-void PrivPtr::dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_t priv_cond, int threadID) {
+void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     if (ptr->type != 0) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -773,7 +780,7 @@ void PrivPtr::dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferen
     set_ptr(ptr1, ptr, threadID);
 
     if (dereferences > 1) {
-        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID);
+        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, id, ss);
         tmp_ptr = copy_ptr;
     } else
         tmp_ptr = ptr;

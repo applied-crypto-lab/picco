@@ -561,24 +561,6 @@ private:
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
 
-    
-    // LTZ *Lt;
-    // EQZ *Eq;
-    // DotProduct *DProd;
-    // BitOps *BOps;
-    // Trunc *T;
-    // TruncS *Ts;
-    // FLAdd *Fladd;
-    // FLMult *Flmult;
-    // FLLTZ *Flltz;
-    // FLEQZ *Fleqz;
-    // FLDiv *Fldiv;
-    // FPDiv *Fpdiv;
-    // PrivIndex *PI;
-    PrivPtr *PP;
-    // Int2FL *I2F;
-    // FL2Int *F2I;
-    // IntDiv *Idiv;
     // Handle client connections and polynomail stuff
     void clientConnect();
     void receivePolynomials(std::string privatekey_filename);
