@@ -108,7 +108,7 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     int k = 0;
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
         mpz_init(temp_keys[k]);
-        mpz_set_str(temp_keys[k], ((*it).first).c_str(), 10);
+        mpz_set_str(temp_keys[k], ((*it).first).c_str(), BASE_10);
         k++;
     }
     rstates = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * polynomials.size());
@@ -128,7 +128,7 @@ void SecretShare::randInit_thread(int threadID) {
         int k = 0;
         for (it = polynomials.begin(); it != polynomials.end(); it++) {
             mpz_init(temp_keys[k]);
-            mpz_set_str(temp_keys[k], ((*it).first).c_str(), 10);
+            mpz_set_str(temp_keys[k], ((*it).first).c_str(), BASE_10);
             k++;
         }
         for (int i = 0; i < polynomials.size(); i++) {
@@ -1322,4 +1322,132 @@ void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, vect
         return;
     } else
         mpz_urandomm(value, rstates_thread[id][threadID], mod);
+}
+
+
+std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {
+    char *saveptr;
+    char *token = strtok_r((char *)str, delim, &saveptr);
+    std::vector<std::string> result;
+    while (token != NULL) {
+        result.push_back(token);
+        token = strtok_r(NULL, delim, &saveptr);
+    }
+    return result;
+}
+
+
+void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> tokens;
+    std::getline(inputStreams[id - 1], line);
+    tokens = splitfunc(line.c_str(), "=");
+    *var = atoi(tokens[1].c_str());
+}
+
+
+void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> tokens;
+    std::getline(inputStreams[id - 1], line);
+    tokens = splitfunc(line.c_str(), "=");
+    mpz_set_str(*var, tokens[1].c_str(), BASE_10);
+}
+
+void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> tokens;
+    std::getline(inputStreams[id - 1], line);
+    tokens = splitfunc(line.c_str(), "=");
+    *var = atof(tokens[1].c_str());
+}
+
+
+void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> temp;
+    std::vector<std::string> tokens;
+    std::getline(inputStreams[id - 1], line);
+    temp = splitfunc(line.c_str(), "=");
+    tokens = splitfunc(temp[1].c_str(), ",");
+    for (int i = 0; i < 4; i++)
+        mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
+}
+
+
+// one-dimensional int array I/O
+void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams) {
+    //    std::cout << "hi" << std::endl;
+    std::string line;
+    std::vector<std::string> tokens;
+    std::vector<std::string> temp;
+    std::getline(inputStreams[id - 1], line);
+    temp = splitfunc(line.c_str(), "=");
+    tokens = splitfunc(temp[1].c_str(), ",");
+    for (int i = 0; i < size; i++) {
+        mpz_set_str(var[i], tokens[i].c_str(), BASE_10);
+    }
+}
+
+void SecretShare::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> tokens;
+    std::vector<std::string> temp;
+    std::getline(inputStreams[id - 1], line);
+    temp = splitfunc(line.c_str(), "=");
+    tokens = splitfunc(temp[1].c_str(), ",");
+    for (int i = 0; i < size; i++)
+        var[i] = atoi(tokens[i].c_str());
+}
+
+
+// one-dimensional float array I/O
+void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> tokens;
+    std::vector<std::string> temp;
+    for (int i = 0; i < size; i++) {
+        std::getline(inputStreams[id - 1], line);
+        temp = splitfunc(line.c_str(), "=");
+        tokens = splitfunc(temp[1].c_str(), ",");
+        for (int j = 0; j < 4; j++)
+            mpz_set_str(var[i][j], tokens[j].c_str(), BASE_10);
+    }
+}
+
+void SecretShare::ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams) {
+    std::string line;
+    std::vector<std::string> tokens;
+    std::vector<std::string> temp;
+    std::getline(inputStreams[id - 1], line);
+    temp = splitfunc(line.c_str(), "=");
+    tokens = splitfunc(temp[1].c_str(), ",");
+    for (int i = 0; i < size; i++)
+        var[i] = atof(tokens[i].c_str());
+}
+
+
+
+
+
+void ss_clear(mpz_t &x) {
+    mpz_clear(x);
+}
+void ss_set_str(mpz_t x, const char *str, int base) {
+    mpz_set_str(x, str, base);
+}
+char* ss_get_str(char *str, int base, const mpz_t op){
+
+    return mpz_get_str(str, base, op);
+}
+
+
+void ss_free_arr(mpz_t *op, int size) {
+    for (int i = 0; i < size; i++)
+        mpz_clear(op[i]);
+    delete[] op;
+}
+
+void ss_init_set_si(mpz_t &x, int x_val) {
+    mpz_init_set_si(x, x_val);
 }

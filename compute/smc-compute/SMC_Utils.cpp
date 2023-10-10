@@ -30,12 +30,12 @@
 
 // Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
-    // test_type(15);
+    test_type(15);
 
     std::cout << "SMC_Utils constructor\n";
     mpz_t modulus;
     mpz_init(modulus);
-    mpz_set_str(modulus, mod.c_str(), 10);
+    mpz_set_str(modulus, mod.c_str(), BASE_10);
     nodeConfig = new NodeConfiguration(id, runtime_config, bits);
     peers = numOfPeers;
     std::cout << "Creating the NodeNetwork\n";
@@ -92,19 +92,99 @@ float SMC_Utils::smc_open(mpz_t *var, int threadID) {
 
 // for integer variable I/O
 void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atoi(tokens[1].c_str());
+    ss->ss_input(id, var, type, inputStreams);
+    // std::string line;
+    // std::vector<std::string> tokens;
+    // std::getline(inputStreams[id - 1], line);
+    // tokens = splitfunc(line.c_str(), "=");
+    // *var = atoi(tokens[1].c_str());
 }
 
 void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    mpz_set_str(*var, tokens[1].c_str(), BASE);
+    ss->ss_input(id, var, type, inputStreams);
+    // std::string line;
+    // std::vector<std::string> tokens;
+    // std::getline(inputStreams[id - 1], line);
+    // tokens = splitfunc(line.c_str(), "=");
+    // mpz_set_str(*var, tokens[1].c_str(), BASE_10);
+}
+
+// for float variable I/O
+void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
+    ss->ss_input(id, var, type, inputStreams);
+    // std::string line;
+    // std::vector<std::string> tokens;
+    // std::getline(inputStreams[id - 1], line);
+    // tokens = splitfunc(line.c_str(), "=");
+    // *var = atof(tokens[1].c_str());
+}
+
+void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
+    ss->ss_input(id, var, type, inputStreams);
+    // std::string line;
+    // std::vector<std::string> temp;
+    // std::vector<std::string> tokens;
+    // std::getline(inputStreams[id - 1], line);
+    // temp = splitfunc(line.c_str(), "=");
+    // tokens = splitfunc(temp[1].c_str(), ",");
+    // for (int i = 0; i < 4; i++)
+    //     mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
+}
+
+// one-dimensional int array I/O
+void SMC_Utils::smc_input(int id, mpz_t *var, int size, std::string type, int threadID) {
+    ss->ss_input(id, var, size, type, inputStreams);
+    //    std::cout << "hi" << std::endl;
+    // std::string line;
+    // std::vector<std::string> tokens;
+    // std::vector<std::string> temp;
+    // std::getline(inputStreams[id - 1], line);
+    // temp = splitfunc(line.c_str(), "=");
+    // tokens = splitfunc(temp[1].c_str(), ",");
+    // for (int i = 0; i < size; i++) {
+    //     // mpz_set_str(var[i], tokens[i].c_str(), BASE_10);
+    //     ss_set_str(var[i], tokens[i].c_str(), BASE_10);
+    //     // gmp_printf("var[%i]: %Zu\n", i, var[i]);
+    // }
+}
+
+void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int threadID) {
+    ss->ss_input(id, var, size, type, inputStreams);
+    // std::string line;
+    // std::vector<std::string> tokens;
+    // std::vector<std::string> temp;
+    // std::getline(inputStreams[id - 1], line);
+    // temp = splitfunc(line.c_str(), "=");
+    // tokens = splitfunc(temp[1].c_str(), ",");
+    // for (int i = 0; i < size; i++)
+    //     var[i] = atoi(tokens[i].c_str());
+}
+
+// one-dimensional float array I/O
+void SMC_Utils::smc_input(int id, mpz_t **var, int size, std::string type, int threadID) {
+    ss->ss_input(id, var, size, type, inputStreams);
+    // std::string line;
+    // std::vector<std::string> tokens;
+    // std::vector<std::string> temp;
+    // for (int i = 0; i < size; i++) {
+    //     std::getline(inputStreams[id - 1], line);
+    //     temp = splitfunc(line.c_str(), "=");
+    //     tokens = splitfunc(temp[1].c_str(), ",");
+    //     for (int j = 0; j < 4; j++)
+    //         mpz_set_str(var[i][j], tokens[j].c_str(), BASE_10);
+    // }
+}
+
+void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
+    ss->ss_input(id, var, size, type, inputStreams);
+    //     std::string line;
+    //     std::vector<std::string> tokens;
+    //     std::vector<std::string> temp;
+    //     std::getline(inputStreams[id - 1], line);
+    //     temp = splitfunc(line.c_str(), "=");
+    //     tokens = splitfunc(temp[1].c_str(), ",");
+    //     for (int i = 0; i < size; i++)
+    //         var[i] = atof(tokens[i].c_str());
 }
 
 void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
@@ -118,28 +198,9 @@ void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
 void SMC_Utils::smc_output(int id, mpz_t *var, std::string type, int threadID) {
     // smc_open(*var, threadID);
     std::string value;
-    value = mpz_get_str(NULL, BASE, *var);
+    value = mpz_get_str(NULL, BASE_10, *var);
     outputStreams[id - 1] << value + "\n";
     outputStreams[id - 1].flush();
-}
-// for float variable I/O
-void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atof(tokens[1].c_str());
-}
-
-void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> temp;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < 4; i++)
-        mpz_set_str((*var)[i], tokens[i].c_str(), BASE);
 }
 
 void SMC_Utils::smc_output(int id, float *var, std::string type, int threadID) {
@@ -155,7 +216,7 @@ void SMC_Utils::smc_output(int id, mpz_t **var, std::string type, int threadID) 
     std::string value;
     // smc_open(*var, threadID);
     for (int i = 0; i < 4; i++) {
-        value = mpz_get_str(NULL, BASE, (*var)[i]);
+        value = mpz_get_str(NULL, BASE_10, (*var)[i]);
         if (i != 3)
             outputStreams[id - 1] << value + ",";
         else
@@ -164,22 +225,10 @@ void SMC_Utils::smc_output(int id, mpz_t **var, std::string type, int threadID) 
     }
 }
 
-// one-dimensional int array I/O
-void SMC_Utils::smc_input(int id, mpz_t *var, int size, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        mpz_set_str(var[i], tokens[i].c_str(), BASE);
-}
-
 void SMC_Utils::smc_output(int id, mpz_t *var, int size, std::string type, int threadID) {
     std::string value;
     for (int i = 0; i < size; i++) {
-        value = mpz_get_str(NULL, BASE, var[i]);
+        value = mpz_get_str(NULL, BASE_10, var[i]);
         // smc_open(var[i], threadID);
         if (i != size - 1)
             outputStreams[id - 1] << value + ",";
@@ -187,17 +236,6 @@ void SMC_Utils::smc_output(int id, mpz_t *var, int size, std::string type, int t
             outputStreams[id - 1] << value + "\n";
         outputStreams[id - 1].flush();
     }
-}
-
-void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atoi(tokens[i].c_str());
 }
 
 void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int threadID) {
@@ -213,26 +251,12 @@ void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int thr
     }
 }
 
-// one-dimensional float array I/O
-void SMC_Utils::smc_input(int id, mpz_t **var, int size, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    for (int i = 0; i < size; i++) {
-        std::getline(inputStreams[id - 1], line);
-        temp = splitfunc(line.c_str(), "=");
-        tokens = splitfunc(temp[1].c_str(), ",");
-        for (int j = 0; j < 4; j++)
-            mpz_set_str(var[i][j], tokens[j].c_str(), BASE);
-    }
-}
-
 void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int threadID) {
     std::string value;
     for (int i = 0; i < size; i++) {
         // smc_open(var[i], threadID);
         for (int j = 0; j < 4; j++) {
-            value = mpz_get_str(NULL, BASE, var[i][j]);
+            value = mpz_get_str(NULL, BASE_10, var[i][j]);
             if (j != 3)
                 outputStreams[id - 1] << value + ",";
             else
@@ -240,17 +264,6 @@ void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int 
             outputStreams[id - 1].flush();
         }
     }
-}
-
-void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atof(tokens[i].c_str());
 }
 
 void SMC_Utils::smc_output(int id, float *var, int size, std::string type, int threadID) {
@@ -3726,7 +3739,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         // for (int c = 0; strkey[c] != '\0'; c++)
         // 	printf("%c", strkey[c]);
         // printf("\n");
-        mpz_set_str(Keys[i], strkey, 10);
+        mpz_set_str(Keys[i], strkey, BASE_10);
         position += mpz_t_size;
     }
     for (size_t i = 0; i < keysize; i++) {
@@ -3745,7 +3758,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         char strkey[mpz_t_size + 1];
         memset(strkey, 0x00, mpz_t_size + 1);
         // strkey[0] = 0;
-        mpz_get_str(strkey, 10, Keys[i]);
+        mpz_get_str(strkey, BASE_10, Keys[i]);
         std::string Strkey = strkey;
         std::vector<int> temp;
         for (int k = 0; k < coefsize / keysize; k++) {
@@ -3920,10 +3933,6 @@ void SMC_Utils::test_type(int x) {
     }
 }
 
-void ss_init_set_si(mpz_t &x, int x_val) {
-    mpz_init_set_si(x, x_val);
-}
-
 void ss_init_set_si(unsigned long &x, int x_val) {
     x = x_val;
 }
@@ -3931,16 +3940,7 @@ void ss_init_set_si(unsigned long &x, int x_val) {
 // for ul's, dont need to do anything for within-scope single variables, so just return
 void ss_clear(unsigned long &x) {}
 
-// frees space oucupied by x
-void ss_clear(mpz_t &x) {
-    mpz_clear(x);
-}
-
-void ss_free_arr(mpz_t *op, int size) {
-    for (int i = 0; i < size; i++)
-        mpz_clear(op[i]);
-    delete[] op;
-}
+// // frees space oucupied by x
 
 void ss_free_arr(unsigned long *op, int size) {
     delete[] op;

@@ -25,18 +25,20 @@
 #include "SecretShare.h"
 #include "ShamirUtil.h"
 #include "stdint.h"
+#include <algorithm>
 #include <cstdlib>
+#include <exception>
+#include <fstream>
+#include <functional>
 #include <gmp.h>
 #include <iostream>
 #include <math.h>
 #include <numeric>
 #include <vector>
-#include <functional> 
-#include <algorithm> 
-#include <exception>
 
-#define COEFF_BOUND 10  // specifies the number of sets of coefs we generate for symmetric function evaluation
+#define COEFF_BOUND 10 // specifies the number of sets of coefs we generate for symmetric function evaluation
 #define COEFF_OFFSET 1 // specifies what m value we start with (m = 1), DO NOT CHANGE !!!!!!!!!
+#define BASE_10 10     // number base for mpz_t
 
 using std::vector;
 
@@ -149,6 +151,17 @@ public:
 
     mpz_t **coef;
 
+    std::vector<std::string> splitfunc(const char *str, const char *delim);
+
+    void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) ;
+    void ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams);
+
 private:
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
 
@@ -209,8 +222,16 @@ int sign(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-uint gcd(uint a, uint b) ;
+uint gcd(uint a, uint b);
 
-uint lcm(uint a, uint b) ;
+uint lcm(uint a, uint b);
+
+void ss_clear(mpz_t &x);
+void ss_set_str(mpz_t x, const char *str, int base);
+
+char *ss_get_str(char *str, int base, const mpz_t op);
+
+void ss_free_arr(mpz_t *op, int size);
+void ss_init_set_si(mpz_t &x, int x_val);
 
 #endif

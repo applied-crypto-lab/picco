@@ -28,11 +28,9 @@
 #include <sstream>
 #include <string>
 
-#define BASE 10
 
-
-typedef mpz_t priv_int; 
-// typedef unsigned long priv_int; 
+typedef mpz_t priv_int;
+// typedef unsigned long priv_int;
 
 // typedef unsigned long Lint; // for ring size in [31,62];
 
@@ -41,9 +39,8 @@ void ss_init_set_si(unsigned long &x, int x_val);
 void ss_clear(unsigned long &x);
 void ss_clear(mpz_t &x);
 
-void ss_free_arr(mpz_t *op, int size) ;
-void ss_free_arr(unsigned long *op, int size) ;
-
+void ss_free_arr(mpz_t *op, int size);
+void ss_free_arr(unsigned long *op, int size);
 
 class SMC_Utils {
 public:
@@ -545,10 +542,9 @@ public:
 
     void smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID);
 
-
     std::map<std::string, std::vector<int>> polynomials; // temporarily public
     // mpz_t coef[9];                                       // temporarily public
-    int id;                                              // temporarily public;
+    int id; // temporarily public;
 
     double time_diff(struct timeval *, struct timeval *);
     std::vector<std::string> splitfunc(const char *str, const char *delim);
@@ -568,7 +564,5 @@ private:
     int peers;
     int newsockfd;
 };
-
-
 
 #endif /* SMC_UTILS_H_ */
