@@ -188,95 +188,102 @@ void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int th
 }
 
 void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
-    std::string value;
-    std::stringstream s;
-    s << *var;
-    outputStreams[id - 1] << s.str() + "\n";
-    outputStreams[id - 1].flush();
+    ss->ss_output(id, var, type, outputStreams);
+    // std::string value;
+    // std::stringstream s;
+    // s << *var;
+    // outputStreams[id - 1] << s.str() + "\n";
+    // outputStreams[id - 1].flush();
 }
 
 void SMC_Utils::smc_output(int id, mpz_t *var, std::string type, int threadID) {
+    ss->ss_output(id, var, type, outputStreams);
     // smc_open(*var, threadID);
-    std::string value;
-    value = mpz_get_str(NULL, BASE_10, *var);
-    outputStreams[id - 1] << value + "\n";
-    outputStreams[id - 1].flush();
+    // std::string value;
+    // value = mpz_get_str(NULL, BASE_10, *var);
+    // outputStreams[id - 1] << value + "\n";
+    // outputStreams[id - 1].flush();
 }
 
 void SMC_Utils::smc_output(int id, float *var, std::string type, int threadID) {
-    std::string value;
-    std::stringstream s;
-
-    s << *var;
-    outputStreams[id - 1] << s.str() + "\n";
-    outputStreams[id - 1].flush();
+    ss->ss_output(id, var, type, outputStreams);
+    // std::string value;
+    // std::stringstream s;
+    // s << *var;
+    // outputStreams[id - 1] << s.str() + "\n";
+    // outputStreams[id - 1].flush();
 }
 
 void SMC_Utils::smc_output(int id, mpz_t **var, std::string type, int threadID) {
-    std::string value;
-    // smc_open(*var, threadID);
-    for (int i = 0; i < 4; i++) {
-        value = mpz_get_str(NULL, BASE_10, (*var)[i]);
-        if (i != 3)
-            outputStreams[id - 1] << value + ",";
-        else
-            outputStreams[id - 1] << value + "\n";
-        outputStreams[id - 1].flush();
-    }
+    ss->ss_output(id, var, type, outputStreams);
+    // std::string value;
+    // // smc_open(*var, threadID);
+    // for (int i = 0; i < 4; i++) {
+    //     value = mpz_get_str(NULL, BASE_10, (*var)[i]);
+    //     if (i != 3)
+    //         outputStreams[id - 1] << value + ",";
+    //     else
+    //         outputStreams[id - 1] << value + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 void SMC_Utils::smc_output(int id, mpz_t *var, int size, std::string type, int threadID) {
-    std::string value;
-    for (int i = 0; i < size; i++) {
-        value = mpz_get_str(NULL, BASE_10, var[i]);
-        // smc_open(var[i], threadID);
-        if (i != size - 1)
-            outputStreams[id - 1] << value + ",";
-        else
-            outputStreams[id - 1] << value + "\n";
-        outputStreams[id - 1].flush();
-    }
+    ss->ss_output(id, var, size, type, outputStreams);
+    // std::string value;
+    // for (int i = 0; i < size; i++) {
+    //     value = mpz_get_str(NULL, BASE_10, var[i]);
+    //     // smc_open(var[i], threadID);
+    //     if (i != size - 1)
+    //         outputStreams[id - 1] << value + ",";
+    //     else
+    //         outputStreams[id - 1] << value + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int threadID) {
-    std::string value;
-    for (int i = 0; i < size; i++) {
-        std::stringstream s;
-        s << var[i];
-        if (i != size - 1)
-            outputStreams[id - 1] << s.str() + ",";
-        else
-            outputStreams[id - 1] << s.str() + "\n";
-        outputStreams[id - 1].flush();
-    }
+    ss->ss_output(id, var, size, type, outputStreams);
+    // std::string value;
+    // for (int i = 0; i < size; i++) {
+    //     std::stringstream s;
+    //     s << var[i];
+    //     if (i != size - 1)
+    //         outputStreams[id - 1] << s.str() + ",";
+    //     else
+    //         outputStreams[id - 1] << s.str() + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int threadID) {
-    std::string value;
-    for (int i = 0; i < size; i++) {
-        // smc_open(var[i], threadID);
-        for (int j = 0; j < 4; j++) {
-            value = mpz_get_str(NULL, BASE_10, var[i][j]);
-            if (j != 3)
-                outputStreams[id - 1] << value + ",";
-            else
-                outputStreams[id - 1] << value + "\n";
-            outputStreams[id - 1].flush();
-        }
-    }
+    ss->ss_output(id, var, size, type, outputStreams);
+    // std::string value;
+    // for (int i = 0; i < size; i++) {
+    //     // smc_open(var[i], threadID);
+    //     for (int j = 0; j < 4; j++) {
+    //         value = mpz_get_str(NULL, BASE_10, var[i][j]);
+    //         if (j != 3)
+    //             outputStreams[id - 1] << value + ",";
+    //         else
+    //             outputStreams[id - 1] << value + "\n";
+    //         outputStreams[id - 1].flush();
+    //     }
+    // }
 }
 
 void SMC_Utils::smc_output(int id, float *var, int size, std::string type, int threadID) {
-    std::string value;
-    for (int i = 0; i < size; i++) {
-        std::stringstream s;
-        s << var[i];
-        if (i != size - 1)
-            outputStreams[id - 1] << s.str() + ",";
-        else
-            outputStreams[id - 1] << s.str() + "\n";
-        outputStreams[id - 1].flush();
-    }
+    ss->ss_output(id, var, size, type, outputStreams);
+    // std::string value;
+    // for (int i = 0; i < size; i++) {
+    //     std::stringstream s;
+    //     s << var[i];
+    //     if (i != size - 1)
+    //         outputStreams[id - 1] << s.str() + ",";
+    //     else
+    //         outputStreams[id - 1] << s.str() + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 /* SMC Addition */

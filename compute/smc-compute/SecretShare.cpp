@@ -200,7 +200,7 @@ int SecretShare::getCoefIndex(int K) {
     try {
         if (ceil(log2(K)) > COEFF_BOUND) {
             throw std::runtime_error("K is too large. Increase COEFF_BOUND and recompile. ");
-        } 
+        }
         if (K <= 1) {
             throw std::runtime_error("K < 2, meaning m < 1. Something went very wrong in configuration.");
         }
@@ -1324,7 +1324,6 @@ void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, vect
         mpz_urandomm(value, rstates_thread[id][threadID], mod);
 }
 
-
 std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {
     char *saveptr;
     char *token = strtok_r((char *)str, delim, &saveptr);
@@ -1336,7 +1335,6 @@ std::vector<std::string> SecretShare::splitfunc(const char *str, const char *del
     return result;
 }
 
-
 void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> tokens;
@@ -1344,7 +1342,6 @@ void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *in
     tokens = splitfunc(line.c_str(), "=");
     *var = atoi(tokens[1].c_str());
 }
-
 
 void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams) {
     std::string line;
@@ -1362,7 +1359,6 @@ void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *
     *var = atof(tokens[1].c_str());
 }
 
-
 void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> temp;
@@ -1373,7 +1369,6 @@ void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream 
     for (int i = 0; i < 4; i++)
         mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
 }
-
 
 // one-dimensional int array I/O
 void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams) {
@@ -1400,7 +1395,6 @@ void SecretShare::ss_input(int id, int *var, int size, std::string type, std::if
         var[i] = atoi(tokens[i].c_str());
 }
 
-
 // one-dimensional float array I/O
 void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
     std::string line;
@@ -1426,9 +1420,97 @@ void SecretShare::ss_input(int id, float *var, int size, std::string type, std::
         var[i] = atof(tokens[i].c_str());
 }
 
+void SecretShare::ss_output(int id, int *var, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    std::stringstream s;
+    s << *var;
+    outputStreams[id - 1] << s.str() + "\n";
+    outputStreams[id - 1].flush();
+}
 
+void SecretShare::ss_output(int id, mpz_t *var, std::string type, std::ofstream *outputStreams) {
+    // smc_open(*var, threadID);
+    std::string value;
+    value = mpz_get_str(NULL, BASE_10, *var);
+    outputStreams[id - 1] << value + "\n";
+    outputStreams[id - 1].flush();
+}
 
+void SecretShare::ss_output(int id, float *var, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    std::stringstream s;
 
+    s << *var;
+    outputStreams[id - 1] << s.str() + "\n";
+    outputStreams[id - 1].flush();
+}
+
+void SecretShare::ss_output(int id, mpz_t **var, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    // smc_open(*var, threadID);
+    for (int i = 0; i < 4; i++) {
+        value = mpz_get_str(NULL, BASE_10, (*var)[i]);
+        if (i != 3)
+            outputStreams[id - 1] << value + ",";
+        else
+            outputStreams[id - 1] << value + "\n";
+        outputStreams[id - 1].flush();
+    }
+}
+
+void SecretShare::ss_output(int id, mpz_t *var, int size, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    for (int i = 0; i < size; i++) {
+        value = mpz_get_str(NULL, BASE_10, var[i]);
+        // smc_open(var[i], threadID);
+        if (i != size - 1)
+            outputStreams[id - 1] << value + ",";
+        else
+            outputStreams[id - 1] << value + "\n";
+        outputStreams[id - 1].flush();
+    }
+}
+
+void SecretShare::ss_output(int id, int *var, int size, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    for (int i = 0; i < size; i++) {
+        std::stringstream s;
+        s << var[i];
+        if (i != size - 1)
+            outputStreams[id - 1] << s.str() + ",";
+        else
+            outputStreams[id - 1] << s.str() + "\n";
+        outputStreams[id - 1].flush();
+    }
+}
+
+void SecretShare::ss_output(int id, mpz_t **var, int size, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    for (int i = 0; i < size; i++) {
+        // smc_open(var[i], threadID);
+        for (int j = 0; j < 4; j++) {
+            value = mpz_get_str(NULL, BASE_10, var[i][j]);
+            if (j != 3)
+                outputStreams[id - 1] << value + ",";
+            else
+                outputStreams[id - 1] << value + "\n";
+            outputStreams[id - 1].flush();
+        }
+    }
+}
+
+void SecretShare::ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams) {
+    std::string value;
+    for (int i = 0; i < size; i++) {
+        std::stringstream s;
+        s << var[i];
+        if (i != size - 1)
+            outputStreams[id - 1] << s.str() + ",";
+        else
+            outputStreams[id - 1] << s.str() + "\n";
+        outputStreams[id - 1].flush();
+    }
+}
 
 void ss_clear(mpz_t &x) {
     mpz_clear(x);
@@ -1436,11 +1518,10 @@ void ss_clear(mpz_t &x) {
 void ss_set_str(mpz_t x, const char *str, int base) {
     mpz_set_str(x, str, base);
 }
-char* ss_get_str(char *str, int base, const mpz_t op){
+char *ss_get_str(char *str, int base, const mpz_t op) {
 
     return mpz_get_str(str, base, op);
 }
-
 
 void ss_free_arr(mpz_t *op, int size) {
     for (int i = 0; i < size; i++)

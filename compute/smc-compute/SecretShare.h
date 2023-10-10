@@ -34,6 +34,8 @@
 #include <iostream>
 #include <math.h>
 #include <numeric>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #define COEFF_BOUND 10 // specifies the number of sets of coefs we generate for symmetric function evaluation
@@ -155,12 +157,21 @@ public:
 
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams);
-    void ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) ;
+    void ss_input(int id, float *var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams);
+
+    void ss_output(int id, int *var, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, mpz_t *var, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, float *var, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, mpz_t **var, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, mpz_t *var, int size, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, int *var, int size, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, mpz_t **var, int size, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams);
 
 private:
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
