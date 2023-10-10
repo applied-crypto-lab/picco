@@ -245,3 +245,4 @@ void convertDouble(double value, int K, int L, mpz_t **elements) {
     //(*elements)[2] = z;
     //(*elements)[3] = s;
 }
+

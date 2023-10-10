@@ -22,6 +22,7 @@
 #define SMC_UTILS_H_
 
 #include "Headers.h"
+#include "ShamirOps.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -80,10 +81,10 @@ public:
      ******************************/
     // Helper function for floating point operations
     void smc_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID);
-    void smc_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID);
+    // void smc_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID);
 
     void smc_batch_fop_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID);
-    void smc_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID);
+    // void smc_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID);
 
     /************************************ Addition *****************************************/
     /********* singular operations *******/
@@ -535,10 +536,9 @@ public:
     void smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID);
 
     // void smc_compute_len(int alen, int blen, int *len);
-    void smc_process_operands(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
     void smc_process_results(mpz_t **result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID);
 
-    void test_type(int);
+    // void test_type(int);
 
     void smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID);
 

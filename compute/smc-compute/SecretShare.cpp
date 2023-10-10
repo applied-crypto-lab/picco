@@ -1512,23 +1512,24 @@ void SecretShare::ss_output(int id, float *var, int size, std::string type, std:
     }
 }
 
-void ss_clear(mpz_t &x) {
-    mpz_clear(x);
-}
-void ss_set_str(mpz_t x, const char *str, int base) {
-    mpz_set_str(x, str, base);
-}
-char *ss_get_str(char *str, int base, const mpz_t op) {
 
-    return mpz_get_str(str, base, op);
-}
+// void ss_clear(mpz_t &x) {
+//     mpz_clear(x);
+// }
+// void ss_set_str(mpz_t x, const char *str, int base) {
+//     mpz_set_str(x, str, base);
+// }
+// char *ss_get_str(char *str, int base, const mpz_t op) {
 
-void ss_free_arr(mpz_t *op, int size) {
-    for (int i = 0; i < size; i++)
-        mpz_clear(op[i]);
-    delete[] op;
-}
+//     return mpz_get_str(str, base, op);
+// }
 
-void ss_init_set_si(mpz_t &x, int x_val) {
-    mpz_init_set_si(x, x_val);
-}
+// void ss_free_arr(mpz_t *op, int size) {
+//     for (int i = 0; i < size; i++)
+//         mpz_clear(op[i]);
+//     delete[] op;
+// }
+
+// void ss_init_set_si(mpz_t &x, int x_val) {
+//     mpz_init_set_si(x, x_val);
+// }

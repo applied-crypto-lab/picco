@@ -22,7 +22,6 @@
 #define SECRETSHARE_H_
 
 #include "NodeNetwork.h"
-#include "SecretShare.h"
 #include "ShamirUtil.h"
 #include "stdint.h"
 #include <algorithm>
@@ -173,6 +172,10 @@ public:
     void ss_output(int id, mpz_t **var, int size, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams);
 
+    void ss_single_convert_to_private_float(float a, mpz_t **priv_a, int len_sig, int len_exp);
+
+    void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
+
 private:
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
 
@@ -197,7 +200,7 @@ private:
 
     // peers to whom a share or shares will be sent, numbered consequently
     // from myID (myID+1, ..., myID+t)
-    void checkSeed();
+    // void checkSeed();
     unsigned int *sendToIDs;
     // peers to receive shares from or generate via PRGs, numbered from myID
     // in the decreasing order (myID-t, ..., myID-1) ***this is ultimately INCREASING order
@@ -237,12 +240,12 @@ uint gcd(uint a, uint b);
 
 uint lcm(uint a, uint b);
 
-void ss_clear(mpz_t &x);
-void ss_set_str(mpz_t x, const char *str, int base);
+// void ss_clear(mpz_t &x);
+// void ss_set_str(mpz_t x, const char *str, int base);
 
-char *ss_get_str(char *str, int base, const mpz_t op);
+// char *ss_get_str(char *str, int base, const mpz_t op);
 
-void ss_free_arr(mpz_t *op, int size);
-void ss_init_set_si(mpz_t &x, int x_val);
+// void ss_free_arr(mpz_t *op, int size);
+// void ss_init_set_si(mpz_t &x, int x_val);
 
 #endif
