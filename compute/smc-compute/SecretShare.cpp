@@ -506,6 +506,27 @@ void SecretShare::modSub(mpz_t *result, mpz_t x, mpz_t *y, int size) {
         modSub(result[i], x, y[i]);
 }
 
+// void SecretShare::modSub(mpz_t *result, long x, mpz_t *y, int size) {
+//     for (int i = 0; i < size; ++i)
+//         modSub(result[i], x, y[i]);
+// }
+void SecretShare::modSub(mpz_t *result, mpz_t *x, int *y, int size) {
+    mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(ytmp[i], y[i]);
+    modSub(result, x, ytmp, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(ytmp[i]);
+}
+void SecretShare::modSub(mpz_t *result, int *x, mpz_t *y, int size) {
+    mpz_t *xtmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++)
+        mpz_init_set_si(xtmp[i], x[i]);
+    modSub(result, xtmp, y, size);
+    for (int i = 0; i < size; i++)
+        mpz_clear(xtmp[i]);
+}
+
 void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
     mpz_powm(result, base, exponent, fieldSize);
 }
@@ -1511,7 +1532,6 @@ void SecretShare::ss_output(int id, float *var, int size, std::string type, std:
         outputStreams[id - 1].flush();
     }
 }
-
 
 // void ss_clear(mpz_t &x) {
 //     mpz_clear(x);

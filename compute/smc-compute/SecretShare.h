@@ -102,6 +102,8 @@ public:
     void modSub(mpz_t *, long, mpz_t *, int);
     void modSub(mpz_t *, mpz_t *, mpz_t, int);
     void modSub(mpz_t *, mpz_t, mpz_t *, int);
+    void modSub(mpz_t *result, mpz_t *x, int *y, int size);
+    void modSub(mpz_t *result, int *x, mpz_t *y, int size);
 
     // Modular Exponentiation
     void modPow(mpz_t, mpz_t, mpz_t);

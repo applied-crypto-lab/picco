@@ -93,197 +93,66 @@ float SMC_Utils::smc_open(mpz_t *var, int threadID) {
 // for integer variable I/O
 void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
-    // std::string line;
-    // std::vector<std::string> tokens;
-    // std::getline(inputStreams[id - 1], line);
-    // tokens = splitfunc(line.c_str(), "=");
-    // *var = atoi(tokens[1].c_str());
 }
 
 void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
-    // std::string line;
-    // std::vector<std::string> tokens;
-    // std::getline(inputStreams[id - 1], line);
-    // tokens = splitfunc(line.c_str(), "=");
-    // mpz_set_str(*var, tokens[1].c_str(), BASE_10);
 }
 
 // for float variable I/O
 void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
-    // std::string line;
-    // std::vector<std::string> tokens;
-    // std::getline(inputStreams[id - 1], line);
-    // tokens = splitfunc(line.c_str(), "=");
-    // *var = atof(tokens[1].c_str());
 }
 
 void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
-    // std::string line;
-    // std::vector<std::string> temp;
-    // std::vector<std::string> tokens;
-    // std::getline(inputStreams[id - 1], line);
-    // temp = splitfunc(line.c_str(), "=");
-    // tokens = splitfunc(temp[1].c_str(), ",");
-    // for (int i = 0; i < 4; i++)
-    //     mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
 }
 
 // one-dimensional int array I/O
 void SMC_Utils::smc_input(int id, mpz_t *var, int size, std::string type, int threadID) {
     ss->ss_input(id, var, size, type, inputStreams);
-    //    std::cout << "hi" << std::endl;
-    // std::string line;
-    // std::vector<std::string> tokens;
-    // std::vector<std::string> temp;
-    // std::getline(inputStreams[id - 1], line);
-    // temp = splitfunc(line.c_str(), "=");
-    // tokens = splitfunc(temp[1].c_str(), ",");
-    // for (int i = 0; i < size; i++) {
-    //     // mpz_set_str(var[i], tokens[i].c_str(), BASE_10);
-    //     ss_set_str(var[i], tokens[i].c_str(), BASE_10);
-    //     // gmp_printf("var[%i]: %Zu\n", i, var[i]);
-    // }
 }
 
 void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int threadID) {
     ss->ss_input(id, var, size, type, inputStreams);
-    // std::string line;
-    // std::vector<std::string> tokens;
-    // std::vector<std::string> temp;
-    // std::getline(inputStreams[id - 1], line);
-    // temp = splitfunc(line.c_str(), "=");
-    // tokens = splitfunc(temp[1].c_str(), ",");
-    // for (int i = 0; i < size; i++)
-    //     var[i] = atoi(tokens[i].c_str());
 }
 
 // one-dimensional float array I/O
 void SMC_Utils::smc_input(int id, mpz_t **var, int size, std::string type, int threadID) {
     ss->ss_input(id, var, size, type, inputStreams);
-    // std::string line;
-    // std::vector<std::string> tokens;
-    // std::vector<std::string> temp;
-    // for (int i = 0; i < size; i++) {
-    //     std::getline(inputStreams[id - 1], line);
-    //     temp = splitfunc(line.c_str(), "=");
-    //     tokens = splitfunc(temp[1].c_str(), ",");
-    //     for (int j = 0; j < 4; j++)
-    //         mpz_set_str(var[i][j], tokens[j].c_str(), BASE_10);
-    // }
 }
 
 void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
     ss->ss_input(id, var, size, type, inputStreams);
-    //     std::string line;
-    //     std::vector<std::string> tokens;
-    //     std::vector<std::string> temp;
-    //     std::getline(inputStreams[id - 1], line);
-    //     temp = splitfunc(line.c_str(), "=");
-    //     tokens = splitfunc(temp[1].c_str(), ",");
-    //     for (int i = 0; i < size; i++)
-    //         var[i] = atof(tokens[i].c_str());
 }
 
 void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
     ss->ss_output(id, var, type, outputStreams);
-    // std::string value;
-    // std::stringstream s;
-    // s << *var;
-    // outputStreams[id - 1] << s.str() + "\n";
-    // outputStreams[id - 1].flush();
 }
 
 void SMC_Utils::smc_output(int id, mpz_t *var, std::string type, int threadID) {
-    ss->ss_output(id, var, type, outputStreams);
-    // smc_open(*var, threadID);
-    // std::string value;
-    // value = mpz_get_str(NULL, BASE_10, *var);
-    // outputStreams[id - 1] << value + "\n";
-    // outputStreams[id - 1].flush();
 }
 
 void SMC_Utils::smc_output(int id, float *var, std::string type, int threadID) {
-    ss->ss_output(id, var, type, outputStreams);
-    // std::string value;
-    // std::stringstream s;
-    // s << *var;
-    // outputStreams[id - 1] << s.str() + "\n";
-    // outputStreams[id - 1].flush();
 }
 
 void SMC_Utils::smc_output(int id, mpz_t **var, std::string type, int threadID) {
     ss->ss_output(id, var, type, outputStreams);
-    // std::string value;
-    // // smc_open(*var, threadID);
-    // for (int i = 0; i < 4; i++) {
-    //     value = mpz_get_str(NULL, BASE_10, (*var)[i]);
-    //     if (i != 3)
-    //         outputStreams[id - 1] << value + ",";
-    //     else
-    //         outputStreams[id - 1] << value + "\n";
-    //     outputStreams[id - 1].flush();
-    // }
 }
 
 void SMC_Utils::smc_output(int id, mpz_t *var, int size, std::string type, int threadID) {
     ss->ss_output(id, var, size, type, outputStreams);
-    // std::string value;
-    // for (int i = 0; i < size; i++) {
-    //     value = mpz_get_str(NULL, BASE_10, var[i]);
-    //     // smc_open(var[i], threadID);
-    //     if (i != size - 1)
-    //         outputStreams[id - 1] << value + ",";
-    //     else
-    //         outputStreams[id - 1] << value + "\n";
-    //     outputStreams[id - 1].flush();
-    // }
 }
 
 void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int threadID) {
     ss->ss_output(id, var, size, type, outputStreams);
-    // std::string value;
-    // for (int i = 0; i < size; i++) {
-    //     std::stringstream s;
-    //     s << var[i];
-    //     if (i != size - 1)
-    //         outputStreams[id - 1] << s.str() + ",";
-    //     else
-    //         outputStreams[id - 1] << s.str() + "\n";
-    //     outputStreams[id - 1].flush();
-    // }
 }
 
 void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int threadID) {
-    ss->ss_output(id, var, size, type, outputStreams);
-    // std::string value;
-    // for (int i = 0; i < size; i++) {
-    //     // smc_open(var[i], threadID);
-    //     for (int j = 0; j < 4; j++) {
-    //         value = mpz_get_str(NULL, BASE_10, var[i][j]);
-    //         if (j != 3)
-    //             outputStreams[id - 1] << value + ",";
-    //         else
-    //             outputStreams[id - 1] << value + "\n";
-    //         outputStreams[id - 1].flush();
-    //     }
-    // }
 }
 
 void SMC_Utils::smc_output(int id, float *var, int size, std::string type, int threadID) {
     ss->ss_output(id, var, size, type, outputStreams);
-    // std::string value;
-    // for (int i = 0; i < size; i++) {
-    //     std::stringstream s;
-    //     s << var[i];
-    //     if (i != size - 1)
-    //         outputStreams[id - 1] << s.str() + ",";
-    //     else
-    //         outputStreams[id - 1] << s.str() + "\n";
-    //     outputStreams[id - 1].flush();
-    // }
 }
 
 /* SMC Addition */
@@ -314,7 +183,7 @@ void SMC_Utils::smc_add(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen
 }
 
 void SMC_Utils::smc_add(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    smc_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "+", threadID);
+    ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "+", threadID, net, id, ss);
 }
 
 // batch version of smc_add
@@ -349,80 +218,39 @@ void SMC_Utils::smc_add(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int bl
 }
 
 void SMC_Utils::smc_set(mpz_t *a, mpz_t *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *));
-    results[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    for (int i = 0; i < 4; i++)
-        mpz_init_set(results[0][i], a[i]);
-    ss_process_results(results, resultlen_sig, resultlen_exp, alen_sig, alen_exp, 1, threadID, net, id, ss);
-    for (int i = 0; i < 4; i++)
-        mpz_set(result[i], results[0][i]);
-    smc_batch_free_operator(&results, 1);
+    ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_set(mpz_t **a, mpz_t **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     for (int i = 0; i < size; i++)
-        smc_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
+        ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_set(float a, mpz_t *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    convertFloat(a, resultlen_sig, resultlen_exp, &result);
-    for (int i = 0; i < 4; i++)
-        ss->modAdd(result[i], result[i], (long)0);
+    ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_set(mpz_t a, mpz_t result, int alen, int resultlen, std::string type, int threadID) {
-    mpz_init_set(result, a);
+    ss_set(a, result, alen, resultlen, type, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_set(mpz_t *a, mpz_t *result, int alen, int resultlen, int size, std::string type, int threadID) {
     for (int i = 0; i < size; i++)
-        smc_set(a[i], result[i], alen, resultlen, type, threadID);
+        ss_set(a[i], result[i], alen, resultlen, type, threadID, net, id, ss);
 }
 
 // this routine should implement in a way that result = a + share[0]
 void SMC_Utils::smc_set(int a, mpz_t result, int alen, int resultlen, std::string type, int threadID) {
-    // mpz_t value;
-    // mpz_init_set_si(value, a);
-    mpz_set_ui(result, 0);
-    // ss->modAdd(result, result, value);
-    ss->modAdd(result, result, a);
-    // mpz_clear(value);
+    ss_set(a, result, alen, resultlen, type, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_priv_eval(mpz_t a, mpz_t b, mpz_t cond, int threadID) {
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_init(op1[0]);
-    mpz_init_set(op2[0], cond);
-    mpz_init(results[0]);
-
-    ss->modSub(op1[0], a, b);
-    Mult(results, op1, op2, 1, threadID, net, id, ss);
-    ss->modAdd(a, results[0], b);
-
-    smc_batch_free_operator(&op1, 1);
-    smc_batch_free_operator(&op2, 1);
-    smc_batch_free_operator(&results, 1);
+    ss_priv_eval(a, b, cond, threadID, net, id, ss);
 }
 
+// floating point
 void SMC_Utils::smc_priv_eval(mpz_t *a, mpz_t *b, mpz_t cond, int threadID) {
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    for (int i = 0; i < 4; i++) {
-        mpz_init(op1[i]);
-        ss->modSub(op1[i], a[i], b[i]);
-        mpz_init_set(op2[i], cond);
-        mpz_init(results[i]);
-    }
-
-    Mult(results, op1, op2, 4, threadID, net, id, ss);
-    ss->modAdd(a, results, b, 4);
-
-    smc_batch_free_operator(&op1, 4);
-    smc_batch_free_operator(&op2, 4);
-    smc_batch_free_operator(&results, 4);
+    ss_priv_eval(a, b, cond, threadID, net, id, ss);
 }
 
 /* SMC Subtraction */
@@ -431,19 +259,11 @@ void SMC_Utils::smc_sub(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int 
 }
 
 void SMC_Utils::smc_sub(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t btmp;
-    // mpz_init_set_si(btmp, b);
-    // smc_sub(a, btmp, result, alen, blen, resultlen, type, threadID);
     ss->modSub(result, a, b);
-    // mpz_clear(btmp);
 }
 
 void SMC_Utils::smc_sub(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t atmp;
-    // mpz_init_set_si(atmp, a);
-    // smc_sub(atmp, b, result, alen, blen, resultlen, type, threadID);
     ss->modSub(result, a, b);
-    // mpz_clear(atmp);
 }
 
 void SMC_Utils::smc_sub(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
@@ -452,7 +272,7 @@ void SMC_Utils::smc_sub(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen
     smc_sub(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     smc_batch_free_operator(&btmp, 4);
 }
-// unsigned long *b for RSS
+
 void SMC_Utils::smc_sub(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     mpz_t *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
@@ -461,20 +281,7 @@ void SMC_Utils::smc_sub(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen
 }
 
 void SMC_Utils::smc_sub(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    // initialization
-    mpz_t *b1 = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    for (int i = 0; i < 4; i++)
-        mpz_init_set(b1[i], b[i]);
-    mpz_t one;
-    mpz_init_set_ui(one, 1);
-
-    // computation
-    ss->modSub(b1[3], one, b[3]);
-    smc_single_fop_arithmetic(result, a, b1, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "+", threadID);
-
-    // free the memory
-    smc_batch_free_operator(&b1, 4);
-    mpz_clear(one);
+    ss_sub(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
 // batch operations of subtraction
@@ -483,48 +290,24 @@ void SMC_Utils::smc_sub(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
 }
 
 void SMC_Utils::smc_sub(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init_set_si(atmp[i], a[i]);
-    smc_sub(atmp, b, alen, blen, result, resultlen, size, type, threadID);
-    smc_batch_free_operator(&atmp, size);
+    ss->modSub(result, a, b, size);
 }
 
 void SMC_Utils::smc_sub(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init_set_si(btmp[i], b[i]);
-    smc_sub(a, btmp, alen, blen, result, resultlen, size, type, threadID);
-    smc_batch_free_operator(&btmp, size);
+    ss->modSub(result, a, b, size);
 }
 
 void SMC_Utils::smc_sub(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **b1 = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-    for (int i = 0; i < size; i++) {
-        b1[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        for (int j = 0; j < 4; j++)
-            mpz_init_set(b1[i][j], b[i][j]);
-    }
-    for (int i = 0; i < size; i++)
-        ss->modSub(b1[i][3], (long)1, b1[i][3]);
+    ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
 
-    ss_batch_fop_arithmetic(result, a, b1, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "+", threadID, net, id, ss);
-    // free the memory
-    smc_batch_free_operator(&b1, size);
 }
 
 void SMC_Utils::smc_sub(float *a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **atmp;
-    smc_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size);
-    smc_sub(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
-    smc_batch_free_operator(&atmp, size);
+    ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_sub(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **btmp;
-    smc_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size);
-    smc_sub(a, btmp, alen_sig, alen_exp, alen_sig, alen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
-    smc_batch_free_operator(&btmp, size);
+    ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
 }
 
 /* SMC Multiplication */
@@ -569,7 +352,7 @@ void SMC_Utils::smc_mult(int a, mpz_t b, mpz_t result, int alen, int blen, int r
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    smc_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "*", threadID);
+    ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "*", threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_mult(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
@@ -667,7 +450,7 @@ void SMC_Utils::smc_div(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int
 
 /* SMC Floating-point division */
 void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    smc_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "/", threadID);
+    ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "/", threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
@@ -722,7 +505,6 @@ void SMC_Utils::smc_div(float *a, mpz_t **b, int alen_sig, int alen_exp, int ble
     smc_batch_free_operator(&atmp, size);
 }
 
-
 // ssvoid SMC_Utils::smc_process_results(mpz_t **result1, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID), net, id, ss {
 //     mpz_t **result = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
 //     for (int i = 0; i < 4; i++) {
@@ -761,50 +543,9 @@ void SMC_Utils::smc_div(float *a, mpz_t **b, int alen_sig, int alen_exp, int ble
 //     free(result);
 // }
 
-void SMC_Utils::smc_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID) {
-
-    mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *));
-    mpz_t **as = (mpz_t **)malloc(sizeof(mpz_t *));
-    mpz_t **bs = (mpz_t **)malloc(sizeof(mpz_t *));
-
-    results[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    as[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    bs[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-
-    for (int i = 0; i < 4; i++) {
-        mpz_init(results[0][i]);
-        mpz_init_set(as[0][i], a[i]);
-        mpz_init_set(bs[0][i], b[i]);
-    }
-
-    /*********************************************************/
-    int len_sig = 0, len_exp = 0;
-    ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss);
-
-    /*********************************************************/
-
-    if (!strcmp(op.c_str(), "*"))
-        doOperation_FLMult(as, bs, results, len_sig, 1, threadID, net, id, ss);
-    else if (!strcmp(op.c_str(), "+"))
-        doOperation_FLAdd(as, bs, results, len_sig, len_exp, 1, threadID, net, id, ss);
-    else if (!strcmp(op.c_str(), "/"))
-        doOperation_FLDiv(as, bs, results, len_sig, 1, threadID, net, id, ss);
-
-    // convert the result with size len_sig and len_exp to resultlen_sig and resultlen_exp
-    ss_process_results(results, resultlen_sig, resultlen_exp, len_sig, len_exp, 1, threadID, net, id, ss);
-    for (int i = 0; i < 4; i++)
-        mpz_set(result[i], results[0][i]);
-    // free the memory
-    smc_batch_free_operator(&results, 1);
-    smc_batch_free_operator(&as, 1);
-    smc_batch_free_operator(&bs, 1);
-}
-
-
 /* All Comparisons */
 void SMC_Utils::smc_lt(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, threadID, net, id, ss);
-
 }
 
 void SMC_Utils::smc_lt(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
