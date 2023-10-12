@@ -28,9 +28,8 @@
 void doOperation_LTZ(mpz_t *result, mpz_t *shares, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
 
 void doOperation_LT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_LT(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_LT(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_LT(mpz_t result, int a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_LT(mpz_t *result, int *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 
 #endif /* LTZ_SHAMIR_H_ */

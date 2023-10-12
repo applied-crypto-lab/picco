@@ -253,47 +253,13 @@ void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int 
     doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
     smc_batch_free_operator(&sub, size);
 }
-
-void doOperation_EQZ(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss) {
-    mpz_t sub;
-    mpz_init(sub);
-    ss->modSub(sub, a, b);
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_init_set(subs[0], sub);
-    mpz_init(results[0]);
-
+void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; ++i)
+        mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
-    doOperation_EQZ(subs, results, len, 1, threadID, net, id, ss);
-    mpz_set(result, results[0]);
-
-    mpz_clear(sub);
-    smc_batch_free_operator(&results, 1);
-    smc_batch_free_operator(&subs, 1);
+    ss->modSub(sub, a, b, size);
+    doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
+    smc_batch_free_operator(&sub, size);
 }
 
-void doOperation_EQZ(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss) {
-
-    mpz_t sub;
-    mpz_t b_tmp;
-
-    mpz_init_set_si(b_tmp, b);
-    mpz_init(sub);
-    ss->modSub(sub, a, b_tmp);
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t *subs = (mpz_t *)malloc(sizeof(mpz_t));
-
-    mpz_init_set(subs[0], sub);
-    mpz_init(results[0]);
-
-    int len = smc_compute_len(alen, blen);
-    doOperation_EQZ(results, subs, len, 1, threadID, net, id, ss);
-    mpz_set(result, results[0]);
-
-    // free the memory
-    mpz_clear(sub);
-    mpz_clear(b_tmp);
-
-    smc_batch_free_operator(&subs, 1);
-    smc_batch_free_operator(&results, 1);
-}

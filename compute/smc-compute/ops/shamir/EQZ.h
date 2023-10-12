@@ -29,8 +29,8 @@
 void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_EQZ(mpz_t result, mpz_t a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_EQZ(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
 
 
 
