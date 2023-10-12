@@ -72,10 +72,10 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
             std::exit(1);
         }
     }
-    if (peers == 3) {
-        ss->getCoef(id);
-        ss->Seed((nodeNet->key_0), (nodeNet->key_1));
-    }
+    // if (peers == 3) {
+    //     ss->getCoef(id);
+    //     ss->Seed((nodeNet->key_0), (nodeNet->key_1));
+    // }
     // setCoef();
 }
 
@@ -315,7 +315,10 @@ void SMC_Utils::smc_sub(mpz_t **a, float *b, int alen_sig, int alen_exp, int ble
 /* SMC Multiplication */
 void SMC_Utils::smc_mult(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
 
-    Mult((mpz_t *)result, (mpz_t *)a, (mpz_t *)b, 1, threadID, net, id, ss);
+    // double check this works (passing reference to essentiall up-cast to mpz_t*)
+    // cant use & for some reason, wont compile
+    // replacing mpz_t* with & works on
+    Mult((mpz_t *)&result, (mpz_t *)&a, (mpz_t *)&b, 1, threadID, net, id, ss);
 
     // mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     // mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -337,23 +340,11 @@ void SMC_Utils::smc_mult(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int
 
 /******************************************************/
 void SMC_Utils::smc_mult(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t btmp;
-    // mpz_init(btmp);
-    // ss->modAdd(btmp, btmp, b);
-    // ss->modMul(result, a, btmp);
-    ss->modMul(result, a, b); // expected, in ss modMul( mpz_t, int)
-    // smc_mult(a, btmp, result, alen, blen, resultlen, type, threadID);
-    // mpz_clear(btmp);
+    ss->modMul(result, a, b);
 }
 
 void SMC_Utils::smc_mult(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // mpz_t atmp;
-    // mpz_init(atmp);
-    // ss->modAdd(atmp, atmp, a);
-    // // ss->modMul(result, atmp, b);
-    ss->modMul(result, b, a); // in ss modMul(int, mpz_t)
-    // // smc_mult(atmp, b, result, alen, blen, resultlen, type, threadID);
-    // mpz_clear(atmp);
+    ss->modMul(result, b, a);
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
@@ -430,15 +421,16 @@ void SMC_Utils::smc_mult(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int b
 
 /* SMC Integer Division*/
 void SMC_Utils::smc_div(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    doOperation_IntDiv(result, a, b, resultlen, threadID, net, id, ss);
+    doOperation_IntDiv((mpz_t *)result, (mpz_t *)a, (mpz_t *)b, resultlen, 1, threadID, net, id, ss);
+    // doOperation_IntDiv(result, a, b, resultlen, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    doOperation_IntDiv_Pub(result, a, b, resultlen, threadID, net, id, ss);
+    doOperation_IntDiv_Pub((mpz_t *)&result, (mpz_t *)&a, (int *)&b, resultlen, 1, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    doOperation_IntDiv(result, a, b, resultlen, threadID, net, id, ss);
+    doOperation_IntDiv((mpz_t *)result, &a, (mpz_t *)b, resultlen, 1, threadID, net, id, ss);
 }
 
 void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {

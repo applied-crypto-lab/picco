@@ -1054,23 +1054,23 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     }
 
     // 3-party version which will be removed after implementing general optimized multiplication
-    if (peers == 2) {
-        int id_p1, id_m1;
-        id_p1 = (myid + 1) % (peers + 2);
-        if (id_p1 == 0)
-            id_p1 = 1;
+    // if (peers == 2) {
+    //     int id_p1, id_m1;
+    //     id_p1 = (myid + 1) % (peers + 2);
+    //     if (id_p1 == 0)
+    //         id_p1 = 1;
 
-        id_m1 = (myid - 1) % (peers + 2);
-        if (id_m1 == 0)
-            id_m1 = peers + 1;
+    //     id_m1 = (myid - 1) % (peers + 2);
+    //     if (id_m1 == 0)
+    //         id_m1 = peers + 1;
 
-        if (peer == id_p1) {
-            memcpy(key_1, key, 16);
+    //     if (peer == id_p1) {
+    //         memcpy(key_1, key, 16);
 
-        } else if (peer == id_m1) {
-            memcpy(key_0, key, 16);
-        }
-    }
+    //     } else if (peer == id_m1) {
+    //         memcpy(key_0, key, 16);
+    //     }
+    // }
 
     en = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(en, EVP_aes_128_cbc(), NULL, key, iv);
@@ -1162,58 +1162,58 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 //     // free(encrypted);
 // }
 
-void NodeNetwork::multicastToPeers_Mul(mpz_t **data, int size, int threadID) {
-    test_flags[threadID]++;
-    int id = getID();
-    int peers = config->getPeerCount();
-    if (size == 0)
-        return;
-    if (threadID == -1) {
-        if (mode != -1) {
-            sendModeToPeers(id);
-            pthread_mutex_lock(&buffer_mutex);
-            while (numOfChangedNodes < peers)
-                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
-            pthread_mutex_unlock(&buffer_mutex);
-            numOfChangedNodes = 0;
-            mode = -1;
-        }
-        multicastToPeers_Mul2(data, size);
-        return;
-    } else {
-        if (mode != 0) {
-            pthread_mutex_lock(&buffer_mutex);
-            pthread_cond_signal(&manager_conditional_variable);
-            pthread_mutex_unlock(&buffer_mutex);
-            mode = 0;
-        }
-    }
-}
+// void NodeNetwork::multicastToPeers_Mul(mpz_t **data, int size, int threadID) {
+//     test_flags[threadID]++;
+//     int id = getID();
+//     int peers = config->getPeerCount();
+//     if (size == 0)
+//         return;
+//     if (threadID == -1) {
+//         if (mode != -1) {
+//             sendModeToPeers(id);
+//             pthread_mutex_lock(&buffer_mutex);
+//             while (numOfChangedNodes < peers)
+//                 pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
+//             pthread_mutex_unlock(&buffer_mutex);
+//             numOfChangedNodes = 0;
+//             mode = -1;
+//         }
+//         multicastToPeers_Mul2(data, size);
+//         return;
+//     } else {
+//         if (mode != 0) {
+//             pthread_mutex_lock(&buffer_mutex);
+//             pthread_cond_signal(&manager_conditional_variable);
+//             pthread_mutex_unlock(&buffer_mutex);
+//             mode = 0;
+//         }
+//     }
+// }
 
-void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
-    int myid = getID();
-    int peers = config->getPeerCount();
-    int id_p1;
-    int id_m1;
-    id_p1 = (myid + 1) % (peers + 2);
-    if (id_p1 == 0)
-        id_p1 = 1;
+// void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
+//     int myid = getID();
+//     int peers = config->getPeerCount();
+//     int id_p1;
+//     int id_m1;
+//     id_p1 = (myid + 1) % (peers + 2);
+//     if (id_p1 == 0)
+//         id_p1 = 1;
 
-    id_m1 = (myid - 1) % (peers + 2);
-    if (id_m1 == 0)
-        id_m1 = peers + 1;
+//     id_m1 = (myid - 1) % (peers + 2);
+//     if (id_m1 == 0)
+//         id_m1 = peers + 1;
 
-    // int sendIdx = 0, getIdx = 0;
-    // compute the maximum size of data that can be communicated
-    int count = 0, rounds = 0;
-    getRounds(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
-        sendDataToPeer(id_m1, data[id_m1 - 1], k * count, count, size);
-        getDataFromPeer(id_p1, data[id_p1 - 1], k * count, count, size);
-    }
-}
+//     // int sendIdx = 0, getIdx = 0;
+//     // compute the maximum size of data that can be communicated
+//     int count = 0, rounds = 0;
+//     getRounds(size, &count, &rounds);
+//     for (int k = 0; k <= rounds; k++) {
+//         sendDataToPeer(id_m1, data[id_m1 - 1], k * count, count, size);
+//         getDataFromPeer(id_p1, data[id_p1 - 1], k * count, count, size);
+//     }
+// }
 
-void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
+void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     int idx = 0;
@@ -1235,7 +1235,7 @@ void NodeNetwork::multicastToPeers_Mul3(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 }
 
 // why is this needed for send/recv to work?
-void NodeNetwork::multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
+void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
     int peers = config->getPeerCount();
@@ -1251,7 +1251,7 @@ void NodeNetwork::multicastToPeers_Mul_v2(uint *sendtoIDs, uint *RecvFromIDs, mp
             numOfChangedNodes = 0;
             mode = -1;
         }
-        multicastToPeers_Mul3(sendtoIDs, RecvFromIDs, data, size);
+        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
         return;
     } else {
         if (mode != 0) {

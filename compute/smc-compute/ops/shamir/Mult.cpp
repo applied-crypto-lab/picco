@@ -67,7 +67,7 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
 
     // step 4? do we use the send/recv IDs defined in SecretShare?
     // sending contents of buffer[0,...,t], recieving into buffer[t+1,...,n]
-    net.multicastToPeers_Mul_v2(ss->getSendToIDs(), ss->getRecvFromIDs(), buffer, size, threadID);
+    net.multicastToPeers_Mult(ss->getSendToIDs(), ss->getRecvFromIDs(), buffer, size, threadID);
 
     ss->PRG(buffer, size, threshold); // step 5, reusing buffer
 
