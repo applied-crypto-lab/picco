@@ -542,6 +542,18 @@ void SecretShare::modPow2(mpz_t result, int exponent) {
     mpz_clear(base);
 }
 
+void SecretShare::modPow2(mpz_t result, mpz_t exponent) {
+    mpz_t value, base;
+    mpz_init_set_ui(base, 2);
+    mpz_init_set(value, exponent);
+    // modAdd(value, value, (long)0); // assuming this just performs modular reduction, replaced with line below
+    mpz_mod(value, value, fieldSize);
+    mpz_powm(result, base, value, fieldSize);
+    mpz_clear(value);
+    mpz_clear(base);
+}
+
+
 void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
     // for (int i = 0; i < size; ++i)
     //     modPow(result[i], base[i], exponent);
