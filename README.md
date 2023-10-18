@@ -19,7 +19,9 @@ The source code of PICCO mainly consists of two directories: *compiler* and *com
 To compile or run user programs using PICCO code, a machine should have the following libraries installed:
 
 - GMP library
-- OpenSSL library (1.1.1)
+- OpenSSL library (1.1.1 or newer)
+- flex 
+- GNU Bison parser
 
 ## Compilation of PICCO
 
