@@ -20,7 +20,8 @@ To compile or run user programs using PICCO code, a machine should have the foll
 
 - GMP library
 - OpenSSL library (1.1.1 or newer)
-- flex - fast lexical analyzer generator
+- Crypto++ library
+- Flex - fast lexical analyzer generator
 - GNU Bison parser
 
 ## Compilation of PICCO
