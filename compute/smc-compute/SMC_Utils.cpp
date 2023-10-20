@@ -758,16 +758,6 @@ void SMC_Utils::smc_geq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_
 void SMC_Utils::smc_geq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
-
-    //     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    //     for (int i = 0; i < size; i++)
-    //         mpz_init(sub[i]);
-    //     ss->modSub(sub, a, b, size);
-
-    //     int len = smc_compute_len(alen, blen);
-    //     Lt->doOperation(result, sub, len, size, threadID);
-    //     ss->modSub(result, 1, result, size);
-    //     smc_batch_free_operator(&sub, size);
 }
 
 void SMC_Utils::smc_geq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
