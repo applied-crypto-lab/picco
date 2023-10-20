@@ -5,10 +5,10 @@
 
 #Add test program to the build variables
 CPP_SRCS += \
-#int_eqz.cpp 
+#test_op.cpp 
 
 OBJS += \
-#int_eqz.o 
+#test_op.o 
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(strip $(C++_DEPS)),)
@@ -34,16 +34,16 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 # All Target
-int_eqz: $(OBJS) $(USER_OBJS) 
-	g++ -c -w int_eqz.cpp 
-	g++ -o int_eqz int_eqz.o $(OBJS) $(USER_OBJS) $(LIBS) 
+sorted-ll: $(OBJS) $(USER_OBJS) 
+	g++ -c -w sorted-ll.cpp 
+	g++ -o sorted-ll sorted-ll.o $(OBJS) $(USER_OBJS) $(LIBS) 
 # replace the line above with this one for multi-threaded programs
-#	g++ -o int_eqz int_eqz.o -I ./ompi/include/ompi $(OBJS) $(USER_OBJS) $(LIBS) -L ./ompi/lib/ompi -L ./ompi/lib/ompi/default -lort -lrt -lboost_thread 
+#	g++ -o sorted-ll sorted-ll.o -I ./ompi/include/ompi $(OBJS) $(USER_OBJS) $(LIBS) -L ./ompi/lib/ompi -L ./ompi/lib/ompi/default -lort -lrt -lboost_thread 
 
 clean:
-	-$(RM) *.o int_eqz
+	-$(RM) *.o sorted-ll 
 
 #Clean-Everything
 clean-all:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) *.o int_eqz 
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) *.o sorted-ll 
 

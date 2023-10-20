@@ -15,7 +15,7 @@ project(compiled_program LANGUAGES  CXX)
 # set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 # set(CMAKE_CXX_COMPILER             "/usr/bin/clang++-11")
 # set(CMAKE_CXX_COMPILER             "/usr/bin/clang++")
 set(CMAKE_CXX_FLAGS                "-maes -mavx -mavx2 -march=native -Wall")
