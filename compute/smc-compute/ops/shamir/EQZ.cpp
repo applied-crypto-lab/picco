@@ -251,7 +251,7 @@ void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int 
     int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
-    smc_batch_free_operator(&sub, size);
+    ss_batch_free_operator(&sub, size);
 }
 void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -260,6 +260,6 @@ void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int re
     int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
-    smc_batch_free_operator(&sub, size);
+    ss_batch_free_operator(&sub, size);
 }
 

@@ -32,8 +32,8 @@ int modulo(int a, int b);
 long long nChoosek(long long n, long long k);
 
 
-void smc_batch_free_operator(mpz_t **op, int size);
-void smc_batch_free_operator(mpz_t ***op, int size);
+void ss_batch_free_operator(mpz_t **op, int size);
+void ss_batch_free_operator(mpz_t ***op, int size);
 int smc_compute_len(int alen, int blen);
 
 void convertFloat(float value, int K, int L, mpz_t **elements);

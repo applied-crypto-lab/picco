@@ -43,13 +43,13 @@ long long nChoosek(long long n, long long k) {
 
 
 /* General utility functions */
-void smc_batch_free_operator(mpz_t **op, int size) {
+void ss_batch_free_operator(mpz_t **op, int size) {
     for (int i = 0; i < size; i++)
         mpz_clear((*op)[i]);
     free(*op);
 }
 
-void smc_batch_free_operator(mpz_t ***op, int size) {
+void ss_batch_free_operator(mpz_t ***op, int size) {
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < 4; j++)
             mpz_clear((*op)[i][j]);

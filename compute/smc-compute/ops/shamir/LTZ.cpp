@@ -38,7 +38,7 @@ void doOperation_LT(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int r
     int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     doOperation_LTZ(result, sub, len, size, threadID, net, id, ss);
-    smc_batch_free_operator(&sub, size);
+    ss_batch_free_operator(&sub, size);
 }
 
 void doOperation_LT(mpz_t *result, int *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
@@ -48,7 +48,7 @@ void doOperation_LT(mpz_t *result, int *a, mpz_t *b, int alen, int blen, int res
     int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     doOperation_LTZ(result, sub, len, size, threadID, net, id, ss);
-    smc_batch_free_operator(&sub, size);
+    ss_batch_free_operator(&sub, size);
 }
 void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -57,7 +57,7 @@ void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int res
     int len = smc_compute_len(alen, blen);
     ss->modSub(sub, a, b, size);
     doOperation_LTZ(result, sub, len, size, threadID, net, id, ss);
-    smc_batch_free_operator(&sub, size);
+    ss_batch_free_operator(&sub, size);
 }
 
 // //helper functions that interface with SMC_utils
@@ -78,8 +78,8 @@ void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int res
 
 //     // free the memory
 //     mpz_clear(sub);
-//     smc_batch_free_operator(&subs, 1);
-//     smc_batch_free_operator(&results, 1);
+//     ss_batch_free_operator(&subs, 1);
+//     ss_batch_free_operator(&results, 1);
 // }
 
 // void doOperation_LT(mpz_t result, mpz_t a, int b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss) {
@@ -103,8 +103,8 @@ void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int res
 //     mpz_clear(sub);
 //     mpz_clear(b_tmp);
 
-//     smc_batch_free_operator(&subs, 1);
-//     smc_batch_free_operator(&results, 1);
+//     ss_batch_free_operator(&subs, 1);
+//     ss_batch_free_operator(&results, 1);
 // }
 
 // void doOperation_LT(mpz_t result, int a, mpz_t b, int alen, int blen, int resultlen, int threadID, NodeNetwork net, int id, SecretShare *ss) {
@@ -124,8 +124,8 @@ void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int res
 //     mpz_set(result, results[0]);
 
 //     // free the memory
-//     smc_batch_free_operator(&subs, 1);
-//     smc_batch_free_operator(&results, 1);
+//     ss_batch_free_operator(&subs, 1);
+//     ss_batch_free_operator(&results, 1);
 //     mpz_clear(sub);
 //     mpz_clear(a_tmp);
 // }
