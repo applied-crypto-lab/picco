@@ -9,6 +9,11 @@
 #include <sstream>
 #include <string>
 
+void ss_init_set(mpz_t x, mpz_t x_val);
+void ss_init(mpz_t x);
+void ss_set(mpz_t x, mpz_t x_val);
+
+
 void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, SecretShare *ss);
 void ss_process_results(mpz_t **result1, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
@@ -39,6 +44,37 @@ void ss_sub(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, 
 void ss_sub(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
 void ss_sub(float *a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
 void ss_sub(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
+
+void ss_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, float value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID,NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, mpz_t *value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID,NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t index, mpz_t ***array, int len_sig, int len_exp, float value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID,NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t index, mpz_t ***array, int len_sig, int len_exp, mpz_t *value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID,NodeNetwork net, int id, SecretShare *ss);
+
+void ss_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, mpz_t *value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
+void ss_privindex_read(mpz_t *indices, mpz_t **array, mpz_t *results, int dim1, int dim2, int size, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_read(mpz_t *indices, mpz_t **array, mpz_t **results, int dim, int size, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_read(mpz_t *indices, mpz_t ***array, mpz_t **results, int dim1, int dim2, int size, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+// void ss_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, int len_exp, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+// void ss_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, int len_exp, mpz_t *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, float *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, mpz_t **values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig, int len_exp, float *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig, int len_exp, mpz_t **values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
+void ss_int2fl(int value, mpz_t *result, int gamma, int K, int L, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_int2int(int value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_int2int(mpz_t value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, int id, SecretShare *ss);
+
+void ss_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
 
 
 #endif
