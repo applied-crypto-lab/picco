@@ -61,8 +61,9 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
     mpz_t field;
     mpz_init(field);
     ss->getFieldSize(field);
-    // PRandFld (generating a uniformly random field element [r])
     // need to add PRZS functionality s.t. [c]_i = [a]_i*[b]_i + [0]_i, then open [c]
+    
+    // PRandFld (generating a uniformly random field element [r])
     ss->generateRandValue(field, size, u, threadID);
     // MulPub (squaring [r])
     ss->modMul(v, u, u, size);

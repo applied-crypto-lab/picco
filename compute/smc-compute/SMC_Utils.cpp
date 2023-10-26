@@ -314,7 +314,6 @@ void SMC_Utils::smc_sub(mpz_t **a, float *b, int alen_sig, int alen_exp, int ble
 
 /* SMC Multiplication */
 void SMC_Utils::smc_mult(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-
     // double check this works (passing reference to essentiall up-cast to mpz_t*)
     // cant use & for some reason, wont compile
     // replacing mpz_t* with & works on

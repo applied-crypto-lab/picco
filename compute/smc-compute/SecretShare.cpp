@@ -1062,9 +1062,6 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
     vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
-    // if (rand_isFirst == 0)
-    // getNextRandValue(0, 0, polynomials, NULL);
-
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
         vector<int> polys = (*it).second;
@@ -1086,10 +1083,8 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
-            // getNextRandValue(m, bits, polynomials, rand);
             // Generate a uniformly distributed random integer in the range 0 to 2*bits-1, inclusive.
             mpz_urandomb(rand, rstates[m], bits);
-
             mpz_div_ui(rand, rand, combinations);
             modMul(temp, rand, temp3[m]);
             modAdd(results[i], results[i], temp);
