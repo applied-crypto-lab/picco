@@ -422,15 +422,15 @@ public:
     void smc_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID);
 
     // Batch Operation Support
-    void smc_convert_operator(mpz_t **result, mpz_t **op, int *index_array, int dim, int size, int flag);
-    void smc_convert_operator(mpz_t **result, mpz_t *op, int *index_array, int dim, int size, int flag);
-    void smc_convert_operator(mpz_t ***result, mpz_t **op, int *index_array, int dim, int size, int flag);
-    void smc_convert_operator(mpz_t ***result, mpz_t ***op, int *index_array, int dim, int size, int flag);
+    // void smc_convert_operator(mpz_t **result, mpz_t **op, int *index_array, int dim, int size, int flag);
+    // void smc_convert_operator(mpz_t **result, mpz_t *op, int *index_array, int dim, int size, int flag);
+    // void smc_convert_operator(mpz_t ***result, mpz_t **op, int *index_array, int dim, int size, int flag);
+    // void smc_convert_operator(mpz_t ***result, mpz_t ***op, int *index_array, int dim, int size, int flag);
 
     void smc_single_convert_to_private_float(float a, mpz_t **priv_a, int len_sig, int len_exp);
     void smc_batch_convert_to_private_float(float *a, mpz_t ***priv_a, int len_sig, int len_exp, int size);
-    // void smc_batch_free_operator(mpz_t **op, int size);
-    // void smc_batch_free_operator(mpz_t ***op, int size);
+    // void ss_batch_free_operator(mpz_t **op, int size);
+    // void ss_batch_free_operator(mpz_t ***op, int size);
 
     // int
     void smc_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID);

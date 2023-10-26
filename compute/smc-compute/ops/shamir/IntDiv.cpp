@@ -34,9 +34,9 @@ void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, N
     mpz_set(result, results[0]);
 
     // free the memory
-    smc_batch_free_operator(&op1, 1);
-    smc_batch_free_operator(&op2, 1);
-    smc_batch_free_operator(&results, 1);
+    ss_batch_free_operator(&op1, 1);
+    ss_batch_free_operator(&op2, 1);
+    ss_batch_free_operator(&results, 1);
 
 }
 
@@ -46,7 +46,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, in
     for (int i = 0; i < size; i++)
         mpz_init_set_si(btmp[i], b[i]);
     doOperation_IntDiv_Pub(result, a, btmp, k, size, threadID, net, id, ss);
-    smc_batch_free_operator(&btmp, size);
+    ss_batch_free_operator(&btmp, size);
 }
 
 
@@ -149,9 +149,9 @@ void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, Nod
     mpz_set(result, results[0]);
 
     // free the memory
-    smc_batch_free_operator(&op1, 1);
-    smc_batch_free_operator(&op2, 1);
-    smc_batch_free_operator(&results, 1);
+    ss_batch_free_operator(&op1, 1);
+    ss_batch_free_operator(&op2, 1);
+    ss_batch_free_operator(&results, 1);
 }
 
 void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
@@ -309,9 +309,9 @@ void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeN
     mpz_set(result, results[0]);
 
     // free the memory
-    smc_batch_free_operator(&op1, 1);
-    smc_batch_free_operator(&op2, 1);
-    smc_batch_free_operator(&results, 1);
+    ss_batch_free_operator(&op1, 1);
+    ss_batch_free_operator(&op2, 1);
+    ss_batch_free_operator(&results, 1);
 
 }
 
@@ -320,5 +320,5 @@ void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int th
     for (int i = 0; i < size; i++)
         mpz_init_set_si(atmp[i], a[i]);
     doOperation_IntDiv(result, atmp, b, k, size, threadID, net, id, ss);
-    smc_batch_free_operator(&atmp, size);
+    ss_batch_free_operator(&atmp, size);
 }

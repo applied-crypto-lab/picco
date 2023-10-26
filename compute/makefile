@@ -34,14 +34,14 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 # All Target
-sorted-ll: $(OBJS) $(USER_OBJS) 
-	g++ -c -w sorted-ll.cpp 
-	g++ -o sorted-ll sorted-ll.o $(OBJS) $(USER_OBJS) $(LIBS) 
+test-code: $(OBJS) $(USER_OBJS) 
+	g++ -c -w test-code.cpp 
+	g++ -o test-code test-code.o $(OBJS) $(USER_OBJS) $(LIBS) 
 # replace the line above with this one for multi-threaded programs
-#	g++ -o sorted-ll sorted-ll.o -I ./ompi/include/ompi $(OBJS) $(USER_OBJS) $(LIBS) -L ./ompi/lib/ompi -L ./ompi/lib/ompi/default -lort -lrt -lboost_thread 
+#	g++ -o test-code test-code.o -I ./ompi/include/ompi $(OBJS) $(USER_OBJS) $(LIBS) -L ./ompi/lib/ompi -L ./ompi/lib/ompi/default -lort -lrt -lboost_thread 
 
 clean:
-	-$(RM) *.o sorted-ll 
+	-$(RM) *.o test-code 
 
 #Clean-Everything
 clean-all:
