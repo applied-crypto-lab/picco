@@ -38,7 +38,7 @@ private
     for (i = 2; i < count; i++) {
         ptr1 = pmalloc(1, struct node);
         ptr1->data = a[i];
-        ptr1->next = 0; // head or ptr2?, maybe delete, since ptr1->next is getting assigned in the if stmt
+        // ptr1->next = 0; // head or ptr2?, maybe delete, since ptr1->next is getting assigned in the if stmt
         ptr2 = head;
 
         if (ptr1->data < ptr2->data) { // insert in the beginning
