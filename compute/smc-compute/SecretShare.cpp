@@ -1060,7 +1060,7 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
 
     vector<long> polyOutput;
     vector<long> denominator;
-    long long combinations = nChoosek(getPeers(), getThreshold());
+    // long long combinations = nChoosek(getPeers(), getThreshold());
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
@@ -1085,7 +1085,7 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
         for (int m = 0; m < polysize; m++) {
             // Generate a uniformly distributed random integer in the range 0 to 2*bits-1, inclusive.
             mpz_urandomb(rand, rstates[m], bits);
-            mpz_div_ui(rand, rand, combinations);
+            // mpz_div_ui(rand, rand, combinations);
             modMul(temp, rand, temp3[m]);
             modAdd(results[i], results[i], temp);
         }
@@ -1127,7 +1127,7 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
 
     vector<long> polyOutput;
     vector<long> denominator;
-    long long combinations = nChoosek(getPeers(), getThreshold());
+    // long long combinations = nChoosek(getPeers(), getThreshold());
 
     if (rand_isFirst_thread[threadID] == 0) {
         randInit_thread(threadID);
@@ -1155,8 +1155,10 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
-            getNextRandValue(m, bits, polynomials, rand, threadID);
-            mpz_div_ui(rand, rand, combinations);
+            // getNextRandValue(m, bits, polynomials, rand, threadID);
+            mpz_urandomb(rand, rstates_thread[m][threadID], bits);
+
+            // mpz_div_ui(rand, rand, combinations);
             modMul(temp, rand, temp3[m]);
             modAdd(results[i], results[i], temp);
         }
@@ -1202,6 +1204,7 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
     vector<long> denominator;
     long long combinations = nChoosek(getPeers(), getThreshold());
 
+    // this can be done ONCE 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
         vector<int> polys = (*it).second;
@@ -1219,6 +1222,7 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
         modInv(temp1[m], temp2[m]);
         modMul(temp3[m], temp3[m], temp1[m]);
     }
+    // end precomputation
 
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
@@ -1227,7 +1231,7 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
             // Generate a uniform random integer in the range 0 to mod-1, inclusive
             mpz_urandomm(rand, rstates[m], mod);
 
-            mpz_div_ui(rand, rand, combinations);
+            // mpz_div_ui(rand, rand, combinations);not needed 
             modMul(temp, rand, temp3[m]);
             modAdd(results[i], results[i], temp);
         }
@@ -1269,13 +1273,12 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
 
     vector<long> polyOutput;
     vector<long> denominator;
-    long long combinations = nChoosek(getPeers(), getThreshold());
+    // long long combinations = nChoosek(getPeers(), getThreshold());
 
     if (rand_isFirst_thread[threadID] == 0) {
         randInit_thread(threadID);
         rand_isFirst_thread[threadID] = 1;
     }
-    // getNextRandValue(0, 0, polynomials, NULL, threadID);
 
     /*************** Evaluate the polynomials on points ******************/
     for (it = polynomials.begin(); it != polynomials.end(); it++) {
@@ -1298,8 +1301,9 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
-            getNextRandValue(m, mod, polynomials, rand, threadID);
-            mpz_div_ui(rand, rand, combinations);
+            // getNextRandValue(m, mod, polynomials, rand, threadID);
+            mpz_urandomm(rand, rstates_thread[m][threadID], mod);
+            // mpz_div_ui(rand, rand, combinations);
             modMul(temp, rand, temp3[m]);
             modAdd(results[i], results[i], temp);
         }
@@ -1322,34 +1326,6 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
         polynomials.erase(oldseed[i]);
         polynomials.insert(std::pair<uint64_t, vector<int> >(newseed[i], polys));
     }*/
-}
-
-// depracated, to be removed
-void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, vector<int>> polynomials, mpz_t value) {
-    mpz_urandomb(value, rstates[id], bits);
-}
-
-// depracated, to be removed
-void SecretShare::getNextRandValue(int id, int bits, std::map<std::string, vector<int>> polynomials, mpz_t value, int threadID) {
-    if (threadID == -1) {
-        getNextRandValue(id, bits, polynomials, value);
-        return;
-    } else
-        mpz_urandomb(value, rstates_thread[id][threadID], bits);
-}
-
-// depracated, to be removed
-void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, vector<int>> polynomials, mpz_t value) {
-    mpz_urandomm(value, rstates[id], mod);
-}
-
-// depracated, to be removed
-void SecretShare::getNextRandValue(int id, mpz_t mod, std::map<std::string, vector<int>> polynomials, mpz_t value, int threadID) {
-    if (threadID == -1) {
-        getNextRandValue(id, mod, polynomials, value);
-        return;
-    } else
-        mpz_urandomm(value, rstates_thread[id][threadID], mod);
 }
 
 std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {
