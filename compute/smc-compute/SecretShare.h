@@ -146,11 +146,6 @@ public:
     void generateRandValue(mpz_t mod, int size, mpz_t *results);
     void generateRandValue(mpz_t mod, int size, mpz_t *results, int threadID);
 
-    void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value);
-    void getNextRandValue(int id, int bits, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
-    void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value);
-    void getNextRandValue(int id, mpz_t mod, std::map<std::string, std::vector<int>> poly, mpz_t value, int threadID);
-
     int getCoefIndex(int k);
 
     mpz_t **coef;
@@ -229,6 +224,9 @@ private:
     gmp_randstate_t *rstates;
     gmp_randstate_t **rstates_thread;
     pthread_mutex_t mutex;
+
+    mpz_t *poly_evaluation; // stores polynomial evaluation for random generation, only is filled once
+
 };
 
 vector<int> generateCoef(int m, uint &inv_term);
