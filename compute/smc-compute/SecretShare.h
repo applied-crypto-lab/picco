@@ -224,6 +224,9 @@ private:
     gmp_randstate_t *rstates;
     gmp_randstate_t **rstates_thread;
     pthread_mutex_t mutex;
+
+    mpz_t *poly_evaluation; // stores polynomial evaluation for random generation, only is filled once
+
 };
 
 vector<int> generateCoef(int m, uint &inv_term);

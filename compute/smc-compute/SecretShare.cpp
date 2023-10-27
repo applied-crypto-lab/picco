@@ -116,6 +116,49 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
         gmp_randinit_default(rstates[i]);
         gmp_randseed(rstates[i], temp_keys[i]);
     }
+
+    // computing polynomial evaluation on points once
+    int polysize = polynomials.size();
+    mpz_t zero;
+    mpz_init(zero);
+    mpz_set_ui(zero, 0);
+
+    poly_evaluation = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
+    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
+    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
+
+    for (int i = 0; i < polysize; i++) {
+        mpz_init(poly_evaluation[i]);
+        mpz_init(temp1[i]);
+        mpz_init(temp2[i]);
+    }
+    vector<long> polyOutput;
+    vector<long> denominator;
+
+    for (it = polynomials.begin(); it != polynomials.end(); it++) {
+        vector<int> polys = (*it).second;
+        denominator.push_back(polys[polys.size() - 1]);
+        polyOutput.push_back(computePolynomials((*it).second, myID));
+    }
+
+    for (int m = 0; m < polysize; m++) {
+        mpz_set_si(temp2[m], denominator[m]);
+        mpz_set_si(poly_evaluation[m], polyOutput[m]);
+        if (denominator[m] < 0)
+            modAdd(temp2[m], zero, temp2[m]);
+        if (polyOutput[m] < 0)
+            modAdd(poly_evaluation[m], zero, poly_evaluation[m]);
+        modInv(temp1[m], temp2[m]);
+        modMul(poly_evaluation[m], poly_evaluation[m], temp1[m]);
+    }
+
+    for (int i = 0; i < polysize; i++) {
+        mpz_clear(temp1[i]);
+        mpz_clear(temp2[i]);
+    }
+    free(temp1);
+    free(temp2);
+    mpz_clear(zero);
 }
 
 void SecretShare::randInit_thread(int threadID) {
@@ -552,7 +595,6 @@ void SecretShare::modPow2(mpz_t result, mpz_t exponent) {
     mpz_clear(value);
     mpz_clear(base);
 }
-
 
 void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
     // for (int i = 0; i < size; ++i)
@@ -1042,43 +1084,10 @@ int SecretShare::computePolynomials(vector<int> polys, int point) {
 }
 
 void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
-    std::map<std::string, vector<int>>::iterator it;
-    mpz_t zero, rand, temp;
+    mpz_t rand, temp;
     int polysize = polynomials.size();
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp3 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_init(zero);
     mpz_init(rand);
     mpz_init(temp);
-    mpz_set_ui(zero, 0);
-    for (int i = 0; i < polysize; i++) {
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
-        mpz_init(temp3[i]);
-    }
-
-    vector<long> polyOutput;
-    vector<long> denominator;
-    // long long combinations = nChoosek(getPeers(), getThreshold());
-
-    /*************** Evaluate the polynomials on points ******************/
-    for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        vector<int> polys = (*it).second;
-        denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, myID));
-    }
-
-    for (int m = 0; m < polysize; m++) {
-        mpz_set_si(temp2[m], denominator[m]);
-        mpz_set_si(temp3[m], polyOutput[m]);
-        if (denominator[m] < 0)
-            modAdd(temp2[m], zero, temp2[m]);
-        if (polyOutput[m] < 0)
-            modAdd(temp3[m], zero, temp3[m]);
-        modInv(temp1[m], temp2[m]);
-        modMul(temp3[m], temp3[m], temp1[m]);
-    }
 
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
@@ -1086,22 +1095,12 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
             // Generate a uniformly distributed random integer in the range 0 to 2*bits-1, inclusive.
             mpz_urandomb(rand, rstates[m], bits);
             // mpz_div_ui(rand, rand, combinations);
-            modMul(temp, rand, temp3[m]);
+            modMul(temp, rand, poly_evaluation[m]);
             modAdd(results[i], results[i], temp);
         }
     }
-    /*********** Free the memory **************/
-    for (int i = 0; i < polysize; i++) {
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
-        mpz_clear(temp3[i]);
-    }
-    free(temp1);
-    free(temp2);
-    free(temp3);
-
-    mpz_clear(zero);
     mpz_clear(rand);
+    mpz_clear(temp);
 }
 
 void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int threadID) {
@@ -1109,48 +1108,10 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
         generateRandValue(bits, size, results);
         return;
     }
-    std::map<std::string, vector<int>>::iterator it;
-    mpz_t zero, rand, temp;
+    mpz_t rand, temp;
     int polysize = polynomials.size();
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp3 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_init(zero);
     mpz_init(rand);
     mpz_init(temp);
-    mpz_set_ui(zero, 0);
-    for (int i = 0; i < polysize; i++) {
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
-        mpz_init(temp3[i]);
-    }
-
-    vector<long> polyOutput;
-    vector<long> denominator;
-    // long long combinations = nChoosek(getPeers(), getThreshold());
-
-    if (rand_isFirst_thread[threadID] == 0) {
-        randInit_thread(threadID);
-        rand_isFirst_thread[threadID] = 1;
-    }
-
-    /*************** Evaluate the polynomials on points ******************/
-    for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        vector<int> polys = (*it).second;
-        denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, myID));
-    }
-
-    for (int m = 0; m < polysize; m++) {
-        mpz_set_si(temp2[m], denominator[m]);
-        mpz_set_si(temp3[m], polyOutput[m]);
-        if (denominator[m] < 0)
-            modAdd(temp2[m], zero, temp2[m]);
-        if (polyOutput[m] < 0)
-            modAdd(temp3[m], zero, temp3[m]);
-        modInv(temp1[m], temp2[m]);
-        modMul(temp3[m], temp3[m], temp1[m]);
-    }
 
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
@@ -1159,71 +1120,20 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
             mpz_urandomb(rand, rstates_thread[m][threadID], bits);
 
             // mpz_div_ui(rand, rand, combinations);
-            modMul(temp, rand, temp3[m]);
+            modMul(temp, rand, poly_evaluation[m]);
             modAdd(results[i], results[i], temp);
         }
     }
-    /*********** Free the memory **************/
-    for (int i = 0; i < polysize; i++) {
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
-        mpz_clear(temp3[i]);
-    }
-    free(temp1);
-    free(temp2);
-    free(temp3);
-
-    mpz_clear(zero);
     mpz_clear(rand);
-    /* When multiple compute nodes attempt to access polynomials at the same time, there may exisit a conflict that results in the memory problem */
-    /*for(unsigned int i = 0; i < 2 ; i++){
-        polys = polynomials.find(oldseed[i])->second;
-        polynomials.erase(oldseed[i]);
-        polynomials.insert(std::pair<uint64_t, vector<int> >(newseed[i], polys));
-    }*/
+    mpz_clear(temp);
 }
 
 void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
     std::map<std::string, vector<int>>::iterator it;
-    mpz_t zero, rand, temp;
+    mpz_t rand, temp;
     int polysize = polynomials.size();
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp3 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_init(zero);
     mpz_init(rand);
     mpz_init(temp);
-    mpz_set_ui(zero, 0);
-    for (int i = 0; i < polysize; i++) {
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
-        mpz_init(temp3[i]);
-    }
-
-    vector<long> polyOutput;
-    vector<long> denominator;
-    long long combinations = nChoosek(getPeers(), getThreshold());
-
-    // this can be done ONCE 
-    /*************** Evaluate the polynomials on points ******************/
-    for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        vector<int> polys = (*it).second;
-        denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, myID));
-    }
-
-    for (int m = 0; m < polysize; m++) {
-        mpz_set_si(temp2[m], denominator[m]);
-        mpz_set_si(temp3[m], polyOutput[m]);
-        if (denominator[m] < 0)
-            modAdd(temp2[m], zero, temp2[m]);
-        if (polyOutput[m] < 0)
-            modAdd(temp3[m], zero, temp3[m]);
-        modInv(temp1[m], temp2[m]);
-        modMul(temp3[m], temp3[m], temp1[m]);
-    }
-    // end precomputation
-
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
@@ -1231,23 +1141,13 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
             // Generate a uniform random integer in the range 0 to mod-1, inclusive
             mpz_urandomm(rand, rstates[m], mod);
 
-            // mpz_div_ui(rand, rand, combinations);not needed 
-            modMul(temp, rand, temp3[m]);
+            // mpz_div_ui(rand, rand, combinations);not needed
+            modMul(temp, rand, poly_evaluation[m]);
             modAdd(results[i], results[i], temp);
         }
     }
-    /*********** Free the memory **************/
-    for (int i = 0; i < polysize; i++) {
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
-        mpz_clear(temp3[i]);
-    }
-    free(temp1);
-    free(temp2);
-    free(temp3);
-
-    mpz_clear(zero);
     mpz_clear(rand);
+    mpz_clear(temp);
 }
 
 void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int threadID) {
@@ -1255,71 +1155,29 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
         generateRandValue(mod, size, results);
         return;
     }
-    std::map<std::string, vector<int>>::iterator it;
-    mpz_t zero, rand, temp;
+    mpz_t rand, temp;
     int polysize = polynomials.size();
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_t *temp3 = (mpz_t *)malloc(sizeof(mpz_t) * polysize);
-    mpz_init(zero);
     mpz_init(rand);
     mpz_init(temp);
-    mpz_set_ui(zero, 0);
-    for (int i = 0; i < polysize; i++) {
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
-        mpz_init(temp3[i]);
-    }
-
-    vector<long> polyOutput;
-    vector<long> denominator;
-    // long long combinations = nChoosek(getPeers(), getThreshold());
 
     if (rand_isFirst_thread[threadID] == 0) {
         randInit_thread(threadID);
         rand_isFirst_thread[threadID] = 1;
     }
 
-    /*************** Evaluate the polynomials on points ******************/
-    for (it = polynomials.begin(); it != polynomials.end(); it++) {
-        vector<int> polys = (*it).second;
-        denominator.push_back(polys[polys.size() - 1]);
-        polyOutput.push_back(computePolynomials((*it).second, myID));
-    }
-
-    for (int m = 0; m < polysize; m++) {
-        mpz_set_si(temp2[m], denominator[m]);
-        mpz_set_si(temp3[m], polyOutput[m]);
-        if (denominator[m] < 0)
-            modAdd(temp2[m], zero, temp2[m]);
-        if (polyOutput[m] < 0)
-            modAdd(temp3[m], zero, temp3[m]);
-        modInv(temp1[m], temp2[m]);
-        modMul(temp3[m], temp3[m], temp1[m]);
-    }
-
+    // evaluation done in rand_init
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
             // getNextRandValue(m, mod, polynomials, rand, threadID);
             mpz_urandomm(rand, rstates_thread[m][threadID], mod);
             // mpz_div_ui(rand, rand, combinations);
-            modMul(temp, rand, temp3[m]);
+            modMul(temp, rand, poly_evaluation[m]);
             modAdd(results[i], results[i], temp);
         }
     }
-    /*********** Free the memory **************/
-    for (int i = 0; i < polysize; i++) {
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
-        mpz_clear(temp3[i]);
-    }
-    free(temp1);
-    free(temp2);
-    free(temp3);
-
-    mpz_clear(zero);
     mpz_clear(rand);
+    mpz_clear(temp);
     /* When multiple compute nodes attempt to access polynomials at the same time, there may exisit a conflict that results in the memory problem */
     /*for(unsigned int i = 0; i < 2 ; i++){
         polys = polynomials.find(oldseed[i])->second;
