@@ -146,6 +146,8 @@ public:
     void generateRandValue(mpz_t mod, int size, mpz_t *results);
     void generateRandValue(mpz_t mod, int size, mpz_t *results, int threadID);
 
+    void PRZS(mpz_t mod, int size, mpz_t *results);
+
     int getCoefIndex(int k);
 
     mpz_t **coef;

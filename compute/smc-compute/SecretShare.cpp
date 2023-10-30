@@ -1129,7 +1129,6 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
 }
 
 void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
-    std::map<std::string, vector<int>>::iterator it;
     mpz_t rand, temp;
     int polysize = polynomials.size();
     mpz_init(rand);
@@ -1137,10 +1136,8 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
-            // getNextRandValue(m, mod, polynomials, rand);
             // Generate a uniform random integer in the range 0 to mod-1, inclusive
             mpz_urandomm(rand, rstates[m], mod);
-
             // mpz_div_ui(rand, rand, combinations);not needed
             modMul(temp, rand, poly_evaluation[m]);
             modAdd(results[i], results[i], temp);
@@ -1184,6 +1181,41 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
         polynomials.erase(oldseed[i]);
         polynomials.insert(std::pair<uint64_t, vector<int> >(newseed[i], polys));
     }*/
+}
+
+void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
+    mpz_t rand, temp;
+
+    int polysize = polynomials.size();
+    // mpz_init(rand);
+    mpz_init(temp);
+    mpz_t *rand = (mpz_t *)malloc(sizeof(mpz_t) * threshold);
+    for (int i = 0; i < threshold; i++) {
+        mpz_init(rand[i]);
+    }
+
+    /************* Generate the random values ******************/
+    for (int i = 0; i < size; i++) {
+        for (int m = 0; m < polysize; m++) {
+            for (int j = 0; j < threshold; j++) {
+                mpz_urandomm(rand[j], rstates[m], mod);
+            }
+            // getNextRandValue(m, mod, polynomials, rand);
+            // Generate a uniform random integer in the range 0 to mod-1, inclusive
+
+            // mpz_div_ui(rand, rand, combinations);not needed
+            modMul(temp, rand, poly_evaluation[m]);
+
+            modAdd(results[i], results[i], temp);
+        }
+    }
+    for (int i = 0; i < threshold; i++) {
+        mpz_clear(rand[i]);
+    }
+    free(rand);
+
+    mpz_clear(rand);
+    mpz_clear(temp);
 }
 
 std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {
