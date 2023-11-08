@@ -570,10 +570,6 @@ void SecretShare::modSub(mpz_t *result, int *x, mpz_t *y, int size) {
         mpz_clear(xtmp[i]);
 }
 
-void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
-    mpz_powm(result, base, exponent, fieldSize);
-}
-
 void SecretShare::modPow2(mpz_t result, int exponent) {
     mpz_t value, base;
     mpz_init_set_ui(base, 2);
@@ -624,6 +620,10 @@ void SecretShare::modPow2(mpz_t *result, mpz_t *exponent, int size) {
     }
     mpz_clear(value);
     mpz_clear(base);
+}
+
+void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
+    mpz_powm(result, base, exponent, fieldSize);
 }
 
 void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
@@ -1184,28 +1184,30 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
 }
 
 void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
-    mpz_t rand, temp;
+    mpz_t temp, temp2;
+    mpz_init(temp);
+    mpz_init(temp2);
 
     int polysize = polynomials.size();
     // mpz_init(rand);
-    mpz_init(temp);
     mpz_t *rand = (mpz_t *)malloc(sizeof(mpz_t) * threshold);
     for (int i = 0; i < threshold; i++) {
         mpz_init(rand[i]);
     }
-
+    int temp_int;
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
+            mpz_set_ui(temp, 0);
+            // Generate t random values from the PRG/PRF
             for (int j = 0; j < threshold; j++) {
                 mpz_urandomm(rand[j], rstates[m], mod);
+                temp_int = pow(myID, j+1);
+                // printf("%i^%i = %i\n", myID, j+1, temp_int);
+                modMul(temp2, rand[j], temp_int); // i^j * rand[j]
+                modAdd(temp, temp, temp2);        // sum_{j=1}^{t} (i^j * rand[j])
             }
-            // getNextRandValue(m, mod, polynomials, rand);
-            // Generate a uniform random integer in the range 0 to mod-1, inclusive
-
-            // mpz_div_ui(rand, rand, combinations);not needed
-            modMul(temp, rand, poly_evaluation[m]);
-
+            modMul(temp, temp, poly_evaluation[m]); // (sum_{j=1}^{t} i^j * rand[j]) * f(m)
             modAdd(results[i], results[i], temp);
         }
     }
@@ -1213,9 +1215,8 @@ void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
         mpz_clear(rand[i]);
     }
     free(rand);
-
-    mpz_clear(rand);
     mpz_clear(temp);
+    mpz_clear(temp2);
 }
 
 std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {

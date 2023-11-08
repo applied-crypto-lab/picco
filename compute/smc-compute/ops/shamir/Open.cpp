@@ -49,6 +49,35 @@ void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork node
     free(buffer);
 }
 
+void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s) {
+    uint peers = s->getPeers();
+
+    mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));
+    for (int i = 0; i < (peers); i++) {
+        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int j = 0; j < size; j++)
+            mpz_init(buffer[i][j]);
+    }
+    nodeNet.broadcastToPeers(shares, size, buffer, threadID);
+    s->reconstructSecret(result, buffer, size);
+
+    // nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(), shares, buffer, size, threadID);
+
+    // for (int i = 0; i < size; i++) {
+    //     // putting my share into last position of buff as to match lagrangeWeightsThreshold[i]
+    //     mpz_set(buffer[threshold][i], shares[i]);
+    // }
+    // s->reconstructSecretFromMin(result, buffer, size);
+
+    // freeing
+    for (int i = 0; i < (peers); i++) {
+        for (int j = 0; j < size; j++)
+            mpz_clear(buffer[i][j]);
+        free(buffer[i]);
+    }
+    free(buffer);
+}
+
 int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *s) {
 
     mpz_t *data = (mpz_t *)malloc(sizeof(mpz_t) * 1);

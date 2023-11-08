@@ -26,5 +26,6 @@
 void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s);
 int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *s);
 float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss);
+void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s);
 
 #endif

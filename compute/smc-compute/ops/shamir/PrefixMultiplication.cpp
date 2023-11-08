@@ -203,6 +203,8 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
     mpz_t *R_buff = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
     mpz_t *S_buff = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
 
+    mpz_t *przs = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
+
     mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
     mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
 
@@ -216,6 +218,8 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
 
         mpz_init(R_buff[i]);
         mpz_init(S_buff[i]);
+
+        mpz_init(przs[i]);
 
         mpz_init(V[i]);
         mpz_init(U[i]);
@@ -235,9 +239,12 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
     ss->getFieldSize(field);
     ss->generateRandValue(field, length_k * size, R, threadID);
     ss->generateRandValue(field, length_k * size, S, threadID);
+    ss->PRZS(field, size, przs);
 
     // step 4, MulPub (can't be replaced with Open)
     ss->modMul(U, R, S, length_k * size);
+    ss->modAdd(U, U, przs, length_k * size); // adding pseudorandom shares of zero
+
     net.broadcastToPeers(U, length_k * size, buffer1, threadID);
     ss->reconstructSecret(U, buffer1, length_k * size);
     clearBuffer(buffer1, peers, length_k * size);
@@ -314,6 +321,7 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
         mpz_clear(S[i]);
         mpz_clear(R_buff[i]);
         mpz_clear(S_buff[i]);
+        mpz_clear(przs[i]);
         mpz_clear(V[i]);
         mpz_clear(U[i]);
     }
@@ -321,6 +329,7 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
     free(S);
     free(R_buff);
     free(S_buff);
+    free(przs);
     free(V);
     free(U);
 }

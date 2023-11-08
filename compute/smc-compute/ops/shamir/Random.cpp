@@ -40,6 +40,7 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t *u = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *v = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *przs = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t const1, inv2;
 
     // initialization
@@ -56,17 +57,22 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
     for (int i = 0; i < size; i++) {
         mpz_init(u[i]);
         mpz_init(v[i]);
+        mpz_init(przs[i]);
     }
     /***********************************************************/
     mpz_t field;
     mpz_init(field);
     ss->getFieldSize(field);
     // need to add PRZS functionality s.t. [c]_i = [a]_i*[b]_i + [0]_i, then open [c]
-    
+
     // PRandFld (generating a uniformly random field element [r])
     ss->generateRandValue(field, size, u, threadID);
+    ss->PRZS(field, size, przs);
+
     // MulPub (squaring [r])
     ss->modMul(v, u, u, size);
+    ss->modAdd(v, v, przs, size); //adding pseudorandom shares of zero
+
     net.broadcastToPeers(v, size, resultShares, threadID);
     ss->reconstructSecret(v, resultShares, size);
     // v <- u^(-(q + 1)/4) mod q (q is field size)
@@ -79,6 +85,7 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
 
     // free the memory
     mpz_clear(inv2);
+    mpz_clear(field);
     mpz_clear(const1);
     for (int i = 0; i < peers; i++) {
         for (int j = 0; j < size; j++)
@@ -90,9 +97,11 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, S
     for (int i = 0; i < size; i++) {
         mpz_clear(u[i]);
         mpz_clear(v[i]);
+        mpz_clear(przs[i]);
     }
     free(u);
     free(v);
+    free(przs);
 }
 
 // Does NOT follow PRandM specification exactly - does not generate [r''] since it can be performed separately and hence optimized
