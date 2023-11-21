@@ -81,7 +81,6 @@ void seed::sendPolynomials(mpz_t mod) {
                 }
             }
         }
-        // printf("hi\n");
         for (int k = 0; k < size; k++) {
             std::string Strkey = mpz2string(tempKey[k], mpz_t_size);
             int flag = 0;
@@ -92,7 +91,6 @@ void seed::sendPolynomials(mpz_t mod) {
                 }
             }
             if (flag == 0) {
-                // std::cout << k<< "  Strkey = " << Strkey << std::endl;
                 std::string Strkey = mpz2string(tempKey[k], mpz_t_size);
                 polys.insert(std::pair<std::string, std::vector<int>>(Strkey, prss.getPolynomials().find(Strkey)->second));
                 keyssize += 1;
@@ -100,17 +98,8 @@ void seed::sendPolynomials(mpz_t mod) {
                     coefficients.push_back(polys.find(Strkey)->second.at(j));
             }
         }
-        // for (auto &[key, value] : polys) {
-        //     std::cout << key << ", ";
-        //     for (size_t j = 0; j < value.size(); j++) {
-        //         std::cout << value.at(j) << ", ";
-        //     }
-        //     std::cout << std::endl;
-        // }
-        // std::cout << std::endl;
         int *Coefficients = &coefficients[0];
         int coefsize = coefficients.size();
-        // printf("coefsize = %i \n", coefsize);
         FILE *pubkeyfp = fopen(computePubkeys[i].c_str(), "r");
         if (pubkeyfp == NULL)
             printf("File Open %s error \n", computePubkeys[i].c_str());
@@ -137,12 +126,7 @@ void seed::sendPolynomials(mpz_t mod) {
             if (flag == 0) {
                 char *strkey = (char *)malloc(mpz_t_size + 1);
                 strkey[0] = '\0';
-
                 mpz_get_str(strkey, 10, tempKey[l]);
-                // std::cout <<"copied ";
-                // gmp_printf("Key[%i]: %Zu\n", l, tempKey[l]);
-                // printf("strkey %s\n", strkey);
-
                 memcpy(buf + sizeof(int) * 3 + position, strkey, mpz_t_size);
                 position += mpz_t_size;
             }

@@ -61,30 +61,9 @@ void PRSS::setKeysAndPoints() {
     unsigned char openssl_rand_bytes[KEYSIZE];
     if (!RAND_bytes(openssl_rand_bytes, KEYSIZE))
         printf("PRSS seed generation error\n");
-
-    int fd;
-    // char seed[4], temp[13], strSeed[13] = {0,};
-    // if ((fd = open("/dev/random", O_RDONLY)) == -1)
-    // {
-    // 	perror("open error");
-    // 	exit(1);
-    // }
-    // if ((read(fd, seed, 4)) == -1)
-    // {
-    // 	perror("read error");
-    // 	exit(1);
-    // }
-    // for (int i = 0; i < 4; i++)
-    // {
-    // 	sprintf(temp+(i*3), "%03d", seed[i] & 0xff);
-    // 	memcpy(strSeed+(i*3), temp+(i*3), 3);
-    // }
     mpz_t randSeed, randNum;
     mpz_init(randSeed);
-    // mpz_set_str(randSeed, strSeed, 12);
-
     mpz_import(randSeed, KEYSIZE, 1, sizeof(openssl_rand_bytes[0]), 0, 0, openssl_rand_bytes);
-
     mpz_init(randNum);
     gmp_randstate_t gmpRandState;
     gmp_randinit_default(gmpRandState);
