@@ -21,7 +21,7 @@
 #define OPERATION_SHAMIR_H_
 
 #include "../../NodeNetwork.h"
-#include "../../SecretShare.h"
+#include "../../shamir/SecretShare.h"
 #include <cstdlib>
 #include <gmp.h>
 #include <map>

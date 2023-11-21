@@ -22,13 +22,20 @@
 #define SMC_UTILS_H_
 
 #include "Headers.h"
-#include "ShamirOps.h"
+#include "shamir/ShamirOps.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>
 #include <sstream>
 #include <string>
-
+#include "openssl/bio.h"
+#include "unistd.h"
+#include <cmath>
+#include <netinet/in.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <string>
 
 typedef mpz_t priv_int;
 #define MPZ_CAST(X) (mpz_t *)(X)
@@ -58,8 +65,6 @@ public:
     void smc_input(int id, mpz_t *var, std::string type, int threadID);
     void smc_output(int id, int *var, std::string type, int threadID);
     void smc_output(int id, mpz_t *var, std::string type, int thread);
-    // void convertFloat(float value, int K, int L, mpz_t **elements);
-    // void convertDouble(double value, int K, int L, mpz_t **elements);
 
     // for float variable;
     void smc_input(int id, float *var, std::string type, int threadID);
@@ -563,7 +568,6 @@ private:
     void clientConnect();
     void receivePolynomials(std::string privatekey_filename);
     // void setCoef();
-    int peers;
     int newsockfd;
 };
 

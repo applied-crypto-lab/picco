@@ -21,7 +21,7 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
-#include "NodeNetwork.h"
+#include "../NodeNetwork.h"
 #include "ShamirUtil.h"
 #include "stdint.h"
 #include <algorithm>

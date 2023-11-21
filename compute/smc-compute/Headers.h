@@ -22,8 +22,8 @@
 #define HEADERS_H_
 #include "NodeConfiguration.h"
 #include "NodeNetwork.h"
-#include "SecretShare.h"
-#include "ShamirUtil.h"
+#include "shamir/SecretShare.h"
+#include "shamir/ShamirUtil.h"
 #include "ops/shamir/AddBitwise.h"
 #include "ops/shamir/AppRcr.h"
 #include "ops/shamir/B2U.h"

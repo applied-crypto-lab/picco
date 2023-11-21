@@ -138,6 +138,11 @@ private:
 
     // PRG seeds used in multiplication
     unsigned char **prgSeeds; // getter function works properly in SecretShare constructor
+
+    // used to mask data prior to sending (maintains security)
+    uint32_t *SHIFT_32;
+    uint64_t *SHIFT_64;
+
 };
 
 void print_hexa(uint8_t *message, int message_length);

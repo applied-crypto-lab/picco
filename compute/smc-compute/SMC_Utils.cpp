@@ -18,33 +18,21 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
-#include "SecretShare.h"
-#include "openssl/bio.h"
-#include "unistd.h"
-#include <cmath>
-#include <netinet/in.h>
-#include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
-#include <string>
 
 // Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
-    // test_type(15);
 
     std::cout << "SMC_Utils constructor\n";
     mpz_t modulus;
     mpz_init(modulus);
     mpz_set_str(modulus, mod.c_str(), BASE_10);
     nodeConfig = new NodeConfiguration(id, runtime_config, bits);
-    peers = numOfPeers;
+    
     std::cout << "Creating the NodeNetwork\n";
-
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
     net = *nodeNet;
-
+    
     std::cout << "Creating SecretShare\n";
-
     clientConnect();
     receivePolynomials(privatekey_filename);
 
@@ -72,11 +60,6 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
             std::exit(1);
         }
     }
-    // if (peers == 3) {
-    //     ss->getCoef(id);
-    //     ss->Seed((nodeNet->key_0), (nodeNet->key_1));
-    // }
-    // setCoef();
 }
 
 /* Specific SMC Utility Functions */
@@ -1577,6 +1560,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         for (int k = 0; k < coefsize / keysize; k++) {
             temp.push_back(Coefficients[i * coefsize / keysize + k]);
         }
+        std::cout <<i<<" strkey: "<<Strkey <<std::endl;
         polynomials.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
     }
     printf("Polynomials received... \n");
@@ -1608,7 +1592,7 @@ std::vector<std::string> SMC_Utils::splitfunc(const char *str, const char *delim
 
 void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID) {
 
-    int K = alen;
+    // int K = alen;
     // int M = ceil(log2(K));
 
     mpz_t field;
@@ -1652,9 +1636,9 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
         mpz_init(a_test[i]);
         mpz_init(res_check[i]);
     }
-    gmp_printf("Testing PRZS for (mod = %Zu), size = %i)\n", field, size);
+    // gmp_printf("Testing PRZS for (mod = %Zu), size = %i)\n", field, size);
     ss->PRZS(field, size, a_test);
-    printf("PRZS end\n");
+    // printf("PRZS end\n");
     Open_from_all(a_test, res, size, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         gmp_printf("result[%i] %Zu\n", i, res[i]);

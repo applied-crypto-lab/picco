@@ -159,11 +159,35 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     test_flags = (int *)malloc(sizeof(int) * numOfThreads);
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
+
+    SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
+    SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
+
+    for (uint32_t i = 0; i <= sizeof(uint32_t) * 8 - 1; i++) {
+        SHIFT_32[i] = (uint32_t(1) << uint32_t(i)) - uint32_t(1); // mod 2^i
+        // this is needed to handle "undefined behavior" of << when we want
+        // to shift by more than the size of the type (in bits)
+        if (i == sizeof(uint32_t) * 8) {
+            SHIFT_32[i] = -1;
+        }
+    }
+
+    for (uint64_t i = 0; i <= sizeof(uint64_t) * 8 - 1; i++) {
+        SHIFT_64[i] = (uint64_t(1) << uint64_t(i)) - uint64_t(1); // mod 2^i
+        // this is needed to handle "undefined behavior" of << when we want
+        // to shift by more than the size of the type (in bits)
+        if (i == sizeof(uint64_t) * 8) {
+            SHIFT_64[i] = -1;
+        }
+    }
 }
 
 NodeNetwork::NodeNetwork() {}
 
 NodeNetwork::~NodeNetwork() {
+    delete[] SHIFT_32;
+    delete[] SHIFT_64;
+
     // int peers = config->getPeerCount();
     // int threshold = peers / 2;
 
@@ -175,6 +199,9 @@ NodeNetwork::~NodeNetwork() {
 
 unsigned char **NodeNetwork::getPRGseeds() {
     return prgSeeds;
+}
+
+void NodeNetwork::closeAllConnections() {
 }
 
 void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size) {
@@ -988,28 +1015,6 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
     }
 }
 
-// original version used for setting up keys for secure communication
-// void NodeNetwork::init_keys(int peer, int nRead) {
-//     unsigned char key[16], iv[16];
-//     memset(key, 0x00, 16);
-//     memset(iv, 0x00, 16);
-//     if (0 == nRead) // useKey KeyIV
-//     {
-//         memcpy(key, KeyIV, 16);
-//         memcpy(iv, KeyIV + 16, 16);
-//     } else // getKey from peers
-//     {
-//         memcpy(key, peerKeyIV, 16);
-//         memcpy(iv, peerKeyIV + 16, 16);
-//     }
-//     en = EVP_CIPHER_CTX_new();
-//     EVP_EncryptInit_ex(en, EVP_aes_128_cbc(), NULL, key, iv);
-//     de = EVP_CIPHER_CTX_new();
-//     EVP_DecryptInit_ex(de, EVP_aes_128_cbc(), NULL, key, iv);
-//     peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
-//     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
-// }
-
 // used for debugging
 void print_hexa(uint8_t *message, int message_length) {
     for (int i = 0; i < message_length; i++) {
@@ -1046,31 +1051,10 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     }
 
     if ((1 <= index) and (index <= threshold)) {
-        // printf("if : %u,  peer : %i\n", threshold - index);
         memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
     } else {
-        // printf("else : %u, peer : %i\n", threshold + peers - index);
         memcpy(prgSeeds[threshold + peers - index], prg_seed_key, KEYSIZE);
     }
-
-    // 3-party version which will be removed after implementing general optimized multiplication
-    // if (peers == 2) {
-    //     int id_p1, id_m1;
-    //     id_p1 = (myid + 1) % (peers + 2);
-    //     if (id_p1 == 0)
-    //         id_p1 = 1;
-
-    //     id_m1 = (myid - 1) % (peers + 2);
-    //     if (id_m1 == 0)
-    //         id_m1 = peers + 1;
-
-    //     if (peer == id_p1) {
-    //         memcpy(key_1, key, 16);
-
-    //     } else if (peer == id_m1) {
-    //         memcpy(key_0, key, 16);
-    //     }
-    // }
 
     en = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(en, EVP_aes_128_cbc(), NULL, key, iv);
@@ -1078,7 +1062,6 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     EVP_DecryptInit_ex(de, EVP_aes_128_cbc(), NULL, key, iv);
     peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
-    // printf("hi\n");
 }
 
 void NodeNetwork::mpzFromString(char *str, mpz_t *no, int *lengths, int size) {
@@ -1303,15 +1286,13 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
             idx = threshold - i - 1;
 
             // casting to int just to avoid having to rewrite everything
-            sendDataToPeer((int) sendtoIDs[i], data, k * count, count, size); 
-            getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size); 
+            sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size);
+            getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size);
             // gmp_printf("send %Zu to %u, recv %Zu from %u, dst_idx %i \n", data[0], sendtoIDs[i], buffer[idx][0], RecvFromIDs[idx],idx);
             // gmp_printf("to %u, from %u, idx %i: (%Zu, %Zu)\n",  sendtoIDs[i], RecvFromIDs[idx],idx, data[0], buffer[idx][0]);
             // gmp_printf("recvied %Zu\n", buffer[idx][0]);
-            // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size); 
+            // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size);
         }
     }
 }
 
-void NodeNetwork::closeAllConnections() {
-}
