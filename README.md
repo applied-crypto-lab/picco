@@ -125,7 +125,7 @@ In order to run a user's translated program in a distributed setting, one needs 
   mkdir build
   cd build
   cmake ..
-  make
+  make -j8
   ```
    The resulting executable file will be stored in `build/`  and can later be placed in any other directory. 
    <!-- 
