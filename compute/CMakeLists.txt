@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(compiled_program LANGUAGES  CXX)
+project(test-code LANGUAGES  CXX)
 
 
 # set(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -85,14 +85,10 @@ file(GLOB SHAMIR
       "smc-compute/ops/shamir/*.cpp"
 )
 
-add_executable(compiled_program test_op.cpp ${SOURCES} ${SHAMIR})
-# set_target_properties(compiled_program PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+add_executable(test-code test-code.cpp ${SOURCES} ${SHAMIR})
 
 
-target_link_libraries(compiled_program ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CRYPTOPP_LIBRARIES}  ${GMP_LIBRARIES})
-
-# install(TARGETScompiled_program 
-#         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
+target_link_libraries(test-code ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CRYPTOPP_LIBRARIES}  ${GMP_LIBRARIES})
 
 
 add_custom_target(clean-all

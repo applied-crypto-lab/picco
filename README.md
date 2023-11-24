@@ -23,6 +23,7 @@ To compile or run user programs using PICCO code, a machine should have the foll
 - Crypto++ library
 - Flex - fast lexical analyzer generator
 - GNU Bison parser
+- CMake
 
 ## Compilation of PICCO
 
@@ -52,7 +53,7 @@ Before describing the procedure for compiling a user program, we explain the com
 - **Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command:
 
   ```
-  picco <user program> <SMC config> <translated program> <utility config>
+  ./picco <user program> <SMC config> <translated program> <utility config>
   ``` 
 
   Here, the arguments that the executable `picco` takes are:
@@ -96,7 +97,7 @@ Input and output in user programs is handled through built-in I/O functions `smc
 - **Generating input data**. After an input party generates input data in the specified format and saves it in a file of the user's choice, the utility program can be invoked as follows:  
     
   ```
-  picco-utility -I <input party ID> <input filename> <utility config> <shares filename>
+  ./picco-utility -I <input party ID> <input filename> <utility config> <shares filename>
   ```
 
   The utility program `picco-utility` takes a flag and four other arguments, which are:
@@ -115,9 +116,21 @@ Input and output in user programs is handled through built-in I/O functions `smc
 
 In order to run a user's translated program in a distributed setting, one needs to compile it using a native C++ compiler to produce a binary executable file, create a runtime config file, and send the executable to each computational party together with the runtime config and a file that stores input shares for that party. These steps are discussed in more detail below.
 
-- To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. Moreover, the makefile in the `compute/` directory needs to be updated to have rules for the name of the program. That is, if the translated program is stored in a file named `X.cpp`, `X.cpp` and `X.o` need to be added to the lists of source and object files, respectively, and the makefile also needs to be updated to include build rule for `X`. For ease of use, every appearance of `test-code` can simply be substituted with `X` in the makefile. 
+- To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. Moreover, the CMakeLists in the `compute/` directory needs to be updated to include the name of the program.That is, if the translated program is stored in a file named `X.cpp`, then `X.cpp` must be added to the `add_executable` command. 
+  For ease of use, every appearance of `test-code` can simply be substituted with `X` in the makefile. 
 
-  Then the binary executable `X` of the translated program can be produced by typing `make X` in the `compute/` directory. The resulting executable file will be stored in the same directory and can later be placed in any other directory. Notice that, when one runs `make X` for the first time, the makefile automatically compiles source files of the SMC library stored in directory `compute/smc-compute`. This will be performed only once (i.e., from the second running, the library source won't be compiled anymore). 
+
+  Then the binary executable `X` of the translated program can be produced by typing the following commands from the `compute/` directory:
+  ```
+  mkdir build
+  cd build
+  cmake ..
+  make
+  ```
+   The resulting executable file will be stored in `build/`  and can later be placed in any other directory. 
+   <!-- 
+   check this functionality with cmake - can it be done too?
+   Notice that, when one runs `make X` for the first time, the makefile automatically compiles source files of the SMC library stored in directory `compute/smc-compute`. This will be performed only once (i.e., from the second running, the library source won't be compiled anymore).  -->
 
 - The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
 
@@ -142,7 +155,7 @@ In order to run a user's translated program in a distributed setting, one needs 
   To initiate secure computation, each computational party needs to execute the following command:
 
   ```
-  X <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
+  ./X <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
   ```
 
   The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
@@ -150,7 +163,7 @@ In order to run a user's translated program in a distributed setting, one needs 
   **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. After all computational parties start, the $(N+1)$'th machine needs to run:
 
   ```
-  picco-seed <runtime config> <utility config>
+  ./picco-seed <runtime config> <utility config>
   ``` 
 
 Upon computation completion, each program outputs the program running time and stores the result of computation (output using `smcoutput`) in a file for each output party. If the output for some output party contains private variables, that party will need to use the utility program to reconstruct the result.
@@ -160,7 +173,7 @@ Upon computation completion, each program outputs the program running time and s
 The procedure of reconstructing program results is very similar to that of generating program inputs using the utility program. Each output party needs to execute the following command:
 
 ```
-picco-utility -O <output party ID> <shares filename> <utility config> <result filename>
+./picco-utility -O <output party ID> <shares filename> <utility config> <result filename>
 ```
 
 Here the flag `-O` indicates that the utility program will be used to reconstruct the program result. The third argument is the name prefix of output files containing values (e.g., shares for private variables) of program results (the program will read files "`<shares filename>i`" for each computational party `i`), and the last argument is the name of the file that will store the result of data reconstruction. Other arguments are self-explanatory. The utility program stores the plaintext output data in the same format as the plaintext input was stored in the input files.
