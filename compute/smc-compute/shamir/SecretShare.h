@@ -33,6 +33,7 @@
 #include <iostream>
 #include <math.h>
 #include <numeric>
+#include <openssl/rand.h>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -211,6 +212,9 @@ private:
 
     // additional data structures for multiplication
     gmp_randstate_t *rstatesMult;
+
+    gmp_randstate_t rstate_mine;
+
 
     // for 3-party multiplication
     gmp_randstate_t rstate_0;

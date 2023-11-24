@@ -100,7 +100,7 @@ void append_new_main() {
                "\n std::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
                "for(int i = 0; i < argc-6; i++)\n"
                "   IO_files[i] = argv[6+i];\n"
-               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n"
+               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n" // will be updated for measurement mode
                "\nstruct timeval tv1;"
                "\nstruct timeval tv2;",
                peers, threshold, bits, res, total_threads);
@@ -174,7 +174,8 @@ int main(int argc, char *argv[]) {
     /***************** read config file ********************/
     if (argc != 5) {
         fprintf(stderr, "Incorrect input parameters:\n");
-        fprintf(stderr, "Usage: picco <user program> <SMC config> <translated program> <utility config>\n");
+        // will need to update with new flags (-M and -D for measurement and deployment) 
+        fprintf(stderr, "Usage: picco <user program> <SMC config> <translated program> <utility config>\n"); 
         exit(1);
     }
 

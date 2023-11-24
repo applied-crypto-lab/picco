@@ -78,6 +78,9 @@ int NodeNetwork::mode = 0;              // -1 -- non-thread, 0 -- thread
 int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed modes so far
 /************************************************************/
 
+// 11/21/23 antcipated changes
+// add conditional based on deployment for encrpytion
+// privatekey_filename will be passed as null
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;

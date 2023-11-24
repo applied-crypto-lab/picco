@@ -79,12 +79,22 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 
 void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
 
-    // depracated, to be removed
     gmp_randinit_mt(rstate);
 
-    // used for mult, could probably be moved into randInit but we'd need to pass keys along
+
     mpz_t seed;
     mpz_init(seed);
+    unsigned char temp_key[KEYSIZE];
+    gmp_randinit_mt(rstate_mine);
+    if (!RAND_bytes(temp_key, KEYSIZE))
+        printf("Key, iv generation error\n");
+    mpz_import(seed, KEYSIZE, 1, sizeof(temp_key[0]), 0, 0, temp_key);
+    gmp_randseed(rstate_mine, seed);
+
+
+
+    // used for mult, could probably be moved into randInit but we'd need to pass keys along
+
     rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * (2 * threshold));
     for (int i = 0; i < 2 * threshold; i++) {
         gmp_randinit_mt(rstatesMult[i]);

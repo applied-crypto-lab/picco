@@ -105,12 +105,21 @@ void SMC_Utils::smc_input(int id, mpz_t **var, int size, std::string type, int t
     ss->ss_input(id, var, size, type, inputStreams);
 }
 
+// keping type argument for now 
 void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
+    // #ifdef __DEPLOYMENT_
     ss->ss_input(id, var, size, type, inputStreams);
+    // #else 
+    // ss->ss_input(var, size, type);
+    // #endif
+
 }
 
 void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
+    // #ifdef __DEPLOYMENT_
     ss->ss_output(id, var, type, outputStreams);
+    // #else 
+    // #endif
 }
 
 void SMC_Utils::smc_output(int id, mpz_t *var, std::string type, int threadID) {
