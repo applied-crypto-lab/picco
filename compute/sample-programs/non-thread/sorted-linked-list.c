@@ -9,7 +9,7 @@ private
 };
 
 public
-int count = 2;
+int count = 3;
 
 public
 int main() {

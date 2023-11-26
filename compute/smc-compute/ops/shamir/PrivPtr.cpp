@@ -371,7 +371,7 @@ int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNet
     return 0;
 }
 
-void merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr,NodeNetwork net, int id, SecretShare *ss) {
+void merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, NodeNetwork net, int id, SecretShare *ss) {
     dlist list = right_ptr->list;
     listnode node = list->head->next;
     while (node != list->tail) {
@@ -774,6 +774,7 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
     }
+    printf("deref\n");
     priv_ptr tmp_ptr;
     priv_ptr copy_ptr = create_ptr(0, 0);
     priv_ptr ptr1 = create_ptr(0, 0);
@@ -800,7 +801,7 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_
         mpz_init(op3[i]);
         mpz_init(op4[i]);
     }
-
+    printf("deref2\n");
     while (tmp != tmp_ptr->list->tail) {
         mpz_set(op1[index], *(tmp->u.int_var_location));
         mpz_set(op2[index], tmp->priv_tag);
@@ -835,8 +836,12 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_
     free(op2);
     free(op3);
     free(op4);
+    printf("deref3\n");
 
     destroy_ptr(&ptr1);
     destroy_ptr(&copy_ptr);
+
+    printf("deref end\n");
+
     return;
 }

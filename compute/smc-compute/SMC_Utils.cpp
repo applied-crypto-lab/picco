@@ -37,7 +37,6 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     receivePolynomials(privatekey_filename);
 
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), polynomials);
-
     // initialize input and output streams
     inputStreams = new std::ifstream[numOfInputPeers];
     outputStreams = new std::ofstream[numOfOutputPeers];

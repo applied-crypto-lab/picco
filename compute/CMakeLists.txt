@@ -85,7 +85,7 @@ file(GLOB SHAMIR
       "smc-compute/ops/shamir/*.cpp"
 )
 
-add_executable(compiled_program test_op.cpp ${SOURCES} ${SHAMIR})
+add_executable(compiled_program sorted-ll.cpp ${SOURCES} ${SHAMIR})
 # set_target_properties(compiled_program PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
