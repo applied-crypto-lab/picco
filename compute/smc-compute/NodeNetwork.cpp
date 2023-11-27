@@ -165,7 +165,6 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
 
     SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
     SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
-
     for (uint32_t i = 0; i <= sizeof(uint32_t) * 8 - 1; i++) {
         SHIFT_32[i] = (uint32_t(1) << uint32_t(i)) - uint32_t(1); // mod 2^i
         // this is needed to handle "undefined behavior" of << when we want
