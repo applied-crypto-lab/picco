@@ -191,7 +191,7 @@ NodeNetwork::~NodeNetwork() {
     // these two statements cause the following error:
     // free(): double free detected in tcache 2
     // Aborted (core dumped)
-    //why is this the case?
+    // why is this the case?
     // delete[] SHIFT_32;
     // delete[] SHIFT_64;
 
@@ -1302,4 +1302,3 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
         }
     }
 }
-
