@@ -1,8 +1,0 @@
-bits:99
-modulus:316912650057057350374175801351
-peers:3
-threshold:1
-inputs:1
-outputs:1
-I:1,a,int,1,3,32
-O:1,output,int,1,1,32

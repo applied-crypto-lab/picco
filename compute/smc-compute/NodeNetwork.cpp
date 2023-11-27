@@ -188,8 +188,12 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
 NodeNetwork::NodeNetwork() {}
 
 NodeNetwork::~NodeNetwork() {
-    delete[] SHIFT_32;
-    delete[] SHIFT_64;
+    // these two statements cause the following error:
+    // free(): double free detected in tcache 2
+    // Aborted (core dumped)
+    //why is this the case?
+    // delete[] SHIFT_32;
+    // delete[] SHIFT_64;
 
     // int peers = config->getPeerCount();
     // int threshold = peers / 2;
