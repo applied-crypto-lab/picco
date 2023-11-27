@@ -1568,7 +1568,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         for (int k = 0; k < coefsize / keysize; k++) {
             temp.push_back(Coefficients[i * coefsize / keysize + k]);
         }
-        std::cout <<i<<" strkey: "<<Strkey <<std::endl;
+        // std::cout <<i<<" strkey: "<<Strkey <<std::endl;
         polynomials.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
     }
     printf("Polynomials received... \n");
