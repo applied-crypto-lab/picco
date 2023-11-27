@@ -22,7 +22,11 @@
 #define SMC_UTILS_H_
 
 #include "Headers.h"
+
+#ifdef __SHAMIR__
 #include "shamir/ShamirOps.h"
+#endif
+// #include "rss/rssOps.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>
