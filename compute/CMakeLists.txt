@@ -48,9 +48,9 @@ file(GLOB SOURCES
 
 
 
-option(DEPLOYMENT "Deployment or benchmarking mode (default Deployment)" ON) # ON by default
-option(SHAMIR "Shamir secret sharing (default ON)" ON) # ON by default
-option(RSS "Replicated secret sharing (default OFF)" OFF) # OFF by default
+option(DEPLOYMENT "Deployment or benchmarking mode (default=Deployment)" OFF) # ON by default
+option(SHAMIR "Shamir secret sharing (default=ON)" ON) # ON by default
+option(RSS "Replicated secret sharing (default=OFF)" OFF) # OFF by default
 
  
 
@@ -92,7 +92,7 @@ else()
       add_definitions(-D__DEPLOYMENT__=0)
 endif()
 
-add_executable(compiled_program test_op.cpp ${SOURCES} ${TECHNIQUE})
+add_executable(compiled_program XXXXX ${SOURCES} ${TECHNIQUE})
 
 target_link_libraries(compiled_program ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CRYPTOPP_LIBRARIES}  ${GMP_LIBRARIES})
 

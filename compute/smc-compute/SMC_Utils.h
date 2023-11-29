@@ -23,8 +23,11 @@
 
 #include "Headers.h"
 
-#ifdef __SHAMIR__
+#if __SHAMIR__
 #include "shamir/ShamirOps.h"
+#endif
+#if __RSS__
+#include "rss/RSSOps.h"
 #endif
 // #include "rss/rssOps.h"
 #include <fstream>
