@@ -76,7 +76,8 @@ int total_threads = 0;
 
 void getPrime(mpz_t, int);
 
-void append_new_main() {
+void append_new_main() { // will have new argument for flag
+// void append_new_main(bool mode) { 
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
@@ -87,6 +88,7 @@ void append_new_main() {
                MAIN_NEWNAME);
 
     // Check the input parameters
+    // this will be different based on flag
     str_printf(strA(),
                "\n if(argc < 8){\n"
                "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
@@ -97,10 +99,10 @@ void append_new_main() {
     getPrime(modulus2, bits);
     char *res = mpz_get_str(NULL, 10, modulus2);
     str_printf(strA(),
-               "\n std::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
+               "\n std::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n" // 1different number of arguments
                "for(int i = 0; i < argc-6; i++)\n"
                "   IO_files[i] = argv[6+i];\n"
-               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n" // will be updated for measurement mode
+               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n" // this will be different based on flag, certain arguments will be Null/0 in -m
                "\nstruct timeval tv1;"
                "\nstruct timeval tv2;",
                peers, threshold, bits, res, total_threads);
@@ -173,11 +175,14 @@ int main(int argc, char *argv[]) {
 
     /***************** read config file ********************/
     if (argc != 5) {
+    // if (argc != 6) {
         fprintf(stderr, "Incorrect input parameters:\n");
-        // will need to update with new flags (-M and -D for measurement and deployment) 
+        // will need to update with new flags (-m and -d for measurement and deployment) 
         fprintf(stderr, "Usage: picco <user program> <SMC config> <translated program> <utility config>\n"); 
+        // fprintf(stderr, "Usage: picco [-d | -m] <user program> <SMC config> <translated program> <utility config>\n"); // make sure other arguments are incremented by one
         exit(1);
     }
+    // do flag parsing here, check arguments are formed properly
 
     loadConfig(argv[2]);
 
@@ -376,7 +381,8 @@ ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
     // }
 
     // Update the Main function
-    append_new_main();
+    append_new_main(); // pass flag from earlier into here
+    // append_new_main(mode); // mode is set from the argumet we parse 
     ast_show(ast, output_filename);
     if (testingmode) { /* Clean up (not needed actually; we do it only when testing)  */
         ast_free(ast);

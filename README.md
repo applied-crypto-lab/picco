@@ -116,7 +116,7 @@ Input and output in user programs is handled through built-in I/O functions `smc
 
 In order to run a user's translated program in a distributed setting, one needs to compile it using a native C++ compiler to produce a binary executable file, create a runtime config file, and send the executable to each computational party together with the runtime config and a file that stores input shares for that party. These steps are discussed in more detail below.
 
-- To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. Moreover, the CMakeLists in the `compute/` directory needs to be updated to include the name of the program.That is, if the translated program is stored in a file named `X.cpp`, then `X.cpp` must be added to the `add_executable` command. 
+- To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. Moreover, the CMakeLists in the `compute/` directory needs to be updated to include the name of the program. That is, if the translated program is stored in a file named `X.cpp`, then `X.cpp` must be added to the `add_executable` command. 
   For ease of use, every appearance of `test-code` can simply be substituted with `X` in the makefile. 
 
 
@@ -127,7 +127,7 @@ In order to run a user's translated program in a distributed setting, one needs 
   cmake ..
   make -j8
   ```
-   The resulting executable file will be stored in `build/`  and can later be placed in any other directory. 
+   The resulting executable file will be stored in `build/` and can later be placed in any other directory. 
    <!-- 
    check this functionality with cmake - can it be done too?
    Notice that, when one runs `make X` for the first time, the makefile automatically compiles source files of the SMC library stored in directory `compute/smc-compute`. This will be performed only once (i.e., from the second running, the library source won't be compiled anymore).  -->
