@@ -1,6 +1,8 @@
 // Implementation of sorted linked list using pointer update
-
-// taken from figure 3 with small changes
+// Source: Zhang, Blanton and Almashaqbeh, " Implementing Support for Pointers to Private Data in a General-Purpose Secure Multi-Party Compiler," 2017
+// Figure 3 from full version, available at https://arxiv.org/abs/1509.01763 
+// This program supports an array of inputs a[] which may contain repeating values
+// If its is known that all inputs are *unique*, then replace "<=" with "<" on lines 51 and 58.
 
 struct node {
 private
@@ -46,14 +48,14 @@ private
             head = ptr1;
         }
         for (j = 0; j < i - 1; j++) {
-            if ((ptr2->data < a[i]) && (ptr2->next->data > a[i])) { // insert ptr
+            if ((ptr2->data <= ptr1->data) && (ptr2->next->data > ptr1->data)) { // insert ptr
                 ptr1->next = ptr2->next;
                 ptr2->next = ptr1;
             }
             ptr2 = ptr2->next;
         }
         // insert in the last position if hasn't been inserted yet
-        if (ptr2->data < ptr1->data)
+        if (ptr2->data <= ptr1->data) 
             ptr2->next = ptr1;
     }
 

@@ -1,3 +1,7 @@
+// Construction and traversal of a linked list
+// Source: Zhang, Blanton and Almashaqbeh, " Implementing Support for Pointers to Private Data in a General-Purpose Secure Multi-Party Compiler," 2017
+// Figure 1 from full version, available at https://arxiv.org/abs/1509.01763 
+
 struct node {
    int data;
    struct node *next;
