@@ -73,6 +73,9 @@ int threshold = 0; /* Secret sharing parameter */
 int inputs = 0;    /* Number of input parties */
 int outputs = 0;   /* Number of ouput parties */
 int total_threads = 0;
+int nu;
+int kappa;
+int kappa_nu;
 
 void getPrime(mpz_t, int);
 
@@ -253,7 +256,9 @@ int main(int argc, char *argv[]) {
     }
 
     loadConfig(argv[3]);
-
+    kappa = 48; // can be selected differently at a later point in time
+    nu = ceil(log2(nChoosek(peers, threshold)));
+    kappa_nu = kappa + nu;
     /*
      * 1. Preparations
      */
@@ -489,4 +494,20 @@ void getPrime(mpz_t result, int bits) {
         mpz_mod_ui(m, result, 4);
     } while (isPrime < 1 || mpz_cmp_si(m, 3) != 0);
     mpz_clear(m);
+}
+
+int nChoosek(int n, int k) {
+    if (k > n)
+        return 0;
+    if (k * 2 > n)
+        k = n - k;
+    if (k == 0)
+        return 1;
+
+    int result = n;
+    for (int i = 2; i <= k; ++i) {
+        result *= (n - i + 1);
+        result /= i;
+    }
+    return result;
 }

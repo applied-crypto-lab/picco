@@ -72,7 +72,7 @@ void	compute_modulus_for_declaration(astspec);
 void 	compute_modulus_for_BOP(astexpr, astexpr, int); 
 int     compare_specs(astspec, int);
 astdecl fix_known_typename(astspec s);
-void store_struct_information(struct_node_stack, astspec);
+void    store_struct_information(struct_node_stack, astspec);
 
 void    security_check_for_assignment(astexpr le, astexpr re);
 void    security_check_for_declaration(astspec spec, astdecl decl);
@@ -95,7 +95,7 @@ int     func_return_flag = 0;
 int     default_var_size = 32;/* Default var size - 32 bits */
 int     is_priv_int_ptr_appear = 0;
 int     is_priv_float_ptr_appear = 0;
-int	is_priv_int_index_appear = 0; 
+int	    is_priv_int_index_appear = 0; 
 int 	is_priv_float_index_appear = 0;
 int 	is_priv_int_ptr_struct_field_appear = 0; 
 int 	is_priv_float_ptr_struct_field_appear = 0; 
@@ -103,7 +103,7 @@ int 	is_priv_struct_ptr_struct_field_appear = 0;
 int 	is_priv_int_struct_field_appear = 0; 
 int 	is_priv_float_struct_field_appear = 0; 
 int 	thread_id = -1;  
-int	num_threads = 0;
+int	    num_threads = 0;
 int 	modulus = 0; 
  
 struct_node_stack struct_table = NULL;
@@ -690,7 +690,7 @@ cast_expression:
 		$$->flag = PRI; 
 		//FL2INT
 		if($5->ftype == 1)
-		 	modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+48);
+		 	modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+kappa_nu);
 
 	} 
  	if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
@@ -702,10 +702,16 @@ cast_expression:
 		$$->flag = PRI; 
 		//FL2FL
 		if($5->ftype == 1 && $5->size > $$->size)
-			modulus = fmax(modulus, $5->flag == PRI ? $5->size+48 : 32+48);
+            if($5->flag == PRI)
+                modulus = fmax(modulus, $5->size+kappa_nu); 
+                // modulus = fmax(modulus,  $5->size+48 );
 		//INT2FL
 		if($5->ftype == 0)
-			modulus = fmax(modulus, $5->flag == PRI ? $5->size+48 : 32+48); 
+            if($5->flag == PRI)
+                modulus = fmax(modulus, $5->size+kappa_nu); 
+                // modulus = fmax(modulus, $5->size+48); 
+                // modulus = fmax(modulus, $5->flag == PRI ? $5->size+48 : 32+48); 
+            
 	}
     }
 ;
@@ -4430,11 +4436,11 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 		int len = fmax(e1->size, e2->size); 
 		if(e1->flag == PRI || e2->flag == PRI){
 			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq || opid == BOP_eqeq || opid == BOP_neq)
-				modulus = fmax(modulus, len+48); 
+				modulus = fmax(modulus, len+kappa_nu); 
 			else if(opid == BOP_div)
-				modulus = fmax(modulus, 2*len+48+8);
+				modulus = fmax(modulus, 2*len+kappa_nu+8);
 			else if(opid == RIGHT_OP && e2->flag == PRI)
-				modulus = fmax(modulus, e2->size+48);
+				modulus = fmax(modulus, e2->size+kappa_nu);
 		}		
 	}else if(e1->ftype == 1 && e2->ftype == 1){
 		int len = 0, k = 0; 
@@ -4452,15 +4458,15 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 				k = (int)ceil(log(d))+1; 
 		}
 		if(opid == BOP_add || opid == BOP_sub)
-			modulus = fmax(modulus, fmax(2*len+1, k)+48);
+			modulus = fmax(modulus, fmax(2*len+1, k)+kappa_nu);
 		else if(opid == BOP_mul)
-			modulus = fmax(modulus, 2*len+48); 
+			modulus = fmax(modulus, 2*len+kappa_nu); 
 		else if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq)
-			modulus = fmax(modulus, fmax(len+1, k)+48); 	
+			modulus = fmax(modulus, fmax(len+1, k)+kappa_nu); 	
 		else if(opid == BOP_eqeq || opid == BOP_neq)
-			modulus = fmax(modulus, fmax(len, k)+48); 
+			modulus = fmax(modulus, fmax(len, k)+kappa_nu); 
 		else if(opid == BOP_div)
-			modulus = fmax(modulus, 2*len+48+1);  
+			modulus = fmax(modulus, 2*len+kappa_nu+1);  
 	}else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
 		printf("%d, %d\n", e1->ftype, e2->ftype); 	
 		printf("Operands with different types are not allowed.\n"); 
