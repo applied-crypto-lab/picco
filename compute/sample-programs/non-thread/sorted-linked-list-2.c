@@ -1,4 +1,6 @@
-// Implementation of sorted linked list using data update
+// Implementation of sorted linked list using data update (DU)
+// Source: Zhang, Blanton and Almashaqbeh, " Implementing Support for Pointers to Private Data in a General-Purpose Secure Multi-Party Compiler," 2017
+// Figure 2 from full version, available at https://arxiv.org/abs/1509.01763 
 
 struct node {
    int data;
