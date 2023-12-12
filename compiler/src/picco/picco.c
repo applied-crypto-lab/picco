@@ -99,7 +99,7 @@ void append_new_main(bool mode) {
                 "exit(1);\n}\n");
     } else{ // -d
     str_printf(strA(),
-            "\n if(argc < 8){\n"
+            "\n if(argc < 9){\n"
             "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
             "fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
             "exit(1);\n}\n");
