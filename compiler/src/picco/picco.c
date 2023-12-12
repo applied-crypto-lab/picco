@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    loadConfig(argv[2]);
+    loadConfig(argv[3]);
 
     /*
      * 1. Preparations
