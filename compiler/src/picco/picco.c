@@ -79,7 +79,7 @@ void getPrime(mpz_t, int);
 // will have new argument for flag
 // If mode is true -> -m
 // If mode is false -> -d
-void append_new_main(bool mode) { 
+void append_new_main(bool mode) {
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
@@ -90,20 +90,21 @@ void append_new_main(bool mode) {
                MAIN_NEWNAME);
 
     // Check the input parameters
-    // this will be different based on flag 
-    if (mode == true){ // -m
+    // this will be different based on flag
+    if (mode == true){ // -m - measurement mode
         str_printf(strA(),
                 "\n if(argc < 9){\n"
                 "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config> <input-share> <output>\\n\");\n"
+                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config>\\n\");\n"
                 "exit(1);\n}\n");
-    } else{ // -d
+    } else{ // -d - deployment mode
     str_printf(strA(),
             "\n if(argc < 9){\n"
             "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
             "fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
             "exit(1);\n}\n");
     }
+   
     mpz_t modulus2;
     mpz_init(modulus2);
     getPrime(modulus2, bits);
@@ -117,13 +118,13 @@ void append_new_main(bool mode) {
                 "\nstruct timeval tv1;"
                 "\nstruct timeval tv2;",
                 peers, threshold, bits, res, total_threads);
-    } 
+    }
     // this will be different based on flag, certain arguments will be Null/0 in -m
-    // -m Changes: 
+    // -m Changes:
     // argv[1],                 // the [-d|-m]
     // atoi(argv[2]),           // Argument 2: id
     // argv[3],                  // Argument 1: runtime-config
-    // the rest will be null/0 in -m mode based 
+    // the rest will be null/0 in -m mode based
     // argv[4],                  // Argument 4: privatekey-filename -> NULL
     // atoi(argv[5]),            // Argument 5: number-of-input-parties -> 0
     // atoi(argv[6]),            // Argument 6: number-of-output-parties -> 0
@@ -133,7 +134,7 @@ void append_new_main(bool mode) {
     // %d,                       // Argument 9: bits -> 0
     // "%s",                     // Argument 10: modulus -> NULL
     // %d,                       // Argument 11: total_threads -> 0
-    else { //-m 
+    else { //-m
     str_printf(strA(),
                "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1different number of arguments
                "for(int i = 0; i < argc-7; i++)\n"
@@ -202,6 +203,7 @@ void loadConfig(char *config) {
     fclose(fp);
 }
 
+// In this code argc and argv will be increased by 1
 int main(int argc, char *argv[]) {
     time_t now;
     char tmp[256];
@@ -210,9 +212,9 @@ int main(int argc, char *argv[]) {
     aststmt p;
 
     /***************** read config file ********************/
-    if (argc != 7) {
+    if (argc != 6) {
         fprintf(stderr, "Incorrect input parameters:\n");
-        // will need to update with new flags (-m and -d for measurement and deployment) 
+        // will need to update with new flags (-m and -d for measurement and deployment)
         fprintf(stderr, "Usage: picco [-d | -m] <user program> <SMC config> <translated program> <utility config>\n"); // make sure other arguments are incremented by one
         exit(1);
     }
@@ -262,12 +264,12 @@ int main(int argc, char *argv[]) {
     if (argc > 3 && getopts(argc-3, argv+3))
         goto OMPI_FAILURE;*/
 
-    filename = argv[1];
-    final_list = argv[4];
+    filename = argv[2];
+    final_list = argv[5];
     var_list = "var_list";
 
-    output_filename = (char *)malloc(sizeof(char) * strlen(argv[3]) + 5);
-    sprintf(output_filename, "%s.cpp", argv[3]);
+    output_filename = (char *)malloc(sizeof(char) * strlen(argv[4]) + 5);
+    sprintf(output_filename, "%s.cpp", argv[4]);
 
     if (!processmode)
         threadmode = 1; /* By default */
@@ -437,7 +439,7 @@ ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
     // Update the Main function
     // If mode is true -> -m
     // If mode is false -> -d
-    append_new_main(mode); // pass flag from earlier into here // mode is set from the argumet we parse 
+    append_new_main(mode); // pass flag from earlier into here // mode is set from the argumet we parse
     ast_show(ast, output_filename);
     if (testingmode) { /* Clean up (not needed actually; we do it only when testing)  */
         ast_free(ast);
