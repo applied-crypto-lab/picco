@@ -95,13 +95,13 @@ void append_new_main(bool mode) {
         str_printf(strA(),
                 "\n if(argc < 9){\n"
                 "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config>\\n\");\n"
+                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config> <privatekey-filename>\\n\");\n"
                 "exit(1);\n}\n");
     } else{ // -d - deployment mode
     str_printf(strA(),
             "\n if(argc < 9){\n"
             "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-            "fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
+            "fprintf(stderr,\"Usage: <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
             "exit(1);\n}\n");
     }
    
@@ -114,7 +114,7 @@ void append_new_main(bool mode) {
                 "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1 different number of arguments
                 "for(int i = 0; i < argc-7; i++)\n"
                 "   IO_files[i] = argv[7+i];\n"
-                "\n__s = new SMC_Utils(atoi(argv[2]), argv[3], argv[4], atoi(argv[5]), atoi(argv[6]), IO_files, %d, %d, %d, \"%s\", %d);\n" 
+                "\n__s = new SMC_Utils(atoi(argv[2]), argv[3], argv[4], atoi(argv[5]), atoi(argv[6]), IO_files, %d, %d, %d, \"%s\", %d);\n"
                 "\nstruct timeval tv1;"
                 "\nstruct timeval tv2;",
                 peers, threshold, bits, res, total_threads);
@@ -139,7 +139,7 @@ void append_new_main(bool mode) {
                "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1different number of arguments
                "for(int i = 0; i < argc-7; i++)\n"
                "   IO_files[i] = argv[7+i];\n"
-               "\n__s = new SMC_Utils(atoi(argv[2]), argv[3], NULL, 0, 0, NULL, 0, 0, 0, NULL, 0);\n" 
+               "\n__s = new SMC_Utils(atoi(argv[2]), argv[3], NULL, 0, 0, NULL, 0, 0, 0, NULL, 0);\n"
                "\nstruct timeval tv1;"
                "\nstruct timeval tv2;",
                peers, threshold, bits, res, total_threads);
