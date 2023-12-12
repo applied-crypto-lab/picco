@@ -92,16 +92,16 @@ void append_new_main(bool mode) {
     // Check the input parameters
     // this will be different based on flag
     if (mode == true){ // -m - measurement mode
-        str_printf(strA(),
-                "\n if(argc < 9){\n"
+        str_printf(strA(), //There should be 4 arguments passed
+                "\n if(argc < 5){\n"
                 "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config> <privatekey-filename>\\n\");\n"
+                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config> \\n\");\n"
                 "exit(1);\n}\n");
     } else{ // -d - deployment mode
-    str_printf(strA(),
+    str_printf(strA(), //There should be 8 arguments passed
             "\n if(argc < 9){\n"
             "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-            "fprintf(stderr,\"Usage: <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
+            "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
             "exit(1);\n}\n");
     }
    
