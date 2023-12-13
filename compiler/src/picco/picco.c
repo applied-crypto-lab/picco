@@ -92,16 +92,16 @@ void append_new_main(bool mode) {
     // Check the input parameters
     // this will be different based on flag
     if (mode == true){ // -m - measurement mode
-        str_printf(strA(), //There should be 4 arguments passed
-                "\n if(argc < 5){\n"
+        str_printf(strA(), //There should be 3 arguments passed
+                "\n if(argc < 4){\n"
                 "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-                "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config> \\n\");\n"
+                "fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
                 "exit(1);\n}\n");
     } else{ // -d - deployment mode
-    str_printf(strA(), //There should be 8 arguments passed
+    str_printf(strA(), //There should be 7 arguments passed
             "\n if(argc < 9){\n"
             "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-            "fprintf(stderr,\"Usage: [-d | -m] <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
+            "fprintf(stderr,\"Usage: <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
             "exit(1);\n}\n");
     }
    
@@ -109,37 +109,49 @@ void append_new_main(bool mode) {
     mpz_init(modulus2);
     getPrime(modulus2, bits);
     char *res = mpz_get_str(NULL, 10, modulus2);
+    // The SMC_Utils gets the following:
+    /* id */                   //A number,           index: 1
+    /* runtime_config */       //"runtime-config",   index: 2
+    /* privatekey_filename */  //"private_03.pem",   index: 3
+    /* numOfInputPeers */      //A number,           index: 4
+    /* numOfOutputPeers */     //A number,           index: 5
+    /* IO_files */             //{"example_shares_#", "output_example"}, index: 6
+    /* numOfPeers */           // Not specified in the command line arguments.
+    /* threshold */            // Not specified in the command line arguments.
+    /* bits */                 // Not specified in the command line arguments.
+    /* mod */                  // Not specified in the command line arguments.
+    /* num_threads */          // Not specified in the command line arguments.
+
     if (mode == false){ //-d
         str_printf(strA(),
                 "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1 different number of arguments
-                "for(int i = 0; i < argc-7; i++)\n"
-                "   IO_files[i] = argv[7+i];\n"
-                "\n__s = new SMC_Utils(atoi(argv[2]), argv[3], argv[4], atoi(argv[5]), atoi(argv[6]), IO_files, %d, %d, %d, \"%s\", %d);\n"
+                "for(int i = 0; i < argc-6; i++)\n"
+                "   IO_files[i] = argv[6+i];\n"
+                "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n"
                 "\nstruct timeval tv1;"
                 "\nstruct timeval tv2;",
                 peers, threshold, bits, res, total_threads);
     }
-    // this will be different based on flag, certain arguments will be Null/0 in -m
-    // -m Changes:
-    // argv[1],                 // the [-d|-m]
-    // atoi(argv[2]),           // Argument 2: id
-    // argv[3],                  // Argument 1: runtime-config
-    // the rest will be null/0 in -m mode based
-    // argv[4],                  // Argument 4: privatekey-filename -> NULL
-    // atoi(argv[5]),            // Argument 5: number-of-input-parties -> 0
-    // atoi(argv[6]),            // Argument 6: number-of-output-parties -> 0
-    // IO_files,                 // Argument 7: IO_files array -> NULL
-    // %d,                       // Argument 7: peers -> 0
-    // %d,                       // Argument 8: threshold -> 0
-    // %d,                       // Argument 9: bits -> 0
-    // "%s",                     // Argument 10: modulus -> NULL
-    // %d,                       // Argument 11: total_threads -> 0
+    // this will be different based on flag, certain arguments will be Null/0 in -m    
+    // The SMC_Utils gets the following:
+    /* id */                   //A number,           index: 1
+    /* runtime_config */       //"runtime-config",   index: 2
+    /* NULL */
+    /* 0 */
+    /* 0 */
+    /* NULL */
+    /* numOfPeers */           // Not specified in the command line arguments.
+    /* threshold */            // Not specified in the command line arguments.
+    /* bits */                 // Not specified in the command line arguments.
+    /* mod */                  // Not specified in the command line arguments.
+    /* num_threads */          // Not specified in the command line arguments.
+
     else { //-m
     str_printf(strA(),
-               "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1different number of arguments
-               "for(int i = 0; i < argc-7; i++)\n"
-               "   IO_files[i] = argv[7+i];\n"
-               "\n__s = new SMC_Utils(atoi(argv[2]), argv[3], NULL, 0, 0, NULL, 0, 0, 0, NULL, 0);\n"
+               "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1 different number of arguments
+               "for(int i = 0; i < argc-6; i++)\n"
+               "   IO_files[i] = argv[6+i];\n"
+               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], NULL, 0, 0, NULL, %d, %d, %d, \"%s\", %d);\n"
                "\nstruct timeval tv1;"
                "\nstruct timeval tv2;",
                peers, threshold, bits, res, total_threads);
