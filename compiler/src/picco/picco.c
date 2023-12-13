@@ -99,7 +99,7 @@ void append_new_main(bool mode) {
                 "exit(1);\n}\n");
     } else{ // -d - deployment mode
     str_printf(strA(), //There should be 7 arguments passed
-            "\n if(argc < 9){\n"
+            "\n if(argc < 8){\n"
             "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
             "fprintf(stderr,\"Usage: <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
             "exit(1);\n}\n");
