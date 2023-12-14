@@ -151,7 +151,7 @@ void append_new_main(bool mode) {
                "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1 different number of arguments
                "for(int i = 0; i < argc-6; i++)\n"
                "   IO_files[i] = argv[6+i];\n"
-               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], NULL, 0, 0, NULL, %d, %d, %d, \"%s\", %d);\n"
+               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", %d);\n"
                "\nstruct timeval tv1;"
                "\nstruct timeval tv2;",
                peers, threshold, bits, res, total_threads);
