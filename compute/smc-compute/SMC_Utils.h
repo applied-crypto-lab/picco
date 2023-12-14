@@ -573,7 +573,7 @@ private:
 
     // Handle client connections and polynomail stuff
     void clientConnect();
-    void receivePolynomials(std::string privatekey_filename);
+    void receivePolynomials(std::string privatekey_filename,mpz_t modulus, int peers, int threshold);
     // void setCoef();
     int newsockfd;
 };

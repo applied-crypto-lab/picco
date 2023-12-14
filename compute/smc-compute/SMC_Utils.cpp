@@ -22,6 +22,12 @@
 // Constructors
 SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
 
+#if __DEPLOYMENT__
+    printf("DEPLOYMENT MODE\n");
+#else
+    printf("BENCHMARK MODE\n");
+#endif
+
     std::cout << "SMC_Utils constructor\n";
     mpz_t modulus;
     mpz_init(modulus);
@@ -32,13 +38,15 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
     net = *nodeNet;
 
-    std::cout << "Recieving keys and polynomials from seed";
+    std::cout << "Recieving keys and polynomials from seed\n";
     clientConnect();
-    receivePolynomials(privatekey_filename);
+    receivePolynomials(privatekey_filename, modulus, numOfPeers, threshold);
 
     std::cout << "Creating SecretShare\n";
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), polynomials);
-    // initialize input and output streams
+
+// initialize input and output streams (deployment mode only)
+#if __DEPLOYMENT__
     inputStreams = new std::ifstream[numOfInputPeers];
     outputStreams = new std::ofstream[numOfOutputPeers];
     for (int i = 0; i < numOfInputPeers; i++) {
@@ -60,6 +68,7 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
             std::exit(1);
         }
     }
+#endif
 }
 
 /* Specific SMC Utility Functions */
@@ -1531,7 +1540,8 @@ void SMC_Utils::clientConnect() {
     printf("Client connected\n");
 }
 
-void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
+void SMC_Utils::receivePolynomials(std::string privatekey_filename, mpz_t modulus, int peers, int threshold) {
+#if __DEPLOYMENT__
     FILE *prikeyfp = fopen(privatekey_filename.c_str(), "r");
     if (prikeyfp == NULL)
         printf("File Open %s error\n", privatekey_filename.c_str());
@@ -1550,7 +1560,22 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     if (dec_len < 1) {
         printf("RSA private decrypt error\n");
     }
+    free(buffer);
 
+#else
+    char *strkey = (char *)malloc(64);
+    mpz_get_str(strkey, 10, modulus);
+    int mpz_t_size_b = strlen(strkey);
+    int numKeys = nChoosek(peers- 1, threshold);
+    // the buffer size can be calculated beforehand
+    int buf_size = sizeof(int) * (3 + (numKeys*(threshold+1))) + mpz_t_size_b * numKeys + 1;
+    char *decrypt = (char *)malloc(buf_size);
+    memset(decrypt, 0x00, buf_size);
+
+    int n = read(newsockfd, decrypt, buf_size);
+    if (n < 0)
+        printf("ERROR reading from socket \n");
+#endif
     int keysize = 0;
     int coefsize = 0;
     int mpz_t_size = 0;
@@ -1572,8 +1597,7 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
     }
 
     memcpy(Coefficients, decrypt + sizeof(int) * 3 + mpz_t_size * keysize, sizeof(int) * coefsize);
-    free(buffer);
-    free(decrypt);
+
     for (int i = 0; i < keysize; i++) {
         char strkey[mpz_t_size + 1];
         memset(strkey, 0x00, mpz_t_size + 1);
@@ -1588,6 +1612,8 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename) {
         polynomials.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
     }
     printf("Polynomials received... \n");
+    free(decrypt);
+
 }
 
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
@@ -1615,11 +1641,11 @@ std::vector<std::string> SMC_Utils::splitfunc(const char *str, const char *delim
 }
 
 void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID) {
-    #if __DEPLOYMENT__
+#if __DEPLOYMENT__
     printf("DEPLOYMENT MODE\n");
-    #else
+#else
     printf("BENCHMARK MODE\n");
-    #endif 
+#endif
 
     // int K = alen;
     // int M = ceil(log2(K));
