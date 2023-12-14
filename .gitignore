@@ -33,9 +33,10 @@
 
 *.pem
 
-picco
-picco-seed
-picco-utility
+bin/
+lex.yy.c
+parser.tab.c
+parser.tab.h 
 
 int_*
 comparison/*

@@ -20,7 +20,25 @@
 
 #ifndef SEED_H_
 #define SEED_H_
+#include "mode.h" // contains declaration of DEPLOYMENT var
+#include "PRSS.h"
+#include "openssl/bio.h"
+#include "unistd.h"
+#include <fstream>
 #include <gmp.h> //armk
+#include <gmp.h>
+#include <iostream>
+#include <ostream>
+#include <netdb.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <string.h>
+#include <sys/time.h>
+#include <vector>
+#include <utility>
+
+
 
 class seed {
 
