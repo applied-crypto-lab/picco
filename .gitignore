@@ -45,10 +45,12 @@ runtime-config-*
 compute/sample-programs/non-thread/eqz_mine.c
 *.x
 
+.cache/
 # share directories
 inputs/
 outputs/
 shares/
+confs/
 compute/test_op*
 compute/build*
 compute/notes.txt

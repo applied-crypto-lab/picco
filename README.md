@@ -18,6 +18,7 @@ The source code of PICCO mainly consists of two directories: *compiler* and *com
 
 To compile or run user programs using PICCO code, a machine should have the following libraries installed:
 
+- GCC or LLVM/clang (clang generally performs better than GCC and is recommended)
 - GMP library
 - OpenSSL library (1.1.1 or newer)
 - Crypto++ library
@@ -33,16 +34,26 @@ To use PICCO, the following three programs need to be compiled:
 2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation, 
 3. the seed program that will generate and transmit secret random seeds to each of the computational parties at the time of program initiation (so that shares of random values can be locally produced by each party without interaction). 
 
-To compile all three programs, one needs to go to the directory `compiler/` and run the shell program `compile.sh` (by typing `./compile.sh`), which will produce three executable files `picco`, `picco-utility`, and `picco-seed` and put them in the directory `compiler/bin/`. The three executable files correspond to the PICCO compiler, the utility, and the seed program, respectively, and can be placed in any directory of user's choice at a later time. 
+Picco is equipped with two possible modes for compilation and execution. In *deployment mode* (universally denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (universally denoted with the flag `-m`) foregoes the public key infrastructure to have parties directly establish secure communication. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. 
+
+  **Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined below apply to both deployment and measurement modes.**
+
+  **Furthermore, if at any point you want to switch between modes, you must repeat the setup procedure.**
+
+To compile all three programs, one needs to go to the directory `compiler/` and run the command
+```
+./compile.sh [-d | -m] 
+``` 
+which produces three executable files `picco`, `picco-utility`, and `picco-seed` and moves them in the directory `compiler/bin/`. The three executable files correspond to the PICCO compiler, the utility, and the seed program, respectively, and can be placed in any directory of user's choice at a later time. 
 
 These executable programs are used to compile a user's program written in an extension of C into its secure implementation, produce shares of private inputs to be used in secure computation, and reconstruct the output from the shares after secure execution of the user program. 
 
 ## Translation of user programs
 
-Before describing the procedure for compiling a user program, we explain the composition of a **SMC config** file that the program expects.
+Before describing the procedure for compiling a user program, we explain the composition of the **SMC config** file that the program expects.
 
 
-- **SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P:V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The value of each parameter will be retrieved from the line at which it is positioned in the file, not based on the string $P$ with which it is labeled. For instance, the value of $V$ on the first line will always store the modulus size regardless of $P$. The reason for including $P$ in the config file is to provide intuitive information to end-users when they edit the file, so that each parameter is assigned a correct value. 
+**SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P:V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The value of each parameter will be retrieved from the line at which it is positioned in the file, not based on the string $P$ with which it is labeled. For instance, the value of $V$ on the first line will always store the modulus size regardless of $P$. The reason for including $P$ in the config file is to provide intuitive information to end-users when they edit the file, so that each parameter is assigned a correct value. 
 
   Out of the five lines, the first three specify parameters of a secret sharing scheme, which are: the modulus size, the number of computational parties, and the threshold value (in that order).  Specifying the modulus size is optional, and if the programmer is uncertain what modulus size should be used, its value $V$ should be left blank in the config file. In this case, the PICCO compiler will determine the optimal modulus size by analyzing the program at the translation time, and later make it available to the utility program.
 
@@ -50,26 +61,27 @@ Before describing the procedure for compiling a user program, we explain the com
 
   Later, it will be assumed that input/output/computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
   
+<!--   
 - **Compilation mode.** Picco is equipped with two possible modes for compliation and execution. In *demployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes the public key infrastructure to have parties directly establish secure communication. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. 
 
-  **Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined below apply to both deployment and measurement modes.**
+  **Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined below apply to both deployment and measurement modes.** -->
 
-- **Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command:
+**Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command:
 
-  ```
-  ./picco [-d | -m] <user program> <SMC config> <translated program> <utility config>
-  ``` 
+```
+./picco [-d | -m] <user program> <SMC config> <translated program> <utility config>
+``` 
 
-  Here, the arguments that the executable `picco` takes are:
-  1. the compilation mode (`-d` for deployment or `-m` for measurement)
-  2. the name of the file containing user program to be translated;
-  3. the of the file containing SMC config as described above;
-  4. the name of a file that will store the result of user program translation as a C++ program; 
-  5. the name of a file that will store information that needs to be communicated to the utility program (such as the setup information found in the SMC config file and the list of variables used in I/O), i.e., a config file for the utility program.
+Here, the arguments that the executable `picco` takes are:
+1. the compilation mode (`-d` for deployment or `-m` for measurement)
+2. the name of the file containing user program to be translated;
+3. the of the file containing SMC config as described above;
+4. the name of a file that will store the result of user program translation as a C++ program; 
+5. the name of a file that will store information that needs to be communicated to the utility program (such as the setup information found in the SMC config file and the list of variables used in I/O), i.e., a config file for the utility program.
 
-  The executable takes two files as its input and produces two files as its output.
+The executable takes two files as its input and produces two files as its output.
 
-  If you are running in measurement mode, you can skip directly to [here](#execution-of-user-programs).
+If you are running in measurement mode, you can skip directly to [here](#execution-of-user-programs).
 
 ## Generation of inputs for user programs
 
@@ -116,18 +128,20 @@ Input and output in user programs is handled through built-in I/O functions `smc
   The utility program will read the input data and utility config and produce the same number of output files with shares as the number of computational parties $N$. The program's output will be stored in files named `<shares filename>ID`, where ID is the identification number for each computational party between 1 and $N$. The values of public variables are copied unmodified from the input file into the shares files, while the values of private variables are secret shared, with each computational party obtaining a single share stored in the corresponding shares file.
 
 
-## Execution of user programs
+## (Native) compilation and execution of user programs
 
 In order to run a user's translated program in a distributed setting, one needs to compile it using a native C++ compiler to produce a binary executable file, create a runtime config file, and send the executable to each computational party together with the runtime config and a file that stores input shares for that party. These steps are discussed in more detail below.
 
-- To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. 
+To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. 
 
-  Then the binary executable named `compiled_program` of the translated program can be produced by running following script from the `compute/` directory:
+The binary executable of the translated program is produced by running the following script from the `compute/` directory:
 
-  ```
-  ./compile-usr-prog.sh [-d | -m] <user_program.cpp>
-  ```
-  where `-d` and `-m` are the compilation mode flags from earlier, and `user_program.cpp` is the name of the translated program produced earlier. The executable file `compiled_program` will be stored in `build/` and can later be placed in any other directory. 
+```
+./compile-usr-prog.sh [-d | -m] <user_program.cpp>
+```
+where `-d` and `-m` are the compilation mode flags from earlier, and `user_program.cpp` is the name of the translated program generated earlier earlier.
+  <!-- The script will automatically generate the `CMakeLists.txt` file for the given user program.  -->
+  The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
 
 
 <!-- Moreover, the CMakeLists in the `compute/` directory needs to be updated to include the name of the program. That is, if the translated program is stored in a file named `X.cpp`, then `X.cpp` must be added to the `add_executable` command. 
@@ -146,30 +160,30 @@ In order to run a user's translated program in a distributed setting, one needs 
    check this functionality with cmake - can it be done too?
    Notice that, when one runs `make X` for the first time, the makefile automatically compiles source files of the SMC library stored in directory `compute/smc-compute`. This will be performed only once (i.e., from the second running, the library source won't be compiled anymore).  -->
 
-- The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
+The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
 
   1. an ID of a computational party between 1 and $N$;
   2. an IP address or a domain name of the computational party;
   3. an open port number to connecting to that party;
-  4. (*) a file name of the public key of that party for establishing a secure communication channel (this can be specified using a path or just the file name, but in either case it must be locatable by the running program; i.e., in the latter case the file must reside in the same directory as the program being executed).
+  4. **(deployment mode only)** a file name of the public key of that party for establishing a secure communication channel (this can be specified using a path or just the file name, but in either case it must be locatable by the running program; i.e., in the latter case the file must reside in the same directory as the program being executed).
 
-  **(*)** In measurement mode, the public key filenames can be omitted leaving only the ID, IP address, and port number for each party. 
+  In measurement mode, the public key filenames can be omitted leaving only the ID, IP address, and port number for each party. 
 
-  The four values should be listed in the specified order on each line. Note that the same runtime config file should be distributed to all computational parties.
+  The four values should be listed in the specified order on each line. Note that the same runtime config file should be distributed to all computational parties. Additional steps for generating public-private key pairs can be found [here](#public-private-key-generation).
 
-  If you are running a computation in measurement mode, skip to [this section](#measurement-mode-execution).
+Based on the computational mode you are running
+([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-execution)), follow to the links to their respective sections.
 
-  Additional steps for generating public-private key pairs can be found [here](#public-private-key-generation)
 
 ### Deployment mode execution 
 
 The **execution** uses $N+1$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation. Out of these machines, $N$ machines correspond to computational nodes and the remaining machine is an additional node that supplies shared randomness to the computational parties using the seed program `picco-seed` (produced at the time of PICCO compilation) and can be controlled by the data owners. Strictly speaking, the seeds need to be communicated to the given set of computational parties only once, after which the computational parties can execute secure implementations of various programs any number of times. However, for simplicity, our implementation expects communication from `picco-seed` for each program execution, and the time for generating and transmitting the seeds is not counted in the program execution time. 
 
-  To initiate secure computation, each computational party needs to execute the following command:
+To initiate secure computation, each computational party needs to execute the following command:
 
-  ```
-  ./compiled_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
-  ```
+```
+./compiled_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
+```
 
   The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
 
@@ -188,7 +202,7 @@ Upon computation completion, each program outputs the program running time and s
   ```
   ./compiled_program <ID> <runtime config> 
   ```
-  where the  arguments to the program are the ID of the computational party and the name of the runtime config file, respectively.
+  where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively.
 
   **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. 
 
@@ -237,8 +251,6 @@ Programs compiled by PICCO in **deployment mode** use pair-wise secure channels 
 openssl genrsa -out private_ID.pem 2048
 openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
 ```
-
-
 
 ## Protocol sources
 
