@@ -26,6 +26,8 @@
 
 #include "scanner.h"
 #include "symtab.h"
+#include <stdbool.h> 
+#include <stdio.h>
 
 extern int enableOpenMP;      /* If 0, ignore OpenMP constructs */
 extern int enableOmpix;       /* Enable OMPi-extensions */
