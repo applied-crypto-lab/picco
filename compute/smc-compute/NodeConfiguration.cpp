@@ -128,17 +128,17 @@ void NodeConfiguration::loadConfig(std::string configFile){
 		if(id == atoi(tokens[0].c_str())){
 			ip = tokens[1];
 			port = atoi(tokens[2].c_str());
-			#if __DEPLOYMENT__
+#if __DEPLOYMENT__
 			pubKey = tokens[3];
-			#endif 
+#endif 
 		}
 		else{
 			peerID.push_back(atoi(tokens[0].c_str()));
 			peerIP.push_back(tokens[1]);
 			peerPort.push_back(atoi(tokens[2].c_str()));
-			#if __DEPLOYMENT__
+#if __DEPLOYMENT__
 			peerPubKey.push_back(tokens[3]);
-			#endif 
+#endif 
 		}
 	}
 	configIn.close();

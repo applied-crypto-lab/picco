@@ -953,7 +953,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
 #endif
 
         memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
+        // print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
         init_keys(ID, 1);
         free(decrypt);
     }
@@ -1029,7 +1029,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             free(encrypt);
 #else
             // std::cout<<KeyIV<<std::endl;
-            print_hexa(KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            // print_hexa(KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
             int n = write(newsockfd[i], KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE); // sending to peer
             if (n < 0)
                 printf("ERROR writing to socket \n");
