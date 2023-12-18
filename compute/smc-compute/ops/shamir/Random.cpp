@@ -24,8 +24,11 @@
 // Protocols 2.1 and 2.2, pages 4-5
 
 // generating a secret shared random integer
+// Not the exact same as randInt since we divide by the number of combinations in generateRandValue (n choose t)
+// NOTE, IF KAPPA IS EVER CHANGED IN picco.c, IT MUST BE MODIFIED HERE AS WELL !!!!!!!!!!!
 void PRandInt(int K, int M, int size, mpz_t *result, int threadID, SecretShare *ss) {
     // why is this set this way?
+    // kappa = 48 (statistical security parameter)
     int bits = 48 + K - M;
     // sanitizing destination (so the results variable can be reused in something like EQZ)
     for (int i = 0; i < size; i++) {
