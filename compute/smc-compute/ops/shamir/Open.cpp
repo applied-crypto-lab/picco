@@ -60,15 +60,6 @@ void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNet
     }
     nodeNet.broadcastToPeers(shares, size, buffer, threadID);
     s->reconstructSecret(result, buffer, size);
-
-    // nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(), shares, buffer, size, threadID);
-
-    // for (int i = 0; i < size; i++) {
-    //     // putting my share into last position of buff as to match lagrangeWeightsThreshold[i]
-    //     mpz_set(buffer[threshold][i], shares[i]);
-    // }
-    // s->reconstructSecretFromMin(result, buffer, size);
-
     // freeing
     for (int i = 0; i < (peers); i++) {
         for (int j = 0; j < size; j++)
@@ -157,4 +148,42 @@ float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss)
     }
 
     return result;
+}
+
+
+void Open_print(mpz_t *shares, std::string name, int size, int threadID, NodeNetwork nodeNet, SecretShare *s) {
+    uint threshold = s->getThreshold();
+    mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++){
+        mpz_init(res[i]);
+    }
+
+    mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
+    for (int i = 0; i < (threshold + 1); i++) {
+        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int j = 0; j < size; j++)
+            mpz_init(buffer[i][j]);
+    }
+
+    nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(), shares, buffer, size, threadID);
+
+    for (int i = 0; i < size; i++) {
+        // putting my share into last position of buff as to match lagrangeWeightsThreshold[i]
+        mpz_set(buffer[threshold][i], shares[i]);
+    }
+    s->reconstructSecretFromMin(res, buffer, size);
+
+    for (size_t i = 0; i < size; i++) {
+        std::cout<<name<<"["<<i<<"] : ";
+        gmp_printf("%Zu\n", res[i]);
+    }
+
+
+    // freeing
+    for (int i = 0; i < (threshold + 1); i++) {
+        for (int j = 0; j < size; j++)
+            mpz_clear(buffer[i][j]);
+        free(buffer[i]);
+    }
+    free(buffer);
 }
