@@ -26,6 +26,8 @@
 
 #include "scanner.h"
 #include "symtab.h"
+#include <stdbool.h> 
+#include <stdio.h>
 
 extern int enableOpenMP;      /* If 0, ignore OpenMP constructs */
 extern int enableOmpix;       /* Enable OMPi-extensions */
@@ -49,7 +51,11 @@ extern int is_priv_float_struct_field_appear;
 extern int is_priv_float_ptr_struct_field_appear;
 extern int is_priv_struct_ptr_struct_field_appear;
 
-extern int modulus;
+extern int combinations; // number of RSS shares that are communciated (to be computed) 
+extern int nu; // log (combinations)
+extern int kappa; // 48 
+extern int kappa_nu; // kappa + nu
+extern int modulus; // this is the optimal modulus size that gets computed when the program is parsed
 extern int thread_id;
 extern int num_threads;
 extern int contain_priv_if_flag;
@@ -78,5 +84,7 @@ extern aststmt parse_and_declare_blocklist_string(char *format, ...);
  */
 extern void exit_error(int exitvalue, char *format, ...);
 extern void warning(char *format, ...);
+
+extern int nChoosek(int n, int k);
 
 #endif

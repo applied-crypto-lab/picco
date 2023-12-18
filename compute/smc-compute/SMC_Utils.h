@@ -22,7 +22,14 @@
 #define SMC_UTILS_H_
 
 #include "Headers.h"
+
+#if __SHAMIR__
 #include "shamir/ShamirOps.h"
+#endif
+#if __RSS__
+#include "rss/RSSOps.h"
+#endif
+// #include "rss/rssOps.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -566,7 +573,7 @@ private:
 
     // Handle client connections and polynomail stuff
     void clientConnect();
-    void receivePolynomials(std::string privatekey_filename);
+    void receivePolynomials(std::string privatekey_filename,mpz_t modulus, int peers, int threshold);
     // void setCoef();
     int newsockfd;
 };

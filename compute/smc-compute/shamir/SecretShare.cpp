@@ -81,7 +81,6 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
 
     gmp_randinit_mt(rstate);
 
-
     mpz_t seed;
     mpz_init(seed);
     unsigned char temp_key[KEYSIZE];
@@ -90,8 +89,6 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
         printf("Key, iv generation error\n");
     mpz_import(seed, KEYSIZE, 1, sizeof(temp_key[0]), 0, 0, temp_key);
     gmp_randseed(rstate_mine, seed);
-
-
 
     // used for mult, could probably be moved into randInit but we'd need to pass keys along
 
@@ -1212,7 +1209,7 @@ void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
             // Generate t random values from the PRG/PRF
             for (int j = 0; j < threshold; j++) {
                 mpz_urandomm(rand[j], rstates[m], mod);
-                temp_int = pow(myID, j+1);
+                temp_int = pow(myID, j + 1);
                 // printf("%i^%i = %i\n", myID, j+1, temp_int);
                 modMul(temp2, rand[j], temp_int); // i^j * rand[j]
                 modAdd(temp, temp, temp2);        // sum_{j=1}^{t} (i^j * rand[j])
@@ -1240,6 +1237,7 @@ std::vector<std::string> SecretShare::splitfunc(const char *str, const char *del
     return result;
 }
 
+// input public int
 void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> tokens;
@@ -1248,6 +1246,7 @@ void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *in
     *var = atoi(tokens[1].c_str());
 }
 
+// input private int
 void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> tokens;
@@ -1256,6 +1255,7 @@ void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *
     mpz_set_str(*var, tokens[1].c_str(), BASE_10);
 }
 
+// input public float
 void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> tokens;
@@ -1264,6 +1264,7 @@ void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *
     *var = atof(tokens[1].c_str());
 }
 
+// input private float
 void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> temp;
@@ -1277,7 +1278,6 @@ void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream 
 
 // one-dimensional int array I/O
 void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams) {
-    //    std::cout << "hi" << std::endl;
     std::string line;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
@@ -1323,6 +1323,32 @@ void SecretShare::ss_input(int id, float *var, int size, std::string type, std::
     tokens = splitfunc(temp[1].c_str(), ",");
     for (int i = 0; i < size; i++)
         var[i] = atof(tokens[i].c_str());
+}
+
+// input randomly generated private int
+void SecretShare::ss_input(mpz_t *var, std::string type) {
+    mpz_urandomm(*var, rstate_mine, fieldSize);
+}
+
+// input randomly generated private float
+void SecretShare::ss_input(mpz_t **var, std::string type) {
+    for (int i = 0; i < 4; i++)
+        mpz_urandomm((*var)[i], rstate_mine, fieldSize);
+}
+
+// input randomly generated private int arr
+void SecretShare::ss_input(mpz_t *var, int size, std::string type) {
+    for (int i = 0; i < size; i++) {
+        mpz_urandomm(var[i], rstate_mine, fieldSize);
+    }
+}
+
+// input randomly generated private float arr
+void SecretShare::ss_input(mpz_t **var, int size, std::string type) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++)
+            mpz_urandomm(var[i][j], rstate_mine, fieldSize);
+    }
 }
 
 void SecretShare::ss_output(int id, int *var, std::string type, std::ofstream *outputStreams) {

@@ -73,10 +73,16 @@ int threshold = 0; /* Secret sharing parameter */
 int inputs = 0;    /* Number of input parties */
 int outputs = 0;   /* Number of ouput parties */
 int total_threads = 0;
+int nu;
+int kappa;
+int kappa_nu;
 
 void getPrime(mpz_t, int);
 
-void append_new_main() {
+// will have new argument for flag
+// If mode is true -> -m
+// If mode is false -> -d
+void append_new_main(bool mode) {
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
@@ -87,24 +93,72 @@ void append_new_main() {
                MAIN_NEWNAME);
 
     // Check the input parameters
-    str_printf(strA(),
-               "\n if(argc < 8){\n"
-               "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-               "fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
-               "exit(1);\n}\n");
+    // this will be different based on flag
+    if (mode == true){ // -m - measurement mode
+        str_printf(strA(), //There should be 3 arguments passed
+                "\n if(argc < 4){\n"
+                "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
+                "fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
+                "exit(1);\n}\n");
+    } else{ // -d - deployment mode
+    str_printf(strA(), //There should be 7 arguments passed
+            "\n if(argc < 8){\n"
+            "fprintf(stderr,\"Incorrect input parameters\\n\");\n"
+            "fprintf(stderr,\"Usage: <id> <runtime-config>  <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
+            "exit(1);\n}\n");
+    }
+   
     mpz_t modulus2;
     mpz_init(modulus2);
     getPrime(modulus2, bits);
     char *res = mpz_get_str(NULL, 10, modulus2);
+    // The SMC_Utils gets the following:
+    /* id */                   //A number,           index: 1
+    /* runtime_config */       //"runtime-config",   index: 2
+    /* privatekey_filename */  //"private_03.pem",   index: 3
+    /* numOfInputPeers */      //A number,           index: 4
+    /* numOfOutputPeers */     //A number,           index: 5
+    /* IO_files */             //{"example_shares_#", "output_example"}, index: 6
+    /* numOfPeers */           // Not specified in the command line arguments.
+    /* threshold */            // Not specified in the command line arguments.
+    /* bits */                 // Not specified in the command line arguments.
+    /* mod */                  // Not specified in the command line arguments.
+    /* num_threads */          // Not specified in the command line arguments.
+
+    if (mode == false){ //-d
+        str_printf(strA(),
+                "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1 different number of arguments
+                "for(int i = 0; i < argc-6; i++)\n"
+                "   IO_files[i] = argv[6+i];\n"
+                "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n"
+                "\nstruct timeval tv1;"
+                "\nstruct timeval tv2;",
+                peers, threshold, bits, res, total_threads);
+    }
+    // this will be different based on flag, certain arguments will be Null/0 in -m    
+    // The SMC_Utils gets the following:
+    /* id */                   //A number,           index: 1
+    /* runtime_config */       //"runtime-config",   index: 2
+    /* NULL */
+    /* 0 */
+    /* 0 */
+    /* NULL */
+    /* numOfPeers */           // Not specified in the command line arguments.
+    /* threshold */            // Not specified in the command line arguments.
+    /* bits */                 // Not specified in the command line arguments.
+    /* mod */                  // Not specified in the command line arguments.
+    /* num_threads */          // Not specified in the command line arguments.
+
+    else { //-m
     str_printf(strA(),
-               "\n std::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
+               "\n std::string IO_files[atoi(argv[5]) + atoi(argv[6])];\n" // 1 different number of arguments
                "for(int i = 0; i < argc-6; i++)\n"
                "   IO_files[i] = argv[6+i];\n"
-               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n" // will be updated for measurement mode
+               "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", %d);\n"
                "\nstruct timeval tv1;"
                "\nstruct timeval tv2;",
                peers, threshold, bits, res, total_threads);
-
+    }
     str_printf(strA(),
                "  int _xval = 0;\n\n"
                "  gettimeofday(&tv1,NULL);\n");
@@ -164,6 +218,7 @@ void loadConfig(char *config) {
     fclose(fp);
 }
 
+// In this code argc and argv will be increased by 1
 int main(int argc, char *argv[]) {
     time_t now;
     char tmp[256];
@@ -172,15 +227,38 @@ int main(int argc, char *argv[]) {
     aststmt p;
 
     /***************** read config file ********************/
-    if (argc != 5) {
+    if (argc != 6) {
         fprintf(stderr, "Incorrect input parameters:\n");
-        // will need to update with new flags (-M and -D for measurement and deployment) 
-        fprintf(stderr, "Usage: picco <user program> <SMC config> <translated program> <utility config>\n"); 
+        // will need to update with new flags (-m and -d for measurement and deployment)
+        fprintf(stderr, "Usage: picco [-d | -m] <user program> <SMC config> <translated program> <utility config>\n"); // make sure other arguments are incremented by one
         exit(1);
     }
 
-    loadConfig(argv[2]);
+    // argv[0],           // Argument 0: the program name (./your_program)
+    // argv[1],           // Argument 1: -d | -m
+    // argv[2],           // Argument 1: id (the user-defined id)
+    // argv[3],           // Argument 2: runtime-config-file
+    // argv[4],           // Argument 3: privatekey-filename
+    // argv[5],           // Argument 4: number-of-input-parties
+    // argv[6],           // Argument 5: number-of-output-parties
 
+    // Parse command line arguments - check arguments are formed properly
+    // Check if the flag is either -m or -d -> if not program exits
+    // If the value is set then set the mode boolean to be called and use for append_new_main()
+    bool mode = false;
+    if (strcmp(argv[1], "-m") == 0) {
+        mode = true;
+    } else if (strcmp(argv[1], "-d") == 0) {
+        mode = false;
+    } else {
+        fprintf(stderr, "Invalid flag. Use either -m or -d.\n");
+        exit(1);
+    }
+
+    loadConfig(argv[3]);
+    kappa = 48; // can be selected differently at a later point in time
+    nu = ceil(log2(nChoosek(peers, threshold)));
+    kappa_nu = kappa + nu;
     /*
      * 1. Preparations
      */
@@ -203,12 +281,12 @@ int main(int argc, char *argv[]) {
     if (argc > 3 && getopts(argc-3, argv+3))
         goto OMPI_FAILURE;*/
 
-    filename = argv[1];
-    final_list = argv[4];
+    filename = argv[2];
+    final_list = argv[5];
     var_list = "var_list";
 
-    output_filename = (char *)malloc(sizeof(char) * strlen(argv[3]) + 5);
-    sprintf(output_filename, "%s.cpp", argv[3]);
+    output_filename = (char *)malloc(sizeof(char) * strlen(argv[4]) + 5);
+    sprintf(output_filename, "%s.cpp", argv[4]);
 
     if (!processmode)
         threadmode = 1; /* By default */
@@ -376,7 +454,9 @@ ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
     // }
 
     // Update the Main function
-    append_new_main();
+    // If mode is true -> -m
+    // If mode is false -> -d
+    append_new_main(mode); // pass flag from earlier into here // mode is set from the argumet we parse
     ast_show(ast, output_filename);
     if (testingmode) { /* Clean up (not needed actually; we do it only when testing)  */
         ast_free(ast);
@@ -414,4 +494,20 @@ void getPrime(mpz_t result, int bits) {
         mpz_mod_ui(m, result, 4);
     } while (isPrime < 1 || mpz_cmp_si(m, 3) != 0);
     mpz_clear(m);
+}
+
+int nChoosek(int n, int k) {
+    if (k > n)
+        return 0;
+    if (k * 2 > n)
+        k = n - k;
+    if (k == 0)
+        return 1;
+
+    int result = n;
+    for (int i = 2; i <= k; ++i) {
+        result *= (n - i + 1);
+        result /= i;
+    }
+    return result;
 }

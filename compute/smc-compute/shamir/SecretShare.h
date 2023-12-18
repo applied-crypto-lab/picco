@@ -164,6 +164,11 @@ public:
     void ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams);
 
+    void ss_input(mpz_t *var, std::string type);
+    void ss_input(mpz_t **var, std::string type);
+    void ss_input(mpz_t *var, int size, std::string type);
+    void ss_input(mpz_t **var, int size, std::string type);
+
     void ss_output(int id, int *var, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, mpz_t *var, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, float *var, std::string type, std::ofstream *outputStreams);
@@ -215,7 +220,6 @@ private:
 
     gmp_randstate_t rstate_mine;
 
-
     // for 3-party multiplication
     gmp_randstate_t rstate_0;
     gmp_randstate_t rstate_1;
@@ -232,7 +236,6 @@ private:
     pthread_mutex_t mutex;
 
     mpz_t *poly_evaluation; // stores polynomial evaluation for random generation, only is filled once
-
 };
 
 vector<int> generateCoef(int m, uint &inv_term);

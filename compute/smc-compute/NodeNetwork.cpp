@@ -165,7 +165,6 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
 
     SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
     SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
-
     for (uint32_t i = 0; i <= sizeof(uint32_t) * 8 - 1; i++) {
         SHIFT_32[i] = (uint32_t(1) << uint32_t(i)) - uint32_t(1); // mod 2^i
         // this is needed to handle "undefined behavior" of << when we want
@@ -191,7 +190,8 @@ NodeNetwork::~NodeNetwork() {
     // these two statements cause the following error:
     // free(): double free detected in tcache 2
     // Aborted (core dumped)
-    //why is this the case?
+    // why is this the case?
+    // i think it has to do with the destructor being declared in the header  as "vritual"
     // delete[] SHIFT_32;
     // delete[] SHIFT_64;
 
@@ -927,7 +927,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
         printf("Connected to node %d\n", ID);
         peer2sock.insert(std::pair<int, int>(ID, sockfd[i]));
         sock2peer.insert(std::pair<int, int>(sockfd[i], ID));
-
+#if __DEPLOYMENT__
         FILE *prikeyfp = fopen(privatekeyfile.c_str(), "r");
         if (prikeyfp == NULL)
             printf("File Open %s error\n", privatekeyfile.c_str());
@@ -943,9 +943,18 @@ void NodeNetwork::requestConnection(int numOfPeers) {
         int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
         if (dec_len < 1)
             printf("RSA private decrypt error\n");
-        memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        init_keys(ID, 1);
         free(buffer);
+#else
+        char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
+        // check that this is the number of bytes that are supposed to be read from the socket
+        int n = read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
+        if (n < 0)
+            printf("ERROR reading from socket \n");
+#endif
+
+        memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
+        // print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
+        init_keys(ID, 1);
         free(decrypt);
     }
 }
@@ -1002,6 +1011,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
                 printf("Key, iv generation error\n");
             memcpy(KeyIV, key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE);
             int peer = config->getID() - (i + 1);
+#if __DEPLOYMENT__
             FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
             if (pubkeyfp == NULL)
                 printf("File Open %s error \n", (config->getPeerPubKey(peer)).c_str());
@@ -1016,8 +1026,15 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             int n = write(newsockfd[i], encrypt, enc_len); // sending to peer
             if (n < 0)
                 printf("ERROR writing to socket \n");
-            init_keys(peer, 0);
             free(encrypt);
+#else
+            // std::cout<<KeyIV<<std::endl;
+            // print_hexa(KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            int n = write(newsockfd[i], KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE); // sending to peer
+            if (n < 0)
+                printf("ERROR writing to socket \n");
+#endif
+            init_keys(peer, 0);
         }
     }
 }
@@ -1302,4 +1319,3 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
         }
     }
 }
-

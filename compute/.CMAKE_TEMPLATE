@@ -25,9 +25,9 @@ set(CMAKE_CXX_FLAGS_RELEASE        "-O3 -DNDEBUG")
 # set(CMAKE_CXX_FLAGS_RELEASE        "-Ofast")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 
-
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # set(CMAKE_BUILD_PARALLEL_LEVEL 8)
+
 
 
 # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")   # Add more flags here
@@ -41,59 +41,60 @@ find_package(GMP REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
-# option(USE_30 "Use MY_LIB instead of THEIR_LIB" OFF) #enables 60 vscode, should be default for remote
-# option(USE_30 "Use MY_LIB instead of THEIR_LIB" ON) #enables 30 vscode
-# if(USE_30)
-
-#   INCLUDE_DIRECTORIES(
-#     "${GMP_INCLUDES}"
-#     "${CMAKE_SOURCE_DIR}/include_30"
-#       # "${CMAKE_SOURCE_DIR}/include_60"
-#   )
-#     #add some compilation flags
-# else()
-
-#   INCLUDE_DIRECTORIES(
-#     "${GMP_INCLUDES}"
-#     "${CMAKE_SOURCE_DIR}/include"
-#     # "${CMAKE_SOURCE_DIR}/include_30"
-#     "${CMAKE_SOURCE_DIR}/include_60"
-#   )
-# endif(USE_30)
-# unset(USE_30 CACHE) # <---- this is the important!!
-
-INCLUDE_DIRECTORIES(
-  "${GMP_INCLUDES}"
-  "${CMAKE_SOURCE_DIR}/smc-compute"
-  "${CMAKE_SOURCE_DIR}/smc-compute/shamir"
-  "${CMAKE_SOURCE_DIR}/smc-compute/ops/shamir"
-)
-
-# set(SOURCE_FILES src/main.c)
+# base sources (NodeNetwork, NodeConfig, SMC_Utils)
 file(GLOB SOURCES 
       "smc-compute/*.cpp"
-      # "smc-compute/ops/shamir*.cpp"
 )
 
-file(GLOB RSS 
-      "smc-compute/ops/rss/*.cpp"
-)
-
-file(GLOB SHAMIR 
-      # "smc-compute/*.cpp"
-      "smc-compute/shamir/*.cpp"
-      "smc-compute/ops/shamir/*.cpp"
-)
-
-add_executable(compiled_program sorted-ll.cpp ${SOURCES} ${SHAMIR})
-# set_target_properties(compiled_program PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
-target_link_libraries(compiled_program ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CRYPTOPP_LIBRARIES}  ${GMP_LIBRARIES})
+option(DEPLOYMENT "Deployment or benchmarking mode (default=Deployment)" ON) # ON by default
+option(SHAMIR "Shamir secret sharing (default=ON)" ON) # ON by default
+option(RSS "Replicated secret sharing (default=OFF)" OFF) # OFF by default
 
-# install(TARGETScompiled_program 
-#         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
+ 
 
+if(SHAMIR)
+      add_definitions(-D__SHAMIR__=1)
+      add_definitions(-D__RSS__=0)
+      INCLUDE_DIRECTORIES(
+            "${GMP_INCLUDES}"
+            "${CMAKE_SOURCE_DIR}/smc-compute"
+            "${CMAKE_SOURCE_DIR}/smc-compute/shamir"
+            "${CMAKE_SOURCE_DIR}/smc-compute/ops/shamir"
+      )
+      file(GLOB TECHNIQUE 
+            "smc-compute/shamir/*.cpp"
+            "smc-compute/ops/shamir/*.cpp"
+      )
+
+endif()
+
+if(RSS)
+      add_definitions(-D__RSS__=1)
+      add_definitions(-D__SHAMIR__=0)
+      INCLUDE_DIRECTORIES(
+            "${GMP_INCLUDES}"
+            "${CMAKE_SOURCE_DIR}/smc-compute"
+            "${CMAKE_SOURCE_DIR}/smc-compute/rss"
+            "${CMAKE_SOURCE_DIR}/smc-compute/ops/rss"
+      )
+      file(GLOB TECHNIQUE 
+            "smc-compute/rss/*.cpp"
+            "smc-compute/ops/rss/*.cpp"
+      )
+
+endif()
+
+if(DEPLOYMENT)
+      add_definitions(-D__DEPLOYMENT__=1)
+else()
+      add_definitions(-D__DEPLOYMENT__=0)
+endif()
+
+add_executable(XXXXX XXXXX.cpp ${SOURCES} ${TECHNIQUE})
+
+target_link_libraries(XXXXX ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CRYPTOPP_LIBRARIES}  ${GMP_LIBRARIES})
 
 add_custom_target(clean-all
   make clean && rm -fR ${CMAKE_BINARY_DIR}/CMakeCache.txt

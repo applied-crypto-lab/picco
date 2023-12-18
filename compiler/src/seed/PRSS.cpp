@@ -19,17 +19,6 @@
 */
 
 #include "PRSS.h"
-#include "SecretShare.h"
-#include "math.h"
-#include "time.h"
-#include <fcntl.h>
-#include <gmp.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 PRSS::PRSS(int p, mpz_t mod) {
     // TODO Auto-generated constructor stub
@@ -107,16 +96,23 @@ void PRSS::getCombinations(std::vector<int> &elements, int reqLen, std::vector<i
  * paper; one polynomial for maximum unqualified set.
  */
 void PRSS::setPolynomials() {
+    // printf("setting polys\n");
     std::map<std::string, std::vector<int>> poly;
     int degree = getThreshold();
     std::vector<int>::iterator it;
-    //	SecretShare ss(peers, fieldsize);
     mpz_t *tempKey = (mpz_t *)malloc(sizeof(mpz_t) * (keysize));
     tempKey = getKeys();
     for (unsigned int i = 0; i < keysize; i++) {
+
         std::string Strkey = mpz2string(tempKey[i], mpz_t_size);
         std::vector<int> coefficients;
         std::vector<int> pts = (getPoints().find(Strkey)->second);
+        // printf("(");
+        // for (size_t i = 0; i < pts.size(); i++) {
+        //     printf("%i, ", pts[i]);
+        // }
+        // printf(")\n");
+
         std::vector<int> elements;
 
         /*computing coefficients for each polynomial*/
@@ -124,11 +120,28 @@ void PRSS::setPolynomials() {
         for (unsigned int j = 0; j < pts.size(); j++)
             elements.push_back(0 - pts.at(j));
         coefficients.push_back(1);
+        // printf("elements: \t");
+        // printf("(");
+        // for (size_t ii = 0; ii < elements.size(); ii++) {
+        //     printf("%i, ", elements[ii]);
+        // }
+        // printf(")\n");
 
         for (int j = 1; j <= degree; j++) {
             std::vector<int> pos(j);
             std::vector<std::vector<int>> result;
             getCombinations(elements, j, pos, 0, 0, result);
+            // printf("%i comb result: \t", j);
+            // printf("(");
+            // for (size_t ii = 0; ii < result.size(); ii++) {
+            //     printf("(");
+            //     for (size_t jj = 0; jj < result.at(ii).size(); jj++) {
+            //         printf("%i, ", result[ii][jj]);
+            //     }
+            //     printf("), ");
+            // }
+            // printf(")\n");
+
             int coef = 0;
             for (unsigned int m = 0; m < result.size(); m++) {
                 std::vector<int> temp = result.at(m);
@@ -139,6 +152,12 @@ void PRSS::setPolynomials() {
                 coef += tmp;
             }
             coefficients.push_back(coef);
+            // printf("coef: %i \n", coef);
+            // printf("(");
+            // for (size_t ii = 0; ii < coef.size(); ii++) {
+            //     printf("%i, ", coef[ii]);
+            // }
+            // printf(")\n");
         }
         poly.insert(std::pair<std::string, std::vector<int>>(Strkey, coefficients));
     }

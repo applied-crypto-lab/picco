@@ -20,13 +20,21 @@
 
 #ifndef PRSS_H_
 #define PRSS_H_
-#include <map>
-
+#include "math.h"
 #include "stdint.h"
+#include "time.h"
 #include <cstdlib>
+#include <fcntl.h>
 #include <gmp.h>
 #include <iostream>
+#include <map>
 #include <openssl/rand.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <vector>
 
 #define KEYSIZE 16

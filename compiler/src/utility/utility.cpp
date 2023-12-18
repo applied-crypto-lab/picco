@@ -18,7 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../seed/SecretShare.h"
+#include "SecretShare.h"
 #include <cmath>
 #include <fstream>
 #include <gmp.h>

@@ -33,9 +33,10 @@
 
 *.pem
 
-picco
-picco-seed
-picco-utility
+bin/
+lex.yy.c
+parser.tab.c
+parser.tab.h 
 
 int_*
 comparison/*
@@ -45,10 +46,12 @@ runtime-config-*
 compute/sample-programs/non-thread/eqz_mine.c
 *.x
 
+.cache/
 # share directories
 inputs/
 outputs/
 shares/
+confs/
 compute/test_op*
 compute/build*
 compute/notes.txt
