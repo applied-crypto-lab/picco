@@ -47,7 +47,7 @@ private
             head = ptr1;
         }
         for (j = 0; j < i - 1; j++) {
-            if ((ptr2->data < ptr1->data) && (ptr2->next->data > ptr1->data)) { // insert ptr
+            if ((ptr2->data < ptr1->data) && (ptr2->next->data >= ptr1->data)) { // insert ptr
                 ptr1->next = ptr2->next;
                 ptr2->next = ptr1;
             }
