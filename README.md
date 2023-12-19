@@ -104,7 +104,7 @@ The **execution** uses $N+1$ machines that can communicate with each other, wher
 **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. 
 
 Based on the computational mode 
-([measurement mode](#measurement-mode) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
+([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
 
 
 ## Measurement mode execution
