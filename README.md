@@ -137,9 +137,9 @@ To **compile** the translated program, the program should be placed in the `comp
 The binary executable of the translated program is produced by running the following script from the `compute/` directory:
 
 ```
-./compile-usr-prog.sh [-d | -m] <user_program.cpp>
+./compile-usr-prog.sh [-d | -m] <user_program>
 ```
-where `-d` and `-m` are the compilation mode flags from earlier, and `user_program.cpp` is the name of the translated program generated earlier earlier.
+where `-d` and `-m` are the compilation mode flags from earlier, and `user_program` is the name of the translated program generated earlier earlier (note, without the `.cpp` extension).
   <!-- The script will automatically generate the `CMakeLists.txt` file for the given user program.  -->
   The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
 
