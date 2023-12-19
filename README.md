@@ -182,7 +182,7 @@ The **execution** uses $N+1$ machines that can communicate with each other, wher
 To initiate secure computation, each computational party needs to execute the following command:
 
 ```
-./compiled_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
+./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ```
 
   The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
@@ -200,7 +200,7 @@ Upon computation completion, each program outputs the program running time and s
   To initiate secure computation in measurement mode, each computational party **(in descending order according to their ID)** needs to execute the following command:
 
   ```
-  ./compiled_program <ID> <runtime config> 
+  ./user_program <ID> <runtime config> 
   ```
   where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively.
 
