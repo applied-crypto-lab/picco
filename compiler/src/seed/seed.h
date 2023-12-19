@@ -20,7 +20,6 @@
 
 #ifndef SEED_H_
 #define SEED_H_
-#include "mode.h" // contains declaration of DEPLOYMENT var
 #include "PRSS.h"
 #include "openssl/bio.h"
 #include "unistd.h"
@@ -45,10 +44,10 @@ class seed {
 public:
     seed();
     void run();
-    void init(char *, char *); //
-    int parseConfigFile(char *);
+    void init(char *, char *, bool); //
+    int parseConfigFile(char *, bool);
     void parseUtilConfigFile(char *); //
-    void sendPolynomials(mpz_t);      //
+    void sendPolynomials(mpz_t,bool);      //
     static double time_diff(struct timeval *t1, struct timeval *t2);
     std::string mpz2string(mpz_t, int); //
 private:

@@ -26,25 +26,30 @@ std::vector<int> computePorts;
 std::vector<std::string> computePubkeys;
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
+    if (argc < 3) {
         fprintf(stderr, "Incorrect input parameters \n");
-        fprintf(stderr, "Usage: picco-seed <runtime-config> <utility-config> \n");
+        fprintf(stderr, "Usage: picco-seed [-d | -m] <runtime-config> <utility-config> \n");
         exit(1);
     }
-#if __DEPLOYMENT__
-    printf("DEPLOYMENT MODE\n");
-#else
-    printf("BENCHMARK MODE\n");
-#endif
+
+    bool mode; // true --> measurement
+    if (strcmp(argv[1], "-m") == 0) {
+        mode = true;
+    } else if (strcmp(argv[1], "-d") == 0) {
+        mode = false;
+    } else {
+        fprintf(stderr, "Invalid flag. Use either -m or -d.\n");
+        exit(1);
+    }
 
     seed c;
-    c.init(argv[1], argv[2]);
+    c.init(argv[2], argv[3], mode);
 }
 
 seed::seed() {
 }
 
-void seed::sendPolynomials(mpz_t mod) {
+void seed::sendPolynomials(mpz_t mod, bool mode) {
     PRSS prss(peers, mod);
     char *strkey = (char *)malloc(64);
     mpz_get_str(strkey, 10, modulus);
@@ -118,17 +123,18 @@ void seed::sendPolynomials(mpz_t mod) {
 
         int *Coefficients = &coefficients[0];
         int coefsize = coefficients.size();
-#if __DEPLOYMENT__
-
-        FILE *pubkeyfp = fopen(computePubkeys[i].c_str(), "r");
-        if (pubkeyfp == NULL)
-            printf("File Open %s error \n", computePubkeys[i].c_str());
-        RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
-        if (publicRkey == NULL)
-            printf("Read Public Key for RSA Error\n");
-        char *encrypt = (char *)malloc(RSA_size(publicRkey));
-        memset(encrypt, 0x00, RSA_size(publicRkey));
-#endif
+        char *encrypt;
+        RSA *publicRkey;
+        if (!mode) {
+            FILE *pubkeyfp = fopen(computePubkeys[i].c_str(), "r");
+            if (pubkeyfp == NULL)
+                printf("File Open %s error \n", computePubkeys[i].c_str());
+            publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
+            if (publicRkey == NULL)
+                printf("Read Public Key for RSA Error\n");
+            encrypt = (char *)malloc(RSA_size(publicRkey));
+            memset(encrypt, 0x00, RSA_size(publicRkey));
+        }
         int buf_size = sizeof(int) * (3 + coefficients.size()) + mpz_t_size * keyssize + 1;
         char *buf = (char *)malloc(buf_size);
         memset(buf, 0x00, buf_size);
@@ -154,25 +160,25 @@ void seed::sendPolynomials(mpz_t mod) {
             }
         }
         memcpy(buf + sizeof(int) * 3 + position, Coefficients, sizeof(int) * coefficients.size());
-#if __DEPLOYMENT__
-        int enc_len = RSA_public_encrypt(buf_size, (unsigned char *)buf, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
-        if (enc_len < 1)
-            printf("RSA public encrypt error\n");
-        int n = write(computeNodes[i], encrypt, enc_len);
-        if (n < 0)
-            printf("ERROR writing to socket \n");
+        if (!mode) {
+            int enc_len = RSA_public_encrypt(buf_size, (unsigned char *)buf, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+            if (enc_len < 1)
+                printf("RSA public encrypt error\n");
+            int n = write(computeNodes[i], encrypt, enc_len);
+            if (n < 0)
+                printf("ERROR writing to socket \n");
+        } else {
+            int n = write(computeNodes[i], buf, buf_size); // sending to peer
+            if (n < 0)
+                printf("ERROR writing to socket \n");
+        }
 
-#else
-        int n = write(computeNodes[i], buf, buf_size); // sending to peer
-        if (n < 0)
-            printf("ERROR writing to socket \n");
-#endif
     }
     printf("Secret seeds have been successfully sent to each of computational parties...\n");
 }
-void seed::init(char *config, char *util_config) {
+void seed::init(char *config, char *util_config, bool mode) {
     // Parse the configuration file to get network information
-    peers = parseConfigFile(config);
+    peers = parseConfigFile(config, mode);
     parseUtilConfigFile(util_config);
     std::cout << "Config file parsed successfully\n"
               << peers << std::endl;
@@ -203,7 +209,7 @@ void seed::init(char *config, char *util_config) {
     std::cout << "Connect to compute nodes\n";
 
     // send the polynomials to compute nodes for random value generation.
-    sendPolynomials(modulus);
+    sendPolynomials(modulus, mode);
 }
 
 // Calculate the time difference in seconds between two time intervals
@@ -220,12 +226,12 @@ double seed::time_diff(struct timeval *t1, struct timeval *t2) {
     return (elapsed);
 }
 
-int seed::parseConfigFile(char *config) {
+int seed::parseConfigFile(char *config, bool mode) {
     std::ifstream configIn(config, std::ios::in);
     int peers = 0;
     // Make sure the file exists and can be opened
     if (!configIn) {
-        std::cout << "Runtime config (argv[1]) could not be opened \n";
+        std::cout << "Runtime config (argv[2]) could not be opened \n";
         std::exit(1);
     }
 
@@ -247,10 +253,9 @@ int seed::parseConfigFile(char *config) {
         free(tok);
         computeIPs.push_back(tokens[1]);
         computePorts.push_back(atoi(tokens[2].c_str()));
-#if __DEPLOYMENT__
-        computePubkeys.push_back(tokens[3]);
-#endif
-
+        if (!mode) {
+            computePubkeys.push_back(tokens[3]);
+        }
     }
     configIn.close();
     return peers;
@@ -259,7 +264,7 @@ int seed::parseConfigFile(char *config) {
 void seed::parseUtilConfigFile(char *util_config) {
     std::ifstream configIn(util_config, std::ios::in);
     if (!configIn) {
-        std::cout << "Utility config (argv[2]) could not be opened \n";
+        std::cout << "Utility config (argv[3]) could not be opened \n";
         std::exit(1);
     }
     std::string line;

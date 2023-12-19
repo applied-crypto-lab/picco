@@ -34,15 +34,9 @@ To use PICCO, the following three programs need to be compiled:
 2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation, 
 3. the seed program that will generate and transmit secret random seeds to each of the computational parties at the time of program initiation (so that shares of random values can be locally produced by each party without interaction). 
 
-Picco is equipped with two possible modes for compilation and execution. In *deployment mode* (universally denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (universally denoted with the flag `-m`) foregoes the public key infrastructure to have parties directly establish secure communication. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. 
-
-  **Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined below apply to both deployment and measurement modes.**
-
-  **Furthermore, if at any point you want to switch between modes, you must repeat the setup procedure.**
-
 To compile all three programs, one needs to go to the directory `compiler/` and run the command
 ```
-./compile.sh [-d | -m] 
+./compile.sh
 ``` 
 which produces three executable files `picco`, `picco-utility`, and `picco-seed` and moves them in the directory `compiler/bin/`. The three executable files correspond to the PICCO compiler, the utility, and the seed program, respectively, and can be placed in any directory of user's choice at a later time. 
 
@@ -61,10 +55,9 @@ Before describing the procedure for compiling a user program, we explain the com
 
   Later, it will be assumed that input/output/computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
   
-<!--   
-- **Compilation mode.** Picco is equipped with two possible modes for compliation and execution. In *demployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes the public key infrastructure to have parties directly establish secure communication. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. 
+**Compilation mode.** PICCO is equipped with two possible modes for compilation and execution. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols.
 
-  **Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined below apply to both deployment and measurement modes.** -->
+**Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined in [the corresponding section](#restrictions-on-user-programs) apply to both deployment and measurement modes.** 
 
 **Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command:
 
@@ -81,15 +74,61 @@ Here, the arguments that the executable `picco` takes are:
 
 The executable takes two files as its input and produces two files as its output.
 
-If you are running in measurement mode, you can skip directly to [here](#execution-of-user-programs).
 
-## Generation of inputs for user programs
+## (Native) compilation of user programs
 
-Before secure computation can take place, the input parties need to prepare input data (that could be private, public, or both) and send them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to call the program `picco-utility` to produce shares of private inputs. The same program is also used to assemble the output of upon completion of secure computation, as described later. In what follows, we first describe the usage of built-in I/O functions within user programs, then the format of files that contains plaintext input of an input party, followed by usage of the utility program for input generation.
+In order to run a user's translated program in a distributed setting, one needs to compile it using a native C++ compiler to produce a binary executable file, create a runtime config file, and send the executable to each computational party together with the runtime config and a file that stores input shares for that party. These steps are discussed below.
+
+To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. 
+
+The binary executable of the translated program is produced by running the following script from the `compute/` directory:
+
+```
+./compile-usr-prog.sh [-d | -m] <user_program>
+```
+where `-d` and `-m` are the compilation mode flags and `user_program` is the name of the translated program generated earlier (note, without the .cpp extension). The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
+
+The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
+
+1. an ID of a computational party between 1 and $N$;
+2. an IP address or a domain name of the computational party;
+3. an open port number to connecting to that party;
+4. **(deployment mode only)** a file name of the public key of that party for establishing a secure communication channel (this can be specified using a path or just the file name, but in either case it must be locatable by the running program; i.e., in the latter case the file must reside in the same directory as the program being executed).
+
+In measurement mode, the public key filenames can be omitted leaving only the ID, IP address, and port number for each party. The four values should be listed in the specified order on each line. Note that the same runtime config file should be distributed to all computational parties. 
+
+## Program execution
+
+The **execution** uses $N+1$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation. Out of these machines, $N$ machines correspond to computational nodes and the remaining machine is an additional node that supplies shared randomness to the computational parties using the seed program `picco-seed` (produced at the time of PICCO compilation) and can be controlled by the data owners. Strictly speaking, the seeds need to be communicated to the given set of computational parties only once, after which the computational parties can execute secure implementations of various programs any number of times. However, for simplicity, our implementation expects communication from `picco-seed` for each program execution, and the time for generating and transmitting the seeds is not counted in the program execution time. 
+
+**Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. 
+
+Based on the computational mode 
+([measurement mode](#measurement-mode) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
+
+
+## Measurement mode execution
+
+To initiate secure computation in measurement mode, each computational party **(in descending order according to their ID)** needs to execute the following command:
+
+```
+./user_program <ID> <runtime config> 
+```
+where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. After all computational parties start, the $(N+1)$'th machine needs to run:
+
+```
+./picco-seed -m <runtime config> <utility config>
+``` 
+
+## Deployment mode setup and execution
+
+### Input share generation
+
+Prior to performing secure computation, the input parties must prepare input data (that could be private, public, or both) and distribute them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to call the program `picco-utility` to produce shares of private inputs. The same program is also used to assemble the output of upon completion of secure computation, as described later. In what follows, we first describe the usage of built-in I/O functions within user programs, then the format of files that contains plaintext input of an input party, followed by usage of the utility program for input generation.
 
 
 - **Built-in I/O functions.**
-Input and output in user programs is handled through built-in I/O functions `smcinput` and `smcoutput`, respectively. Both of them have the same interface and take as the first argument the name of a variable and as the second argument the ID of an input (output) party from whom the variable will be read (to whom the variable will be written). If the variable is an array, the sizes of each array dimension need to be specified as additional arguments (i.e., the number of arguments depends on the variable type). For instance, if `x` was declared as a two-dimensional array with both dimensions being 10, the program can specify `smcinput(x,1,10,10)` to read shares of 100 elements from input party 1. Note that if an array variable was declared to have a larger number of elements than the number of elements being read from the input, the read values will always be placed in the beginning of the array (or in the beginning of each row for the specified number of rows for two-dimensional arrays).
+Input and output in user programs is handled through built-in I/O functions `smcinput` and `smcoutput`, respectively. Both have the same interface and take as the first argument the name of a variable and as the second argument the ID of an input (output) party from whom the variable will be read (to whom the variable will be written). If the variable is an array, the sizes of each array dimension need to be specified as additional arguments (i.e., the number of arguments depends on the variable type). For instance, if `x` was declared as a two-dimensional array with both dimensions being 10, the program can specify `smcinput(x,1,10,10)` to read shares of 100 elements from input party 1. Note that if an array variable was declared to have a larger number of elements than the number of elements being read from the input, the read values will always be placed in the beginning of the array (or in the beginning of each row for the specified number of rows for two-dimensional arrays).
 
   In the current implementation, both `smcinput` and `smcoutput` are not allowed to be placed within loops or iterations. That is, a user should not write code such as:
 
@@ -107,7 +146,7 @@ Input and output in user programs is handled through built-in I/O functions `smc
 
   - *Data format*: If a variable is a single integer/real or a one-dimensional array, its value should be listed on a separate single line as `var = value1,value2,...` for both public and private variables. For instance, in the above example, we will have `x = 1,2` when `x` is a private array containing two elements `1` and `2`. If a variable is a two-dimensional array of integers, each row in a matrix (if we think of a two-dimensional array as a matrix) should be listed on a separate line with the name of the variable repeated on each line. 
 
-  - *Floating point data*: If a float variable is public, it will be treated in the same manner as integer variables mentioned earlier. However, if a variable is private, each float element will occupy a separate line in the format of `var = v,p,s,z`, where `v` is an ${\ell}$-bit significand, `p` is a k-bit exponent, and `s` and `z` are sign and zero bits, respectively (for more information, please refer to  [Aliasgari et al., 2013](https://www.ndss-symposium.org/wp-content/uploads/2017/09/11_4_0.pdf)). Namely, if a private float variable is type of array, each array element will occupy a separate line in the above format e.g., in `smcinput(z,1,10,10)` with a private float array `z`, its array elements will occupy 100 lines in an input file.  
+  - *Floating point data*: If a float variable is public, it will be treated in the same manner as integer variables mentioned earlier. However, if a variable is private, each float element will occupy a separate line in the format of `var = v,p,s,z`, where `v` is an ${\ell}$-bit significand, `p` is a k-bit exponent, and `s` and `z` are sign and zero bits, respectively (for more information, please refer to [Aliasgari et al., 2013](https://www.ndss-symposium.org/wp-content/uploads/2017/09/11_4_0.pdf)). Namely, if a private float variable is type of array, each array element will occupy a separate line in the above format e.g., in `smcinput(z,1,10,10)` with a private float array `z`, its array elements will occupy 100 lines in an input file.  
 
 
 - **Generating input data**. After an input party generates input data in the specified format and saves it in a file of the user's choice, the utility program can be invoked as follows:  
@@ -128,85 +167,37 @@ Input and output in user programs is handled through built-in I/O functions `smc
   The utility program will read the input data and utility config and produce the same number of output files with shares as the number of computational parties $N$. The program's output will be stored in files named `<shares filename>ID`, where ID is the identification number for each computational party between 1 and $N$. The values of public variables are copied unmodified from the input file into the shares files, while the values of private variables are secret shared, with each computational party obtaining a single share stored in the corresponding shares file.
 
 
-## (Native) compilation and execution of user programs
 
-In order to run a user's translated program in a distributed setting, one needs to compile it using a native C++ compiler to produce a binary executable file, create a runtime config file, and send the executable to each computational party together with the runtime config and a file that stores input shares for that party. These steps are discussed in more detail below.
+### Public-private key pair generation
 
-To **compile** the translated program, the program should be placed in the `compute/` directory at the compilation time, as it needs library functions stored in the directory `compute/smc-compute/`. 
-
-The binary executable of the translated program is produced by running the following script from the `compute/` directory:
+Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported and a key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
 
 ```
-./compile-usr-prog.sh [-d | -m] <user_program.cpp>
+openssl genrsa -out private_ID.pem 2048
+openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
 ```
-where `-d` and `-m` are the compilation mode flags from earlier, and `user_program.cpp` is the name of the translated program generated earlier earlier.
-  <!-- The script will automatically generate the `CMakeLists.txt` file for the given user program.  -->
-  The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
-
-
-<!-- Moreover, the CMakeLists in the `compute/` directory needs to be updated to include the name of the program. That is, if the translated program is stored in a file named `X.cpp`, then `X.cpp` must be added to the `add_executable` command. 
-  For ease of use, every appearance of `test-code` can simply be substituted with `X` in the makefile. 
-
-
-  Then the binary executable `X` of the translated program can be produced by typing the following commands from the `compute/` directory:
-  ```
-  mkdir build
-  cd build
-  cmake ..
-  make -j8
-  ```
-   The resulting executable file will be stored in `build/` and can later be placed in any other directory.  -->
-   <!-- 
-   check this functionality with cmake - can it be done too?
-   Notice that, when one runs `make X` for the first time, the makefile automatically compiles source files of the SMC library stored in directory `compute/smc-compute`. This will be performed only once (i.e., from the second running, the library source won't be compiled anymore).  -->
-
-The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
-
-  1. an ID of a computational party between 1 and $N$;
-  2. an IP address or a domain name of the computational party;
-  3. an open port number to connecting to that party;
-  4. **(deployment mode only)** a file name of the public key of that party for establishing a secure communication channel (this can be specified using a path or just the file name, but in either case it must be locatable by the running program; i.e., in the latter case the file must reside in the same directory as the program being executed).
-
-  In measurement mode, the public key filenames can be omitted leaving only the ID, IP address, and port number for each party. 
-
-  The four values should be listed in the specified order on each line. Note that the same runtime config file should be distributed to all computational parties. Additional steps for generating public-private key pairs can be found [here](#public-private-key-generation).
-
-Based on the computational mode you are running
-([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-execution)), follow to the links to their respective sections.
+After the key pairs are created, the public keys should be distributed to all computational parties.
 
 
 ### Deployment mode execution 
 
-The **execution** uses $N+1$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation. Out of these machines, $N$ machines correspond to computational nodes and the remaining machine is an additional node that supplies shared randomness to the computational parties using the seed program `picco-seed` (produced at the time of PICCO compilation) and can be controlled by the data owners. Strictly speaking, the seeds need to be communicated to the given set of computational parties only once, after which the computational parties can execute secure implementations of various programs any number of times. However, for simplicity, our implementation expects communication from `picco-seed` for each program execution, and the time for generating and transmitting the seeds is not counted in the program execution time. 
-
-To initiate secure computation, each computational party needs to execute the following command:
-
+To initiate secure computation, each computational party **(in descending order according to their ID)** needs to execute the following command:
 ```
-./compiled_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
+./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ```
 
-  The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
+The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
 
-  **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. After all computational parties start, the $(N+1)$'th machine needs to run:
+After all computational parties start, the $(N+1)$'th machine needs to run:
 
-  ```
-  ./picco-seed <runtime config> <utility config>
-  ``` 
+```
+./picco-seed -d <runtime config> <utility config>
+``` 
 
 Upon computation completion, each program outputs the program running time and stores the result of computation (output using `smcoutput`) in a file for each output party. If the output for some output party contains private variables, that party will need to use the utility program to reconstruct the result.
 
-### Measurement mode execution
 
-  To initiate secure computation in measurement mode, each computational party **(in descending order according to their ID)** needs to execute the following command:
-
-  ```
-  ./compiled_program <ID> <runtime config> 
-  ```
-  where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively.
-
-  **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. 
-
-## Reconstruction of program results (deployment-only)
+### Reconstruction of program results
 
 The procedure of reconstructing program results is very similar to that of generating program inputs using the utility program. Each output party needs to execute the following command:
 
@@ -242,15 +233,6 @@ In the current implementation, not all features of C are supported in user progr
 
 - Due to the implementation specifics of the `mpz_t` data type used for all private variables in translated programs, functions cannot return variables of type `mpz_t`. For that reason, all user-declared functions with private return values should be modified to include an extra argument passed by reference which corresponds to the return value of the function and the return type of the function should be set to void.
 
-
-## Public-private key pair generation
-
-Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported and a key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
-
-```
-openssl genrsa -out private_ID.pem 2048
-openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
-```
 
 ## Protocol sources
 
