@@ -51,7 +51,9 @@ compute/sample-programs/non-thread/eqz_mine.c
 inputs/
 outputs/
 shares/
+compiled_programs/
 confs/
 compute/test_op*
 compute/build*
 compute/notes.txt
+CMakeLists.txt
