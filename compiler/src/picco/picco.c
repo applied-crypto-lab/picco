@@ -70,8 +70,9 @@ char *MAIN_RENAME = "__original_main";
 int bits = 0;      /* Bits for modulus */
 int peers = 0;     /* Number of computational parties */
 int threshold = 0; /* Secret sharing parameter */
-int inputs = 0;    /* Number of input parties */
-int outputs = 0;   /* Number of ouput parties */
+int inputs = 1;    /* Number of input parties */
+int outputs = 1;   /* Number of ouput parties */
+char technique[100];  /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
 int kappa;
@@ -198,15 +199,47 @@ int getopts(int argc, char *argv[]) {
 }
 
 #include "ort.defs"
+/*Helper Function for laodConfig()*/
+char* removeNonDigit(char *value){
+  for (char *c = value; *c; ++c) {
+    if (!isdigit(*c)) {
+        *c = ' ';
+    }
+  }
+  return value;
+}
+
+/*Extracts the data from the config file given during execution*/
 void loadConfig(char *config) {
     FILE *fp;
     fp = fopen(config, "r");
-    int line[10];
-    fscanf(fp, "%[^:]:%d", line, &bits);
-    fscanf(fp, "%[^:]:%d", line, &peers);
-    fscanf(fp, "%[^:]:%d", line, &threshold);
-    fscanf(fp, "%[^:]:%d", line, &inputs);
-    fscanf(fp, "%[^:]:%d", line, &outputs);
+
+    int line[100];
+
+    // Read each line from the file using fgets. 
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        char key[100], value[100];
+
+        // Parse the line into key and value using sscanf function
+        if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
+            
+            // Check which key is present and update the corresponding value - allows different order of keys
+            if (strcmp(key, "bits") == 0) {
+                bits = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "peers") == 0) {
+                peers = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "threshold") == 0) {
+                threshold = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "inputs") == 0) {
+                inputs = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "outputs") == 0) {
+                outputs = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "technique") == 0) {
+                strncpy(technique, value, sizeof(technique) - 1);
+                technique[sizeof(technique) - 1] = '\0'; // Ensure null-terminated string
+            }
+        }
+    }
     fclose(fp);
 }
 
