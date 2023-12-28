@@ -891,7 +891,7 @@ void ast_print_private_index(astexpr tree, char *name) {
                 e2->flag = PUB;
                 indent();
                 indent();
-                fprintf(output, "ss_set(%s, ", name);
+                fprintf(output, "ss_set_ui(%s, ", name);
                 ast_expr_show(e2);
                 fprintf(output, ");\n");
                 indent();
@@ -1197,7 +1197,7 @@ void ast_batch_allocate_counter() {
     while (tmp != NULL) {
         if (tmp->flag == 1) {
             indent();
-            fprintf(output, "int* _picco_batch_array%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", size, tmp->batch_index);
+            fprintf(output, "priv_int* _picco_batch_array%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", size, tmp->batch_index);
             indent();
             fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", tmp->batch_index);
             indent();
@@ -1617,9 +1617,9 @@ void ast_batch_declare_array_for_narrayelement(aststmt tree, int *narray_element
 void ast_batch_allocate_array_for_private_indexed_element(astexpr tree, int batch_index, int private_index) {
     if (tree->ftype == 0) {
         indent();
-        fprintf(output, "int* _picco_private_indexed_inputarray%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", private_index, batch_index);
+        fprintf(output, "priv_int* _picco_private_indexed_inputarray%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", private_index, batch_index);
         indent();
-        fprintf(output, "int* _picco_private_indexed_outputarray%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", private_index, batch_index);
+        fprintf(output, "priv_int* _picco_private_indexed_outputarray%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", private_index, batch_index);
         indent();
         fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
         indent();
@@ -1635,9 +1635,9 @@ void ast_batch_allocate_array_for_private_indexed_element(astexpr tree, int batc
         batch_private_index_push(batch_index, private_index, tree->ftype, bpis);
     } else if (tree->ftype == 1) {
         indent();
-        fprintf(output, "int* _picco_private_indexed_inputarray%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", private_index, batch_index);
+        fprintf(output, "priv_int* _picco_private_indexed_inputarray%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", private_index, batch_index);
         indent();
-        fprintf(output, "int** _picco_private_indexed_outputarray%d = (int**)malloc(sizeof(int*) * _picco_batch_counter%d);\n", private_index, batch_index);
+        fprintf(output, "priv_int** _picco_private_indexed_outputarray%d = (priv_int**)malloc(sizeof(priv_int*) * _picco_batch_counter%d);\n", private_index, batch_index);
         indent();
         fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
         indent();
@@ -1646,7 +1646,7 @@ void ast_batch_allocate_array_for_private_indexed_element(astexpr tree, int batc
         indent();
         fprintf(output, "ss_init(_picco_private_indexed_inputarray%d[_picco_i]);\n", private_index);
         indent();
-        fprintf(output, "_picco_private_indexed_outputarray%d[_picco_i] = (int*)malloc(sizeof(int) * 4);\n", private_index);
+        fprintf(output, "_picco_private_indexed_outputarray%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n", private_index);
         indent();
         fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
         indlev++;
@@ -1715,7 +1715,7 @@ void ast_batch_allocate_array_for_narrayelement(astexpr tree, int batch_index, i
     } else if (tree->flag == PRI) {
         indent();
         if (tree->ftype == 0) {
-            fprintf(output, "int* _picco_batch_tmp_array%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
+            fprintf(output, "priv_int* _picco_batch_tmp_array%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
             indent();
             fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
             indent();
@@ -1727,14 +1727,14 @@ void ast_batch_allocate_array_for_narrayelement(astexpr tree, int batch_index, i
             indent();
             fprintf(output, "}\n");
         } else if (tree->ftype == 1) {
-            fprintf(output, "int** _picco_batch_tmp_array%d = (int**)malloc(sizeof(int*) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
+            fprintf(output, "priv_int** _picco_batch_tmp_array%d = (priv_int**)malloc(sizeof(priv_int*) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
             indent();
             fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
             indent();
             fprintf(output, "{\n");
             indlev++;
             indent();
-            fprintf(output, "_picco_batch_tmp_array%d[_picco_i] = (int*)malloc(sizeof(int) * 4);\n", narray_element_index);
+            fprintf(output, "_picco_batch_tmp_array%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n", narray_element_index);
             indent();
             fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
             indlev++;
@@ -2270,7 +2270,7 @@ void ast_compute_condition(condnode cnode, branchnode bnode, int thread_id) {
     int index = cnode->element->index;
     int height = if_branchnode_height(bnode);
     indent();
-    fprintf(output, "int _picco_condtmp%d;\n", height);
+    fprintf(output, "priv_int _picco_condtmp%d;\n", height);
     indent();
     fprintf(output, "ss_init(_picco_condtmp%d);\n", height);
     indent();
@@ -2879,7 +2879,7 @@ void ast_expr_pmalloc_show(astexpr tree) {
             indent();
             fprintf(output, "_picco_temp_ = malloc(");
             ast_expr_show(tree->left);
-            fprintf(output, "*sizeof(int));\n");
+            fprintf(output, "*sizeof(priv_int));\n");
             indent();
             fprintf(output, "for (int _picco_i = 0; _picco_i < ");
             ast_expr_show(tree->left);
@@ -2892,7 +2892,7 @@ void ast_expr_pmalloc_show(astexpr tree) {
             indent();
             fprintf(output, "_picco_temp_ = malloc(");
             ast_expr_show(tree->left);
-            fprintf(output, "*sizeof(int*));\n");
+            fprintf(output, "*sizeof(priv_int*));\n");
             indent();
             fprintf(output, "for (int _picco_i = 0; _picco_i < ");
             ast_expr_show(tree->left);
@@ -2900,7 +2900,7 @@ void ast_expr_pmalloc_show(astexpr tree) {
             indlev++;
             indent();
             indent();
-            fprintf(output, "_picco_temp_[_picco_i] = (int*)malloc(sizeof(int) * 4);\n");
+            fprintf(output, "_picco_temp_[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
             indent();
             indent();
             fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
@@ -3529,7 +3529,7 @@ void ast_spec_show(astspec tree) {
     switch (tree->type) {
     case SPEC:
         if (tree->subtype == SPEC_int || tree->subtype == SPEC_float)
-            fprintf(output, "int");
+            fprintf(output, "priv_int");
         else
             fprintf(output, "%s", SPEC_symbols[tree->subtype]);
         break;
@@ -3655,7 +3655,7 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
                     fprintf(output, "__s->smc_free_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
             } else {
                 if (!flag) {
-                    fprintf(output, "%s%s = (int*)malloc(sizeof(int) * (4));\n", struct_name, tree->decl->u.id->name);
+                    fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", struct_name, tree->decl->u.id->name);
                     indent();
                     fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
                     indlev++;
@@ -3822,16 +3822,16 @@ void ast_print_struct_helper_function(astspec tree) {
 
             if (!ispointer) {
                 if (spec_type == 0)
-                    sprintf(field_type_signature, "%s", "int");
+                    sprintf(field_type_signature, "%s", "priv_int");
                 else if (spec_type == 1)
-                    sprintf(field_type_signature, "%s", "int*");
+                    sprintf(field_type_signature, "%s", "priv_int*");
             } else {
                 sprintf(field_type_signature, "%s", "priv_ptr");
                 level = ast_compute_ptr_level(field_name);
             }
 
             sprintf(struct_ptr, "%s", tree->name->name);
-            fprintf(output, "void %s(priv_ptr %s, %s _picco_val, %sint _picco_tag, int _picco_priv_cond, int _picco_thread_id)\n", field_func_signature, struct_ptr, field_type_signature, array_index);
+            fprintf(output, "void %s(priv_ptr %s, %s _picco_val, %sint _picco_tag, priv_int _picco_priv_cond, int _picco_thread_id)\n", field_func_signature, struct_ptr, field_type_signature, array_index);
             // print the body of function
             fprintf(output, "{\n");
             indlev++;
@@ -4055,27 +4055,27 @@ void ast_print_priv_field(astdecl tree, astspec spec) {
             break;
         }
         if (spec->subtype == SPEC_int) {
-            fprintf(output, "int %s", tree->decl->u.id->name);
+            fprintf(output, "priv_int %s", tree->decl->u.id->name);
             break;
         }
         if (spec->subtype == SPEC_float) {
-            fprintf(output, "int* %s", tree->decl->u.id->name);
+            fprintf(output, "priv_int* %s", tree->decl->u.id->name);
             break;
         }
     case DARRAY:
         if (spec->subtype == SPEC_int) {
             if (tree->decl->type == DIDENT)
-                fprintf(output, "int* %s", tree->decl->u.id->name);
+                fprintf(output, "priv_int* %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
                 if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "int** %s", tree->decl->decl->u.id->name);
+                    fprintf(output, "priv_int** %s", tree->decl->decl->u.id->name);
             }
         } else if (spec->subtype == SPEC_float) {
             if (tree->decl->type == DIDENT)
-                fprintf(output, "int** %s", tree->decl->u.id->name);
+                fprintf(output, "priv_int** %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
                 if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "int*** %s", tree->decl->decl->u.id->name);
+                    fprintf(output, "priv_int*** %s", tree->decl->decl->u.id->name);
             }
         }
         break;
@@ -4093,14 +4093,14 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
             if (tree->spec)
                 fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
             else
-                fprintf(output, "int %s", tree->decl->u.id->name);
+                fprintf(output, "priv_int %s", tree->decl->u.id->name);
             break;
         }
         if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
             if (tree->spec)
                 fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
             else
-                fprintf(output, "int* %s", tree->decl->u.id->name);
+                fprintf(output, "priv_int* %s", tree->decl->u.id->name);
             break;
         }
         /* struct or union declaration -- for now we only support static declaration */
@@ -4136,10 +4136,10 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
     case DARRAY:
         if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
             if (tree->decl->type == DIDENT)
-                fprintf(output, "int* %s", tree->decl->u.id->name);
+                fprintf(output, "priv_int* %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
                 if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "int** %s", tree->decl->decl->u.id->name);
+                    fprintf(output, "priv_int** %s", tree->decl->decl->u.id->name);
                 else if (tree->decl->decl->type == DARRAY) {
                     printf("We do not support array dimension larger than two.\n");
                     exit(0);
@@ -4147,10 +4147,10 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
             }
         } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
             if (tree->decl->type == DIDENT)
-                fprintf(output, "int** %s", tree->decl->u.id->name);
+                fprintf(output, "priv_int** %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
                 if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "int*** %s", tree->decl->decl->u.id->name);
+                    fprintf(output, "priv_int*** %s", tree->decl->decl->u.id->name);
                 else if (tree->decl->decl->type == DARRAY) {
                     printf("We do not support array dimension larger than two.\n");
                     exit(0);
@@ -4177,7 +4177,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
             }
             // private int
             else {
-                fprintf(output, "int %s;\n", tree->decl->u.id->name);
+                fprintf(output, "priv_int %s;\n", tree->decl->u.id->name);
                 indent();
                 fprintf(output, "ss_init(%s);\n", tree->decl->u.id->name);
             }
@@ -4189,9 +4189,9 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
                 int level = ast_compute_ptr_level(tree);
                 fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
             } else {
-                fprintf(output, "int* %s; \n", tree->decl->u.id->name);
+                fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
                 indent();
-                fprintf(output, "%s = (int*)malloc(sizeof(int) * (4));\n", tree->decl->u.id->name);
+                fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
                 indent();
                 fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
                 indlev++;
@@ -4293,11 +4293,11 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
     case DARRAY:
         if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
             if (tree->decl->type == DIDENT)
-                fprintf(output, "int* %s; \n", tree->decl->u.id->name);
+                fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
             // for two-dimensional array
             else if (tree->decl->type == DARRAY) {
                 if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "int** %s; \n", tree->decl->decl->u.id->name);
+                    fprintf(output, "priv_int** %s; \n", tree->decl->decl->u.id->name);
                 else if (tree->decl->decl->type == DARRAY) {
                     printf("We do not support array dimension larger than two.\n");
                     exit(0);
@@ -4309,10 +4309,10 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
             }
         } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
             if (tree->decl->type == DIDENT)
-                fprintf(output, "int** %s; \n", tree->decl->u.id->name);
+                fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
                 if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "int*** %s; \n", tree->decl->decl->u.id->name);
+                    fprintf(output, "priv_int*** %s; \n", tree->decl->decl->u.id->name);
                 else if (tree->decl->decl->type == DARRAY) {
                     printf("We do not support array dimension larger than two.\n");
                     exit(0);
@@ -4330,10 +4330,10 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
 void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     indent();
     if (tree->decl->type == DIDENT) {
-        fprintf(output, "%s%s = (int*)malloc(sizeof(int) * (", prefix, tree->decl->u.id->name);
+        fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
         ast_expr_show(tree->u.expr);
     } else if (tree->decl->type == DARRAY) {
-        fprintf(output, "%s%s = (int**)malloc(sizeof(int*) * (", prefix, tree->decl->decl->u.id->name);
+        fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
         ast_expr_show(tree->decl->u.expr);
     }
     fprintf(output, "));\n");
@@ -4356,7 +4356,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i] = (int*)malloc(sizeof(int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
         indent();
         fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
         indent();
@@ -4415,10 +4415,10 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
 void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
     indent();
     if (tree->decl->type == DIDENT) {
-        fprintf(output, "%s%s = (int**)malloc(sizeof(int*) * (", prefix, tree->decl->u.id->name);
+        fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
         ast_expr_show(tree->u.expr);
     } else if (tree->decl->type == DARRAY) {
-        fprintf(output, "%s%s = (int***)malloc(sizeof(int**) * (", prefix, tree->decl->decl->u.id->name);
+        fprintf(output, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
         ast_expr_show(tree->decl->u.expr);
     }
     fprintf(output, "));\n");
@@ -4436,7 +4436,7 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
         fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i] = (int*)malloc(sizeof(int) * (4));\n", prefix, tree->decl->u.id->name);
+        fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->u.id->name);
         indent();
         fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
         indent();
@@ -4451,14 +4451,14 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
         fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i] = (int**)malloc(sizeof(int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        fprintf(output, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
         indent();
         fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
         indent();
         fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i][_picco_j] = (int*)malloc(sizeof(int) * (4));\n", prefix, tree->decl->decl->u.id->name);
+        fprintf(output, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->decl->u.id->name);
         indent();
         fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
         indent();
@@ -4667,7 +4667,7 @@ void ast_decl_show(astdecl tree) {
 void ast_tmp_decl_show(char *prefix, int sidx, int eidx) {
     if (eidx >= sidx) {
         indent();
-        fprintf(output, "int ");
+        fprintf(output, "priv_int ");
         for (ind = sidx; ind < eidx; ind++)
             fprintf(output, "%stmp%d, ", prefix, ind);
         fprintf(output, "%stmp%d;\n", prefix, eidx);
@@ -4683,7 +4683,7 @@ void ast_float_tmp_decl_show(char *prefix, int sidx, int eidx) {
     if (eidx >= sidx) {
         for (ind = sidx; ind <= eidx; ind++) {
             indent();
-            fprintf(output, "int* %stmp%d = (int*)malloc(sizeof(int) * 4);\n", prefix, ind);
+            fprintf(output, "priv_int* %stmp%d = (priv_int*)malloc(sizeof(priv_int) * 4);\n", prefix, ind);
             indent();
             fprintf(output, "for(int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
             indlev++;
@@ -4896,7 +4896,7 @@ void ast_temporary_variable_declaration() {
     fprintf(output, "void* _picco_temp_;\n ");
     if (is_priv_int_index_appear || is_priv_float_index_appear) {
         indent();
-        fprintf(output, "int _picco_priv_ind1, _picco_priv_ind2, _picco_priv_ind3;\n");
+        fprintf(output, "priv_int _picco_priv_ind1, _picco_priv_ind2, _picco_priv_ind3;\n");
         indent();
         fprintf(output, "ss_init(_picco_priv_ind1);\n");
         indent();
@@ -4907,7 +4907,7 @@ void ast_temporary_variable_declaration() {
 
     if (is_priv_int_index_appear || is_priv_int_ptr_appear) {
         indent();
-        fprintf(output, "int _picco_priv_tmp1, _picco_priv_tmp2;\n");
+        fprintf(output, "priv_int _picco_priv_tmp1, _picco_priv_tmp2;\n");
         indent();
         fprintf(output, "ss_init(_picco_priv_tmp1);\n");
         indent();
@@ -4915,9 +4915,9 @@ void ast_temporary_variable_declaration() {
     }
     if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
         indent();
-        fprintf(output, "int *_picco_priv_ftmp1 = (int*)malloc(sizeof(int) * 4);\n");
+        fprintf(output, "priv_int *_picco_priv_ftmp1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
         indent();
-        fprintf(output, "int *_picco_priv_ftmp2 = (int*)malloc(sizeof(int) * 4);\n");
+        fprintf(output, "priv_int *_picco_priv_ftmp2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
         indent();
         fprintf(output, "for(int i = 0; i < 4; i++){\n");
         indlev++;
@@ -4943,7 +4943,7 @@ void ast_temporary_variable_declaration() {
 
     if (is_priv_int_struct_field_appear) {
         indent();
-        fprintf(output, "int _picco_str_field_tmp_int1, _picco_str_field_tmp_int2, _picco_str_field_tmp_int3;\n");
+        fprintf(output, "priv_int _picco_str_field_tmp_int1, _picco_str_field_tmp_int2, _picco_str_field_tmp_int3;\n");
         indent();
         fprintf(output, "ss_init(_picco_str_field_tmp_int1);\n");
         indent();
@@ -4966,11 +4966,11 @@ void ast_temporary_variable_declaration() {
     if (is_priv_float_struct_field_appear) {
 
         indent();
-        fprintf(output, "int *_picco_str_field_tmp_float1 = (int*)malloc(sizeof(int) * 4);\n");
+        fprintf(output, "priv_int *_picco_str_field_tmp_float1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
         indent();
-        fprintf(output, "int *_picco_str_field_tmp_float2 = (int*)malloc(sizeof(int) * 4);\n");
+        fprintf(output, "priv_int *_picco_str_field_tmp_float2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
         indent();
-        fprintf(output, "int *_picco_str_field_tmp_float3 = (int*)malloc(sizeof(int) * 4);\n");
+        fprintf(output, "priv_int *_picco_str_field_tmp_float3 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
         indent();
         fprintf(output, "for(int i = 0; i < 4; i++){\n");
         indlev++;
