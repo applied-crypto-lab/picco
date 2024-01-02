@@ -12,6 +12,9 @@
 void ss_init_set(mpz_t x, mpz_t x_val);
 void ss_init(mpz_t x);
 void ss_set(mpz_t x, mpz_t x_val);
+void ss_clear(mpz_t x);
+void ss_add_ui(mpz_t rop, mpz_t op1, uint op2);
+void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2);
 
 
 void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, SecretShare *ss);

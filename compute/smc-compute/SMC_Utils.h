@@ -46,9 +46,7 @@
 
 typedef mpz_t priv_int;
 #define MPZ_CAST(X) (mpz_t *)(X)
-
 // typedef unsigned long priv_int;
-
 // typedef unsigned long Lint; // for ring size in [31,62];
 
 void ss_init_set_si(mpz_t &x, int x_val);

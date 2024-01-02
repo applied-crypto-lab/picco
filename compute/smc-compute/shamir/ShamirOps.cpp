@@ -11,6 +11,18 @@ void ss_set(mpz_t x, mpz_t x_val) {
     mpz_set(x, x_val);
 }
 
+void ss_clear(mpz_t x) {
+    mpz_clear(x);
+}
+
+void ss_add_ui(mpz_t rop, mpz_t op1, uint op2) {
+    mpz_add_ui(rop, op1, op2);
+}
+
+void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2) {
+    mpz_sub_ui(rop, op1, op2);
+}
+
 void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, SecretShare *ss) {
     mpz_t **a = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **b = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -977,8 +989,6 @@ void ss_batch_BOP_float_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resu
     ss_batch_free_operator(&result_tmp, size);
 }
 
-
-
 /************************************ INTEGER BATCH ****************************************/
 void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *a_tmp, *b_tmp, *result_tmp;
@@ -1383,8 +1393,6 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen, int blen, int resu
         ss_batch_free_operator(&result_tmp, size);
     }
 }
-
-
 
 /*********************************************** FLOAT BATCH ****************************************************/
 // public + private one-dimension float - arithmetic
