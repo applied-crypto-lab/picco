@@ -19,14 +19,9 @@
 */
 
 #include "SecretShare.h"
-#include "stdint.h"
-#include <cstdlib>
-#include <gmp.h>
-#include <iostream>
-#include <math.h>
-#include <vector>
 
-SecretShare::SecretShare(int p, int t, mpz_t mod) {
+
+ShamirSS::ShamirSS(int p, int t, mpz_t mod) {
     peers = p;
     threshold = t;
     mpz_init(fieldSize);
@@ -36,25 +31,25 @@ SecretShare::SecretShare(int p, int t, mpz_t mod) {
     gmp_randinit_mt(rstate);
 }
 
-void SecretShare::setPeers(int p) {
+void ShamirSS::setPeers(int p) {
     peers = p;
 }
 
-int SecretShare::getPeers() {
+int ShamirSS::getPeers() {
     return peers;
 }
-void SecretShare::getFieldSize(mpz_t field) {
+void ShamirSS::getFieldSize(mpz_t field) {
     mpz_set(field, fieldSize);
 }
-void SecretShare::setThreshold(int t) {
+void ShamirSS::setThreshold(int t) {
     threshold = t;
 }
-int SecretShare::getThreshold() {
+int ShamirSS::getThreshold() {
     return threshold;
 }
 
 // responsible for actually producing shares of a secret
-void SecretShare::getShares(mpz_t *shares, mpz_t secret) {
+void ShamirSS::getShares(mpz_t *shares, mpz_t secret) {
     /*mpz_t coefficient, temp;
     mpz_init(coefficient);
     mpz_init(temp);
@@ -112,7 +107,7 @@ void SecretShare::getShares(mpz_t *shares, mpz_t secret) {
     }
 }
 
-void SecretShare::getShares(mpz_t **shares, mpz_t *secrets, int size) {
+void ShamirSS::getShares(mpz_t **shares, mpz_t *secrets, int size) {
     mpz_t coefficient;
     mpz_init(coefficient);
     mpz_t temp;
@@ -138,44 +133,44 @@ void SecretShare::getShares(mpz_t **shares, mpz_t *secrets, int size) {
     mpz_clear(temp);
 }
 
-void SecretShare::modMul(mpz_t result, mpz_t x, mpz_t y) {
+void ShamirSS::modMul(mpz_t result, mpz_t x, mpz_t y) {
     mpz_mul(result, x, y);
     mpz_mod(result, result, fieldSize);
 }
 
-void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
+void ShamirSS::modMul(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
     for (int i = 0; i < size; i++)
         modMul(result[i], x[i], y[i]);
 }
 
-void SecretShare::modMul(mpz_t result, mpz_t x, long y) {
+void ShamirSS::modMul(mpz_t result, mpz_t x, long y) {
     mpz_mul_si(result, x, y);
     mpz_mod(result, result, fieldSize);
 }
 
-void SecretShare::modMul(mpz_t *result, mpz_t *x, long y, int size) {
+void ShamirSS::modMul(mpz_t *result, mpz_t *x, long y, int size) {
     for (int i = 0; i < size; ++i) {
         modMul(result[i], x[i], y);
     }
 }
 
-void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t y, int size) {
+void ShamirSS::modMul(mpz_t *result, mpz_t *x, mpz_t y, int size) {
     for (int i = 0; i < size; ++i) {
         modMul(result[i], x[i], y);
     }
 }
 
-void SecretShare::modAdd(mpz_t result, mpz_t x, mpz_t y) {
+void ShamirSS::modAdd(mpz_t result, mpz_t x, mpz_t y) {
     mpz_add(result, x, y);
     mpz_mod(result, result, fieldSize);
 }
 
-void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
+void ShamirSS::modAdd(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
     for (int i = 0; i < size; i++)
         modAdd(result[i], x[i], y[i]);
 }
 
-void SecretShare::modAdd(mpz_t result, mpz_t x, long y) {
+void ShamirSS::modAdd(mpz_t result, mpz_t x, long y) {
     mpz_t y1;
     mpz_init_set_si(y1, y);
     mpz_add(result, x, y1);
@@ -183,27 +178,27 @@ void SecretShare::modAdd(mpz_t result, mpz_t x, long y) {
     mpz_clear(y1);
 }
 
-void SecretShare::modAdd(mpz_t *result, mpz_t *x, long y, int size) {
+void ShamirSS::modAdd(mpz_t *result, mpz_t *x, long y, int size) {
     for (int i = 0; i < size; ++i)
         modAdd(result[i], x[i], y);
 }
 
-void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t y, int size) {
+void ShamirSS::modAdd(mpz_t *result, mpz_t *x, mpz_t y, int size) {
     for (int i = 0; i < size; i++)
         modAdd(result[i], x[i], y);
 }
 
-void SecretShare::modSub(mpz_t result, mpz_t x, mpz_t y) {
+void ShamirSS::modSub(mpz_t result, mpz_t x, mpz_t y) {
     mpz_sub(result, x, y);
     mpz_mod(result, result, fieldSize);
 }
 
-void SecretShare::modSub(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
+void ShamirSS::modSub(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
     for (int i = 0; i < size; i++)
         modSub(result[i], x[i], y[i]);
 }
 
-void SecretShare::modSub(mpz_t result, mpz_t x, long y) {
+void ShamirSS::modSub(mpz_t result, mpz_t x, long y) {
     mpz_t y1;
     mpz_init_set_si(y1, y);
     mpz_sub(result, x, y1);
@@ -211,7 +206,7 @@ void SecretShare::modSub(mpz_t result, mpz_t x, long y) {
     mpz_clear(y1);
 }
 
-void SecretShare::modSub(mpz_t result, long x, mpz_t y) {
+void ShamirSS::modSub(mpz_t result, long x, mpz_t y) {
     mpz_t x1;
     mpz_init_set_si(x1, x);
     mpz_sub(result, x1, y);
@@ -219,36 +214,36 @@ void SecretShare::modSub(mpz_t result, long x, mpz_t y) {
     mpz_clear(x1);
 }
 
-void SecretShare::modSub(mpz_t *result, mpz_t *x, long y, int size) {
+void ShamirSS::modSub(mpz_t *result, mpz_t *x, long y, int size) {
     for (int i = 0; i < size; ++i)
         modSub(result[i], x[i], y);
 }
 
-void SecretShare::modSub(mpz_t *result, long x, mpz_t *y, int size) {
+void ShamirSS::modSub(mpz_t *result, long x, mpz_t *y, int size) {
     for (int i = 0; i < size; ++i)
         modSub(result[i], x, y[i]);
 }
 
-void SecretShare::modSub(mpz_t *result, mpz_t *x, mpz_t y, int size) {
+void ShamirSS::modSub(mpz_t *result, mpz_t *x, mpz_t y, int size) {
     for (int i = 0; i < size; ++i)
         modSub(result[i], x[i], y);
 }
 
-void SecretShare::modSub(mpz_t *result, mpz_t x, mpz_t *y, int size) {
+void ShamirSS::modSub(mpz_t *result, mpz_t x, mpz_t *y, int size) {
     for (int i = 0; i < size; ++i)
         modSub(result[i], x, y[i]);
 }
 
-void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
+void ShamirSS::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
     mpz_powm(result, base, exponent, fieldSize);
 }
 
-void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
+void ShamirSS::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
     for (int i = 0; i < size; i++)
         mpz_powm(result[i], base[i], exponent[i], fieldSize);
 }
 
-void SecretShare::modPow(mpz_t result, mpz_t base, long exponent) {
+void ShamirSS::modPow(mpz_t result, mpz_t base, long exponent) {
     mpz_t value;
     mpz_init_set_si(value, exponent);
     modAdd(value, value, (long)0);
@@ -256,12 +251,12 @@ void SecretShare::modPow(mpz_t result, mpz_t base, long exponent) {
     mpz_clear(value);
 }
 
-void SecretShare::modPow(mpz_t *result, mpz_t *base, long exponent, int size) {
+void ShamirSS::modPow(mpz_t *result, mpz_t *base, long exponent, int size) {
     for (int i = 0; i < size; ++i)
         modPow(result[i], base[i], exponent);
 }
 
-void SecretShare::modInv(mpz_t result, mpz_t value) {
+void ShamirSS::modInv(mpz_t result, mpz_t value) {
     mpz_t temp;
     mpz_init(temp);
     mpz_sub_ui(temp, fieldSize, 2);
@@ -269,12 +264,12 @@ void SecretShare::modInv(mpz_t result, mpz_t value) {
     mpz_clear(temp);
 }
 
-void SecretShare::modInv(mpz_t *result, mpz_t *values, int size) {
+void ShamirSS::modInv(mpz_t *result, mpz_t *values, int size) {
     for (int i = 0; i < size; i++)
         modInv(result[i], values[i]);
 }
 
-void SecretShare::modSqrt(mpz_t result, mpz_t x) {
+void ShamirSS::modSqrt(mpz_t result, mpz_t x) {
     mpz_t temp;
     mpz_init(temp);
     mpz_add_ui(temp, fieldSize, 1);
@@ -283,7 +278,7 @@ void SecretShare::modSqrt(mpz_t result, mpz_t x) {
     mpz_clear(temp);
 }
 
-void SecretShare::modSqrt(mpz_t *result, mpz_t *x, int size) {
+void ShamirSS::modSqrt(mpz_t *result, mpz_t *x, int size) {
     mpz_t *power = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++) {
         mpz_init(power[i]);
@@ -295,7 +290,7 @@ void SecretShare::modSqrt(mpz_t *result, mpz_t *x, int size) {
         mpz_clear(power[i]);
 }
 
-void SecretShare::modSum(mpz_t result, mpz_t *x, int size) {
+void ShamirSS::modSum(mpz_t result, mpz_t *x, int size) {
     mpz_set_ui(result, 0);
     for (int i = 0; i < size; ++i) {
         mpz_add(result, result, x[i]);
@@ -303,7 +298,7 @@ void SecretShare::modSum(mpz_t result, mpz_t *x, int size) {
     mpz_mod(result, result, fieldSize);
 }
 
-void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t *m, int size) {
+void ShamirSS::mod(mpz_t *result, mpz_t *a, mpz_t *m, int size) {
     mpz_t tmp;
     mpz_init(tmp);
     for (int i = 0; i < size; ++i) {
@@ -318,7 +313,7 @@ void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t *m, int size) {
     }
 }
 
-void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t m, int size) {
+void ShamirSS::mod(mpz_t *result, mpz_t *a, mpz_t m, int size) {
     mpz_t tmp;
     mpz_init(tmp);
     for (int i = 0; i < size; ++i) {
@@ -333,11 +328,11 @@ void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t m, int size) {
     }
 }
 
-void SecretShare::copy(mpz_t *src, mpz_t *des, int size) {
+void ShamirSS::copy(mpz_t *src, mpz_t *des, int size) {
     for (int i = 0; i < size; i++)
         mpz_set(des[i], src[i]);
 }
-void SecretShare::computeSharingMatrix() {
+void ShamirSS::computeSharingMatrix() {
     // initialize the shairngMatrix
     mpz_t t1, t2;
     mpz_init(t1);
@@ -359,7 +354,7 @@ void SecretShare::computeSharingMatrix() {
     mpz_clear(t2);
 }
 
-void SecretShare::computeLagrangeWeight() {
+void ShamirSS::computeLagrangeWeight() {
     mpz_t nom, denom, t1, t2, temp;
     mpz_init(nom);
     mpz_init(denom);
@@ -397,7 +392,7 @@ void SecretShare::computeLagrangeWeight() {
     mpz_clear(temp);
 }
 
-void SecretShare::reconstructSecret(mpz_t result, mpz_t *y, bool isMultiply) {
+void ShamirSS::reconstructSecret(mpz_t result, mpz_t *y) {
     mpz_t temp;
     mpz_init(temp);
     mpz_set_ui(result, 0);
@@ -408,7 +403,7 @@ void SecretShare::reconstructSecret(mpz_t result, mpz_t *y, bool isMultiply) {
     mpz_clear(temp);
 }
 
-void SecretShare::reconstructSecret(mpz_t *result, mpz_t **y, int size, bool isMultiply) {
+void ShamirSS::reconstructSecret(mpz_t *result, mpz_t **y, int size) {
     mpz_t temp;
     mpz_init(temp);
     for (int i = 0; i < size; i++)

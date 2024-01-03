@@ -21,7 +21,6 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
-#include "SecretShare.h"
 #include "stdint.h"
 #include <cstdlib>
 #include <gmp.h>
@@ -30,9 +29,20 @@
 #include <vector>
 
 class SecretShare {
-
 public:
-    SecretShare(int, int, mpz_t);
+    // SecretShare() {};
+    virtual ~SecretShare(){};
+    virtual void getFieldSize(mpz_t){};
+    virtual void getShares(mpz_t *, mpz_t){};
+    virtual void getShares(mpz_t **, mpz_t *, int){};
+    virtual void reconstructSecret(mpz_t, mpz_t *){};
+    virtual void reconstructSecret(mpz_t *, mpz_t **, int){};
+};
+
+class ShamirSS : public SecretShare {
+public:
+    ShamirSS(int, int, mpz_t);
+    ~ShamirSS(){};
 
     // Set the number of peers
     void setPeers(int p);
@@ -50,8 +60,8 @@ public:
     void computeSharingMatrix();
 
     // Reconstruct a secret from shares
-    void reconstructSecret(mpz_t, mpz_t *, bool);
-    void reconstructSecret(mpz_t *, mpz_t **, int, bool);
+    void reconstructSecret(mpz_t, mpz_t *);
+    void reconstructSecret(mpz_t *, mpz_t **, int);
 
     // Modular Multiplication
     void modMul(mpz_t, mpz_t, mpz_t);
@@ -108,4 +118,16 @@ private:
     int bits;
     gmp_randstate_t rstate;
 };
+
+// templated subclass, will be fully implemented below because of T's
+template <typename T>
+class RSS : public SecretShare {
+public:
+    RSS(int, int); // only needs n and t, the ring size is derived from sizeof(T)
+    ~RSS(){};
+
+    void getShares(T *, T);
+    void reconstructSecret(T, T *);
+};
+
 #endif

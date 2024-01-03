@@ -26,6 +26,7 @@
 #include <sstream>
 #include <string.h>
 using namespace std;
+
 // these will be eventually read from the config files;
 int numOfComputeNodes;
 int numOfInputNodes;
@@ -87,7 +88,16 @@ int main(int argc, char **argv) {
     std::ifstream inputFiles[numOfInput];
     std::ofstream outputFiles[numOfOutput];
 
-    ss = new SecretShare(numOfComputeNodes, threshold, modulus);
+    // this will go where we determine which technique we're using
+    ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
+
+    // testing polymorphism
+    // mpz_t field_test;
+    // mpz_init(field_test);
+    // ss->getFieldSize(field_test);
+    // gmp_printf("field_test %Zd\n", field_test);
+    // return 0;
+
     /******************************************************/
     // open all input and output files
     std::string file(argv[3]);
