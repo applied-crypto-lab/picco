@@ -389,11 +389,11 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
                 // tracker = 0;
                 z = T(0);
 
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                     c[T_index][i] = c[T_index][i] ^ z;
                     trackers[T_index] += 1;
-                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                     c[T_index][i] = c[T_index][i] ^ z;
                     v[i] = v[i] ^ z;
@@ -468,12 +468,12 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     tracker++;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
@@ -552,12 +552,12 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     tracker++;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
@@ -635,10 +635,10 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             for (T_index = 0; T_index < numShares; T_index++) {
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
                     trackers[T_index] += 1;
-                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
                     v[i] = v[i] ^ buffer[T_index][trackers[T_index]];
                     trackers[T_index] += 1;
@@ -935,12 +935,12 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     tracker++;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
@@ -1399,12 +1399,12 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] ^= z;
                     tracker++;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] ^= z;
                     v[i] ^= z;
@@ -1495,11 +1495,11 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] ^= buffer[T_index][trackers[T_index]];
                     tracker++;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
 
                     v[i] ^= buffer[T_index][trackers[T_index]];

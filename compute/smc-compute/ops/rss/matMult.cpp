@@ -472,11 +472,11 @@ void Rss_MatMultArray_batch_5pc(Lint **c, Lint **a, Lint **b, uint m, uint n, ui
                     for (T_index = 0; T_index < numShares; T_index++) {
                         z = 0;
 
-                        if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                        if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                             memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                             c[T_index][v_index] += z;
                             trackers[T_index] += 1;
-                        } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                        } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                             memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                             c[T_index][v_index] += z;
                             v[v_index] = v[v_index] - z;
@@ -595,11 +595,11 @@ void Rss_dw_matrixmul_5pc(Lint **res, Lint **x, Lint **W, uint width, uint heigh
                         for (T_index = 0; T_index < numShares; T_index++) {
                             z = 0;
 
-                            if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                            if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                                 memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                                 res[T_index][dp_index] += z;
                                 trackers[T_index] += 1;
-                            } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                            } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                                 memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                                 res[T_index][dp_index] += z;
                                 v[dp_index] = v[dp_index] - z;
@@ -712,11 +712,11 @@ void Rss_pw_matrixmul_5pc(Lint **res, Lint **x, Lint **W, uint width, uint heigh
                     for (T_index = 0; T_index < numShares; T_index++) {
                         z = 0;
 
-                        if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                        if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                             memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                             res[T_index][dp_index] += z;
                             trackers[T_index] += 1;
-                        } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                        } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                             memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                             res[T_index][dp_index] += z;
                             v[dp_index] = v[dp_index] - z;
@@ -858,14 +858,14 @@ void Rss_MatMultArray_batch_7pc(Lint **c, Lint **a, Lint **b, uint m, uint n, ui
             for (T_index = 0; T_index < numShares; T_index++) {
                 z = 0;
                 // printf("before if else\n");
-                //  if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_5pc[T_index], numParties)))) {
+                //  if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                     // printf("T_index = %u, v_index = %u \n", T_index, v_index);
                     c[T_index][i] += z;
                     trackers[T_index] += 1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_5pc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
                     // printf("elif\n");
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                     c[T_index][i] += z;

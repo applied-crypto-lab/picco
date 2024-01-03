@@ -65,6 +65,8 @@
     NK = _mm_xor_si128(NK, _mm_shuffle_epi32(_mm_aeskeygenassist_si128(OK, RND), 0xff));
 
 
+// the RSS SecretShare class is implemented entirely in this header file, due to it being templated (for 32- and 64- bit computation)
+
 template <typename T>
 class SecretShare {
 
@@ -77,6 +79,7 @@ public:
     uint getThreshold();
     uint nCk(uint n, uint k);
 
+
     __m128i *prg_keyschedule(uint8_t *src);
     void prg_aes(uint8_t *, uint8_t *, __m128i *);
     void prg_setup_3();
@@ -84,6 +87,10 @@ public:
     void prg_setup_mp_7();
     void prg_getrandom(int keyID, uint size, uint length, uint8_t *dest);
     void prg_getrandom(uint size, uint length, uint8_t *dest);
+
+    // void modMul(T rop, T op1, T op2);
+    // void modAdd(T rop, T op1, T op2);
+
 
     uint id;
     T *SHIFT;
@@ -100,12 +107,10 @@ private:
     uint threshold;      // t
     uint numShares;      // (n-1) choose t
     uint totalNumShares; // n choose t
-
     uint8_t **random_container;
     int container_size;
     int *P_container;
     __m128i **prg_key;
-
     NodeNetwork *nNet;
 };
 
