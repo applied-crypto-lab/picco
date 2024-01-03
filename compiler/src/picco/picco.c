@@ -70,9 +70,9 @@ char *MAIN_RENAME = "__original_main";
 int bits = 0;      /* Bits for modulus */
 int peers = 0;     /* Number of computational parties */
 int threshold = 0; /* Secret sharing parameter */
-int inputs = 1;    /* Number of input parties */
-int outputs = 1;   /* Number of ouput parties */
-char technique[100];  /* The technique used either rss or shamir */
+int inputs = 0;    /* Number of input parties */
+int outputs = 0;   /* Number of ouput parties */
+char technique[100] = "rss";  /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
 int kappa;
@@ -199,7 +199,16 @@ int getopts(int argc, char *argv[]) {
 }
 
 #include "ort.defs"
-/*Helper Function for laodConfig()*/
+/*Helper Functions for laodConfig() used to check if a value 
+is a number and remove any extra digits from the input.
+
+removeNonDigit(value)
+This function takes a string (value) and removes any non-digit characters, replacing them with a space.
+
+isNumeric(value)
+This function checks if a given string (value) contains only numeric characters.
+*/
+
 char* removeNonDigit(char *value){
   for (char *c = value; *c; ++c) {
     if (!isdigit(*c)) {
@@ -209,38 +218,147 @@ char* removeNonDigit(char *value){
   return value;
 }
 
-/*Extracts the data from the config file given during execution*/
+int isNumeric(const char *value) {
+  for (const char *c = value; *c; ++c) {
+    if (!isdigit(*c)) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+/*Extracts the data from the config file given during execution
+The function below could handle multiple cases: 
+    1. Inputs could be in any order. 
+    2. Defaults the technique rss.
+    3. Ignores extra spaces and tabs.
+    4. Provides a hard stop (execution termination with an error message) if
+        a. Any numeric field (bits, peers, threshold, inputs, outputs) contains something other than a single integer. 
+        b. The technique field contains something other than "shamir" or "rss".
+        c. Peers is not an an odd integer.
+        d. Peers is not equal to 2*threshold+1.
+        e. If the same variable appears more than once or if a line is not of the form "var:value".
+*/
 void loadConfig(char *config) {
-    FILE *fp;
-    fp = fopen(config, "r");
 
-    int line[100];
+  FILE *fp;
+  fp = fopen(config, "r");
 
-    // Read each line from the file using fgets. 
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        char key[100], value[100];
+  int line[100]; // Buffer to store each line of the file.
+  char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
 
-        // Parse the line into key and value using sscanf function
-        if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
-            
-            // Check which key is present and update the corresponding value - allows different order of keys
-            if (strcmp(key, "bits") == 0) {
-                bits = atoi(removeNonDigit(value));
-            } else if (strcmp(key, "peers") == 0) {
-                peers = atoi(removeNonDigit(value));
-            } else if (strcmp(key, "threshold") == 0) {
-                threshold = atoi(removeNonDigit(value));
-            } else if (strcmp(key, "inputs") == 0) {
-                inputs = atoi(removeNonDigit(value));
-            } else if (strcmp(key, "outputs") == 0) {
-                outputs = atoi(removeNonDigit(value));
-            } else if (strcmp(key, "technique") == 0) {
-                strncpy(technique, value, sizeof(technique) - 1);
-                technique[sizeof(technique) - 1] = '\0'; // Ensure null-terminated string
+  // Read each line from the file using fgets() function. 
+  while (fgets(line, sizeof(line), fp) != NULL) {
+    char key[100], value[100];
+
+    // Parse the line into key:value using sscanf function terminate with error if format is off.
+    if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
+
+      // Check for duplicated keys and terminate with an error if there is more than one.
+      for (int i = 0; i < 6; ++i) {
+        if (strcmp(key, encounteredKeys[i]) == 0) {
+          fprintf(stderr, "Error: Duplicate key '%s' found.\n", key);
+          exit(1);
+        }
+      }
+
+      // Stores encountered keys to check for duplicates.
+      for (int i = 0; i < 6; ++i) {
+        if (encounteredKeys[i][0] == '\0') {
+          strncpy(encounteredKeys[i], key, sizeof(encounteredKeys[i]) - 1);
+          encounteredKeys[i][sizeof(encounteredKeys[i]) - 1] = '\0';
+          break;
+        }
+      }
+
+      // Updates the configuration values based on the encountered keys.
+      if (strcmp(key, "bits") == 0) {
+          bits = atoi(removeNonDigit(value));
+      } else if (strcmp(key, "peers") == 0) {
+          peers = atoi(removeNonDigit(value));
+      } else if (strcmp(key, "threshold") == 0) {
+          threshold = atoi(removeNonDigit(value));
+      } else if (strcmp(key, "inputs") == 0) {
+          inputs = atoi(removeNonDigit(value));
+      } else if (strcmp(key, "outputs") == 0) {
+          outputs = atoi(removeNonDigit(value));
+      } else if (strcmp(key, "technique") == 0) {
+          strncpy(technique, value, sizeof(technique) - 1);
+          technique[sizeof(technique) - 1] = '\0'; 
+
+          // Convert technique to lowercase to take care of the case if user inputs Rss or Shamir. 
+          for (char *c = technique; *c; ++c) {
+            *c = tolower(*c);
+          }
+      }
+
+      // Validate numeric fields and terminate with an error if anything else is given. 
+      if ((strcmp(key, "bits") == 0 || strcmp(key, "peers") == 0 ||
+           strcmp(key, "threshold") == 0 || strcmp(key, "inputs") == 0 ||
+           strcmp(key, "outputs") == 0) && !isNumeric(value)) {
+        fprintf(stderr, "Error: %s must be a single integer.\n", key);
+        exit(1);
+      }
+    } else {
+      // Check for = only if the line is not a key:value meaning if user inputs key=value or key_value or key-value
+      if (strstr(line, "bits:") == NULL &&
+          strstr(line, "peers:") == NULL &&
+          strstr(line, "threshold:") == NULL &&
+          strstr(line, "inputs:") == NULL &&
+          strstr(line, "outputs:") == NULL &&
+          strstr(line, "technique:") == NULL) {
+            if (strstr(line, "=") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
+                fprintf(stderr, "Error: Invalid Format! Use ':' between key and value!\n");
+                exit(1);
             }
         }
     }
-    fclose(fp);
+  }
+
+  fclose(fp);
+
+  // Check if the required inputs have been given or not. 
+  if (inputs == 0 ){
+    fprintf(stderr, "Error: Inputs must be specified.\n");
+    exit(1);
+  } else if(peers == 0) {
+    fprintf(stderr, "Error: Peers must be specified.\n");
+    exit(1);
+  } else if(threshold == 0) {
+    fprintf(stderr, "Error: Threshold must be specified.\n");
+    exit(1);
+  } else if(outputs == 0) {
+    fprintf(stderr, "Error: Outputs must be specified.\n");
+    exit(1);
+  }
+
+  // Check if 'peers' meet the requirments.
+  if (peers % 2 == 0) {
+    fprintf(stderr, "Error: Peers must be an odd integer.\n");
+    exit(1);
+  }
+
+  if (peers != 2 * threshold + 1) {
+    fprintf(stderr, "Error: Peers must be equal to 2 * threshold + 1.\n");
+    exit(1);
+  }
+
+  // Check if 'technique' meet the requirments.
+  if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
+    fprintf(stderr, "Error: Invalid value for technique.\n");
+    exit(1);
+  }
+
+  // Validate 'peers' value based on 'technique' used
+  if (strcasecmp(technique, "rss") == 0 && peers > 7) {
+    fprintf(stderr, "Error: For 'rss' technique, peers must be less than or equal to 7.\n");
+    exit(1);
+  }
+
+  if (strcasecmp(technique, "shamir") == 0 && peers > 20) {
+    fprintf(stderr, "Error: For 'shamir' technique, peers must be less than or equal to 20.\n");
+    exit(1);
+  }
 }
 
 // In this code argc and argv will be increased by 1
