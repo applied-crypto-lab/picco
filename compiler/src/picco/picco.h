@@ -90,4 +90,7 @@ extern void warning(char *format, ...);
 
 extern int nChoosek(int n, int k);
 
+// The constant variable for the technique: rss-1 or shamir-2
+extern const int TECHNIQUE;
+
 #endif

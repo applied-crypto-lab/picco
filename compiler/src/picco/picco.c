@@ -77,6 +77,7 @@ int total_threads = 0;
 int nu;
 int kappa;
 int kappa_nu;
+const int TECHNIQUE = 0; //Default to 0 (rss-1, shamir-2)
 
 void getPrime(mpz_t, int);
 
@@ -92,10 +93,14 @@ void append_new_main(bool mode) {
                "/* smc-compiler generated main() */\n"
                "int %s(int argc, char **argv) {\n",
                MAIN_NEWNAME);
-    mpz_t modulus2;
-    mpz_init(modulus2);
-    getPrime(modulus2, bits);
-    char *res = mpz_get_str(NULL, 10, modulus2);
+
+    // Conditionally include the lines based on the TECHNIQUE variable (shamir-2)
+    if (TECHNIQUE == 2) {
+        mpz_t modulus2;
+        mpz_init(modulus2);
+        getPrime(modulus2, bits);
+        char *res = mpz_get_str(NULL, 10, modulus2);
+    }
 
     // Check the input parameters
     // this will be different based on flag
@@ -290,6 +295,13 @@ void loadConfig(char *config) {
           for (char *c = technique; *c; ++c) {
             *c = tolower(*c);
           }
+
+        // Check the value of 'technique' and set 'TECHNIQUE' accordingly
+        if (strcmp(technique, "rss") == 0) {
+            TECHNIQUE = 1; // Set to RSS-1
+        } else if (strcmp(technique, "shamir") == 0) {
+            TECHNIQUE = 2; // Set to Shamir-2
+        }
       }
 
       // Validate numeric fields and terminate with an error if anything else is given. 
@@ -474,18 +486,25 @@ int main(int argc, char *argv[]) {
     FILE *vfp = fopen(var_list, "r");
     char *line = (char *)malloc(sizeof(char) * 256);
 
-    mpz_t modulus2;
-    mpz_init(modulus2);
-    getPrime(modulus2, bits);
-    // gmp_printf("%Zd\n", modulus2);
-    char *res = mpz_get_str(NULL, 10, modulus2);
+    // Conditionally include the lines based on the TECHNIQUE variable (shamir-2)
+    if (TECHNIQUE == 2) {
+        mpz_t modulus2;
+        mpz_init(modulus2);
+        getPrime(modulus2, bits);
+        // gmp_printf("%Zd\n", modulus2);
+        char *res = mpz_get_str(NULL, 10, modulus2);
+    }
 
+    // Print TECHNIQUE as well as the other variables
+    fprintf(fp, "%s:%d\n", "technique", TECHNIQUE);
     fprintf(fp, "%s:%d\n", "bits", bits);
-    fprintf(fp, "%s:%s\n", "modulus", res);
     fprintf(fp, "%s:%d\n", "peers", peers);
     fprintf(fp, "%s:%d\n", "threshold", threshold);
     fprintf(fp, "%s:%d\n", "inputs", inputs);
     fprintf(fp, "%s:%d\n", "outputs", outputs);
+    if (TECHNIQUE == 2) { // Print modulus only if TECHNIQUE is shamir-2
+        fprintf(fp, "%s:%s\n", "modulus", res);
+    }
 
     while (fgets(line, sizeof(line), vfp) != NULL)
         fprintf(fp, "%s", line);
