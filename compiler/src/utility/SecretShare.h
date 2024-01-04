@@ -127,7 +127,35 @@ public:
     ~RSS(){};
 
     void getShares(T *, T);
-    void reconstructSecret(T, T *);
+    void reconstructSecret(T*, T **, int);
 };
+
+template <typename T>
+void RSS<T>::getShares(T* result, T y) {
+    // mpz_t temp;
+    // mpz_init(temp);
+    // mpz_set_ui(result, 0);
+    // for (int peer = 0; peer < peers; peer++) {
+    //     modMul(temp, y[peer], lagrangeWeight[peer]);
+    //     modAdd(result, result, temp);
+    // }
+    // mpz_clear(temp);
+}
+template <typename T>
+void RSS<T>::reconstructSecret(T *result, T **y, int size) {
+    // mpz_t temp;
+    // mpz_init(temp);
+    // for (int i = 0; i < size; i++)
+    //     mpz_set_ui(result[i], 0);
+    // for (int i = 0; i < size; i++) {
+    //     for (int peer = 0; peer < peers; peer++) {
+    //         modMul(temp, y[peer][i], lagrangeWeight[peer]);
+    //         modAdd(result[i], result[i], temp);
+    //     }
+    // }
+    // mpz_clear(temp);
+}
+
+
 
 #endif

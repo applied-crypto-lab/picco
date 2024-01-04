@@ -254,7 +254,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         mpz_set_str(shares[k][j], tokens[j].c_str(), 10);
             }
             if (secrecy == 1)
-                ss->reconstructSecret(result, shares, size2, false);
+                ss->reconstructSecret(result, shares, size2);
             for (int j = 0; j < tokens.size(); j++) {
                 // for single variable or one-dimension
                 if (size1 == 0 && j == 0)
@@ -331,7 +331,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     for (int l = 0; l < 4; l++)
                         mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
                 }
-                ss->reconstructSecret(result, shares, 4, false);
+                ss->reconstructSecret(result, shares, 4);
                 for (int k = 0; k < 4; k++) {
                     if (k == 1) {
                         mpz_t tmp, field;
