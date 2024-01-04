@@ -50,38 +50,13 @@ int ShamirSS::getThreshold() {
 
 // responsible for actually producing shares of a secret
 void ShamirSS::getShares(mpz_t *shares, mpz_t secret) {
-    /*mpz_t coefficient, temp;
-    mpz_init(coefficient);
-    mpz_init(temp);
-    int peer;
-    for(peer = 0; peer < peers; peer++)
-        mpz_set_ui(shares[peer], 0);
 
-    for(int degree = 0; degree < threshold+1; degree++){
-        if(degree == 0)
-            mpz_set(coefficient,secret);
-
-        else{
-            mpz_urandomb(coefficient, rstate, bits);
-            if(degree == threshold && mpz_sgn(coefficient) == 0)
-                mpz_add_ui(coefficient, coefficient, 1);
-        }
-
-        for(int peer = 0; peer < peers; peer++){
-            modMul(temp, sharingMatrix[peer][degree], coefficient);
-            modAdd(shares[peer],shares[peer], temp);
-        }
-    }
-    mpz_clear(temp);
-    mpz_clear(coefficient); */
     srand(time(NULL));
     mpz_t coefficient;
     mpz_init(coefficient);
     mpz_t temp;
     mpz_init(temp);
     mpz_set_ui(temp, 0);
-    mpz_t random;
-    mpz_init(random);
 
     for (int i = 0; i < peers; i++)
         mpz_set_ui(shares[i], 0);
@@ -95,10 +70,6 @@ void ShamirSS::getShares(mpz_t *shares, mpz_t secret) {
             mpz_urandomm(coefficient, rstate, fieldSize);
             if (degree == threshold && mpz_sgn(coefficient) == 0)
                 mpz_add_ui(coefficient, coefficient, 1);
-            /*mpz_set_ui(temp,rand());
-            mpz_set(temp, random);
-            mpz_mod(coefficient, temp, fieldSize);
-            mpz_add_ui(coefficient, coefficient, 1);*/
         }
         for (int peer = 0; peer < peers; peer++) {
             modMul(temp, sharingMatrix[peer][degree], coefficient);
