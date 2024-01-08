@@ -46,7 +46,6 @@ void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstre
 void readVarList(std::ifstream &, std::ifstream[], std::ofstream[], int);
 void writeToOutputFile(std::ofstream &, std::string, std::string, int, int, int);
 void convertFloat(float value, int K, int L, mpz_t **elements);
-std::vector<std::string> splitfunc(const char *str, const char *delim);
 
 int main(int argc, char **argv) {
 
@@ -553,6 +552,7 @@ void convertFloat(float value, int K, int L, mpz_t **elements) {
         }
     }
 
+    // set to integers, not mpz_t's
     mpz_set((*elements)[0], significant);
     mpz_set_si((*elements)[1], p);
     mpz_set_si((*elements)[2], z);
@@ -565,13 +565,3 @@ void convertFloat(float value, int K, int L, mpz_t **elements) {
     mpz_clear(significant);
 }
 
-std::vector<std::string> splitfunc(const char *str, const char *delim) {
-    char *saveptr;
-    char *token = strtok_r((char *)str, delim, &saveptr);
-    std::vector<std::string> result;
-    while (token != NULL) {
-        result.push_back(token);
-        token = strtok_r(NULL, delim, &saveptr);
-    }
-    return result;
-}
