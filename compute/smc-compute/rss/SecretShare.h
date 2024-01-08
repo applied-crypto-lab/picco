@@ -56,14 +56,12 @@
 #include <wmmintrin.h> //for intrinsics for AES-NI
 #include <x86intrin.h>
 
-
 #define KE2(NK, OK, RND)                           \
     NK = OK;                                       \
     NK = _mm_xor_si128(NK, _mm_slli_si128(NK, 4)); \
     NK = _mm_xor_si128(NK, _mm_slli_si128(NK, 4)); \
     NK = _mm_xor_si128(NK, _mm_slli_si128(NK, 4)); \
     NK = _mm_xor_si128(NK, _mm_shuffle_epi32(_mm_aeskeygenassist_si128(OK, RND), 0xff));
-
 
 // the RSS SecretShare class is implemented entirely in this header file, due to it being templated (for 32- and 64- bit computation)
 
@@ -79,7 +77,6 @@ public:
     uint getThreshold();
     uint nCk(uint n, uint k);
 
-
     __m128i *prg_keyschedule(uint8_t *src);
     void prg_aes(uint8_t *, uint8_t *, __m128i *);
     void prg_setup_3();
@@ -91,7 +88,6 @@ public:
     // void modMul(T rop, T op1, T op2);
     // void modAdd(T rop, T op1, T op2);
 
-
     uint id;
     T *SHIFT;
     T *ODD;
@@ -102,6 +98,7 @@ public:
     int **open_map_mpc = nullptr;
     int **eda_map_mpc = nullptr;
     int **T_map_mpc = nullptr;
+
 private:
     uint numParties;     // n
     uint threshold;      // t
@@ -114,8 +111,7 @@ private:
     NodeNetwork *nNet;
 };
 
-
-/* method definitions */ 
+/* method definitions */
 template <typename T>
 SecretShare<T>::SecretShare(NodeNetwork *nodeNet, uint _id, uint n, uint t, uint ring_size) {
     id = _id;
@@ -124,7 +120,6 @@ SecretShare<T>::SecretShare(NodeNetwork *nodeNet, uint _id, uint n, uint t, uint
     numShares = nCk(numParties - 1, threshold);  // shares PER PARTY
     totalNumShares = nCk(numParties, threshold); // total shares
     nNet = nodeNet;                              // just stores a reference to nodeNet, only used for prg_setup
-
 
     SHIFT = new T[sizeof(T) * 8];
     ODD = new T[ring_size + 2];
@@ -893,10 +888,10 @@ SecretShare<T>::~SecretShare() {
     delete[] general_map;
 
     if (numParties == 5 or numParties == 7) {
-    for (size_t i = 0; i < 2; i++) {
-        delete[] open_map_mpc[i];
-        delete[] eda_map_mpc[i];
-    }
+        for (size_t i = 0; i < 2; i++) {
+            delete[] open_map_mpc[i];
+            delete[] eda_map_mpc[i];
+        }
         for (size_t i = 0; i < numShares; i++) {
             delete[] T_map_mpc[i];
         }
@@ -914,8 +909,6 @@ SecretShare<T>::~SecretShare() {
     delete[] EVEN;
 }
 
-
 // #include "SecretShare.tpp"
-
 
 #endif

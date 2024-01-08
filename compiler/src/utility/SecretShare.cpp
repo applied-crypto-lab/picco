@@ -20,6 +20,16 @@
 
 #include "SecretShare.h"
 
+std::vector<std::string> splitfunc(const char *str, const char *delim) {
+    char *saveptr;
+    char *token = strtok_r((char *)str, delim, &saveptr);
+    std::vector<std::string> result;
+    while (token != NULL) {
+        result.push_back(token);
+        token = strtok_r(NULL, delim, &saveptr);
+    }
+    return result;
+}
 
 ShamirSS::ShamirSS(int p, int t, mpz_t mod) {
     peers = p;
