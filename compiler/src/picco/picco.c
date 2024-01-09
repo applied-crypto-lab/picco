@@ -77,7 +77,7 @@ int total_threads = 0;
 int nu;
 int kappa;
 int kappa_nu;
-const int TECHNIQUE = 0; //Default to 0 (rss-1, shamir-2)
+int technique_var = 0; //Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
 
@@ -94,8 +94,8 @@ void append_new_main(bool mode) {
                "int %s(int argc, char **argv) {\n",
                MAIN_NEWNAME);
 
-    // Conditionally include the lines based on the TECHNIQUE variable (shamir-2)
-    if (TECHNIQUE == 2) {
+    // Conditionally include the lines based on the technique_var variable (shamir-2)
+    if (technique_var == SHAMIR_SS) {
         mpz_t modulus2;
         mpz_init(modulus2);
         getPrime(modulus2, bits);
@@ -296,11 +296,14 @@ void loadConfig(char *config) {
             *c = tolower(*c);
           }
 
-        // Check the value of 'technique' and set 'TECHNIQUE' accordingly
+        // Check the value of 'technique' and set 'technique_var' accordingly
         if (strcmp(technique, "rss") == 0) {
-            TECHNIQUE = 1; // Set to RSS-1
+            technique_var = REPLICATED_SS; // Set to RSS-1
         } else if (strcmp(technique, "shamir") == 0) {
-            TECHNIQUE = 2; // Set to Shamir-2
+            technique_var = SHAMIR_SS; // Set to Shamir-2
+        } else {
+            fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
+            exit(1);
         }
       }
 
@@ -346,7 +349,7 @@ void loadConfig(char *config) {
 
   // Check if 'peers' meet the requirments.
   if (peers % 2 == 0) {
-    fprintf(stderr, "Error: Peers must be an odd integer.\n");
+    fprintf(stderr, "Error: Peers must be an odd integer equal to 2 * threshold + 1.\n");
     exit(1);
   }
 
@@ -357,7 +360,7 @@ void loadConfig(char *config) {
 
   // Check if 'technique' meet the requirments.
   if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
-    fprintf(stderr, "Error: Invalid value for technique.\n");
+    fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
     exit(1);
   }
 
@@ -486,8 +489,8 @@ int main(int argc, char *argv[]) {
     FILE *vfp = fopen(var_list, "r");
     char *line = (char *)malloc(sizeof(char) * 256);
 
-    // Conditionally include the lines based on the TECHNIQUE variable (shamir-2)
-    if (TECHNIQUE == 2) {
+    // Conditionally include the lines based on the technique_var variable (shamir-2)
+    if (technique_var == SHAMIR_SS) {
         mpz_t modulus2;
         mpz_init(modulus2);
         getPrime(modulus2, bits);
@@ -495,14 +498,14 @@ int main(int argc, char *argv[]) {
         char *res = mpz_get_str(NULL, 10, modulus2);
     }
 
-    // Print TECHNIQUE as well as the other variables
-    fprintf(fp, "%s:%d\n", "technique", TECHNIQUE);
+    // Print technique_var as well as the other variables
+    fprintf(fp, "%s:%d\n", "technique", technique_var);
     fprintf(fp, "%s:%d\n", "bits", bits);
     fprintf(fp, "%s:%d\n", "peers", peers);
     fprintf(fp, "%s:%d\n", "threshold", threshold);
     fprintf(fp, "%s:%d\n", "inputs", inputs);
     fprintf(fp, "%s:%d\n", "outputs", outputs);
-    if (TECHNIQUE == 2) { // Print modulus only if TECHNIQUE is shamir-2
+    if (technique_var == SHAMIR_SS) { // Print modulus only if technique_var is shamir-2
         fprintf(fp, "%s:%s\n", "modulus", res);
     }
 
