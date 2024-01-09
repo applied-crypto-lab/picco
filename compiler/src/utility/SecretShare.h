@@ -148,7 +148,7 @@ template <typename T>
 class RSS : public SecretShare {
 public:
     RSS(int, int, int); // n, t, and ring_size
-    ~RSS(){};
+    ~RSS();
 
     // depracated, to be removed
     void getShares(T *, T);
@@ -179,9 +179,8 @@ private:
     int threshold;
     int ring_size;
     std::vector<std::vector<int>> share_mapping;
-    __m128i *key_prg; // aes keyschedule
-    uint8_t *key_raw; // used to generate keyschedule
-
+    __m128i *key_prg;  // aes keyschedule
+    uint8_t *key_raw;  // used to generate keyschedule
     uint8_t *key_seed; // first seed key, overwritten in every subsequent call to prg
 };
 
@@ -246,11 +245,18 @@ RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), thresho
     }
 }
 
+template <typename T>
+RSS<T>::~RSS() {
+    delete[] key_prg;
+    delete[] key_raw;
+    delete[] key_seed;
+}
+
 // new implementations that use strings instead of technique-dependent types
 // input: string of a single input
 // return: n-dimensional vector of strings (one per party). Each string contains numShares = (n-1)Ct shares
 // the representation we use for RSS share strings is A=(x_1;x_2;...;x_numShares), using ";" as to not interfere with existing parsing
-// vectors of inputs would then be  A=(x_1;...),(y_1;...),(z_1;...)
+// vectors of inputs would then be  A=x_1;...;x_num,y_1;...;y_num,z_1;...;z_num
 template <typename T>
 std::vector<std::string> RSS<T>::getShares(std::string input) {
     if (input.empty()) {
@@ -291,7 +297,7 @@ std::vector<std::string> RSS<T>::getShares(std::string input) {
         }
         // std::stringstream joined_stream; // alternate approach using stringstream
         // joined_stream << "(";
-        std::string share_str = "(";
+        std::string share_str = "";
         for (auto &value : result_T) {
             share_str.append(std::to_string(value) + ";");
             // joined_stream << value << ",";
@@ -302,8 +308,8 @@ std::vector<std::string> RSS<T>::getShares(std::string input) {
         }
 
         // std::string share_str = joined_stream.str();
-        share_str.pop_back();  // deleting trailing ","
-        share_str.append(")"); // inserting closing paren
+        share_str.pop_back(); // deleting trailing ","
+        // share_str.append(")"); // inserting closing paren
 
         result.push_back(share_str); // adding party i's shares to result
     }
@@ -312,20 +318,45 @@ std::vector<std::string> RSS<T>::getShares(std::string input) {
 
     return result;
 }
-// input: size*n vector of strings of shares in the format (x_1;...),(y_1;...),(z_1;...)
+// input: n*size vector of strings of shares in the format (x_1;...),(y_1;...),(z_1;...)
 // return: size vector of strings of reconstructed secrets
 template <typename T>
 std::vector<std::string> RSS<T>::reconstructSecret(std::vector<std::vector<std::string>> input, int size) {
-    std::string input_delim = ",";
-    std::string share_delim = ";";
     std::vector<std::string> result;
-    for (auto &input_str : input) {
+    std::vector<std::string> share_strs;
+    std::vector<std::vector<T>> extracted(size, std::vector<T>(totalNumShares, 0)); // where we store the extracted shares are stored
+
+    // for (auto &peer : input) { // peer: vector of participant (peer)'s shares of length (size)
+    // for (auto &peer_strs : peer) {                      // peer_strs: string of shares of a secret
+    // p: 0->n
+    // i: 0->size
+    // j: 0->totalNumShares
+    for (size_t p = 0; p < input.size(); p++) { // peer.size() = size
+        auto peer = input[p];
+        for (size_t i = 0; i < peer.size(); i++) {        // peer.size() = size
+            share_strs = splitfunc(peer[i].c_str(), ";"); // vector of length numShares, split by ";"
+            // for (auto &share : share_strs) {                // share: string of a single share
+            for (size_t j = 0; j < share_strs.size(); j++) {
+                T extracted_input = 0;
+                std::from_chars(share_strs[j].data(), share_strs[j].data() + share_strs[j].size(), extracted_input);
+                // putting party p's jth share of secret i into its right place (potentially overwriting the EXACT same share that is already there)
+                // could theoretically do it directly in the above line
+                extracted[i][share_mapping[p][j]] = extracted_input;
+            }
+        }
+    }
+    // iterating through all values
+    for (auto &shares : extracted) {
+        T accumulator = 0;
+        // summing all shares together
+        for (auto &s : shares) {
+            accumulator += s;
+        }
+        accumulator = accumulator & SHIFT; // masking 
+        // **** ANB: what is the protocol if the result is negative? 
+        result.push_back(std::to_string(accumulator));
     }
     return result;
-    //     if (input.empty()) {
-    //     fprintf(stderr, "ERROR (getShares): empty input string, are your inputs formatted correctly?\n");
-    //     exit(0);
-    // }
 }
 
 template <typename T>
