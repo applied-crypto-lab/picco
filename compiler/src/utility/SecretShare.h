@@ -179,23 +179,35 @@ private:
     int threshold;
     int ring_size;
     std::vector<std::vector<int>> share_mapping;
-    __m128i *key_prg;          // aes keyschedule
-    uint8_t key_raw[KEYSIZE];  // used to generate keyschedule
-    uint8_t key_seed[KEYSIZE]; // first seed key, overwritten in every subsequent call to prg
+    __m128i *key_prg; // aes keyschedule
+    uint8_t *key_raw; // used to generate keyschedule
+
+    uint8_t *key_seed; // first seed key, overwritten in every subsequent call to prg
 };
 
 template <typename T>
 RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), threshold(_threshold), ring_size(_ring_size) {
     totalNumShares = nCk(peers, threshold);
     numShares = nCk(peers - 1, threshold);
+    key_raw = new uint8_t[KEYSIZE];
+    key_seed = new uint8_t[KEYSIZE];
+
     if (!RAND_bytes(key_raw, KEYSIZE) && !RAND_bytes(key_seed, KEYSIZE)) {
         fprintf(stderr, "ERROR (rss_setup): key generation, RAND_bytes()\n");
         exit(0);
     }
+
     key_prg = offline_prg_keyschedule(key_raw);
+    // for (size_t i = 0; i < 100; i++)
+    // {
+    //      T test_input;
+    // prg_aes_ni(&test_input, key_seed, key_prg);
+    // std::cout<<i<<": "<<test_input<<std::endl;
+    // }
 
     SHIFT = (T(1) << T(ring_size)) - T(1);
-    if (ring_size == sizeof(T) * 8) { // accomadates for undefined behavior where we left shift more than sizeof(T)
+    // accomadates for undefined behavior where we left shift more than sizeof(T)
+    if (ring_size == sizeof(T) * 8) {
         SHIFT = -1;
     }
 
@@ -342,9 +354,10 @@ void RSS<T>::offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri) { // ri used 
 template <typename T>
 __m128i *RSS<T>::offline_prg_keyschedule(uint8_t *src) {
     // correctness must be checked here (modified from original just to compile, used to not have cast (__m128i*))
-    __m128i *r = (__m128i *)malloc(1 * sizeof(__m128i));
-
+    // __m128i *r = static_cast<__m128i *>(malloc(11 * sizeof(__m128i)));
+    __m128i *r = new __m128i[11]; // alternate
     r[0] = _mm_load_si128((__m128i *)src);
+
     KE2(r[1], r[0], 0x01)
     KE2(r[2], r[1], 0x02)
     KE2(r[3], r[2], 0x04)
@@ -355,7 +368,6 @@ __m128i *RSS<T>::offline_prg_keyschedule(uint8_t *src) {
     KE2(r[8], r[7], 0x80)
     KE2(r[9], r[8], 0x1b)
     KE2(r[10], r[9], 0x36)
-
     return r;
 }
 

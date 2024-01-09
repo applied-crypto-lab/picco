@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
 
     // this will go where we determine which technique we're using
     ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
-
+    // ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
+    // return 0;
     // testing polymorphism
     // mpz_t field_test;
     // mpz_init(field_test);
