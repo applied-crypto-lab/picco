@@ -100,7 +100,7 @@ void append_new_main(bool mode) {
         mpz_t modulus2;
         mpz_init(modulus2);
         getPrime(modulus2, bits);
-        char *res = mpz_get_str(NULL, 10, modulus2);
+        res = mpz_get_str(NULL, 10, modulus2);
     }
 
     // Check the input parameters
