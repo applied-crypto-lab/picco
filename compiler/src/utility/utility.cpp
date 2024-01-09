@@ -25,6 +25,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+#include <math.h>
 using namespace std;
 
 // these will be eventually read from the config files;
@@ -45,7 +46,7 @@ void produceInputs(std::ifstream[], std::ofstream[], std::string, std::string, i
 void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstream *, int);
 void readVarList(std::ifstream &, std::ifstream[], std::ofstream[], int);
 void writeToOutputFile(std::ofstream &, std::string, std::string, int, int, int);
-void convertFloat(float value, int K, int L, mpz_t **elements);
+void convertFloat(float value, int K, int L, int *elements);
 
 int main(int argc, char **argv) {
 
@@ -495,7 +496,18 @@ void loadConfig(mpz_t mod) {
     numOfOutputNodes = results[5];
 }
 
-void convertFloat(float value, int K, int L, mpz_t **elements) {
+/**
+ * This fucntion converts floating-point number to a set of integer components based on 
+ * the specified parameters K and L. The function does some bit manipulation on the floating-point 
+ * representation of the input value to extract the sign bit (s), exponent (e), and mantissa (significand).
+ * 
+ * The integers that will be stored in elements are as follows: 
+ * 1. Significand part (significand)
+ * 2. Exponent (p)
+ * 3. Flag indicating zero (z)
+ * 4. Sign (s)
+*/
+void convertFloat(float value, int K, int L, int *elements) {
     unsigned int *newptr = (unsigned int *)&value;
     int s = *newptr >> 31;
     int e = *newptr & 0x7f800000;
@@ -505,17 +517,12 @@ void convertFloat(float value, int K, int L, mpz_t **elements) {
 
     int z;
     long v, p, k;
-    mpz_t significant, one, two, tmp, tmpm;
-    mpz_init(significant);
-    mpz_init(tmp);
-    mpz_init_set_ui(one, 1);
-    mpz_init_set_ui(two, 2);
-    mpz_init(tmpm);
+    int significand=0, one=1, two=2, tmp=0, tmpm=0;
 
     if (e == 0 && m == 0) {
         s = 0;
         z = 1;
-        mpz_set_ui(significant, 0);
+        significand = 0;
         p = 0;
     } else {
         z = 0;
@@ -523,46 +530,40 @@ void convertFloat(float value, int K, int L, mpz_t **elements) {
             k = (1 << L) - 1;
             if (e - 127 - K + 1 > k) {
                 p = k;
-                mpz_mul_2exp(significant, one, K);
-                mpz_sub_ui(significant, significant, 1);
+                significand = one << K; // Raise one to the power of K and store it to significand
+                significand = significand - 1; // Sub 1 
             } else if (e - 127 - K + 1 < -k) {
                 p = -k;
-                mpz_set_ui(significant, 1);
+                significand = 1; // Set the value of significand to 1
             } else {
                 p = e - 127 - K + 1;
                 m = m + (1 << 23);
-                mpz_set_si(tmpm, m);
+                tmpm = m; // Set the value of tmpm to m
                 if (K < 24) {
-                    mpz_pow_ui(tmp, two, 24 - K);
-                    mpz_div(significant, tmpm, tmp);
+                    tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                    significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
                 } else {
-                    mpz_mul_2exp(significant, tmpm, K - 24);
+                    significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
                 }
             }
         } else {
             p = e - 127 - K + 1;
             m = m + (1 << 23);
-            mpz_set_si(tmpm, m);
+            tmpm = m; // Set the value of tmpm to m
             if (K < 24) {
-                mpz_pow_ui(tmp, two, 24 - K);
-                mpz_div(significant, tmpm, tmp);
+                tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
             } else {
-                mpz_set(significant, tmpm);
-                mpz_mul_2exp(significant, significant, K - 24);
+                significand = tmpm; // Set significand to tmpm
+                significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
             }
         }
     }
 
-    // set to integers, not mpz_t's
-    mpz_set((*elements)[0], significant);
-    mpz_set_si((*elements)[1], p);
-    mpz_set_si((*elements)[2], z);
-    mpz_set_si((*elements)[3], s);
-
-    mpz_clear(one);
-    mpz_clear(two);
-    mpz_clear(tmp);
-    mpz_clear(tmpm);
-    mpz_clear(significant);
+    // Set the significand, p, z, and s value directly to the int array of elements.
+    elements[0] = significand;
+    elements[1] = p;
+    elements[2] = z;
+    elements[3] = s;   
 }
 

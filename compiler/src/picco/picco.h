@@ -24,6 +24,10 @@
 #ifndef __OMPI_H__
 #define __OMPI_H__
 
+// The constants will be used for technique_var type
+#define SHAMIR_SS 2
+#define REPLICATED_SS 1
+
 #include "scanner.h"
 #include "symtab.h"
 #include <stdbool.h> 
@@ -90,7 +94,7 @@ extern void warning(char *format, ...);
 
 extern int nChoosek(int n, int k);
 
-// The constant variable for the technique: rss-1 or shamir-2
-extern const int TECHNIQUE;
+// The constant variable for the technique_var: REPLICATED_SS-1 or SHAMIR_SS-2
+extern int technique_var;
 
 #endif
