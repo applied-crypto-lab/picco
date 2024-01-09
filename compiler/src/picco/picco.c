@@ -50,6 +50,7 @@ char *filename;     /* The file we parse */
 char *output_filename;
 char *var_list;
 char *final_list;
+char *res;
 /* This is for taking care of main() in the parsed code;
  * OMPi generates its own main() and replaces the original one.
  */
@@ -249,7 +250,7 @@ void loadConfig(char *config) {
   FILE *fp;
   fp = fopen(config, "r");
 
-  int line[100]; // Buffer to store each line of the file.
+  char line[100]; // Buffer to store each line of the file.
   char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
 
   // Read each line from the file using fgets() function. 
@@ -495,7 +496,7 @@ int main(int argc, char *argv[]) {
         mpz_init(modulus2);
         getPrime(modulus2, bits);
         // gmp_printf("%Zd\n", modulus2);
-        char *res = mpz_get_str(NULL, 10, modulus2);
+        res = mpz_get_str(NULL, 10, modulus2);
     }
 
     // Print technique_var as well as the other variables
