@@ -250,7 +250,7 @@ void loadConfig(char *config) {
     FILE *fp;
     fp = fopen(config, "r");
 
-    int line[100];                // Buffer to store each line of the file.
+    char line[100];                // Buffer to store each line of the file.
     char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
 
     // Read each line from the file using fgets() function.

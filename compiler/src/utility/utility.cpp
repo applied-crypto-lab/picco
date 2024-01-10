@@ -35,6 +35,8 @@ int numOfOutputNodes;
 int party;
 int bits;
 int threshold;
+int REPLICATED_SS = 1;
+int SHAMIR_SS = 2;
 
 mpz_t modulus; // Global modulus variable
 int technique; // Global technique variable 
@@ -381,7 +383,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     int base = 10;
     
     // initialization
-    element = 0
+    element = 0;
     for (int i = 0; i < numOfComputeNodes; i++)
         shares[i] = 0;
 
@@ -433,7 +435,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
 
                 int *elements = (int *)malloc(sizeof(int) * 4);
                 for (int k = 0; k < 4; k++)
-                    elements[k] = 0
+                    elements[k] = 0;
 
                 convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
 
@@ -499,7 +501,7 @@ void loadConfig() {
     if (technique == SHAMIR_SS) {
         ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
     } else if (technique == REPLICATED_SS) {
-        ss = new RSS<bits>(numOfComputeNodes, threshold, 64);
+        ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
     }
 }
 
