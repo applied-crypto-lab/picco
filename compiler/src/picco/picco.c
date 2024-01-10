@@ -50,6 +50,7 @@ char *filename;     /* The file we parse */
 char *output_filename;
 char *var_list;
 char *final_list;
+char *res;
 /* This is for taking care of main() in the parsed code;
  * OMPi generates its own main() and replaces the original one.
  */
@@ -99,7 +100,7 @@ void append_new_main(bool mode) {
         mpz_t modulus2;
         mpz_init(modulus2);
         getPrime(modulus2, bits);
-        char *res = mpz_get_str(NULL, 10, modulus2);
+        res = mpz_get_str(NULL, 10, modulus2);
     }
 
     // Check the input parameters
@@ -497,7 +498,7 @@ int main(int argc, char *argv[]) {
         mpz_init(modulus2);
         getPrime(modulus2, bits);
         // gmp_printf("%Zd\n", modulus2);
-        char *res = mpz_get_str(NULL, 10, modulus2);
+        res = mpz_get_str(NULL, 10, modulus2);
     }
 
     // Print technique_var as well as the other variables
