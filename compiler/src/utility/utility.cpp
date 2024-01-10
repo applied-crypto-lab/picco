@@ -51,7 +51,7 @@ void produceInputs(std::ifstream[], std::ofstream[], std::string, std::string, i
 void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstream *, int);
 void readVarList(std::ifstream &, std::ifstream[], std::ofstream[], int);
 void writeToOutputFile(std::ofstream &, std::string, std::string, int, int, int);
-void convertFloat(float value, int K, int L, int *elements);
+void convertFloat(float value, int K, int L, int **elements);
 
 int main(int argc, char **argv) {
 
