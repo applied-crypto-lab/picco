@@ -96,13 +96,15 @@ void append_new_main(bool mode) {
                MAIN_NEWNAME);
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
+    char *res = "";
     if (technique_var == SHAMIR_SS) {
         mpz_t modulus2;
         mpz_init(modulus2);
         getPrime(modulus2, bits);
         res = mpz_get_str(NULL, 10, modulus2);
-    }
-
+    } 
+    
+    
     // Check the input parameters
     // this will be different based on flag
     if (mode) {            // -m - measurement mode
@@ -420,13 +422,15 @@ int main(int argc, char *argv[]) {
     nu = ceil(log2(nChoosek(peers, threshold)));
     kappa_nu = kappa + nu;
     uint map_size; // how many items are in seed_map, used to calculate buffer size
-    // uint n_test = 21;
+    uint n_test = 21;
     uint *seed_map = generateSeedMap(peers, threshold, &map_size);
+    // uint *seed_map = generateSeedMap(n_test, n_test/2, &map_size);
     // map_tmp needs to be DYNAMICALLY ALLOCATED, FIX!!!!!!!
-    char map_tmp[sizeof(int) * 4 * map_size + 200];
+    int map_tmp_size = sizeof(int) * 4 * map_size + 200;
+    char map_tmp[map_tmp_size];
     sprintf(map_tmp, "std::vector<int> seed_map = {");
     int pos = 0;
-    char text[snprintf(NULL, 0, "%d", sizeof(int)) + 1];
+    char text[snprintf(NULL, 0, "%li", sizeof(int)) + 1];
     for (uint i = 0; i < map_size; i++) {
         // printf("seed_map[i]: %i\n", seed_map[i]);
         // char text[20];
@@ -443,33 +447,6 @@ int main(int argc, char *argv[]) {
     }
     strcat(map_tmp, "};");
     printf("%s\n", map_tmp);
-
-    // str_printf(strA(),
-    //            "uint map_size = %u\n",
-    //            map_size);
-    // printf("map_size %u\n", map_size);
-
-    /*
-     * 1. Preparations
-     */
-
-    /*if (argc < 3)
-    {
-    OMPI_FAILURE:
-        fprintf(stderr, "** %s should not be run directly; use %scc instead\n",
-    ;
-                  argv[0], argv[0]);
-        return (20);
-    }
-    if (strcmp(argv[2], "__ompi__") != 0)
-    {
-        if (strcmp(argv[2], "__intest__") == 0)
-            testingmode = 1;
-        else
-            goto OMPI_FAILURE;
-    }
-    if (argc > 3 && getopts(argc-3, argv+3))
-        goto OMPI_FAILURE;*/
 
     filename = argv[2];
     final_list = argv[5];
@@ -556,8 +533,6 @@ int main(int argc, char *argv[]) {
     // for n = 21, the map is not written properly to the output file
     // map_tmp contains the CORRECT genereated, it just gets cut off
     // stops writing after ~450 elements
-    p = verbit(map_tmp);
-    ast = BlockList(p, ast);
 
     // Add SMC specific include statements
     p = verbit(tmp);
@@ -565,6 +540,7 @@ int main(int argc, char *argv[]) {
     p = BlockList(p, verbit("#include <gmp.h>"));
     p = BlockList(p, verbit("#include <omp.h>"));
     p = BlockList(p, verbit("\nSMC_Utils *__s;\n"));
+    p = BlockList(p, Verbatim(strdup(map_tmp)));
 
     ast = BlockList(p, ast);
 
