@@ -394,14 +394,18 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     std::string share;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    mpz_t element;
-    mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * numOfComputeNodes);
+
+    int element; 
+    int *shares = (int *)malloc(sizeof(int) * numOfComputeNodes);
     int base = 10;
+    
     // initialization
-    mpz_init(element);
+    element = 0
     for (int i = 0; i < numOfComputeNodes; i++)
-        mpz_init(shares[i]);
+        shares[i] = 0;
+
     int dim = (size1 == 0) ? 1 : size1;
+
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
         for (int i = 0; i < dim; i++) {
@@ -410,14 +414,14 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
             tokens = splitfunc(temp[1].c_str(), ",");
 
             for (int j = 0; j < tokens.size(); j++) {
-                mpz_set_str(element, tokens[j].c_str(), 10);
+                element = std::stoi(tokens[j]);
                 if (secrecy == 1)
                     ss->getShares(shares, element);
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     if (j == 0)
                         outputFiles[k] << name + "=";
                     if (secrecy == 1)
-                        share = mpz_get_str(NULL, base, shares[k]);
+                        share = std::to_string(shares[k]);
 
                     writeToOutputFile(outputFiles[k], share, tokens[j], secrecy, j, tokens.size());
                 }
@@ -446,9 +450,9 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
 
             for (int j = 0; j < tokens.size(); j++) {
 
-                mpz_t *elements = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+                int *elements = (int *)malloc(sizeof(int) * 4);
                 for (int k = 0; k < 4; k++)
-                    mpz_init(elements[k]);
+                    elements[k] = 0
 
                 convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
 
@@ -457,13 +461,10 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                     for (int k = 0; k < numOfComputeNodes; k++) {
                         if (m == 0)
                             outputFiles[k] << name + "=";
-                        share = mpz_get_str(NULL, base, shares[k]);
+                        share = std::to_string(shares[k]);
                         writeToOutputFile(outputFiles[k], share, "", 1, m, 4);
                     }
                 }
-
-                for (int k = 0; k < 4; k++)
-                    mpz_clear(elements[k]);
                 free(elements);
             }
         }
@@ -471,11 +472,6 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
         std::cout << "Wrong type has been detected";
         std::exit(1);
     }
-
-    // free the memory
-    mpz_clear(element);
-    for (int i = 0; i < numOfComputeNodes; i++)
-        mpz_clear(shares[i]);
     free(shares);
 }
 
@@ -537,7 +533,7 @@ void loadConfig() {
  * 3. Flag indicating zero (z)
  * 4. Sign (s)
 */
-void convertFloat(float value, int K, int L, int *elements) {
+void convertFloat(float value, int K, int L, int **elements) {
     unsigned int *newptr = (unsigned int *)&value;
     int s = *newptr >> 31;
     int e = *newptr & 0x7f800000;
@@ -591,9 +587,9 @@ void convertFloat(float value, int K, int L, int *elements) {
     }
 
     // Set the significand, p, z, and s value directly to the int array of elements.
-    elements[0] = significand;
-    elements[1] = p;
-    elements[2] = z;
-    elements[3] = s;   
+    (*elements)[0] = significand;
+    (*elements)[1] = p;
+    (*elements)[2] = z;
+    (*elements)[3] = s; 
 }
 
