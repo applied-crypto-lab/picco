@@ -57,6 +57,14 @@ public:
     // SecretShare() {};
     virtual ~SecretShare(){};
     virtual void getFieldSize(mpz_t){};
+
+
+    // these are the only two virtual functions that need to be implemented in the child classes
+    // currently only implemented in RSS
+    // ShamirSS needs implementations (modification of existing functions)
+    virtual std::vector<std::string> getShares(long long );
+    virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int);
+
     virtual void getShares(mpz_t *, mpz_t){};
     virtual void getShares(mpz_t **, mpz_t *, int){};
     virtual void reconstructSecret(mpz_t, mpz_t *){};
@@ -155,8 +163,8 @@ public:
     void reconstructSecret(T *, T **, int);
 
     // new string-based version
-    std::vector<std::string> getShares(std::string input);
-    std::vector<std::string> reconstructSecret(std::vector<std::vector<std::string>> input, int size);
+    std::vector<std::string> getShares(long long input);
+    std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> input, int size);
 
     // AES prg functions
     void offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri);
@@ -258,14 +266,14 @@ RSS<T>::~RSS() {
 // the representation we use for RSS share strings is A=(x_1;x_2;...;x_numShares), using ";" as to not interfere with existing parsing
 // vectors of inputs would then be  A=x_1;...;x_num,y_1;...;y_num,z_1;...;z_num
 template <typename T>
-std::vector<std::string> RSS<T>::getShares(std::string input) {
-    if (input.empty()) {
-        fprintf(stderr, "ERROR (getShares): empty input string, are your inputs formatted correctly?\n");
-        exit(0);
-    }
+std::vector<std::string> RSS<T>::getShares(long long input) {
+    // if (input.empty()) {
+    //     fprintf(stderr, "ERROR (getShares): empty input string, are your inputs formatted correctly?\n");
+    //     exit(0);
+    // }
 
     // storing input into largest type just in case
-    long long extracted_input = stoi(input);
+    // long long extracted_input = stoi(input);
     std::vector<std::string> result;
 
     // potential alternate version that stores in T (unsigned) instead of integer (signed), need to verify (do not remove)
@@ -278,7 +286,7 @@ std::vector<std::string> RSS<T>::getShares(std::string input) {
         prg_aes_ni(splitInput[i], key_seed, key_prg);
         splitInput[i] = splitInput[i] & SHIFT; // making sure any bits beyond k are zeroed
     }
-    splitInput[totalNumShares - 1] = (extracted_input & ((T(1) << T(ring_size)) - T(1)));
+    splitInput[totalNumShares - 1] = (input & ((T(1) << T(ring_size)) - T(1)));
 
     // total = nCt
     // computing x_total = x - x_1 - x_2 - ... - x_{total-1}
@@ -321,8 +329,8 @@ std::vector<std::string> RSS<T>::getShares(std::string input) {
 // input: n*size vector of strings of shares in the format (x_1;...),(y_1;...),(z_1;...)
 // return: size vector of strings of reconstructed secrets
 template <typename T>
-std::vector<std::string> RSS<T>::reconstructSecret(std::vector<std::vector<std::string>> input, int size) {
-    std::vector<std::string> result;
+std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::string>> input, int size) {
+    std::vector<long long> result;
     std::vector<std::string> share_strs;
     std::vector<std::vector<T>> extracted(size, std::vector<T>(totalNumShares, 0)); // where we store the extracted shares are stored
 
@@ -354,7 +362,7 @@ std::vector<std::string> RSS<T>::reconstructSecret(std::vector<std::vector<std::
         }
         accumulator = accumulator & SHIFT; // masking 
         // **** ANB: what is the protocol if the result is negative? 
-        result.push_back(std::to_string(accumulator));
+        result.push_back((long long)(accumulator));
     }
     return result;
 }
