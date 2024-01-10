@@ -96,8 +96,8 @@ int main(int argc, char **argv) {
     // ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
     // return 0;
     // testing polymorphism
-    // mpz_t field_test;
-    // mpz_init(field_test);
+    // mp z_t field_test;
+    // mp z_init(field_test);
     // ss->getFieldSize(field_test);
     // gmp_printf("field_test %Zd\n", field_test);
     // return 0;
@@ -231,22 +231,22 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     std::string value;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    mpz_t element;
+    int element;
     int base = 10;
     int dim = (size1 == 0) ? 1 : size1;
     // initialization
-    mpz_init(element);
+    element = 0;
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
-        mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * numOfComputeNodes);
-        mpz_t *result = (mpz_t *)malloc(sizeof(mpz_t) * size2);
+        int **shares = (int **)malloc(sizeof(int *) * numOfComputeNodes);
+        int *result = (int *)malloc(sizeof(int) * size2);
         for (int i = 0; i < numOfComputeNodes; i++) {
-            shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size2);
+            shares[i] = (int *)malloc(sizeof(int) * size2);
             for (int j = 0; j < size2; j++)
-                mpz_init(shares[i][j]);
+                shares[i][j] = 0;
         }
         for (int i = 0; i < size2; i++)
-            mpz_init(result[i]);
+            result[i] = 0;
 
         for (int i = 0; i < dim; i++) {
             // extract the shares
@@ -255,7 +255,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 tokens = splitfunc(line.c_str(), ",");
                 if (secrecy == 1)
                     for (int j = 0; j < tokens.size(); j++)
-                        mpz_set_str(shares[k][j], tokens[j].c_str(), 10);
+                        shares[k][j] = std::stoi(tokens[j]);
             }
             if (secrecy == 1)
                 ss->reconstructSecret(result, shares, size2);
@@ -271,29 +271,19 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 if (secrecy == 1) {
                     // deal with negative results
-                    mpz_t tmp, field;
-                    mpz_init(tmp);
-                    mpz_init(field);
+                    int tmp=0, field=0;
                     ss->getFieldSize(field);
-                    mpz_mul_ui(tmp, result[j], 2);
-                    if (mpz_cmp(tmp, field) > 0)
-                        mpz_sub(result[j], result[j], field);
-                    value = mpz_get_str(NULL, base, result[j]);
+                    tmp = result[j] * 2;  
+                    if (tmp > field)
+                        result[j] = result[j] - field;
+                    value = std::to_string(result[j]);
                 }
                 writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
         }
         // clear the memory
-        for (int i = 0; i < numOfComputeNodes; i++) {
-            for (int j = 0; j < size2; j++)
-                mpz_clear(shares[i][j]);
-            free(shares[i]);
-        }
         free(shares);
-        for (int i = 0; i < size2; i++)
-            mpz_clear(result[i]);
         free(result);
-
     }
     // public float
     else if (!type.compare("float") && secrecy == 2) {
@@ -318,39 +308,37 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     }
     // private float
     else if (!type.compare("float") && secrecy == 1) {
-        mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * numOfComputeNodes);
-        mpz_t *result = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        int **shares = (int **)malloc(sizeof(int *) * numOfComputeNodes);
+        int *result = (int *)malloc(sizeof(int) * 4);
         for (int i = 0; i < numOfComputeNodes; i++) {
-            shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+            shares[i] = (int *)malloc(sizeof(int) * 4);
             for (int j = 0; j < 4; j++)
-                mpz_init(shares[i][j]);
+                shares[i][j] = 0;
         }
         for (int i = 0; i < 4; i++)
-            mpz_init(result[i]);
+            result[i] = 0;
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < size2; j++) {
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
                     for (int l = 0; l < 4; l++)
-                        mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
+                        shares[k][l] = std::stoi(tokens[l]);
                 }
                 ss->reconstructSecret(result, shares, 4);
                 for (int k = 0; k < 4; k++) {
                     if (k == 1) {
-                        mpz_t tmp, field;
-                        mpz_init(tmp);
-                        mpz_init(field);
+                        int tmp=0, field=0;
                         ss->getFieldSize(field);
-                        mpz_mul_ui(tmp, result[1], 2);
-                        if (mpz_cmp(tmp, field) > 0)
-                            mpz_sub(result[1], result[1], field);
+                        tmp = result[1] * 2;
+                        if (tmp > field)
+                            result[1] = result[1] - field;
                     }
                 }
-                double v = mpz_get_d(result[0]);
-                double p = mpz_get_d(result[1]);
-                double z = mpz_get_d(result[2]);
-                double s = mpz_get_d(result[3]);
+                double v = result[0];
+                double p = result[1];
+                double z = result[2];
+                double s = result[3];
                 double element = 0;
                 if (z == 1)
                     element = 0;
@@ -374,14 +362,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
             }
         }
         // free the memory
-        for (int i = 0; i < numOfComputeNodes; i++) {
-            for (int j = 0; j < 4; j++)
-                mpz_clear(shares[i][j]);
-            free(shares[i]);
-        }
         free(shares);
-        for (int i = 0; i < 4; i++)
-            mpz_clear(result[i]);
         free(result);
     } else {
         std::cout << "Wrong type has been detected";
