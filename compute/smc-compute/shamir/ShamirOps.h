@@ -16,7 +16,8 @@
 
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
-*/#ifndef SHAMIROPS_H_
+*/
+#ifndef SHAMIROPS_H_
 #define SHAMIROPS_H_
 
 #include "Headers.h"

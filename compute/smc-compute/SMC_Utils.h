@@ -51,8 +51,8 @@ typedef mpz_t priv_int;
 
 void ss_init_set_si(mpz_t &x, int x_val);
 void ss_init_set_si(unsigned long &x, int x_val);
-void ss_clear(unsigned long &x);
-void ss_clear(mpz_t &x);
+// void ss_clear(unsigned long &x);
+// void ss_clear(mpz_t &x);
 
 void ss_free_arr(mpz_t *op, int size);
 void ss_free_arr(unsigned long *op, int size);
