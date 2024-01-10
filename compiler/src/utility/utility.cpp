@@ -36,11 +36,14 @@ int party;
 int bits;
 int threshold;
 
+mpz_t modulus; // Global modulus variable
+int technique; // Global technique variable 
+
 std::ifstream var_list;
 
 SecretShare *ss;
 
-void loadConfig(mpz_t);
+void loadConfig();
 void produceOutputs(std::ifstream[], std::ofstream[], std::string, std::string, int, int, int);
 void produceInputs(std::ifstream[], std::ofstream[], std::string, std::string, int, int, int, int, int);
 void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstream *, int);
@@ -73,9 +76,9 @@ int main(int argc, char **argv) {
         std::cout << "Variable list cannot be opened...\n";
         std::exit(1);
     }
-    mpz_t modulus;
-    mpz_init(modulus);
-    loadConfig(modulus);
+
+
+    loadConfig();
     int numOfInput, numOfOutput;
     if (mode == 0) {
         numOfInput = numOfInputNodes;
@@ -89,7 +92,7 @@ int main(int argc, char **argv) {
     std::ofstream outputFiles[numOfOutput];
 
     // this will go where we determine which technique we're using
-    ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
+    // ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
     // ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
     // return 0;
     // testing polymorphism
@@ -476,24 +479,51 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     free(shares);
 }
 
-void loadConfig(mpz_t mod) {
+
+/*
+loadConfig reads the files from var_list file stream. Then it extracts
+the data and store it to the appropriate variables as follow: 
+1. technique = technique_var
+2. bits = bits
+3. numOfComputeNodes = peers
+4. threshold = threshold
+5. numOfInputNodes = inputs
+6. numOfOutputNodes = outputs
+7. modulus = modulus (Conditional - set only if shamir is used)
+*/
+void loadConfig() {
     std::string line;
     std::vector<std::string> tokens;
-    int results[6];
-    for (int i = 0; i < 6; i++) {
+    int results[7];
+    
+    for (int i = 0; i < 7; i++) {
         std::getline(var_list, line);
         tokens = splitfunc(line.c_str(), ":");
-        if (i == 1) {
-            mpz_set_str(mod, tokens[1].c_str(), 10);
-            // gmp_printf("%Zd\n", mod);
-        } else
-            results[i] = atoi(tokens[1].c_str());
+
+        if (i == 0) {
+            technique = atoi(tokens[1].c_str());
+        } else {
+            // Based on the technique used read the last element (shamir, rss))
+            if (i == 6 && technique == SHAMIR_SS) {
+                mpz_init(modulus);
+                mpz_set_str(modulus, tokens[1].c_str(), 10);
+                // gmp_printf("%Zd\n", modulus);
+            } else {
+                results[i] = atoi(tokens[1].c_str());
+            }
+        }
     }
-    bits = results[0];
+    bits = results[1];
     numOfComputeNodes = results[2];
     threshold = results[3];
     numOfInputNodes = results[4];
     numOfOutputNodes = results[5];
+    
+    if (technique == SHAMIR_SS) {
+        ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
+    } else if (technique == REPLICATED_SS) {
+        ss = new RSS<bits>(numOfComputeNodes, threshold, 64);
+    }
 }
 
 /**
