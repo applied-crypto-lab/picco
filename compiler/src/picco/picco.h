@@ -91,7 +91,9 @@ extern aststmt parse_and_declare_blocklist_string(char *format, ...);
  */
 extern void exit_error(int exitvalue, char *format, ...);
 extern void warning(char *format, ...);
-uint *generateSeedMap(uint n, uint t) ;
+uint *generateSeedMap(uint n, uint t, uint *num_solutions) ;
+
+
 extern int nChoosek(int n, int k);
 
 // The constant variable for the technique_var: REPLICATED_SS-1 or SHAMIR_SS-2

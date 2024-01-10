@@ -50,7 +50,7 @@ char *filename;     /* The file we parse */
 char *output_filename;
 char *var_list;
 char *final_list;
-char *res;
+char *res; // ****ANB: why is this global?
 /* This is for taking care of main() in the parsed code;
  * OMPi generates its own main() and replaces the original one.
  */
@@ -419,7 +419,36 @@ int main(int argc, char *argv[]) {
     kappa = 48; // can be selected differently at a later point in time
     nu = ceil(log2(nChoosek(peers, threshold)));
     kappa_nu = kappa + nu;
-    uint *seed_map = generateSeedMap(peers, threshold);
+    uint map_size; // how many items are in seed_map, used to calculate buffer size
+    // uint n_test = 21;
+    uint *seed_map = generateSeedMap(peers, threshold, &map_size);
+    // map_tmp needs to be DYNAMICALLY ALLOCATED, FIX!!!!!!!
+    char map_tmp[sizeof(int) * 4 * map_size + 200];
+    sprintf(map_tmp, "std::vector<int> seed_map = {");
+    int pos = 0;
+    char text[snprintf(NULL, 0, "%d", sizeof(int)) + 1];
+    for (uint i = 0; i < map_size; i++) {
+        // printf("seed_map[i]: %i\n", seed_map[i]);
+        // char text[20];
+        sprintf(text, "%i", seed_map[i]);
+        strncat(map_tmp, text, strlen(text));
+        // pos += sprintf(&map_tmp[pos],"%i", seed_map[i]);
+        // sprintf(map_tmp,
+        // printf("%s\n", map_tmp);
+
+        if (i != (map_size - 1)) {
+            strcat(map_tmp, ", ");
+            // sprintf(map_tmp, ", ");
+        }
+    }
+    strcat(map_tmp, "};");
+    printf("%s\n", map_tmp);
+
+    // str_printf(strA(),
+    //            "uint map_size = %u\n",
+    //            map_size);
+    // printf("map_size %u\n", map_size);
+
     /*
      * 1. Preparations
      */
@@ -428,7 +457,7 @@ int main(int argc, char *argv[]) {
     {
     OMPI_FAILURE:
         fprintf(stderr, "** %s should not be run directly; use %scc instead\n",
-  ;
+    ;
                   argv[0], argv[0]);
         return (20);
     }
@@ -524,6 +553,12 @@ int main(int argc, char *argv[]) {
      * 3. Transform & output
      */
 
+    // for n = 21, the map is not written properly to the output file
+    // map_tmp contains the CORRECT genereated, it just gets cut off
+    // stops writing after ~450 elements
+    p = verbit(map_tmp);
+    ast = BlockList(p, ast);
+
     // Add SMC specific include statements
     p = verbit(tmp);
     p = BlockList(p, verbit("#include \"smc-compute/SMC_Utils.h\""));
@@ -574,9 +609,9 @@ int main(int argc, char *argv[]) {
     /*);
     assert(p != NULL);
     p = BlockList(verbit("# 1 \"omp.mindefs\""), p);
-}
+    }
 
-/* Notice here that any types in omp.h will be defined *after* this */
+    /* Notice here that any types in omp.h will be defined *after* this */
     /* prepend = parse_and_declare_blocklist_string(rtlib_defs);
      assert(prepend != NULL);
      prepend = BlockList(verbit("# 1 \"ort.defs\""), prepend);
@@ -589,10 +624,10 @@ int main(int argc, char *argv[]) {
                                                                 ));*/
 
     /*ast = BlockList(prepend, ast);
-}
+    }
 
-ast = BlockList(verbit("# 1 \"%s\"", filename), ast);
-ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
+    ast = BlockList(verbit("# 1 \"%s\"", filename), ast);
+    ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
     ast->file = Symbol(filename);
 
     ast_parentize(ast); /* Parentize */
@@ -682,9 +717,9 @@ int nChoosek(int n, int k) {
 }
 
 // remember to de-allocate solutions wherever this function is called
-uint *generateSeedMap(uint n, uint t) {
-    uint num_solutions = nChoosek(n, t) / n;
-    uint *solutions = (uint *)malloc(sizeof(uint) * num_solutions); //  array of size (nCt / n)
+uint *generateSeedMap(uint n, uint t, uint *num_solutions) {
+    *num_solutions = nChoosek(n, t) / n;
+    uint *solutions = (uint *)malloc(sizeof(uint) * (*num_solutions)); //  array of size (nCt / n)
     uint v = (1 << (n - t)) - 1;
     uint upper_bound = 1 << n;
     uint w, x, b1, b2, mask1, mask2, permutation;
