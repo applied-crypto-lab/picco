@@ -67,17 +67,17 @@ int enableCodeDup = 1;       /* Duplicate code where appropriate for speed */
 int needLimits = 0;          /* 1 if need limits.h constants (min/max) */
 int needFloat = 0;           /* 1 if need float.h constants (min/max) */
 char *MAIN_RENAME = "__original_main";
-int bits = 0;      /* Bits for modulus */
-int peers = 0;     /* Number of computational parties */
-int threshold = 0; /* Secret sharing parameter */
-int inputs = 0;    /* Number of input parties */
-int outputs = 0;   /* Number of ouput parties */
-char technique[100] = "rss";  /* The technique used either rss or shamir */
+int bits = 0;                /* Bits for modulus */
+int peers = 0;               /* Number of computational parties */
+int threshold = 0;           /* Secret sharing parameter */
+int inputs = 0;              /* Number of input parties */
+int outputs = 0;             /* Number of ouput parties */
+char technique[100] = "rss"; /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
 int kappa;
 int kappa_nu;
-int technique_var = 0; //Default to 0 -> user should assign 1 or 2
+int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
 
@@ -156,10 +156,10 @@ void append_new_main(bool mode) {
     /* mod */         // Not specified in the command line arguments.
     /* num_threads */ // Not specified in the command line arguments.
     str_printf(strA(),
-                "\n struct timeval tv1;"
-                "\n struct timeval tv2;"
-                "\n int _xval = 0;\n\n"
-                 " gettimeofday(&tv1,NULL);\n");
+               "\n struct timeval tv1;"
+               "\n struct timeval tv2;"
+               "\n int _xval = 0;\n\n"
+               " gettimeofday(&tv1,NULL);\n");
     if (num_threads > 0)
         str_printf(strA(), "  ort_initialize(&argc, &argv);\n"
                            "  omp_set_num_threads(%d);\n",
@@ -204,7 +204,7 @@ int getopts(int argc, char *argv[]) {
 }
 
 #include "ort.defs"
-/*Helper Functions for laodConfig() used to check if a value 
+/*Helper Functions for laodConfig() used to check if a value
 is a number and remove any extra digits from the input.
 
 removeNonDigit(value)
@@ -214,31 +214,31 @@ isNumeric(value)
 This function checks if a given string (value) contains only numeric characters.
 */
 
-char* removeNonDigit(char *value){
-  for (char *c = value; *c; ++c) {
-    if (!isdigit(*c)) {
-        *c = ' ';
+char *removeNonDigit(char *value) {
+    for (char *c = value; *c; ++c) {
+        if (!isdigit(*c)) {
+            *c = ' ';
+        }
     }
-  }
-  return value;
+    return value;
 }
 
 int isNumeric(const char *value) {
-  for (const char *c = value; *c; ++c) {
-    if (!isdigit(*c)) {
-      return 0;
+    for (const char *c = value; *c; ++c) {
+        if (!isdigit(*c)) {
+            return 0;
+        }
     }
-  }
-  return 1;
+    return 1;
 }
 
 /*Extracts the data from the config file given during execution
-The function below could handle multiple cases: 
-    1. Inputs could be in any order. 
+The function below could handle multiple cases:
+    1. Inputs could be in any order.
     2. Defaults the technique rss.
     3. Ignores extra spaces and tabs.
     4. Provides a hard stop (execution termination with an error message) if
-        a. Any numeric field (bits, peers, threshold, inputs, outputs) contains something other than a single integer. 
+        a. Any numeric field (bits, peers, threshold, inputs, outputs) contains something other than a single integer.
         b. The technique field contains something other than "shamir" or "rss".
         c. Peers is not an an odd integer.
         d. Peers is not equal to 2*threshold+1.
@@ -246,134 +246,135 @@ The function below could handle multiple cases:
 */
 void loadConfig(char *config) {
 
-  FILE *fp;
-  fp = fopen(config, "r");
+    FILE *fp;
+    fp = fopen(config, "r");
 
-  int line[100]; // Buffer to store each line of the file.
-  char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
+    int line[100];                // Buffer to store each line of the file.
+    char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
 
-  // Read each line from the file using fgets() function. 
-  while (fgets(line, sizeof(line), fp) != NULL) {
-    char key[100], value[100];
+    // Read each line from the file using fgets() function.
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        char key[100], value[100];
 
-    // Parse the line into key:value using sscanf function terminate with error if format is off.
-    if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
+        // Parse the line into key:value using sscanf function terminate with error if format is off.
+        if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
 
-      // Check for duplicated keys and terminate with an error if there is more than one.
-      for (int i = 0; i < 6; ++i) {
-        if (strcmp(key, encounteredKeys[i]) == 0) {
-          fprintf(stderr, "Error: Duplicate key '%s' found.\n", key);
-          exit(1);
-        }
-      }
+            // Check for duplicated keys and terminate with an error if there is more than one.
+            for (int i = 0; i < 6; ++i) {
+                if (strcmp(key, encounteredKeys[i]) == 0) {
+                    fprintf(stderr, "Error: Duplicate key '%s' found.\n", key);
+                    exit(1);
+                }
+            }
 
-      // Stores encountered keys to check for duplicates.
-      for (int i = 0; i < 6; ++i) {
-        if (encounteredKeys[i][0] == '\0') {
-          strncpy(encounteredKeys[i], key, sizeof(encounteredKeys[i]) - 1);
-          encounteredKeys[i][sizeof(encounteredKeys[i]) - 1] = '\0';
-          break;
-        }
-      }
+            // Stores encountered keys to check for duplicates.
+            for (int i = 0; i < 6; ++i) {
+                if (encounteredKeys[i][0] == '\0') {
+                    strncpy(encounteredKeys[i], key, sizeof(encounteredKeys[i]) - 1);
+                    encounteredKeys[i][sizeof(encounteredKeys[i]) - 1] = '\0';
+                    break;
+                }
+            }
 
-      // Updates the configuration values based on the encountered keys.
-      if (strcmp(key, "bits") == 0) {
-          bits = atoi(removeNonDigit(value));
-      } else if (strcmp(key, "peers") == 0) {
-          peers = atoi(removeNonDigit(value));
-      } else if (strcmp(key, "threshold") == 0) {
-          threshold = atoi(removeNonDigit(value));
-      } else if (strcmp(key, "inputs") == 0) {
-          inputs = atoi(removeNonDigit(value));
-      } else if (strcmp(key, "outputs") == 0) {
-          outputs = atoi(removeNonDigit(value));
-      } else if (strcmp(key, "technique") == 0) {
-          strncpy(technique, value, sizeof(technique) - 1);
-          technique[sizeof(technique) - 1] = '\0'; 
+            // Updates the configuration values based on the encountered keys.
+            if (strcmp(key, "bits") == 0) {
+                bits = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "peers") == 0) {
+                peers = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "threshold") == 0) {
+                threshold = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "inputs") == 0) {
+                inputs = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "outputs") == 0) {
+                outputs = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "technique") == 0) {
+                strncpy(technique, value, sizeof(technique) - 1);
+                technique[sizeof(technique) - 1] = '\0';
 
-          // Convert technique to lowercase to take care of the case if user inputs Rss or Shamir. 
-          for (char *c = technique; *c; ++c) {
-            *c = tolower(*c);
-          }
+                // Convert technique to lowercase to take care of the case if user inputs Rss or Shamir.
+                for (char *c = technique; *c; ++c) {
+                    *c = tolower(*c);
+                }
 
-        // Check the value of 'technique' and set 'technique_var' accordingly
-        if (strcmp(technique, "rss") == 0) {
-            technique_var = REPLICATED_SS; // Set to RSS-1
-        } else if (strcmp(technique, "shamir") == 0) {
-            technique_var = SHAMIR_SS; // Set to Shamir-2
-        } else {
-            fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
-            exit(1);
-        }
-      }
+                // Check the value of 'technique' and set 'technique_var' accordingly
+                if (strcmp(technique, "rss") == 0) {
+                    technique_var = REPLICATED_SS; // Set to RSS-1
+                } else if (strcmp(technique, "shamir") == 0) {
+                    technique_var = SHAMIR_SS; // Set to Shamir-2
+                } else {
+                    fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
+                    exit(1);
+                }
+            }
 
-      // Validate numeric fields and terminate with an error if anything else is given. 
-      if ((strcmp(key, "bits") == 0 || strcmp(key, "peers") == 0 ||
-           strcmp(key, "threshold") == 0 || strcmp(key, "inputs") == 0 ||
-           strcmp(key, "outputs") == 0) && !isNumeric(value)) {
-        fprintf(stderr, "Error: %s must be a single integer.\n", key);
-        exit(1);
-      }
-    } else {
-      // Check for = only if the line is not a key:value meaning if user inputs key=value or key_value or key-value
-      if (strstr(line, "bits:") == NULL &&
-          strstr(line, "peers:") == NULL &&
-          strstr(line, "threshold:") == NULL &&
-          strstr(line, "inputs:") == NULL &&
-          strstr(line, "outputs:") == NULL &&
-          strstr(line, "technique:") == NULL) {
-            if (strstr(line, "=") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
-                fprintf(stderr, "Error: Invalid Format! Use ':' between key and value!\n");
+            // Validate numeric fields and terminate with an error if anything else is given.
+            if ((strcmp(key, "bits") == 0 || strcmp(key, "peers") == 0 ||
+                 strcmp(key, "threshold") == 0 || strcmp(key, "inputs") == 0 ||
+                 strcmp(key, "outputs") == 0) &&
+                !isNumeric(value)) {
+                fprintf(stderr, "Error: %s must be a single integer.\n", key);
                 exit(1);
+            }
+        } else {
+            // Check for = only if the line is not a key:value meaning if user inputs key=value or key_value or key-value
+            if (strstr(line, "bits:") == NULL &&
+                strstr(line, "peers:") == NULL &&
+                strstr(line, "threshold:") == NULL &&
+                strstr(line, "inputs:") == NULL &&
+                strstr(line, "outputs:") == NULL &&
+                strstr(line, "technique:") == NULL) {
+                if (strstr(line, "=") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
+                    fprintf(stderr, "Error: Invalid Format! Use ':' between key and value!\n");
+                    exit(1);
+                }
             }
         }
     }
-  }
 
-  fclose(fp);
+    fclose(fp);
 
-  // Check if the required inputs have been given or not. 
-  if (inputs == 0 ){
-    fprintf(stderr, "Error: Inputs must be specified.\n");
-    exit(1);
-  } else if(peers == 0) {
-    fprintf(stderr, "Error: Peers must be specified.\n");
-    exit(1);
-  } else if(threshold == 0) {
-    fprintf(stderr, "Error: Threshold must be specified.\n");
-    exit(1);
-  } else if(outputs == 0) {
-    fprintf(stderr, "Error: Outputs must be specified.\n");
-    exit(1);
-  }
+    // Check if the required inputs have been given or not.
+    if (inputs == 0) {
+        fprintf(stderr, "Error: Inputs must be specified.\n");
+        exit(1);
+    } else if (peers == 0) {
+        fprintf(stderr, "Error: Peers must be specified.\n");
+        exit(1);
+    } else if (threshold == 0) {
+        fprintf(stderr, "Error: Threshold must be specified.\n");
+        exit(1);
+    } else if (outputs == 0) {
+        fprintf(stderr, "Error: Outputs must be specified.\n");
+        exit(1);
+    }
 
-  // Check if 'peers' meet the requirments.
-  if (peers % 2 == 0) {
-    fprintf(stderr, "Error: Peers must be an odd integer equal to 2 * threshold + 1.\n");
-    exit(1);
-  }
+    // Check if 'peers' meet the requirments.
+    if (peers % 2 == 0) {
+        fprintf(stderr, "Error: Peers must be an odd integer equal to 2 * threshold + 1.\n");
+        exit(1);
+    }
 
-  if (peers != 2 * threshold + 1) {
-    fprintf(stderr, "Error: Peers must be equal to 2 * threshold + 1.\n");
-    exit(1);
-  }
+    if (peers != 2 * threshold + 1) {
+        fprintf(stderr, "Error: Peers must be equal to 2 * threshold + 1.\n");
+        exit(1);
+    }
 
-  // Check if 'technique' meet the requirments.
-  if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
-    fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
-    exit(1);
-  }
+    // Check if 'technique' meet the requirments.
+    if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
+        fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
+        exit(1);
+    }
 
-  // Validate 'peers' value based on 'technique' used
-  if (strcasecmp(technique, "rss") == 0 && peers > 7) {
-    fprintf(stderr, "Error: For 'rss' technique, peers must be less than or equal to 7.\n");
-    exit(1);
-  }
+    // Validate 'peers' value based on 'technique' used
+    if (strcasecmp(technique, "rss") == 0 && peers > 7) {
+        fprintf(stderr, "Error: For 'rss' technique, peers must be less than or equal to 7.\n");
+        exit(1);
+    }
 
-  if (strcasecmp(technique, "shamir") == 0 && peers > 20) {
-    fprintf(stderr, "Error: For 'shamir' technique, peers must be less than or equal to 20.\n");
-    exit(1);
-  }
+    if (strcasecmp(technique, "shamir") == 0 && peers > 20) {
+        fprintf(stderr, "Error: For 'shamir' technique, peers must be less than or equal to 20.\n");
+        exit(1);
+    }
 }
 
 // In this code argc and argv will be increased by 1
@@ -417,6 +418,7 @@ int main(int argc, char *argv[]) {
     kappa = 48; // can be selected differently at a later point in time
     nu = ceil(log2(nChoosek(peers, threshold)));
     kappa_nu = kappa + nu;
+    uint *seed_map = generateSeedMap(peers, threshold);
     /*
      * 1. Preparations
      */
@@ -630,6 +632,7 @@ ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
         xt_free_retired();
     }
     free(output_filename);
+    free(seed_map);
     return (0);
 }
 
@@ -675,4 +678,46 @@ int nChoosek(int n, int k) {
         result /= i;
     }
     return result;
+}
+
+// remember to de-allocate solutions wherever this function is called
+uint *generateSeedMap(uint n, uint t) {
+    uint num_solutions = nChoosek(n, t) / n;
+    uint *solutions = (uint *)malloc(sizeof(uint) * num_solutions); //  array of size (nCt / n)
+    uint v = (1 << (n - t)) - 1;
+    uint upper_bound = 1 << n;
+    uint w, x, b1, b2, mask1, mask2, permutation;
+    bool cond;
+    int ctr = 0;
+    while (v <= (upper_bound)) {
+        // cyclic permute
+        cond = true;
+        for (uint i = 0; i < n; i++) {
+            mask2 = ((1 << (n - i)) - 1) << i;
+            mask1 = ~mask2 & ((1 << n) - 1);
+            b1 = v & mask1;
+            b2 = v & mask2;
+            permutation = (b1 << (n - i)) | (b2 >> i);
+            if ((v > permutation)) {
+                cond = false;
+                break;
+            }
+        }
+        if (cond) {
+            solutions[ctr] = v;
+            ctr++;
+        }
+
+        // generating next permutation
+        x = v | (v - 1); // x gets v's least significant 0 bits set to 1
+        // Next set to 1 the most significant bit to change,
+        // set to 0 the least significant ones, and add the necessary 1 bits.
+        w = (x + 1) | (((~x & -~x) - 1) >> (__builtin_ctz(v) + 1));
+        // making sure we dont go past n
+        if (w > upper_bound) {
+            break;
+        }
+        v = w; // updating for next iteration
+    }
+    return solutions;
 }
