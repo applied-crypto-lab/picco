@@ -233,22 +233,22 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     std::string value;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    int element;
+    mpz_t element;
     int base = 10;
     int dim = (size1 == 0) ? 1 : size1;
     // initialization
-    element = 0;
+    mpz_init(element);
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
-        int **shares = (int **)malloc(sizeof(int *) * numOfComputeNodes);
-        int *result = (int *)malloc(sizeof(int) * size2);
+        mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * numOfComputeNodes);
+        mpz_t *result = (mpz_t *)malloc(sizeof(mpz_t) * size2);
         for (int i = 0; i < numOfComputeNodes; i++) {
-            shares[i] = (int *)malloc(sizeof(int) * size2);
+            shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size2);
             for (int j = 0; j < size2; j++)
-                shares[i][j] = 0;
+                mpz_init(shares[i][j]);
         }
         for (int i = 0; i < size2; i++)
-            result[i] = 0;
+            mpz_init(result[i]);
 
         for (int i = 0; i < dim; i++) {
             // extract the shares
@@ -257,7 +257,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 tokens = splitfunc(line.c_str(), ",");
                 if (secrecy == 1)
                     for (int j = 0; j < tokens.size(); j++)
-                        shares[k][j] = std::stoi(tokens[j]);
+                        mpz_set_str(shares[k][j], tokens[j].c_str(), 10);
             }
             if (secrecy == 1)
                 ss->reconstructSecret(result, shares, size2);
@@ -273,19 +273,29 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 if (secrecy == 1) {
                     // deal with negative results
-                    int tmp=0, field=0;
+                    mpz_t tmp, field;
+                    mpz_init(tmp);
+                    mpz_init(field);
                     ss->getFieldSize(field);
-                    tmp = result[j] * 2;  
-                    if (tmp > field)
-                        result[j] = result[j] - field;
-                    value = std::to_string(result[j]);
+                    mpz_mul_ui(tmp, result[j], 2);
+                    if (mpz_cmp(tmp, field) > 0)
+                        mpz_sub(result[j], result[j], field);
+                    value = mpz_get_str(NULL, base, result[j]);
                 }
                 writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
         }
         // clear the memory
+        for (int i = 0; i < numOfComputeNodes; i++) {
+            for (int j = 0; j < size2; j++)
+                mpz_clear(shares[i][j]);
+            free(shares[i]);
+        }
         free(shares);
+        for (int i = 0; i < size2; i++)
+            mpz_clear(result[i]);
         free(result);
+
     }
     // public float
     else if (!type.compare("float") && secrecy == 2) {
@@ -310,37 +320,39 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     }
     // private float
     else if (!type.compare("float") && secrecy == 1) {
-        int **shares = (int **)malloc(sizeof(int *) * numOfComputeNodes);
-        int *result = (int *)malloc(sizeof(int) * 4);
+        mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * numOfComputeNodes);
+        mpz_t *result = (mpz_t *)malloc(sizeof(mpz_t) * 4);
         for (int i = 0; i < numOfComputeNodes; i++) {
-            shares[i] = (int *)malloc(sizeof(int) * 4);
+            shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
             for (int j = 0; j < 4; j++)
-                shares[i][j] = 0;
+                mpz_init(shares[i][j]);
         }
         for (int i = 0; i < 4; i++)
-            result[i] = 0;
+            mpz_init(result[i]);
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < size2; j++) {
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
                     for (int l = 0; l < 4; l++)
-                        shares[k][l] = std::stoi(tokens[l]);
+                        mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
                 }
                 ss->reconstructSecret(result, shares, 4);
                 for (int k = 0; k < 4; k++) {
                     if (k == 1) {
-                        int tmp=0, field=0;
+                        mpz_t tmp, field;
+                        mpz_init(tmp);
+                        mpz_init(field);
                         ss->getFieldSize(field);
-                        tmp = result[1] * 2;
-                        if (tmp > field)
-                            result[1] = result[1] - field;
+                        mpz_mul_ui(tmp, result[1], 2);
+                        if (mpz_cmp(tmp, field) > 0)
+                            mpz_sub(result[1], result[1], field);
                     }
                 }
-                double v = result[0];
-                double p = result[1];
-                double z = result[2];
-                double s = result[3];
+                double v = mpz_get_d(result[0]);
+                double p = mpz_get_d(result[1]);
+                double z = mpz_get_d(result[2]);
+                double s = mpz_get_d(result[3]);
                 double element = 0;
                 if (z == 1)
                     element = 0;
@@ -364,7 +376,14 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
             }
         }
         // free the memory
+        for (int i = 0; i < numOfComputeNodes; i++) {
+            for (int j = 0; j < 4; j++)
+                mpz_clear(shares[i][j]);
+            free(shares[i]);
+        }
         free(shares);
+        for (int i = 0; i < 4; i++)
+            mpz_clear(result[i]);
         free(result);
     } else {
         std::cout << "Wrong type has been detected";
@@ -377,18 +396,16 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     std::string share;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-
-    int element; 
-    int *shares = (int *)malloc(sizeof(int) * numOfComputeNodes);
+    mpz_t element;
+    mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * numOfComputeNodes);
     int base = 10;
-    
+
     // initialization
-    element = 0;
+    mpz_init(element);
     for (int i = 0; i < numOfComputeNodes; i++)
-        shares[i] = 0;
-
+        mpz_init(shares[i]);
     int dim = (size1 == 0) ? 1 : size1;
-
+    
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
         for (int i = 0; i < dim; i++) {
@@ -397,14 +414,14 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
             tokens = splitfunc(temp[1].c_str(), ",");
 
             for (int j = 0; j < tokens.size(); j++) {
-                element = std::stoi(tokens[j]);
+                mpz_set_str(element, tokens[j].c_str(), 10);
                 if (secrecy == 1)
                     ss->getShares(shares, element);
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     if (j == 0)
                         outputFiles[k] << name + "=";
                     if (secrecy == 1)
-                        share = std::to_string(shares[k]);
+                        share = mpz_get_str(NULL, base, shares[k]);
 
                     writeToOutputFile(outputFiles[k], share, tokens[j], secrecy, j, tokens.size());
                 }
@@ -433,9 +450,9 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
 
             for (int j = 0; j < tokens.size(); j++) {
 
-                int *elements = (int *)malloc(sizeof(int) * 4);
+                mpz_t *elements = (mpz_t *)malloc(sizeof(mpz_t) * 4);
                 for (int k = 0; k < 4; k++)
-                    elements[k] = 0;
+                    mpz_init(elements[k]);
 
                 convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
 
@@ -444,10 +461,13 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                     for (int k = 0; k < numOfComputeNodes; k++) {
                         if (m == 0)
                             outputFiles[k] << name + "=";
-                        share = std::to_string(shares[k]);
+                        share = mpz_get_str(NULL, base, shares[k]);
                         writeToOutputFile(outputFiles[k], share, "", 1, m, 4);
                     }
                 }
+
+                for (int k = 0; k < 4; k++)
+                    mpz_clear(elements[k]);
                 free(elements);
             }
         }
@@ -455,6 +475,11 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
         std::cout << "Wrong type has been detected";
         std::exit(1);
     }
+
+    // free the memory
+    mpz_clear(element);
+    for (int i = 0; i < numOfComputeNodes; i++)
+        mpz_clear(shares[i]);
     free(shares);
 }
 
@@ -501,14 +526,26 @@ void loadConfig() {
     if (technique == SHAMIR_SS) {
         ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
     } else if (technique == REPLICATED_SS) {
-        ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
+        if (bits <= 8) { // Bits less than or equal to 8 
+            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, 8);
+        } else if (bits >= 9 && bits <= 16) { // Between 9 and 16 inclusive 
+            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, 16);
+        } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive 
+            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, 32);
+        } else if (bits >= 33 && bits <= 64){ // Between 33 and 64 inclusive 
+            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
+        }
     }
 }
 
 /**
  * This fucntion converts floating-point number to a set of integer components based on 
  * the specified parameters K and L. The function does some bit manipulation on the floating-point 
- * representation of the input value to extract the sign bit (s), exponent (e), and mantissa (significand).
+ * representation of the input value to extract the sign bit (s), exponent (e), and mantissa (significand). 
+ * 
+ * In particular, each floating point number is represented as a 4-tuple (v, p, s, z) where v is
+ * an l-bit significand, p is a k-bit exponent, and s and z are sign and
+ * zero bits, respectively (2013 CCS paper). 
  * 
  * The integers that will be stored in elements are as follows: 
  * 1. Significand part (significand)
