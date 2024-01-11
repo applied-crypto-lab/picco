@@ -369,7 +369,7 @@ void loadConfig(char *config) {
         strcpy(technique, "rss"); // Set technique to RSS
         technique_var = REPLICATED_SS; // Default to RSS-1
     } else if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
-        fprintf(stderr, "Error: Invalid value for technique.\n");
+        fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
         exit(1);
     }
 
