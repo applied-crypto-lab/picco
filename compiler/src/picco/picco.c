@@ -50,7 +50,6 @@ char *filename;     /* The file we parse */
 char *output_filename;
 char *var_list;
 char *final_list;
-char *res; // ****ANB: why is this global?
 /* This is for taking care of main() in the parsed code;
  * OMPi generates its own main() and replaces the original one.
  */
@@ -96,6 +95,7 @@ void append_new_main(bool mode) {
                MAIN_NEWNAME);
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
+    char *res = "";
     if (technique_var == SHAMIR_SS) {
         mpz_t modulus2;
         mpz_init(modulus2);
@@ -522,6 +522,7 @@ int main(int argc, char *argv[]) {
     char *line = (char *)malloc(sizeof(char) * 256);
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
+    char *res = "";
     if (technique_var == SHAMIR_SS) {
         mpz_t modulus2;
         mpz_init(modulus2);
