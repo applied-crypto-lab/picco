@@ -35,8 +35,8 @@ int numOfOutputNodes;
 int party;
 int bits;
 int threshold;
-int REPLICATED_SS = 1;
-int SHAMIR_SS = 2;
+#define REPLICATED_SS 1;
+#define SHAMIR_SS 2;
 
 mpz_t modulus_shamir; // Global modulus_shamir variable
 int technique; // Global technique variable 
