@@ -566,55 +566,12 @@ int main(int argc, char *argv[]) {
         if (num_threads > 0)
             ast = BlockList(verbit(rtlib_defs), ast);
     }
-    /*if ((__has_omp  && enableOpenMP) ||
-        (__has_ompix && enableOmpix) || testingmode || processmode)
-    {
-        aststmt prepend = NULL;
-
-        /* Runtime library definitions */
-    /*if (__has_omp && enableOpenMP)
-    {
-        /* If <omp.h> was not included, then we must define a few things */
-    /*if (includes_omph)
-        p = NULL;
-    else
-    {
-        p = verbit(
-            "typedef void *omp_nest_lock_t;"   /* The only stuff we needed */
-    // "typedef void *omp_lock_t; "       /* from <omp.h> */
-    //"typedef enum omp_sched_t { omp_sched_static = 1,"
-    //"omp_sched_dynamic = 2,omp_sched_guided = 3,omp_sched_auto = 4"
-    //" } omp_sched_t;"
-    //"int omp_in_parallel(void); "
-    //"int omp_get_thread_num(void); "
-    //"int omp_get_num_threads(void); "
-    //"int omp_in_final(void); "         /* 3.1 */
-    /*);
-    assert(p != NULL);
-    p = BlockList(verbit("# 1 \"omp.mindefs\""), p);
-    }
-
-    /* Notice here that any types in omp.h will be defined *after* this */
-    /* prepend = parse_and_declare_blocklist_string(rtlib_defs);
-     assert(prepend != NULL);
-     prepend = BlockList(verbit("# 1 \"ort.defs\""), prepend);
-     if (p)
-         prepend = BlockList(p, prepend);
-     /*if (__has_affinitysched)
-         prepend = BlockList(prepend,
-                             parse_and_declare_blocklist_string(
-                                                                "int ort_affine_iteration(int *);"
-                                                                ));*/
-
-    /*ast = BlockList(prepend, ast);
-    }
-
+  
     ast = BlockList(verbit("# 1 \"%s\"", filename), ast);
     ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
     ast->file = Symbol(filename);
 
     ast_parentize(ast); /* Parentize */
-                        /*symtab_drain(stab);    /* Empty it; new globals will be traversed again */
     ast_xform(&ast);    /* The transformation phase */
     p = verbit(tmp);
     // if (needLimits)
