@@ -452,7 +452,7 @@ int main(int argc, char *argv[]) {
         }
     }
     strcat(map_tmp, "};");
-    printf("%s\n", map_tmp);
+    // printf("%s\n", map_tmp);
 
     filename = argv[2];
     final_list = argv[5];
@@ -567,8 +567,6 @@ int main(int argc, char *argv[]) {
             ast = BlockList(verbit(rtlib_defs), ast);
     }
   
-    ast = BlockList(verbit("# 1 \"%s\"", filename), ast);
-    ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
     ast->file = Symbol(filename);
 
     ast_parentize(ast); /* Parentize */
