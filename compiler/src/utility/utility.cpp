@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
         std::exit(1);
     }
 
-
+    mpz_init(modulus_shamir);
     loadConfig();
     int numOfInput, numOfOutput;
     if (mode == 0) {
@@ -295,11 +295,12 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     long long tmp, field;
                     ss->getFieldSize(field); 
                     // Multiply result[j] by 2 and store the result in tmp
-                    tmp = std::stoll(result[j]) * 2;
-                    if (mpz_cmp(tmp, field) > 0)
+                    tmp = result[j] * 2;
+                    if (tmp > field)
                         result[j] = result[j] - field;
+                    value = std::to_string(result[j]) // The reconstructSecret returns long long so we need to convert it to str before outputting
                 }
-                writeToOutputFile(outputFiles[0], result[j], tokens[j], secrecy, j, tokens.size());
+                writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
         }
     }
@@ -346,7 +347,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         ss->getFieldSize(field);
                         // Multiply result[j] by 2 and store the result in tmp
                         tmp = result[1] * 2;
-                        if (mpz_cmp(tmp, field) > 0)
+                        if (tmp > field)
                             result[1] = result[1] - field;
                     }
                 }
