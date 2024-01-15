@@ -400,12 +400,94 @@ void ShamirSS::reconstructSecret(mpz_t *result, mpz_t **y, int size) {
 
 // these need to be implemented (just copy from above methods, making changes to take/return ints/strings  )
 std::vector<std::string> ShamirSS::getShares(long long secret) {
+
+    // Convert long long to mpz_t
+    mpz_t mpzSecret;
+    mpz_init_set_si(mpzSecret, secret);
+
+    // srand(time(NULL));
+    mpz_t coefficient;
+    mpz_init(coefficient);
+    mpz_t temp;
+    mpz_init(temp);
+    mpz_set_ui(temp, 0);
+
+    // Initialize shares inside the code to minimize changes
+    mpz_t shares[peers];
+    for (int i = 0; i < peers; i++)
+        mpz_init(shares[i]);
+
+    if (mpz_cmp_si(mpzSecret, 0) < 0) {
+        mpz_mod(mpzSecret, mpzSecret, fieldSize);
+    }
+    
+    for (int degree = 0; degree < threshold + 1; degree++) {
+        if (degree == 0)
+            mpz_set(coefficient, mpzSecret);
+        else {
+            mpz_urandomm(coefficient, rstate, fieldSize);
+            if (degree == threshold && mpz_sgn(coefficient) == 0)
+                mpz_add_ui(coefficient, coefficient, 1);
+        }
+        for (int peer = 0; peer < peers; peer++) {
+            modMul(temp, sharingMatrix[peer][degree], coefficient);
+            modAdd(shares[peer], shares[peer], temp);
+        }
+    }
+
+    // Initialize result vector
     std::vector<std::string> result;
+
+    // Convert shares to vector of strings    
+    for (int i = 0; i < peers; i++) {
+        result.push_back(mpz_get_str(nullptr, 10, shares[i]));
+    }
+
+    // Clear the mpz_t elements and return the vector of result
+    for (int i = 0; i < peers; i++) {
+        mpz_clear(shares[i]);
+    }
+    mpz_clear(coefficient);
+    mpz_clear(temp);
+    mpz_clear(mpzSecret);
     return result;
 }
 
 std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::string>> y, int size) {
-    std::vector<long long> result;
+    
+    // Declare result as an array of mpz_t
+    std::vector<long long> result();
+
+    // Declare mpz_result as an array of mpz_t
+    mpz_t mpz_result[size];
+    for (int i = 0; i < size; i++) {
+        mpz_init(mpz_result[i]);
+    }
+
+    mpz_t temp;
+    mpz_init(temp);
+
+    for (int i = 0; i < size; i++) {
+        for (int peer = 0; peer < peers; peer++) {
+
+            // Convert string to mpz_t before using y - then use one by one
+            mpz_t mpzY;
+            mpz_init_set_str(mpzY, y[peer][i].c_str(), 10);
+
+            modMul(temp, mpzY, lagrangeWeight[peer]);
+            modAdd(mpz_result[i], mpz_result[i], temp);
+
+            mpz_clear(mpzY); // Clear mpzY before the next iteration 
+        }
+
+        // Convert mpz_result to long long and store in result vector
+        result[i] = mpz_get_si(mpz_result[i]);
+    }
+
+    for (int i = 0; i < size; i++) {
+        mpz_clear(mpz_result[i]);
+    }
+    mpz_clear(temp);
     return result;
 }
 
