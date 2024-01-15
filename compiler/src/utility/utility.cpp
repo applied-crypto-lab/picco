@@ -295,11 +295,12 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     long long tmp, field;
                     ss->getFieldSize(field); 
                     // Multiply result[j] by 2 and store the result in tmp
-                    tmp = std::stoll(result[j]) * 2;
+                    tmp = result[j] * 2;
                     if (tmp > field)
                         result[j] = result[j] - field;
+                    value = std::to_string(result[j]) // The reconstructSecret returns long long so we need to convert it to str before outputting
                 }
-                writeToOutputFile(outputFiles[0], result[j], tokens[j], secrecy, j, tokens.size());
+                writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
         }
     }
