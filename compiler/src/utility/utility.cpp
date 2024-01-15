@@ -549,7 +549,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
 
     int z;
     long v, p, k;
-    long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
+    long long significand=0, one=1, two=2, tmp=0, tmpm=0;
 
     if (e == 0 && m == 0) {
         s = 0;
@@ -559,7 +559,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
     } else {
         z = 0;
         if (L < 8) {
-            k = (1LL << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
+            k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
             if (e - 127 - K + 1 > k) {
                 p = k;
                 significand = one << K; // Raise one to the power of K and store it to significand
@@ -572,7 +572,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
                 m = m + (1 << 23);
                 tmpm = m; // Set the value of tmpm to m
                 if (K < 24) {
-                    tmp = 2LL << (24 - K); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                    tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
                     significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
                 } else {
                     significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
@@ -583,7 +583,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
             m = m + (1 << 23);
             tmpm = m; // Set the value of tmpm to m
             if (K < 24) {
-                tmp = 2LL << (24 - K); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
                 significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
             } else {
                 significand = tmpm; // Set significand to tmpm
