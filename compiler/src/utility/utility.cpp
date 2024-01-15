@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
         std::exit(1);
     }
 
-
+    mpz_init(modulus);
     loadConfig();
     int numOfInput, numOfOutput;
     if (mode == 0) {
@@ -296,7 +296,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     ss->getFieldSize(field); 
                     // Multiply result[j] by 2 and store the result in tmp
                     tmp = std::stoll(result[j]) * 2;
-                    if (mpz_cmp(tmp, field) > 0)
+                    if (tmp > field)
                         result[j] = result[j] - field;
                 }
                 writeToOutputFile(outputFiles[0], result[j], tokens[j], secrecy, j, tokens.size());
@@ -346,7 +346,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         ss->getFieldSize(field);
                         // Multiply result[j] by 2 and store the result in tmp
                         tmp = result[1] * 2;
-                        if (mpz_cmp(tmp, field) > 0)
+                        if (tmp > field)
                             result[1] = result[1] - field;
                     }
                 }
@@ -495,7 +495,6 @@ void loadConfig() {
         } else {
             // Based on the technique used read the last element (shamir, rss))
             if (i == 6 && technique == SHAMIR_SS) {
-                mpz_init(modulus);
                 mpz_set_str(modulus, tokens[1].c_str(), 10);
                 // gmp_printf("%Zd\n", modulus);
             } else {
