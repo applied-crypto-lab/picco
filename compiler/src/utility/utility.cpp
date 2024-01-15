@@ -38,7 +38,7 @@ int threshold;
 int REPLICATED_SS = 1;
 int SHAMIR_SS = 2;
 
-mpz_t modulus_shamir; // Global modulus variable
+mpz_t modulus_shamir; // Global modulus_shamir variable
 int technique; // Global technique variable 
 
 std::ifstream var_list;
@@ -245,7 +245,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     std::string value;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    double element = 0;
+    long long element = 0;
     int base = 10;
     int dim = (size1 == 0) ? 1 : size1;
 
@@ -353,12 +353,10 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     }
                 }
                 // p (result[1]): Exponent part.
-                // v (result[0]): Coefficient part.
+                // v (result[0]): Mantissa.
                 // z (result[2]): Indicator for special cases.
                 // s (result[3]): Sign indicator.
-                if (result[2] == 1)
-                    element = 0;
-                else {
+                if (result[2] != 0)
                     element = result[0] * pow(2, result[1]);
                     if (result[3] == 1)
                         element = -element;
