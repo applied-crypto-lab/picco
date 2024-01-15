@@ -61,7 +61,7 @@ int ShamirSS::getThreshold() {
 // responsible for actually producing shares of a secret
 void ShamirSS::getShares(mpz_t *shares, mpz_t secret) {
 
-    srand(time(NULL));
+    // srand(time(NULL));
     mpz_t coefficient;
     mpz_init(coefficient);
     mpz_t temp;

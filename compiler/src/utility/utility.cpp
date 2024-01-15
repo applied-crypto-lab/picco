@@ -399,7 +399,9 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
             for (int j = 0; j < tokens.size(); j++) {
                 element = std::stoi(tokens[j]);
                 if (secrecy == 1)
+                    // shares = ss->getShares(element); // this is what its supposed to be
                     ss->getShares(shares, element);
+                    
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     if (j == 0)
                         outputFiles[k] << name + "=";
