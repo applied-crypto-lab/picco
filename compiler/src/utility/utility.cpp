@@ -51,7 +51,7 @@ void produceInputs(std::ifstream[], std::ofstream[], std::string, std::string, i
 void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstream *, int);
 void readVarList(std::ifstream &, std::ifstream[], std::ofstream[], int);
 void writeToOutputFile(std::ofstream &, std::string, std::string, int, int, int);
-void convertFloat(float value, int K, int L, int **elements);
+void convertFloat(float value, int K, int L, long long **elements);
 
 int main(int argc, char **argv) {
 
@@ -228,28 +228,35 @@ void writeToOutputFile(std::ofstream &outputFile, std::string value, std::string
     }
 }
 
+/*
+The function produceOutputs() read the data from inputFiles, processes it based on the specified 
+data type and secrecy level, and writes the results to the outputFiles. This function generates 
+output files based on the specified input files, variable information, data type, secrecy level, 
+and dimensions. The generated outputs can be either public (non-secret) or private (secret-shared) 
+computations, depending on the parameters provided. Important variables used in this function are: 
+
+    1. element; Represents an individual element during the computation.
+    2. **shares; Represents an array of shares used in secure multi-party computation.
+    3. *result; Represents the result of the secure multi-party computation.
+*/
+
 void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy) {
     std::string line;
     std::string value;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    mpz_t element;
+    double element = 0;
     int base = 10;
     int dim = (size1 == 0) ? 1 : size1;
-    // initialization
-    mpz_init(element);
+
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
-        mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * numOfComputeNodes);
-        mpz_t *result = (mpz_t *)malloc(sizeof(mpz_t) * size2);
-        for (int i = 0; i < numOfComputeNodes; i++) {
-            shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size2);
-            for (int j = 0; j < size2; j++)
-                mpz_init(shares[i][j]);
-        }
-        for (int i = 0; i < size2; i++)
-            mpz_init(result[i]);
 
+        std::vector<std::vector<std::string>> shares;
+        // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
+        shares.resize(numOfComputeNodes, std::vector<std::string>(size2)); 
+        // Set the size for result to size2
+        std::vector<long long> result(size2);
         for (int i = 0; i < dim; i++) {
             // extract the shares
             for (int k = 0; k < numOfComputeNodes; k++) {
@@ -257,10 +264,22 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 tokens = splitfunc(line.c_str(), ",");
                 if (secrecy == 1)
                     for (int j = 0; j < tokens.size(); j++)
-                        mpz_set_str(shares[k][j], tokens[j].c_str(), 10);
+                        shares[k].push_back(tokens[j]);
+                        /* 
+                        mpz_set_str is used to convert a string (tokens[j]) to an 
+                            arbitrary precision integer (shares[k][j]), taking into 
+                            account the base (10 in this case).
+                        
+                        In the second implementation the vector token of type string is
+                            directly set to the vector of shares[k]. To do this the 
+                            fucntion push_back() is used to make sure there isn't any 
+                            undefined behavior cause of the sizes of both vectors. 
+                            
+                        */
             }
             if (secrecy == 1)
-                ss->reconstructSecret(result, shares, size2);
+                result = ss->reconstructSecret(shares, size2);
+
             for (int j = 0; j < tokens.size(); j++) {
                 // for single variable or one-dimension
                 if (size1 == 0 && j == 0)
@@ -273,29 +292,16 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 if (secrecy == 1) {
                     // deal with negative results
-                    mpz_t tmp, field;
-                    mpz_init(tmp);
-                    mpz_init(field);
-                    ss->getFieldSize(field);
-                    mpz_mul_ui(tmp, result[j], 2);
+                    long long tmp, field;
+                    ss->getFieldSize(field); 
+                    // Multiply result[j] by 2 and store the result in tmp
+                    tmp = std::stoll(result[j]) * 2;
                     if (mpz_cmp(tmp, field) > 0)
-                        mpz_sub(result[j], result[j], field);
-                    value = mpz_get_str(NULL, base, result[j]);
+                        result[j] = result[j] - field;
                 }
-                writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
+                writeToOutputFile(outputFiles[0], result[j], tokens[j], secrecy, j, tokens.size());
             }
         }
-        // clear the memory
-        for (int i = 0; i < numOfComputeNodes; i++) {
-            for (int j = 0; j < size2; j++)
-                mpz_clear(shares[i][j]);
-            free(shares[i]);
-        }
-        free(shares);
-        for (int i = 0; i < size2; i++)
-            mpz_clear(result[i]);
-        free(result);
-
     }
     // public float
     else if (!type.compare("float") && secrecy == 2) {
@@ -320,45 +326,39 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     }
     // private float
     else if (!type.compare("float") && secrecy == 1) {
-        mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * numOfComputeNodes);
-        mpz_t *result = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        for (int i = 0; i < numOfComputeNodes; i++) {
-            shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-            for (int j = 0; j < 4; j++)
-                mpz_init(shares[i][j]);
-        }
-        for (int i = 0; i < 4; i++)
-            mpz_init(result[i]);
+        std::vector<std::vector<std::string>> shares;
+        shares.resize(numOfComputeNodes, std::vector<std::string>(4));  // Resize the vector of vectors
+        std::vector<long long> result(4);
+
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < size2; j++) {
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
                     for (int l = 0; l < 4; l++)
-                        mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
+                        //mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
+                        shares[k].push_back(tokens[l]);
                 }
-                ss->reconstructSecret(result, shares, 4);
+                result = ss->reconstructSecret(shares, 4);
                 for (int k = 0; k < 4; k++) {
                     if (k == 1) {
-                        mpz_t tmp, field;
-                        mpz_init(tmp);
-                        mpz_init(field);
+                        long long tmp, field;
                         ss->getFieldSize(field);
-                        mpz_mul_ui(tmp, result[1], 2);
+                        // Multiply result[j] by 2 and store the result in tmp
+                        tmp = result[1] * 2;
                         if (mpz_cmp(tmp, field) > 0)
-                            mpz_sub(result[1], result[1], field);
+                            result[1] = result[1] - field;
                     }
                 }
-                double v = mpz_get_d(result[0]);
-                double p = mpz_get_d(result[1]);
-                double z = mpz_get_d(result[2]);
-                double s = mpz_get_d(result[3]);
-                double element = 0;
-                if (z == 1)
+                // p (result[1]): Exponent part.
+                // v (result[0]): Coefficient part.
+                // z (result[2]): Indicator for special cases.
+                // s (result[3]): Sign indicator.
+                if (result[2] == 1)
                     element = 0;
                 else {
-                    element = v * pow(2, p);
-                    if (s == 1)
+                    element = result[0] * pow(2, result[1]);
+                    if (result[3] == 1)
                         element = -element;
                 }
                 if (j == 0) {
@@ -375,35 +375,33 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 writeToOutputFile(outputFiles[0], ss.str(), "", 1, j, size2);
             }
         }
-        // free the memory
-        for (int i = 0; i < numOfComputeNodes; i++) {
-            for (int j = 0; j < 4; j++)
-                mpz_clear(shares[i][j]);
-            free(shares[i]);
-        }
-        free(shares);
-        for (int i = 0; i < 4; i++)
-            mpz_clear(result[i]);
-        free(result);
     } else {
         std::cout << "Wrong type has been detected";
         std::exit(1);
     }
 }
 
+
+/*
+The function produceInputs() read the data from inputFiles, processes it based on the specified 
+data type and secrecy level, and writes the results to the outputFiles. The data can be either 
+integers or floating-point numbers. The process includes generating shares of the data using 
+(ss->getShares()). Important variables used in this function are: 
+
+1. long long element; Represents an individual element of the input data -> this gets passed to getShares().
+2. long long *elements; Represents an array of elements used when processing floating-point numbers -> this 
+   gets passed to convertFloat(). 
+3. std::vector<std::string> shares(numOfComputeNodes); Represents the shares obtained through 
+   secret sharing for a given element -> this stores the shares returned from getShares() fucntion.     
+*/
+
 void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy, int len_sig, int len_exp) {
     std::string line;
-    std::string share;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    mpz_t element;
-    mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * numOfComputeNodes);
+    long long element;
+    std::vector<std::string> shares(numOfComputeNodes);
     int base = 10;
-
-    // initialization
-    mpz_init(element);
-    for (int i = 0; i < numOfComputeNodes; i++)
-        mpz_init(shares[i]);
     int dim = (size1 == 0) ? 1 : size1;
     
     // works for both one or two dimensional arrays
@@ -414,18 +412,16 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
             tokens = splitfunc(temp[1].c_str(), ",");
 
             for (int j = 0; j < tokens.size(); j++) {
-                mpz_set_str(element, tokens[j].c_str(), 10);
+                // The str tokens[j] is converted to long long, using base 10. 
+                // (nullptr in here is not relevant to our computatuon, this version of stoll 
+                // to make sure the conversion uses base 10.)
+                element = std::stoll(tokens[j], nullptr, base); 
                 if (secrecy == 1)
-                    // shares = ss->getShares(element); // this is what its supposed to be
-                    ss->getShares(shares, element);
-                    
+                    shares = ss->getShares(element);
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     if (j == 0)
                         outputFiles[k] << name + "=";
-                    if (secrecy == 1)
-                        share = mpz_get_str(NULL, base, shares[k]);
-
-                    writeToOutputFile(outputFiles[k], share, tokens[j], secrecy, j, tokens.size());
+                    writeToOutputFile(outputFiles[k], shares[k], tokens[j], secrecy, j, tokens.size());
                 }
             }
         }
@@ -451,38 +447,26 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
             tokens = splitfunc(temp[1].c_str(), ",");
 
             for (int j = 0; j < tokens.size(); j++) {
-
-                mpz_t *elements = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-                for (int k = 0; k < 4; k++)
-                    mpz_init(elements[k]);
-
+                long long *elements = new long long[4];
                 convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
 
                 for (int m = 0; m < 4; m++) {
-                    ss->getShares(shares, elements[m]);
+                    shares = ss->getShares(elements[m]);
                     for (int k = 0; k < numOfComputeNodes; k++) {
                         if (m == 0)
                             outputFiles[k] << name + "=";
-                        share = mpz_get_str(NULL, base, shares[k]);
-                        writeToOutputFile(outputFiles[k], share, "", 1, m, 4);
+                        writeToOutputFile(outputFiles[k], shares[k], "", 1, m, 4);
                     }
                 }
-
-                for (int k = 0; k < 4; k++)
-                    mpz_clear(elements[k]);
-                free(elements);
+                // Elements array was dynamically allocate memory using new -> free it once done
+                delete[] elements; 
             }
         }
     } else {
         std::cout << "Wrong type has been detected";
         std::exit(1);
     }
-
-    // free the memory
-    mpz_clear(element);
-    for (int i = 0; i < numOfComputeNodes; i++)
-        mpz_clear(shares[i]);
-    free(shares);
+    // No need to clear the shares vector
 }
 
 
@@ -555,7 +539,7 @@ void loadConfig() {
  * 3. Flag indicating zero (z)
  * 4. Sign (s)
 */
-void convertFloat(float value, int K, int L, int **elements) {
+void convertFloat(float value, int K, int L, long long **elements) {
     unsigned int *newptr = (unsigned int *)&value;
     int s = *newptr >> 31;
     int e = *newptr & 0x7f800000;
@@ -565,7 +549,7 @@ void convertFloat(float value, int K, int L, int **elements) {
 
     int z;
     long v, p, k;
-    int significand=0, one=1, two=2, tmp=0, tmpm=0;
+    long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
 
     if (e == 0 && m == 0) {
         s = 0;
@@ -575,7 +559,7 @@ void convertFloat(float value, int K, int L, int **elements) {
     } else {
         z = 0;
         if (L < 8) {
-            k = (1 << L) - 1;
+            k = (1LL << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
             if (e - 127 - K + 1 > k) {
                 p = k;
                 significand = one << K; // Raise one to the power of K and store it to significand
@@ -588,7 +572,7 @@ void convertFloat(float value, int K, int L, int **elements) {
                 m = m + (1 << 23);
                 tmpm = m; // Set the value of tmpm to m
                 if (K < 24) {
-                    tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                    tmp = 2LL << (24 - K); // Raise two to the power of (24 - K) using shifting and store it to tmp
                     significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
                 } else {
                     significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
@@ -599,7 +583,7 @@ void convertFloat(float value, int K, int L, int **elements) {
             m = m + (1 << 23);
             tmpm = m; // Set the value of tmpm to m
             if (K < 24) {
-                tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                tmp = 2LL << (24 - K); // Raise two to the power of (24 - K) using shifting and store it to tmp
                 significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
             } else {
                 significand = tmpm; // Set significand to tmpm
@@ -608,10 +592,10 @@ void convertFloat(float value, int K, int L, int **elements) {
         }
     }
 
-    // Set the significand, p, z, and s value directly to the int array of elements.
+    // Set the significand, p, z, and s value directly to the long long array of elements.
     (*elements)[0] = significand;
     (*elements)[1] = p;
     (*elements)[2] = z;
-    (*elements)[3] = s; 
+    (*elements)[3] = s;
 }
 
