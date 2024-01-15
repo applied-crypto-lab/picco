@@ -50,7 +50,6 @@ char *filename;     /* The file we parse */
 char *output_filename;
 char *var_list;
 char *final_list;
-char *res; // ****ANB: why is this global?
 /* This is for taking care of main() in the parsed code;
  * OMPi generates its own main() and replaces the original one.
  */
@@ -73,7 +72,7 @@ int peers = 0;               /* Number of computational parties */
 int threshold = 0;           /* Secret sharing parameter */
 int inputs = 0;              /* Number of input parties */
 int outputs = 0;             /* Number of ouput parties */
-char technique[100] = "rss"; /* The technique used either rss or shamir */
+char technique[100] = ""; /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
 int kappa;
@@ -349,31 +348,38 @@ void loadConfig(char *config) {
     } else if (outputs == 0) {
         fprintf(stderr, "Error: Outputs must be specified.\n");
         exit(1);
+    } else if (bits == 0) {
+        printf("Warning: No bit value provided, defaulting to 0.\n");
     }
+    
 
     // Check if 'peers' meet the requirments.
     if (peers % 2 == 0) {
         fprintf(stderr, "Error: Peers must be an odd integer equal to 2 * threshold + 1.\n");
         exit(1);
     }
-
     if (peers != 2 * threshold + 1) {
         fprintf(stderr, "Error: Peers must be equal to 2 * threshold + 1.\n");
         exit(1);
     }
 
+
     // Check if 'technique' meet the requirments.
-    if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
+    if (strlen(technique) == 0) {
+        printf("Warning: No technique provided, defaulting to RSS.\n");
+        strcpy(technique, "rss"); // Set technique to RSS
+        technique_var = REPLICATED_SS; // Default to RSS-1
+    } else if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
         fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
         exit(1);
     }
+
 
     // Validate 'peers' value based on 'technique' used
     if (strcasecmp(technique, "rss") == 0 && peers > 7) {
         fprintf(stderr, "Error: For 'rss' technique, peers must be less than or equal to 7.\n");
         exit(1);
     }
-
     if (strcasecmp(technique, "shamir") == 0 && peers > 20) {
         fprintf(stderr, "Error: For 'shamir' technique, peers must be less than or equal to 20.\n");
         exit(1);
@@ -499,6 +505,7 @@ int main(int argc, char *argv[]) {
     char *line = (char *)malloc(sizeof(char) * 256);
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
+    char *res = "";
     if (technique_var == SHAMIR_SS) {
         mpz_t modulus2;
         mpz_init(modulus2);
