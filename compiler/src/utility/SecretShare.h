@@ -49,6 +49,7 @@
 // }
 
 #define KEYSIZE 16
+#define BASE 10
 
 std::vector<std::string> splitfunc(const char *str, const char *delim);
 
@@ -64,7 +65,7 @@ public:
     // ShamirSS needs implementations (modification of existing functions)
     virtual std::vector<std::string> getShares(long long ) =0;
     virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int) =0;
-    virtual void flipNegative(long long) = 0;
+    virtual void flipNegative(long long&) = 0;
 
     // virtual void getShares(mpz_t *, mpz_t){};
     // virtual void getShares(mpz_t **, mpz_t *, int){};
@@ -95,7 +96,7 @@ public:
     std::vector<std::string> getShares(long long );
     std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int);
 
-    void flipNegative(long long);
+    void flipNegative(long long&);
 
 
     void computeLagrangeWeight();
@@ -171,7 +172,7 @@ public:
     // depracated, to be removed
     void getShares(T *, T);
     void reconstructSecret(T *, T **, int);
-    void flipNegative(long long);
+    void flipNegative(long long&);
 
     // new string-based version
     std::vector<std::string> getShares(long long input);
@@ -378,8 +379,9 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
     return result;
 }
 
+// check this works
 template <typename T>
-void RSS<T>::flipNegative(long long x) {
+void RSS<T>::flipNegative(long long &x) {
 
 }
 

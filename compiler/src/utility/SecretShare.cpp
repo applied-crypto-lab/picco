@@ -410,6 +410,13 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
 }
 
 
-void ShamirSS::flipNegative(long long x) {
-
+// check this works
+void ShamirSS::flipNegative(long long& x) {
+    mpz_t tmp, tmp_x;
+    mpz_init(tmp);
+    mpz_set_si(tmp_x, x);
+    mpz_mul_ui(tmp, tmp_x, 2);
+    if (mpz_cmp(tmp, fieldSize) > 0)
+        mpz_sub(tmp_x, tmp_x, fieldSize);
+    x = mpz_get_si(tmp_x);
 }

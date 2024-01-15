@@ -251,7 +251,6 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
 
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
-
         std::vector<std::vector<std::string>> shares;
         // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
         shares.resize(numOfComputeNodes, std::vector<std::string>(size2)); 
@@ -292,13 +291,14 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 if (secrecy == 1) {
                     // deal with negative results
-                    long long tmp, field;
-                    ss->getFieldSize(field); 
-                    // Multiply result[j] by 2 and store the result in tmp
-                    tmp = result[j] * 2;
-                    if (tmp > field)
-                        result[j] = result[j] - field;
-                    value = std::to_string(result[j]) // The reconstructSecret returns long long so we need to convert it to str before outputting
+                    // long long tmp, field;
+                    // ss->getFieldSize(field); 
+                    // // Multiply result[j] by 2 and store the result in tmp
+                    // tmp = result[j] * 2;
+                    // if (tmp > field)
+                    //     result[j] = result[j] - field;
+                    ss->flipNegative(result[j]);
+                    value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
                 }
                 writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
@@ -306,7 +306,6 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     }
     // public float
     else if (!type.compare("float") && secrecy == 2) {
-
         for (int i = 0; i < dim; i++) {
             for (int k = 0; k < numOfComputeNodes; k++) {
                 std::getline(inputFiles[k], line);
@@ -343,12 +342,14 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 result = ss->reconstructSecret(shares, 4);
                 for (int k = 0; k < 4; k++) {
                     if (k == 1) {
-                        long long tmp, field;
-                        ss->getFieldSize(field);
-                        // Multiply result[j] by 2 and store the result in tmp
-                        tmp = result[1] * 2;
-                        if (tmp > field)
-                            result[1] = result[1] - field;
+                        // long long tmp, field;
+                        // ss->getFieldSize(field);
+                        // // Multiply result[j] by 2 and store the result in tmp
+                        // tmp = result[1] * 2;
+                        // if (tmp > field)
+                        //     result[1] = result[1] - field;
+                        ss->flipNegative(result[1]);
+
                     }
                 }
                 // p (result[1]): Exponent part.
