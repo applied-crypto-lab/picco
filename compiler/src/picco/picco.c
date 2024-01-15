@@ -113,7 +113,7 @@ void append_new_main(bool mode) {
                    "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
                    "  exit(1);\n}\n");
         str_printf(strA(),
-                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", %d);\n",
+                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
                    peers, threshold, bits, res, total_threads);
 
     } else {               // -d - deployment mode
@@ -127,7 +127,7 @@ void append_new_main(bool mode) {
                    "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
                    "for(int i = 0; i < argc-6; i++)\n"
                    "   IO_files[i] = argv[6+i];\n"
-                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n",
+                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
                    peers, threshold, bits, res, total_threads);
     }
 
@@ -438,21 +438,13 @@ int main(int argc, char *argv[]) {
     int pos = 0;
     char text[snprintf(NULL, 0, "%li", sizeof(int)) + 1];
     for (uint i = 0; i < map_size; i++) {
-        // printf("seed_map[i]: %i\n", seed_map[i]);
-        // char text[20];
         sprintf(text, "%i", seed_map[i]);
         strncat(map_tmp, text, strlen(text));
-        // pos += sprintf(&map_tmp[pos],"%i", seed_map[i]);
-        // sprintf(map_tmp,
-        // printf("%s\n", map_tmp);
-
         if (i != (map_size - 1)) {
             strcat(map_tmp, ", ");
-            // sprintf(map_tmp, ", ");
         }
     }
     strcat(map_tmp, "};");
-    // printf("%s\n", map_tmp);
 
     filename = argv[2];
     final_list = argv[5];
@@ -536,10 +528,6 @@ int main(int argc, char *argv[]) {
     /*
      * 3. Transform & output
      */
-
-    // for n = 21, the map is not written properly to the output file
-    // map_tmp contains the CORRECT genereated, it just gets cut off
-    // stops writing after ~450 elements
 
     // Add SMC specific include statements
     p = verbit(tmp);

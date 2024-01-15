@@ -60,7 +60,7 @@ void ss_free_arr(unsigned long *op, int size);
 class SMC_Utils {
 public:
     // Constructors
-    SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads);
+    SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads);
     // Share a secret between
     int smc_open(mpz_t var, int threadID);
     float smc_open(mpz_t *var, int threadID);
