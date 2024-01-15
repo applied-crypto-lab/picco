@@ -397,3 +397,19 @@ void ShamirSS::reconstructSecret(mpz_t *result, mpz_t **y, int size) {
     }
     mpz_clear(temp);
 }
+
+// these need to be implemented (just copy from above methods, making changes to take/return ints/strings  )
+std::vector<std::string> ShamirSS::getShares(long long secret) {
+    std::vector<std::string> result;
+    return result;
+}
+
+std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::string>> y, int size) {
+    std::vector<long long> result;
+    return result;
+}
+
+
+void ShamirSS::flipNegative(long long x) {
+
+}

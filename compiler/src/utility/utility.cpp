@@ -38,7 +38,7 @@ int threshold;
 int REPLICATED_SS = 1;
 int SHAMIR_SS = 2;
 
-mpz_t modulus; // Global modulus variable
+mpz_t modulus_shamir; // Global modulus variable
 int technique; // Global technique variable 
 
 std::ifstream var_list;
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     std::ofstream outputFiles[numOfOutput];
 
     // this will go where we determine which technique we're using
-    // ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
+    // ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
     // ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
     // return 0;
     // testing polymorphism
@@ -479,7 +479,7 @@ the data and store it to the appropriate variables as follow:
 4. threshold = threshold
 5. numOfInputNodes = inputs
 6. numOfOutputNodes = outputs
-7. modulus = modulus (Conditional - set only if shamir is used)
+7. modulus_shamir = modulus_shamir (Conditional - set only if shamir is used)
 */
 void loadConfig() {
     std::string line;
@@ -495,9 +495,9 @@ void loadConfig() {
         } else {
             // Based on the technique used read the last element (shamir, rss))
             if (i == 6 && technique == SHAMIR_SS) {
-                mpz_init(modulus);
-                mpz_set_str(modulus, tokens[1].c_str(), 10);
-                // gmp_printf("%Zd\n", modulus);
+                mpz_init(modulus_shamir);
+                mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
+                // gmp_printf("%Zd\n", modulus_shamir);
             } else {
                 results[i] = atoi(tokens[1].c_str());
             }
@@ -510,7 +510,7 @@ void loadConfig() {
     numOfOutputNodes = results[5];
     
     if (technique == SHAMIR_SS) {
-        ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
+        ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
     } else if (technique == REPLICATED_SS) {
         if (bits <= 8) { // Bits less than or equal to 8 
             ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); //the last argument is supposed to be the ring size, which is stored in the bits field in utility_config

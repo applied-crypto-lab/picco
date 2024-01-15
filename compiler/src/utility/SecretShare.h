@@ -62,13 +62,17 @@ public:
     // these are the only two virtual functions that need to be implemented in the child classes
     // currently only implemented in RSS
     // ShamirSS needs implementations (modification of existing functions)
-    virtual std::vector<std::string> getShares(long long );
-    virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int);
+    virtual std::vector<std::string> getShares(long long ) =0;
+    virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int) =0;
+    virtual void flipNegative(long long) = 0;
 
-    virtual void getShares(mpz_t *, mpz_t){};
-    virtual void getShares(mpz_t **, mpz_t *, int){};
-    virtual void reconstructSecret(mpz_t, mpz_t *){};
-    virtual void reconstructSecret(mpz_t *, mpz_t **, int){};
+    // virtual void getShares(mpz_t *, mpz_t){};
+    // virtual void getShares(mpz_t **, mpz_t *, int){};
+    // virtual void reconstructSecret(mpz_t, mpz_t *){};
+    // virtual void reconstructSecret(mpz_t *, mpz_t **, int){};
+
+    // virtual void flipNegative(mpz_t *, mpz_t **, int){};
+
 };
 
 class ShamirSS : public SecretShare {
@@ -87,6 +91,12 @@ public:
     // Divide a secret into n shares
     void getShares(mpz_t *, mpz_t);
     void getShares(mpz_t **, mpz_t *, int);
+
+    std::vector<std::string> getShares(long long );
+    std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int);
+
+    void flipNegative(long long);
+
 
     void computeLagrangeWeight();
     void computeSharingMatrix();
@@ -161,6 +171,7 @@ public:
     // depracated, to be removed
     void getShares(T *, T);
     void reconstructSecret(T *, T **, int);
+    void flipNegative(long long);
 
     // new string-based version
     std::vector<std::string> getShares(long long input);
@@ -283,7 +294,7 @@ std::vector<std::string> RSS<T>::getShares(long long input) {
     T *splitInput = new T[totalNumShares];
     memset(splitInput, 0, sizeof(T) * totalNumShares);
     for (size_t i = 0; i < totalNumShares - 1; i++) {
-        prg_aes_ni(splitInput[i], key_seed, key_prg);
+        prg_aes_ni(&splitInput[i], key_seed, key_prg);
         splitInput[i] = splitInput[i] & SHIFT; // making sure any bits beyond k are zeroed
     }
     splitInput[totalNumShares - 1] = (input & ((T(1) << T(ring_size)) - T(1)));
@@ -366,6 +377,12 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
     }
     return result;
 }
+
+template <typename T>
+void RSS<T>::flipNegative(long long x) {
+
+}
+
 
 template <typename T>
 void RSS<T>::offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri) { // ri used to be void, replaced with __m128i* to compile
