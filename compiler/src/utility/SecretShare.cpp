@@ -456,7 +456,7 @@ std::vector<std::string> ShamirSS::getShares(long long secret) {
 std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::string>> y, int size) {
     
     // Declare result as an array of mpz_t
-    std::vector<long long> result();
+    std::vector<long long> result;
 
     // Declare mpz_result as an array of mpz_t
     mpz_t mpz_result[size];
