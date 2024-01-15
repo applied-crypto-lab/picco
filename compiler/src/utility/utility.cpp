@@ -529,13 +529,13 @@ void loadConfig() {
         ss = new ShamirSS(numOfComputeNodes, threshold, modulus);
     } else if (technique == REPLICATED_SS) {
         if (bits <= 8) { // Bits less than or equal to 8 
-            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, 8);
+            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); //the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
         } else if (bits >= 9 && bits <= 16) { // Between 9 and 16 inclusive 
-            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, 16);
+            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits); 
         } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive 
-            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, 32);
+            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits); 
         } else if (bits >= 33 && bits <= 64){ // Between 33 and 64 inclusive 
-            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
+            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits); 
         }
     }
 }
