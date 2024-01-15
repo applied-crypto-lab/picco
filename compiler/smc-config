@@ -1,5 +1,4 @@
 bits:
-technique:shamir
 peers:3
 threshold:1
 inputs:1
