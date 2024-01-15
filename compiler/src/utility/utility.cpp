@@ -356,7 +356,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 // v (result[0]): Mantissa.
                 // z (result[2]): Indicator for special cases.
                 // s (result[3]): Sign indicator.
-                if (result[2] != 0)
+                if (result[2] != 0){
                     element = result[0] * pow(2, result[1]);
                     if (result[3] == 1)
                         element = -element;
