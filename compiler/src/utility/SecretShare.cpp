@@ -457,6 +457,7 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
     
     // Declare result as an array of mpz_t
     std::vector<long long> result;
+    result.resize(size);
 
     // Declare mpz_result as an array of mpz_t
     mpz_t mpz_result[size];
@@ -479,26 +480,34 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
 
             mpz_clear(mpzY); // Clear mpzY before the next iteration 
         }
-
-        // Convert mpz_result to long long and store in result vector
-        result[i] = mpz_get_si(mpz_result[i]);
     }
 
+    // Convert mpz_result to long long and store in result vector
     for (int i = 0; i < size; i++) {
-        mpz_clear(mpz_result[i]);
+        result[i] = mpz_get_si(mpz_result[i]); // Retrieve the signed integer value 
+        mpz_clear(mpz_result[i]); // Clear the memeory
     }
+
     mpz_clear(temp);
     return result;
 }
 
 
 // check this works
-void ShamirSS::flipNegative(long long& x) {
+void ShamirSS::flipNegative(long long &x) {
+    
+    // Init the variables 
     mpz_t tmp, tmp_x;
     mpz_init(tmp);
+    mpz_init(tmp_x);
+
     mpz_set_si(tmp_x, x);
     mpz_mul_ui(tmp, tmp_x, 2);
     if (mpz_cmp(tmp, fieldSize) > 0)
         mpz_sub(tmp_x, tmp_x, fieldSize);
     x = mpz_get_si(tmp_x);
+
+    // Clear the memory 
+    mpz_clear(tmp);
+    mpz_clear(tmp_x);
 }
