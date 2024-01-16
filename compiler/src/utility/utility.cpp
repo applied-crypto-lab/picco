@@ -291,12 +291,6 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 if (secrecy == 1) {
                     // deal with negative results
-                    // long long tmp, field;
-                    // ss->getFieldSize(field); 
-                    // // Multiply result[j] by 2 and store the result in tmp
-                    // tmp = result[j] * 2;
-                    // if (tmp > field)
-                    //     result[j] = result[j] - field;
                     ss->flipNegative(result[j]);
                     value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
                 }
@@ -342,14 +336,8 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 result = ss->reconstructSecret(shares, 4);
                 for (int k = 0; k < 4; k++) {
                     if (k == 1) {
-                        // long long tmp, field;
-                        // ss->getFieldSize(field);
-                        // // Multiply result[j] by 2 and store the result in tmp
-                        // tmp = result[1] * 2;
-                        // if (tmp > field)
-                        //     result[1] = result[1] - field;
+                        // deal with negative results
                         ss->flipNegative(result[1]);
-
                     }
                 }
                 // p (result[1]): Exponent part.
