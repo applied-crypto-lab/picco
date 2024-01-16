@@ -242,7 +242,7 @@ computations, depending on the parameters provided. Important variables used in 
 
 void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy) {
     std::string line;
-    std::string value;
+    std::ostringstream value;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
     long long element = 0;
@@ -292,7 +292,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 if (secrecy == 1) {
                     // deal with negative results
                     ss->flipNegative(result[j]);
-                    value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
+                    value << result[j];  // The reconstructSecret returns long long so we need to convert it to str before outputting
                 }
                 writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
