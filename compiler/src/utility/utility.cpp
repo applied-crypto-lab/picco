@@ -263,7 +263,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 tokens = splitfunc(line.c_str(), ",");
                 if (secrecy == 1)
                     for (int j = 0; j < tokens.size(); j++)
-                        shares[k].push_back(tokens[j]);
+                        shares[k][j] = tokens[j];
                         /* 
                         mpz_set_str is used to convert a string (tokens[j]) to an 
                             arbitrary precision integer (shares[k][j]), taking into 
@@ -331,7 +331,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     tokens = splitfunc(line.c_str(), ",");
                     for (int l = 0; l < 4; l++)
                         //mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
-                        shares[k].push_back(tokens[l]);
+                        shares[k][l] = tokens[l];
                 }
                 result = ss->reconstructSecret(shares, 4);
                 for (int k = 0; k < 4; k++) {
