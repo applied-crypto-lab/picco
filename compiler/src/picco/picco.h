@@ -24,9 +24,7 @@
 #ifndef __OMPI_H__
 #define __OMPI_H__
 
-// The constants will be used for technique_var type
-#define SHAMIR_SS 2
-#define REPLICATED_SS 1
+#include "../shared.h"
 
 #include "scanner.h"
 #include "symtab.h"

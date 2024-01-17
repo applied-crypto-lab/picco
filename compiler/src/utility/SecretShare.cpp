@@ -32,13 +32,29 @@ std::vector<std::string> splitfunc(const char *str, const char *delim) {
 }
 
 ShamirSS::ShamirSS(int p, int t, mpz_t mod) {
+
     peers = p;
     threshold = t;
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
     computeSharingMatrix();
     computeLagrangeWeight();
-    gmp_randinit_mt(rstate);
+
+    // reading random bytes to seed
+    uint8_t random_seed[KEYSIZE];
+    FILE *fp = fopen("/dev/urandom", "r");
+    if (fread(random_seed, 1, KEYSIZE, fp) != (KEYSIZE)) {
+        fprintf(stderr, "Could not read random bytes.");
+        exit(1);
+    }
+    fclose(fp);
+
+    mpz_t seed;
+    mpz_init(seed);
+    mpz_import(seed, KEYSIZE, 1, sizeof(random_seed), 0, 0, random_seed);
+    gmp_randinit_default(rstate); // default = mersenne twister
+    gmp_randseed(rstate, seed); // (seed with randomness from OS)
+    mpz_clear(seed);
 }
 
 void ShamirSS::setPeers(int p) {
@@ -420,7 +436,7 @@ std::vector<std::string> ShamirSS::getShares(long long secret) {
     if (mpz_cmp_si(mpzSecret, 0) < 0) {
         mpz_mod(mpzSecret, mpzSecret, fieldSize);
     }
-    
+
     for (int degree = 0; degree < threshold + 1; degree++) {
         if (degree == 0)
             mpz_set(coefficient, mpzSecret);
@@ -438,9 +454,9 @@ std::vector<std::string> ShamirSS::getShares(long long secret) {
     // Initialize result vector
     std::vector<std::string> result;
 
-    // Convert shares to vector of strings    
+    // Convert shares to vector of strings
     for (int i = 0; i < peers; i++) {
-        result.push_back(mpz_get_str(nullptr, 10, shares[i]));
+        result.push_back(mpz_get_str(nullptr, BASE, shares[i]));
     }
 
     // Clear the mpz_t elements and return the vector of result
@@ -454,7 +470,7 @@ std::vector<std::string> ShamirSS::getShares(long long secret) {
 }
 
 std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::string>> y, int size) {
-    
+
     // Declare result as an array of mpz_t
     std::vector<long long> result;
     result.resize(size);
@@ -473,30 +489,29 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
 
             // Convert string to mpz_t before using y - then use one by one
             mpz_t mpzY;
-            mpz_init_set_str(mpzY, y[peer][i].c_str(), 10);
+            mpz_init_set_str(mpzY, y[peer][i].c_str(), BASE);
 
             modMul(temp, mpzY, lagrangeWeight[peer]);
             modAdd(mpz_result[i], mpz_result[i], temp);
 
-            mpz_clear(mpzY); // Clear mpzY before the next iteration 
+            mpz_clear(mpzY); // Clear mpzY before the next iteration
         }
     }
 
     // Convert mpz_result to long long and store in result vector
     for (int i = 0; i < size; i++) {
-        result[i] = mpz_get_si(mpz_result[i]); // Retrieve the signed integer value 
-        mpz_clear(mpz_result[i]); // Clear the memeory
+        result[i] = mpz_get_si(mpz_result[i]); // Retrieve the signed integer value
+        mpz_clear(mpz_result[i]);              // Clear the memeory
     }
 
     mpz_clear(temp);
     return result;
 }
 
-
 // check this works
 void ShamirSS::flipNegative(long long &x) {
-    
-    // Init the variables 
+
+    // Init the variables
     mpz_t tmp, tmp_x;
     mpz_init(tmp);
     mpz_init(tmp_x);
@@ -507,7 +522,7 @@ void ShamirSS::flipNegative(long long &x) {
         mpz_sub(tmp_x, tmp_x, fieldSize);
     x = mpz_get_si(tmp_x);
 
-    // Clear the memory 
+    // Clear the memory
     mpz_clear(tmp);
     mpz_clear(tmp_x);
 }

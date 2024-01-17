@@ -215,14 +215,11 @@ void seed::init(char *config, char *util_config, bool mode) {
 // Calculate the time difference in seconds between two time intervals
 double seed::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
-
     if (t1->tv_usec > t2->tv_usec) {
         t2->tv_usec += 1000000;
         t2->tv_sec--;
     }
-
     elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
-
     return (elapsed);
 }
 

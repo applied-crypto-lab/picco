@@ -19,6 +19,7 @@
 */
 
 #include "SecretShare.h"
+#include "../shared.h"
 #include <cmath>
 #include <fstream>
 #include <gmp.h>
@@ -35,8 +36,6 @@ int numOfOutputNodes;
 int party;
 int bits;
 int threshold;
-#define REPLICATED_SS 1
-#define SHAMIR_SS 2
 
 mpz_t modulus_shamir; // Global modulus_shamir variable
 int technique; // Global technique variable 
@@ -246,7 +245,6 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
     long long element = 0;
-    int base = 10;
     int dim = (size1 == 0) ? 1 : size1;
 
     // works for both one or two dimensional arrays
@@ -389,7 +387,6 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     std::vector<std::string> temp;
     long long element;
     std::vector<std::string> shares(numOfComputeNodes);
-    int base = 10;
     int dim = (size1 == 0) ? 1 : size1;
     
     // works for both one or two dimensional arrays
@@ -403,7 +400,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                 // The str tokens[j] is converted to long long, using base 10. 
                 // (nullptr in here is not relevant to our computatuon, this version of stoll 
                 // to make sure the conversion uses base 10.)
-                element = std::stoll(tokens[j], nullptr, base); 
+                element = std::stoll(tokens[j], nullptr, BASE); 
                 if (secrecy == 1)
                     shares = ss->getShares(element);
                 for (int k = 0; k < numOfComputeNodes; k++) {
