@@ -1566,9 +1566,9 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename, mpz_t modulu
     char *strkey = (char *)malloc(64);
     mpz_get_str(strkey, 10, modulus);
     int mpz_t_size_b = strlen(strkey);
-    int numKeys = nChoosek(peers- 1, threshold);
+    int numKeys = nChoosek(peers - 1, threshold);
     // the buffer size can be calculated beforehand
-    int buf_size = sizeof(int) * (3 + (numKeys*(threshold+1))) + mpz_t_size_b * numKeys + 1;
+    int buf_size = sizeof(int) * (3 + (numKeys * (threshold + 1))) + mpz_t_size_b * numKeys + 1;
     char *decrypt = (char *)malloc(buf_size);
     memset(decrypt, 0x00, buf_size);
 
@@ -1613,19 +1613,15 @@ void SMC_Utils::receivePolynomials(std::string privatekey_filename, mpz_t modulu
     }
     printf("Polynomials received... \n");
     free(decrypt);
-
 }
 
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
-
     if (t1->tv_usec > t2->tv_usec) {
         t2->tv_usec += 1000000;
         t2->tv_sec--;
     }
-
     elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
-
     return elapsed;
 }
 
@@ -1756,44 +1752,41 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     free(a_test);
 }
 
-// proof of concept type-specifc implementations
+void seedSetup(vector<int> &seed_map, int peers, int threshold) {
+    uint8_t RandomData[2*KEYSIZE];
+    FILE *fp = fopen("/dev/urandom", "r");
+    if (fread(RandomData, 1, (2*KEYSIZE), fp) != (2*KEYSIZE)) {
+        fprintf(stderr, "Could not read random bytes.");
+        exit(1);
+    }
+    fclose(fp);
+}
 
-// void SMC_Utils::test_type(int x) {
-//     priv_int value;
-//     ss_init_set_si(value, x);
-//     gmp_printf("value %Zd\n", value);
-//     // printf("value %lu\n", value);
-
-//     ss_clear(value);
-//     // printf("value %lu\n", value);
-//     gmp_printf("value %Zd\n", value); // value is cleared at this point, returns garbage
-
-//     uint size = 3;
-//     // priv_int *val_arr = (priv_int *)malloc(sizeof(priv_int) * size);
-//     priv_int *val_arr = new priv_int[size];
-//     ss_init_set_si(val_arr[0], x);
-//     ss_init_set_si(val_arr[1], x + 3);
-//     ss_init_set_si(val_arr[2], x + 16);
-//     for (size_t i = 0; i < size; i++) {
-//         // printf("val_arr[%lu] %lu\n", i, val_arr[i]);
-//         gmp_printf("val_arr[%i] %Zd\n", i, val_arr[i]);
-//     }
-//     ss_free_arr(val_arr, size);
-//     for (size_t i = 0; i < size; i++) {
-//         // printf("val_arr[%lu] %lu\n", i, val_arr[i]);
-//         gmp_printf("val_arr[%i] %Zd\n", i, val_arr[i]);
-//     }
-// }
-
-// void ss_init_set_si(unsigned long &x, int x_val) {
-//     x = x_val;
-// }
-
-// // for ul's, dont need to do anything for within-scope single variables, so just return
-// void ss_clear(unsigned long &x) {}
-
-// // // frees space oucupied by x
-
-// void ss_free_arr(unsigned long *op, int size) {
-//     delete[] op;
-// }
+// binary_rep = bianry encoding of share T generated from seed_map
+// e.g. 0001111
+// produces either the set of parties with access (set bits, 1s) or without access (unset bits, 0s)
+// the LSB is IGNORED, since that corresponds to the party itself, and is ALWAYS SET
+// id - my PID (1,...,n)
+// result - UNsorted vector of party ID's with or without access
+// ANB: w.r.t. sending keys for seeds, DONT CHANGE THE ORDER
+// this explicitly informs us the exact order which shares will be sent/received from
+vector<int> extract_share_WITH_ACCESS(int binary_rep, int peers, int id) {
+    // iterate through bits from right to left
+    vector<int> result;
+    for (int i = 1; i < peers; i++) { // scans through remaining n-1
+        if (GET_BIT(binary_rep, i)) {
+            result.push_back(((id + i - 1) % peers + 1));
+        }
+    }
+    return result;
+}
+vector<int> extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
+    // iterate through bits from left to right
+    vector<int> result;
+    for (int i = peers - 1; i >= 0; i--) {
+        if (!GET_BIT(binary_rep, i)) {
+            result.push_back(((id + i - 1) % peers + 1));
+        }
+    }
+    return result;
+}

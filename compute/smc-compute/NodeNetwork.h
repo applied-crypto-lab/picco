@@ -23,6 +23,9 @@
 
 // key size in bytes; switching to a longer size will require more work than updating this constant as 128-bit encryption function calls are used
 #define KEYSIZE 16
+#define MAX_BUFFER_SIZE 229376 // in bytes
+// int MAX_BUFFER_SIZE = 4194304; // ?
+
 // the block size is always 16 with AES, use AES_BLOCK_SIZE
 
 #include "NodeConfiguration.h"
@@ -76,7 +79,7 @@ public:
     unsigned char *aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
 
     // Close
-    void mpzFromString(char *, mpz_t *, int *, int);
+    // void mpzFromString(char *, mpz_t *, int *, int);
     double time_diff(struct timeval *, struct timeval *);
 
     // Manager work
@@ -101,11 +104,39 @@ public:
     // getter function for retreiving PRG seeds
     unsigned char **getPRGseeds();
 
-    // to be removed
-    // unsigned char key_0[16];
-    // unsigned char key_1[16];
+    void getRounds(int size, uint *count, uint *rounds, uint ring_size);
+    // 16
+    void SendAndGetDataFromPeer(uint16_t *, uint16_t **, int, uint, int **, int);
+    void sendDataToPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
+    void sendDataToPeer(int id, int size, uint16_t *data, uint ring_size);
+    void getDataFromPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
+    void getDataFromPeer(int id, int size, uint16_t *buffer, uint ring_size);
+    void multicastToPeers(uint16_t **data, uint16_t **buffers, int size, uint ring_size);
+
+    // 32
+    void SendAndGetDataFromPeer(uint32_t *, uint32_t **, int, uint, int **, int);
+    void sendDataToPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size);
+    void sendDataToPeer(int id, int size, uint32_t *data, uint ring_size);
+    void getDataFromPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size);
+    void getDataFromPeer(int id, int size, uint32_t *buffer, uint ring_size);
+    void multicastToPeers(uint32_t **data, uint32_t **buffers, int size, uint ring_size);
+
+    // 64
+    void SendAndGetDataFromPeer(uint64_t *, uint64_t **, int, uint, int **, int);
+    void sendDataToPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size);
+    void sendDataToPeer(int id, int size, uint64_t *data, uint ring_size);
+    void getDataFromPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size);
+    void getDataFromPeer(int id, int size, uint64_t *buffer, uint ring_size);
+    void multicastToPeers(uint64_t **data, uint64_t **buffers, int size, uint ring_size);
+
+    // 8
+    void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, int **, int);
+    void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
+    void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
+    void getRounds_bit(int size, uint *count, uint *rounds);
 
 private:
+    // static members need to be dealt with if want to make NodeNetwork templated
     static pthread_mutex_t socket_mutex;
     static pthread_mutex_t buffer_mutex;
     static pthread_cond_t *socket_conditional_variables;
@@ -126,6 +157,7 @@ private:
     static int mode;
     static int numOfChangedNodes;
     static int isManagerAwake;
+
     pthread_t manager;
     int numOfThreads;
     void connectToPeers();
@@ -140,11 +172,17 @@ private:
     unsigned char **prgSeeds; // getter function works properly in SecretShare constructor
 
     // used to mask data prior to sending (maintains security)
+    uint16_t *SHIFT_16;
     uint32_t *SHIFT_32;
     uint64_t *SHIFT_64;
 
 };
 
-void print_hexa(uint8_t *message, int message_length);
-
+// used for debugging
+inline void print_hexa(uint8_t *message, int message_length) {
+    for (int i = 0; i < message_length; i++) {
+        printf("%02x", message[i]);
+    }
+    printf(";\n");
+}
 #endif /* NODENETWORK_H_ */

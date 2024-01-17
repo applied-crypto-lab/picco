@@ -30,18 +30,18 @@
 #include "rss/RSSOps.h"
 #endif
 
-#include <fstream>
-#include <iostream>
-#include <math.h>
-#include <sstream>
-#include <string>
+#include "bit_utils.h"
 #include "openssl/bio.h"
 #include "unistd.h"
 #include <cmath>
+#include <fstream>
+#include <iostream>
+#include <math.h>
 #include <netinet/in.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <sstream>
 #include <string>
 
 typedef mpz_t priv_int;
@@ -571,7 +571,7 @@ private:
 
     // Handle client connections and polynomail stuff
     void clientConnect();
-    void receivePolynomials(std::string privatekey_filename,mpz_t modulus, int peers, int threshold);
+    void receivePolynomials(std::string privatekey_filename, mpz_t modulus, int peers, int threshold);
     // void setCoef();
     int newsockfd;
 };
