@@ -281,6 +281,10 @@ void loadConfig(char *config) {
             // Updates the configuration values based on the encountered keys.
             if (strcmp(key, "bits") == 0) {
                 bits = atoi(removeNonDigit(value));
+                if (bits == 0) {
+                    fprintf(stderr, "Error: 'bits' must be either empty or a non-zero integer.\n");
+                    exit(1);
+                }
             } else if (strcmp(key, "peers") == 0) {
                 peers = atoi(removeNonDigit(value));
             } else if (strcmp(key, "threshold") == 0) {
@@ -348,10 +352,8 @@ void loadConfig(char *config) {
     } else if (outputs == 0) {
         fprintf(stderr, "Error: Outputs must be specified.\n");
         exit(1);
-    } else if (bits == 0) {
-        printf("Warning: No bit value provided, defaulting to 0.\n");
-    }
-    
+    } 
+
 
     // Check if 'peers' meet the requirments.
     if (peers % 2 == 0) {
