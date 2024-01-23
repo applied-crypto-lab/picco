@@ -30,6 +30,7 @@
 #include <iostream>
 #include <math.h>
 #include <openssl/rand.h>
+#include <ostream>
 #include <sstream>
 #include <stdint.h> //for int8_t
 #include <stdio.h>
@@ -60,13 +61,12 @@ public:
     virtual ~SecretShare(){};
     virtual void getFieldSize(mpz_t){};
 
-
     // these are the only two virtual functions that need to be implemented in the child classes
     // currently only implemented in RSS
     // ShamirSS needs implementations (modification of existing functions)
-    virtual std::vector<std::string> getShares(long long ) =0;
-    virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int) =0;
-    virtual void flipNegative(long long&) = 0;
+    virtual std::vector<std::string> getShares(long long) = 0;
+    virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>>, int) = 0;
+    virtual void flipNegative(long long &) = 0;
 
     // virtual void getShares(mpz_t *, mpz_t){};
     // virtual void getShares(mpz_t **, mpz_t *, int){};
@@ -74,7 +74,6 @@ public:
     // virtual void reconstructSecret(mpz_t *, mpz_t **, int){};
 
     // virtual void flipNegative(mpz_t *, mpz_t **, int){};
-
 };
 
 class ShamirSS : public SecretShare {
@@ -94,11 +93,10 @@ public:
     void getShares(mpz_t *, mpz_t);
     void getShares(mpz_t **, mpz_t *, int);
 
-    std::vector<std::string> getShares(long long );
-    std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> , int);
+    std::vector<std::string> getShares(long long);
+    std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>>, int);
 
-    void flipNegative(long long&);
-
+    void flipNegative(long long &);
 
     void computeLagrangeWeight();
     void computeSharingMatrix();
@@ -173,7 +171,7 @@ public:
     // depracated, to be removed
     void getShares(T *, T);
     void reconstructSecret(T *, T **, int);
-    void flipNegative(long long&);
+    void flipNegative(long long &);
 
     // new string-based version
     std::vector<std::string> getShares(long long input);
@@ -373,8 +371,8 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
         for (auto &s : shares) {
             accumulator += s;
         }
-        accumulator = accumulator & SHIFT; // masking 
-        // **** ANB: what is the protocol if the result is negative? 
+        accumulator = accumulator & SHIFT; // masking
+        // **** ANB: what is the protocol if the result is negative?
         result.push_back((long long)(accumulator));
     }
     return result;
@@ -383,9 +381,7 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
 // check this works
 template <typename T>
 void RSS<T>::flipNegative(long long &x) {
-
 }
-
 
 template <typename T>
 void RSS<T>::offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri) { // ri used to be void, replaced with __m128i* to compile
