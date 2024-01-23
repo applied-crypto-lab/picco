@@ -428,10 +428,7 @@ int main(int argc, char *argv[]) {
     nu = ceil(log2(nChoosek(peers, threshold)));
     kappa_nu = kappa + nu;
     uint map_size; // how many items are in seed_map, used to calculate buffer size
-    uint n_test = 21;
     uint *seed_map = generateSeedMap(peers, threshold, &map_size);
-    // uint *seed_map = generateSeedMap(n_test, n_test/2, &map_size);
-    // map_tmp needs to be DYNAMICALLY ALLOCATED, FIX!!!!!!!
     int map_tmp_size = sizeof(int) * 4 * map_size + 200;
     char map_tmp[map_tmp_size];
     sprintf(map_tmp, "std::vector<int> seed_map = {");
@@ -502,7 +499,6 @@ int main(int argc, char *argv[]) {
         mpz_t modulus2;
         mpz_init(modulus2);
         getPrime(modulus2, bits);
-        // gmp_printf("%Zd\n", modulus2);
         res = mpz_get_str(NULL, 10, modulus2);
     }
 
