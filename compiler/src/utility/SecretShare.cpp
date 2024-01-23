@@ -500,7 +500,7 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
 
     // Convert mpz_result to long long and store in result vector
     for (int i = 0; i < size; i++) {
-        result[i] = mpz_get_si(mpz_result[i]); // Retrieve the signed integer value
+        result[i] = mpz_get_d(mpz_result[i]); // Retrieve the value
         mpz_clear(mpz_result[i]);              // Clear the memeory
     }
 

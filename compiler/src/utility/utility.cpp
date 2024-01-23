@@ -244,7 +244,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     std::string value;
     std::vector<std::string> tokens;
     std::vector<std::string> temp;
-    long long element = 0;
+    double element = 0;
     int dim = (size1 == 0) ? 1 : size1;
 
     // works for both one or two dimensional arrays
@@ -342,11 +342,13 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 // v (result[0]): Mantissa.
                 // z (result[2]): Indicator for special cases.
                 // s (result[3]): Sign indicator.
-                if (result[2] != 0){
+                if (result[1] >= 0) {
                     element = result[0] * pow(2, result[1]);
-                    if (result[3] == 1)
-                        element = -element;
+                } else {
+                    element = result[0] / pow(2, -result[1]);
                 }
+                if (result[3] == 1)
+                    element = -element;                
                 if (j == 0) {
                     if (size1 == 0)
                         outputFiles[0] << name + "=";
@@ -356,9 +358,8 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         outputFiles[0] << name + "[" + s1.str() + "]=";
                     }
                 }
-                std::ostringstream ss;
-                ss << element;
-                writeToOutputFile(outputFiles[0], ss.str(), "", 1, j, size2);
+                std::string element_str = std::to_string(element);
+                writeToOutputFile(outputFiles[0], element_str, "", 1, j, size2);
             }
         }
     } else {
@@ -388,7 +389,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     long long element;
     std::vector<std::string> shares(numOfComputeNodes);
     int dim = (size1 == 0) ? 1 : size1;
-    
+
     // works for both one or two dimensional arrays
     if (!type.compare("int")) {
         for (int i = 0; i < dim; i++) {
