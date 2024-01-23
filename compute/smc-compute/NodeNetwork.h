@@ -83,6 +83,7 @@ public:
     double time_diff(struct timeval *, struct timeval *);
 
     // Manager work
+    void launchManager();
     void *managerWork();
     static void *managerWorkHelper(void *);
     void getDataFromPeer(int, int, int);

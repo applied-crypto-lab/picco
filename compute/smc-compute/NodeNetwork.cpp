@@ -83,10 +83,8 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     int peers = config->getPeerCount();
     // allocate space for prgSeeds
     threshold = peers / 2;
-    // prgSeeds = (unsigned char **)malloc(peers * sizeof(unsigned char *));
     prgSeeds = new unsigned char *[2 * threshold];
     for (unsigned int i = 0; i < peers; i++) {
-        // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
         prgSeeds[i] = new unsigned char[KEYSIZE];
         memset(prgSeeds[i], 0, KEYSIZE);
         // print_hexa(prgSeeds[i],KEYSIZE);
@@ -147,14 +145,15 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
         for (int j = 0; j < numOfThreads; j++) {
             buffer_handlers[i][j] = NULL;
             temp_buffers[i][j] = (mpz_t *)malloc(sizeof(mpz_t) * temp_buffer_size);
-            for (int k = 0; k < temp_buffer_size; k++) {
+            for (int k = 0; k < temp_buffer_size; k++)
                 mpz_init(temp_buffers[i][j][k]);
-            }
         }
     }
+
     test_flags = (int *)malloc(sizeof(int) * numOfThreads);
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
+
     SHIFT_16 = new uint16_t[sizeof(uint16_t) * 8];
     SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
     SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
@@ -529,15 +528,17 @@ void NodeNetwork::connectToPeers() {
     }
     // pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
 }
+void NodeNetwork::launchManager() {
+    pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
+}
 
-// depracated, to be removed
 void *NodeNetwork::managerWorkHelper(void *net) {
     ((NodeNetwork *)net)->managerWork();
     return 0;
 }
 
-// depracated, to be removed
 void *NodeNetwork::managerWork() {
+    printf("Starting thread manager...\n");
     fd_set socketDescriptorSet;
     int fdmax = 0, nReady = 0, index = 0, threadID;
     int peers = config->getPeerCount();
@@ -564,7 +565,9 @@ void *NodeNetwork::managerWork() {
         }
         for (int i = 0; i < peers; i++) {
             if (FD_ISSET(socks[i], &socketDescriptorSet)) {
+
                 getDataFromPeer(nodes[i], 1, &threadID);
+
                 if (threadID == -2) {
                     numOfChangedNodes++;
                     if (numOfChangedNodes == peers) {
@@ -886,8 +889,13 @@ void NodeNetwork::requestConnection(int numOfPeers) {
         // and thus be commented out or replaced with an
         // equivalent function otherwise.
         // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
-        int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
-        rc = setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
+        // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+        if(setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+            fprintf(stderr, "ERROR, setsockopt(SO_REUSEADDR) failed\n");
+        if(setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0)
+            fprintf(stderr, "ERROR, setsockopt(IPPROTO_TCP) failed\n");
+
+        // rc = setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
         server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
         if (server[i] == NULL)
             fprintf(stderr, "ERROR, no such hosts \n");

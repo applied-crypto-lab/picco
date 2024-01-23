@@ -36,10 +36,11 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
-    net = *nodeNet;
+    net = *nodeNet; // dereferencing 
 
     seedSetup(seed_map, numOfPeers, threshold); // the presence of this function causes a segaulft in nodeNetwork constructor
 
+    net.launchManager();
     // std::cout << "Recieving keys and polynomials from seed\n";
     // clientConnect();
     // receivePolynomials(privatekey_filename, modulus, numOfPeers, threshold);
