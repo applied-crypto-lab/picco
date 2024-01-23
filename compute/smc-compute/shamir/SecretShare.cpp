@@ -19,13 +19,7 @@
 */
 
 #include "SecretShare.h"
-#include "stdint.h"
-#include <cstdlib>
-#include <cstring>
-#include <gmp.h>
-#include <iostream>
-#include <math.h>
-#include <vector>
+
 
 /*
  * the constructor receives:
@@ -42,7 +36,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     threshold = t;
     myID = id;
 
-    polynomials = _polynomials;
+    polynomials = _polynomials; // doesnt even really need to be a map
     numThreads = _numThreads;
 
     mpz_init(fieldSize);
@@ -79,12 +73,12 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 
 void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
 
-    gmp_randinit_mt(rstate);
+    gmp_randinit_default(rstate);
 
     mpz_t seed;
     mpz_init(seed);
     unsigned char temp_key[KEYSIZE];
-    gmp_randinit_mt(rstate_mine);
+    gmp_randinit_default(rstate_mine);
     if (!RAND_bytes(temp_key, KEYSIZE))
         printf("Key, iv generation error\n");
     mpz_import(seed, KEYSIZE, 1, sizeof(temp_key[0]), 0, 0, temp_key);
@@ -94,7 +88,7 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
 
     rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * (2 * threshold));
     for (int i = 0; i < 2 * threshold; i++) {
-        gmp_randinit_mt(rstatesMult[i]);
+        gmp_randinit_default(rstatesMult[i]);
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
         gmp_randseed(rstatesMult[i], seed);
     }

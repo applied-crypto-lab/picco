@@ -37,6 +37,7 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
+#include <cassert>
 #include <netinet/in.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
@@ -554,12 +555,19 @@ public:
 
     void smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID);
 
-    std::map<std::string, std::vector<int>> polynomials; // temporarily public
-    // mpz_t coef[9];                                       // temporarily public
-    int id; // temporarily public;
+    std::map<std::string, std::vector<int>> shamir_seeds_coefs; // mapping of keys (str) to polynomial coefficients
+    std::map<std::vector<int>, uint8_t*> rss_share_seeds; 
+
+    int id;
 
     double time_diff(struct timeval *, struct timeval *);
     std::vector<std::string> splitfunc(const char *str, const char *delim);
+
+    void seedSetup(vector<int> &seed_map, int peers, int threshold);
+    vector<int> extract_share_WITH_ACCESS(int binary_rep, int peers, int id);
+    vector<int> extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id);
+    void getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int>> &result);
+    std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 private:
     SecretShare *ss;

@@ -21,11 +21,11 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
-#include "../NodeNetwork.h"
 #include "ShamirUtil.h"
 #include "stdint.h"
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <functional>
@@ -37,6 +37,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <map>
+
+#define KEYSIZE 16
 
 #define COEFF_BOUND 10 // specifies the number of sets of coefs we generate for symmetric function evaluation
 #define COEFF_OFFSET 1 // specifies what m value we start with (m = 1), DO NOT CHANGE !!!!!!!!!

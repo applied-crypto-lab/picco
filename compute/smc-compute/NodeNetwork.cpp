@@ -75,9 +75,6 @@ int NodeNetwork::mode = 0;              // -1 -- non-thread, 0 -- thread
 int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed modes so far
 /************************************************************/
 
-// 11/21/23 antcipated changes
-// add conditional based on deployment for encrpytion
-// privatekey_filename will be passed as null
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
@@ -96,7 +93,6 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     }
 
     connectToPeers();
-    // printf("connecttopeers end\n");
 
     numOfThreads = num_threads; // it should be read from parsing
     int numb = 8 * sizeof(char);
@@ -151,15 +147,14 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
         for (int j = 0; j < numOfThreads; j++) {
             buffer_handlers[i][j] = NULL;
             temp_buffers[i][j] = (mpz_t *)malloc(sizeof(mpz_t) * temp_buffer_size);
-            for (int k = 0; k < temp_buffer_size; k++)
+            for (int k = 0; k < temp_buffer_size; k++) {
                 mpz_init(temp_buffers[i][j][k]);
+            }
         }
     }
-
     test_flags = (int *)malloc(sizeof(int) * numOfThreads);
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
-
     SHIFT_16 = new uint16_t[sizeof(uint16_t) * 8];
     SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
     SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
@@ -524,21 +519,24 @@ void NodeNetwork::broadcastToPeers(long long *data, int size, long long **result
 
 void NodeNetwork::connectToPeers() {
     int peers = config->getPeerCount();
-    for (int i = 1; i <= peers + 1; i++)
+    for (int i = 1; i <= peers + 1; i++) {
         if (config->getID() == i) {
             if (i != (peers + 1))
                 requestConnection(peers + 1 - i);
             if (i != 1)
                 acceptPeers(i - 1);
         }
-    pthread_create(&manager, NULL, &managerWorkHelper, this);
+    }
+    // pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
 }
 
+// depracated, to be removed
 void *NodeNetwork::managerWorkHelper(void *net) {
     ((NodeNetwork *)net)->managerWork();
     return 0;
 }
 
+// depracated, to be removed
 void *NodeNetwork::managerWork() {
     fd_set socketDescriptorSet;
     int fdmax = 0, nReady = 0, index = 0, threadID;
@@ -945,6 +943,8 @@ void NodeNetwork::requestConnection(int numOfPeers) {
         if (dec_len < 1)
             printf("RSA private decrypt error\n");
         free(buffer);
+        fclose(prikeyfp);
+
 #else
         char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
         // check that this is the number of bytes that are supposed to be read from the socket
@@ -1028,6 +1028,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             if (n < 0)
                 printf("ERROR writing to socket \n");
             free(encrypt);
+            fclose(pubkeyfp);
 #else
             // std::cout<<KeyIV<<std::endl;
             // print_hexa(KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
@@ -1250,7 +1251,6 @@ void NodeNetwork::getRounds(int size, uint *count, uint *rounds, uint ring_size)
         *rounds = size / (*count) - 1;
 }
 
-
 void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, int **send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
     getRounds_bit(size, &count, &rounds);
@@ -1292,7 +1292,7 @@ void NodeNetwork::sendDataToPeer(int id, uint32_t *data, int start, int amount, 
         memset(buffer, 0, buffer_size);
         for (int i = start; i < start + read_amount; i++) {
             // I think this is here to preserve security beyond the ell (or k) bits of the shares
-            data[i] = data[i] & SHIFT_32[ring_size]; 
+            data[i] = data[i] & SHIFT_32[ring_size];
             memcpy(pointer, &data[i], unit_size);
             pointer += unit_size;
         }
@@ -1537,13 +1537,12 @@ void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
 
 // void NodeNetwork::mask_data(uint64_t *data, int size) {
 //     for (int i = 0; i < size; i++) {
-//         data[i] = data[i] & SHIFT_64[ring_size]; 
+//         data[i] = data[i] & SHIFT_64[ring_size];
 //     }
 // }
 
-
 // void NodeNetwork::mask_data(uint32_t *data, int size) {
 //     for (int i = 0; i < size; i++) {
-//         data[i] = data[i] & SHIFT_32[ring_size]; 
+//         data[i] = data[i] & SHIFT_32[ring_size];
 //     }
 // }
