@@ -340,15 +340,13 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 // p (result[1]): Exponent part.
                 // v (result[0]): Mantissa.
-                // z (result[2]): Indicator for special cases.
+                // z (result[2]): Indicator for special cases. if set, val=0 
                 // s (result[3]): Sign indicator.
-                if (result[1] >= 0) {
+                if (result[2] != 1) {
                     element = result[0] * pow(2, result[1]);
-                } else {
-                    element = result[0] / pow(2, -result[1]);
-                }
-                if (result[3] == 1)
-                    element = -element;                
+                    if (result[3] == 1)
+                        element = -element;
+                }              
                 if (j == 0) {
                     if (size1 == 0)
                         outputFiles[0] << name + "=";
