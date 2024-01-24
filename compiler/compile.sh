@@ -8,6 +8,3 @@ mv picco ../../bin/
 cd ../utility
 make
 mv picco-utility ../../bin/
-cd ../seed
-make
-mv picco-seed ../../bin/

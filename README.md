@@ -28,17 +28,16 @@ To compile or run user programs using PICCO code, a machine should have the foll
 
 ## Compilation of PICCO
 
-To use PICCO, the following three programs need to be compiled: 
+To use PICCO, the following two programs need to be compiled: 
 
-1. the PICCO compiler itself, 
-2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation, 
-3. the seed program that will generate and transmit secret random seeds to each of the computational parties at the time of program initiation (so that shares of random values can be locally produced by each party without interaction). 
+1. the PICCO compiler itself, and
+2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation.
 
-To compile all three programs, one needs to go to the directory `compiler/` and run the command
+To compile both programs, one needs to go to the directory `compiler/` and run the command
 ```
 ./compile.sh
 ``` 
-which produces three executable files `picco`, `picco-utility`, and `picco-seed` and moves them in the directory `compiler/bin/`. The three executable files correspond to the PICCO compiler, the utility, and the seed program, respectively, and can be placed in any directory of user's choice at a later time. 
+which produces the executable files `picco` and `picco-utility`, and moves them in the directory `compiler/bin/`. The executables correspond to the PICCO compiler and the utility, respectively, and can be placed in any directory of user's choice at a later time. 
 
 These executable programs are used to compile a user's program written in an extension of C into its secure implementation, produce shares of private inputs to be used in secure computation, and reconstruct the output from the shares after secure execution of the user program. 
 
@@ -99,9 +98,9 @@ In measurement mode, the public key filenames can be omitted leaving only the ID
 
 ## Program execution
 
-The **execution** uses $N+1$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation. Out of these machines, $N$ machines correspond to computational nodes and the remaining machine is an additional node that supplies shared randomness to the computational parties using the seed program `picco-seed` (produced at the time of PICCO compilation) and can be controlled by the data owners. Strictly speaking, the seeds need to be communicated to the given set of computational parties only once, after which the computational parties can execute secure implementations of various programs any number of times. However, for simplicity, our implementation expects communication from `picco-seed` for each program execution, and the time for generating and transmitting the seeds is not counted in the program execution time. 
+The **execution** uses $N$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation.
 
-**Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. 
+ **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. 
 
 Based on the computational mode 
 ([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
@@ -114,11 +113,7 @@ To initiate secure computation in measurement mode, each computational party **(
 ```
 ./user_program <ID> <runtime config> 
 ```
-where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. After all computational parties start, the $(N+1)$'th machine needs to run:
-
-```
-./picco-seed -m <runtime config> <utility config>
-``` 
+where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. 
 
 ## Deployment mode setup and execution
 
@@ -184,16 +179,9 @@ After the key pairs are created, the public keys should be distributed to all co
 To initiate secure computation, each computational party **(in descending order according to their ID)** needs to execute the following command:
 ```
 ./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
-./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ```
 
 The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
-
-After all computational parties start, the $(N+1)$'th machine needs to run:
-
-```
-./picco-seed -d <runtime config> <utility config>
-``` 
 
 Upon computation completion, each program outputs the program running time and stores the result of computation (output using `smcoutput`) in a file for each output party. If the output for some output party contains private variables, that party will need to use the utility program to reconstruct the result.
 
