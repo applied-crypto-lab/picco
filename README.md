@@ -18,13 +18,18 @@ The source code of PICCO mainly consists of two directories: *compiler* and *com
 
 To compile or run user programs using PICCO code, a machine should have the following libraries installed:
 
-- GCC or LLVM/clang (clang generally performs better than GCC and is recommended)
-- GMP library
-- OpenSSL library (1.1.1 or newer)
-- Crypto++ library
-- Flex - fast lexical analyzer generator
-- GNU Bison parser
-- CMake
+- [GCC](https://gcc.gnu.org/) or [LLVM/clang](https://clang.llvm.org/) (clang generally performs better than GCC and is recommended)
+- [GMP](https://gmplib.org/)
+- [OpenSSL](https://www.openssl.org/source/) (v1.1.1 or newer)
+- [Crypto++](https://cryptopp.com/)
+- [Flex](https://github.com/westes/flex.git) - fast lexical analyzer generator
+- [GNU Bison parser](https://www.gnu.org/software/bison/)
+- [CMake](https://cmake.org/)
+
+Additionally, if you wish to compile and run multithreaded user programs, an additional library is required:
+
+- [OMPi Compiler](https://paragroup.cse.uoi.gr/wpsite/software/ompi/) (v1.2.3)
+
 
 ## Compilation of PICCO
 
