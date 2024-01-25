@@ -40,30 +40,26 @@ INCLUDE_DIRECTORIES(
 )
 
 if(SHAMIR)
+      set(TECHNIQUE_DIR "shamir")
       add_definitions(-D__SHAMIR__=1)
       add_definitions(-D__RSS__=0)
-      INCLUDE_DIRECTORIES(
-            "${CMAKE_SOURCE_DIR}/smc-compute/shamir"
-            "${CMAKE_SOURCE_DIR}/smc-compute/ops/shamir"
-      )
-      file(GLOB TECHNIQUE
-            "smc-compute/shamir/*.cpp"
-            "smc-compute/ops/shamir/*.cpp"
-      )
 endif()
 
 if(RSS)
+      set(TECHNIQUE_DIR "rss")
       add_definitions(-D__RSS__=1)
       add_definitions(-D__SHAMIR__=0)
-      INCLUDE_DIRECTORIES(
-            "${CMAKE_SOURCE_DIR}/smc-compute/rss"
-            "${CMAKE_SOURCE_DIR}/smc-compute/ops/rss"
-      )
-      file(GLOB TECHNIQUE
-            "smc-compute/rss/*.cpp"
-            "smc-compute/ops/rss/*.cpp"
-      )
 endif()
+
+INCLUDE_DIRECTORIES(
+      "${CMAKE_SOURCE_DIR}/smc-compute/${TECHNIQUE_DIR}"
+      "${CMAKE_SOURCE_DIR}/smc-compute/ops/${TECHNIQUE_DIR}"
+)
+
+file(GLOB TECHNIQUE
+      "smc-compute/${TECHNIQUE_DIR}/*.cpp"
+      "smc-compute/ops/${TECHNIQUE_DIR}/*.cpp"
+)
 
 if(DEPLOYMENT)
       add_definitions(-D__DEPLOYMENT__=1)
