@@ -1114,6 +1114,11 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
     mpz_init(rand);
     mpz_init(temp);
 
+    if (rand_isFirst_thread[threadID] == 0) {
+        randInit_thread(threadID);
+        rand_isFirst_thread[threadID] = 1;
+    }
+
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
