@@ -356,8 +356,9 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         outputFiles[0] << name + "[" + s1.str() + "]=";
                     }
                 }
-                std::string element_str = std::to_string(element);
-                writeToOutputFile(outputFiles[0], element_str, "", 1, j, size2);
+                std::ostringstream ss;
+                ss << element;
+                writeToOutputFile(outputFiles[0], ss.str(), "", 1, j, size2);
             }
         }
     } else {
