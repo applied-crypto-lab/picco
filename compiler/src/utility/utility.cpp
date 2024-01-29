@@ -175,7 +175,7 @@ void openInputOutputFiles(std::string file, std::string output, std::ifstream in
             std::string outfile = output + s.str();
             outputFiles[i - 1].open(outfile.c_str(), std::ofstream::out);
             if (!outputFiles[i - 1]) {
-                std::cout << "input file could not be opened" << std::endl;
+                std::cout << "output file could not be opened" << std::endl;
                 std::exit(1);
             }
         }
@@ -192,7 +192,7 @@ void openInputOutputFiles(std::string file, std::string output, std::ifstream in
         }
         outputFiles[0].open(output.c_str(), std::ofstream::out);
         if (!outputFiles[0]) {
-            std::cout << "input file could not be opened" << std::endl;
+            std::cout << "output file could not be opened" << std::endl;
             std::exit(1);
         }
     }
