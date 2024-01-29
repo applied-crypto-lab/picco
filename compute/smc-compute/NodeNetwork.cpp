@@ -876,95 +876,110 @@ void NodeNetwork::requestConnection(int numOfPeers) {
     struct sockaddr_in *serv_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
     struct hostent **server = (struct hostent **)malloc(sizeof(struct hostent *) * numOfPeers);
     int on = 1;
-
-    for (int i = 0; i < numOfPeers; i++) {
-        int ID = config->getID() + i + 1;
-        portno[i] = config->getPeerPort(ID);
-        sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd[i] < 0)
-            fprintf(stderr, "ERROR, opening socket\n");
-        // the function below might not work in certain
-        // configurations, e.g., running all nodes from the
-        // same VM. it is not used for single-threaded programs
-        // and thus be commented out or replaced with an
-        // equivalent function otherwise.
-        // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
-        // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
-        if(setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
-            fprintf(stderr, "ERROR, setsockopt(SO_REUSEADDR) failed\n");
-        if(setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0)
-            fprintf(stderr, "ERROR, setsockopt(IPPROTO_TCP) failed\n");
-
-        // rc = setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
-        server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
-        if (server[i] == NULL)
-            fprintf(stderr, "ERROR, no such hosts \n");
-        bzero((char *)&serv_addr[i], sizeof(serv_addr[i]));
-        serv_addr[i].sin_family = AF_INET;
-        bcopy((char *)server[i]->h_addr, (char *)&serv_addr[i].sin_addr.s_addr, server[i]->h_length);
-        serv_addr[i].sin_port = htons(portno[i]);
-
-        int res, valopt = -1;
-        fd_set myset;
-        struct timeval tv;
-        socklen_t lon;
-        res = connect(sockfd[i], (struct sockaddr *)&serv_addr[i], sizeof(serv_addr[i]));
-        if (res < 0) {
-            if (errno == EINPROGRESS) {
-                tv.tv_sec = 15;
-                tv.tv_usec = 0;
-                FD_ZERO(&myset);
-                FD_SET(sockfd[i], &myset);
-                if (select(sockfd[i] + 1, NULL, &myset, NULL, &tv) > 0) {
-                    lon = sizeof(int);
-                    getsockopt(sockfd[i], SOL_SOCKET, SO_ERROR, (void *)(&valopt), &lon);
-                    if (valopt) {
-                        fprintf(stderr, "Error in connection() %d - %s\n", valopt, strerror(valopt));
-                        exit(0);
+    int ID;
+    try {
+        for (int i = 0; i < numOfPeers; i++) {
+            int num_tries = 0;
+            ID = config->getID() + i + 1;
+            printf("Attempting to connect to node %d...\n", ID);
+            portno[i] = config->getPeerPort(ID);
+            sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
+            if (sockfd[i] < 0)
+                throw std::runtime_error("opening socket");
+                // the function below might not work in certain
+                // configurations, e.g., running all nodes from the
+                // same VM. it is not used for single-threaded programs
+                // and thus be commented out or replaced with an
+                // equivalent function otherwise.
+                // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
+                // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+            if (setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+                throw std::runtime_error("setsockopt(SO_REUSEADDR)");
+            if (setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0)
+                throw std::runtime_error("setsockopt(IPPROTO_TCP)");
+            server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
+            if (server[i] == NULL)
+                throw std::runtime_error("no such host with IP address " + config->getPeerIP(ID));
+            bzero((char *)&serv_addr[i], sizeof(serv_addr[i]));
+            serv_addr[i].sin_family = AF_INET;
+            bcopy((char *)server[i]->h_addr, (char *)&serv_addr[i].sin_addr.s_addr, server[i]->h_length);
+            serv_addr[i].sin_port = htons(portno[i]);
+            while (true) {
+                // int valopt = -1;
+                // fd_set myset;
+                // struct timeval tv;
+                // socklen_t lon;
+                int res = connect(sockfd[i], (struct sockaddr *)&serv_addr[i], sizeof(serv_addr[i]));
+                // printf("res : %i\n", res);
+                if (res < 0) {
+                    if (num_tries < MAX_RETRIES) {
+                        // cross platform version of sleep(), C++14 and onward
+                        std::this_thread::sleep_for(WAIT_INTERVAL); 
+                        num_tries += 1;
+                    } else {
+                        throw std::runtime_error("timeout, error connecting " + std::to_string(errno) + " - " + strerror(errno));
                     }
+
+                    // this block of code only is only executed if connect() fails
+                    // if (errno == EINPROGRESS) {
+                    //     tv.tv_sec = 15;
+                    //     tv.tv_usec = 0;
+                    //     FD_ZERO(&myset);
+                    //     FD_SET(sockfd[i], &myset);
+                    //     if (select(sockfd[i] + 1, NULL, &myset, NULL, &tv) > 0) {
+                    //         lon = sizeof(int);
+                    //         getsockopt(sockfd[i], SOL_SOCKET, SO_ERROR, (void *)(&valopt), &lon);
+                    //         if (valopt)
+                    //             throw std::runtime_error("Error in connection() " + std::to_string(valopt) + " - " + strerror(valopt));
+                    //     } else {
+                    //         throw std::runtime_error("select error " + std::to_string(valopt) + " - " + strerror(valopt));
+                    //     }
+                    // } else {
+                    //     throw std::runtime_error("Error connecting " + std::to_string(errno) + " - " + strerror(errno));
+                    // }
                 } else {
-                    fprintf(stderr, "Timeout or error() %d - %s\n", valopt, strerror(valopt));
-                    exit(0);
+                    break; // connection was successful!
+                    // connected = true;
                 }
-            } else {
-                fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno));
-                exit(0);
             }
-        }
-        printf("Connected to node %d\n", ID);
-        peer2sock.insert(std::pair<int, int>(ID, sockfd[i]));
-        sock2peer.insert(std::pair<int, int>(sockfd[i], ID));
+
+            printf("Successfully connected to node %d\n", ID);
+            peer2sock.insert(std::pair<int, int>(ID, sockfd[i]));
+            sock2peer.insert(std::pair<int, int>(sockfd[i], ID));
 #if __DEPLOYMENT__
-        FILE *prikeyfp = fopen(privatekeyfile.c_str(), "r");
-        if (prikeyfp == NULL)
-            printf("File Open %s error\n", privatekeyfile.c_str());
-        RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
-        if (priRkey == NULL)
-            printf("Read Private Key for RSA Error\n");
-        char *buffer = (char *)malloc(RSA_size(priRkey));
-        int n = read(sockfd[i], buffer, RSA_size(priRkey));
-        if (n < 0)
-            printf("ERROR reading from socket \n");
-        char *decrypt = (char *)malloc(n);
-        memset(decrypt, 0x00, n);
-        int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
-        if (dec_len < 1)
-            printf("RSA private decrypt error\n");
-        free(buffer);
-        fclose(prikeyfp);
+            FILE *prikeyfp = fopen(privatekeyfile.c_str(), "r");
+            if (prikeyfp == NULL)
+                throw std::runtime_error("Can't open private key " + privatekeyfile);
+            RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
+            if (priRkey == NULL)
+                throw std::runtime_error("Read Private Key for RSA");
+            char *buffer = (char *)malloc(RSA_size(priRkey));
+            int n = read(sockfd[i], buffer, RSA_size(priRkey));
+            if (n < 0)
+                throw std::runtime_error("reading from socket");
+            char *decrypt = (char *)malloc(n);
+            memset(decrypt, 0x00, n);
+            int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
+            if (dec_len < 1)
+                throw std::runtime_error("RSA private decrypt");
+            free(buffer);
+            fclose(prikeyfp);
 
 #else
-        char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
-        // check that this is the number of bytes that are supposed to be read from the socket
-        int n = read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        if (n < 0)
-            printf("ERROR reading from socket \n");
+            char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
+            // check that this is the number of bytes that are supposed to be read from the socket
+            if (read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
+                throw std::runtime_error("reading from socket");
 #endif
 
-        memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        // print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        init_keys(ID, 1);
-        free(decrypt);
+            memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            // print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            init_keys(ID, 1);
+            free(decrypt);
+        }
+    } catch (const std::runtime_error &ex) {
+        std::cout << "[requestConnection] runtime_error: " << ex.what() << "\n";
+        exit(1);
     }
 }
 
@@ -976,76 +991,81 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
     socklen_t *clilen = (socklen_t *)malloc(sizeof(socklen_t) * numOfPeers);
     struct sockaddr_in serv_addr;
     struct sockaddr_in *cli_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
+    try {
 
-    fd_set master_set, working_set;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    // see comment for fcntl above
-    // fcntl(sockfd, F_SETFL, O_NONBLOCK);
-    if (sockfd < 0)
-        fprintf(stderr, "ERROR, opening socket\n");
-    int rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
-    rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
-    if (rc < 0)
-        printf("setsockopt() or ioctl() failed\n");
-    bzero((char *)&serv_addr, sizeof(serv_addr));
-    portno = config->getPort();
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
-    if ((bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
-        printf("ERROR, on binding \n");
-    listen(sockfd, 7);
-    // start to accept connections
-    FD_ZERO(&master_set);
-    maxsd = sockfd;
-    FD_SET(sockfd, &master_set);
-    for (int i = 0; i < numOfPeers; i++) {
-        memcpy(&working_set, &master_set, sizeof(master_set));
-        rc = select(maxsd + 1, &working_set, NULL, NULL, NULL);
-        if (rc <= 0)
-            printf("select failed or time out \n");
-        if (FD_ISSET(sockfd, &working_set)) {
-            clilen[i] = sizeof(cli_addr[i]);
-            newsockfd[i] = accept(sockfd, (struct sockaddr *)&cli_addr[i], &clilen[i]);
-            if (newsockfd[i] < 0)
-                fprintf(stderr, "ERROR, on accept\n");
-            // see comment for fcntl above
-            // fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
-            peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
-            sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
-
-            unsigned char key_iv[2 * KEYSIZE + AES_BLOCK_SIZE];
-            RAND_status();
-            if (!RAND_bytes(key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE))
-                printf("Key, iv generation error\n");
-            memcpy(KeyIV, key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE);
-            int peer = config->getID() - (i + 1);
-#if __DEPLOYMENT__
-            FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
-            if (pubkeyfp == NULL)
-                printf("File Open %s error \n", (config->getPeerPubKey(peer)).c_str());
-            RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
-            if (publicRkey == NULL)
-                printf("Read Public Key for RSA Error\n");
-            char *encrypt = (char *)malloc(RSA_size(publicRkey));
-            memset(encrypt, 0x00, RSA_size(publicRkey));
-            int enc_len = RSA_public_encrypt(2 * KEYSIZE + AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
-            if (enc_len < 1)
-                printf("RSA public encrypt error\n");
-            int n = write(newsockfd[i], encrypt, enc_len); // sending to peer
-            if (n < 0)
-                printf("ERROR writing to socket \n");
-            free(encrypt);
-            fclose(pubkeyfp);
-#else
-            // std::cout<<KeyIV<<std::endl;
-            // print_hexa(KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
-            int n = write(newsockfd[i], KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE); // sending to peer
-            if (n < 0)
-                printf("ERROR writing to socket \n");
-#endif
-            init_keys(peer, 0);
+        fd_set master_set, working_set;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        // see comment for fcntl above
+        // fcntl(sockfd, F_SETFL, O_NONBLOCK);
+        if (sockfd < 0)
+            throw std::runtime_error("error opening socket");
+        int rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+        rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
+        if (rc < 0)
+            throw std::runtime_error("setsockopt() or ioctl() failed");
+        bzero((char *)&serv_addr, sizeof(serv_addr));
+        portno = config->getPort();
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        serv_addr.sin_port = htons(portno);
+        if ((bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0) {
+            throw std::runtime_error("error on binding");
         }
+        listen(sockfd, 7);
+        // start to accept connections
+        FD_ZERO(&master_set);
+        maxsd = sockfd;
+        FD_SET(sockfd, &master_set);
+        for (int i = 0; i < numOfPeers; i++) {
+            memcpy(&working_set, &master_set, sizeof(master_set));
+            rc = select(maxsd + 1, &working_set, NULL, NULL, NULL);
+            if (rc <= 0) {
+                throw std::runtime_error("select failed or time out");
+            }
+            if (FD_ISSET(sockfd, &working_set)) {
+                clilen[i] = sizeof(cli_addr[i]);
+                newsockfd[i] = accept(sockfd, (struct sockaddr *)&cli_addr[i], &clilen[i]);
+                if (newsockfd[i] < 0) {
+                    throw std::runtime_error("ERROR, on accept");
+                }
+                // see comment for fcntl above
+                // fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
+                peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
+                sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
+
+                unsigned char key_iv[2 * KEYSIZE + AES_BLOCK_SIZE];
+                RAND_status();
+                if (!RAND_bytes(key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE))
+                    throw std::runtime_error("ERROR, key, iv generation");
+                memcpy(KeyIV, key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE);
+                int peer = config->getID() - (i + 1);
+#if __DEPLOYMENT__
+                FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
+                if (pubkeyfp == NULL)
+                    throw std::runtime_error("Can't open public key " + config->getPeerPubKey(peer));
+                // printf("File Open %s error \n", (config->getPeerPubKey(peer)).c_str());
+                RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
+                if (publicRkey == NULL)
+                    throw std::runtime_error("Read public Key for RSA");
+                char *encrypt = (char *)malloc(RSA_size(publicRkey));
+                memset(encrypt, 0x00, RSA_size(publicRkey));
+                int enc_len = RSA_public_encrypt(2 * KEYSIZE + AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+                if (enc_len < 1)
+                    throw std::runtime_error("RSA public encrypt error");
+                if (write(newsockfd[i], encrypt, enc_len) < 0) // sending to peer
+                    throw std::runtime_error("ERROR writing to socket");
+                free(encrypt);
+                fclose(pubkeyfp);
+#else
+                if (write(newsockfd[i], KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
+                    throw std::runtime_error("ERROR writing to socket");
+#endif
+                init_keys(peer, 0);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        std::cout << "[acceptPeers] runtime_error: " << ex.what() << "\n";
+        exit(1);
     }
 }
 

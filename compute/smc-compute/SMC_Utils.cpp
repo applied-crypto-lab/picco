@@ -36,14 +36,16 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
-    net = *nodeNet; // dereferencing 
+    net = *nodeNet; // dereferencing, net is "copy initialized"
+    seedSetup(seed_map, numOfPeers, threshold);
 
-    seedSetup(seed_map, numOfPeers, threshold); // the presence of this function causes a segaulft in nodeNetwork constructor
-
-    net.launchManager();
-    // std::cout << "Recieving keys and polynomials from seed\n";
-    // clientConnect();
-    // receivePolynomials(privatekey_filename, modulus, numOfPeers, threshold);
+    // only starting the manager if the program we're running is multithreaded
+    // actually doesnt work in the current state, because the way multicast/broadcast is written
+    // even if we're running a single-threaded program, it still sends the mode/threadID/some other BS that interferes
+    // need to launch manager regardless
+    // if (num_threads > 1) {
+    net.launchManager(); // launching thread manager here as to not conflict with seed setup
+    // }
 
     std::cout << "Creating SecretShare\n";
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
@@ -1520,103 +1522,6 @@ void SMC_Utils::smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resul
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-/* Clienct Connection and Data Passing */
-void SMC_Utils::clientConnect() {
-    int sockfd, portno;
-    socklen_t clilen;
-    struct sockaddr_in server_addr, cli_addr;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0)
-        fprintf(stderr, "ERROR, opening socket\n");
-    bzero((char *)&server_addr, sizeof(server_addr));
-    portno = nodeConfig->getPort() + 100;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(portno);
-    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-        fprintf(stderr, "ERROR, on binding\n");
-    listen(sockfd, 5);
-    clilen = sizeof(cli_addr);
-    newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
-    if (newsockfd < 0)
-        fprintf(stderr, "ERROR, on accept\n");
-    printf("Client connected\n");
-}
-
-void SMC_Utils::receivePolynomials(std::string privatekey_filename, mpz_t modulus, int peers, int threshold) {
-#if __DEPLOYMENT__
-    FILE *prikeyfp = fopen(privatekey_filename.c_str(), "r");
-    if (prikeyfp == NULL)
-        printf("File Open %s error\n", privatekey_filename.c_str());
-    RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
-    if (priRkey == NULL)
-        printf("Read Private Key for RSA Error\n");
-    char *buffer = (char *)malloc(RSA_size(priRkey));
-    int n = read(newsockfd, buffer, RSA_size(priRkey));
-    if (n < 0)
-        printf("ERROR reading from socket \n");
-    char *decrypt = (char *)malloc(n);
-    memset(decrypt, 0x00, n);
-    int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
-    if (dec_len < 1)
-        printf("RSA private decrypt error\n");
-    if (dec_len < 1) {
-        printf("RSA private decrypt error\n");
-    }
-    free(buffer);
-
-#else
-    char *strkey = (char *)malloc(64);
-    mpz_get_str(strkey, 10, modulus);
-    int mpz_t_size_b = strlen(strkey);
-    int numKeys = nChoosek(peers - 1, threshold);
-    // the buffer size can be calculated beforehand
-    int buf_size = sizeof(int) * (3 + (numKeys * (threshold + 1))) + mpz_t_size_b * numKeys + 1;
-    char *decrypt = (char *)malloc(buf_size);
-    memset(decrypt, 0x00, buf_size);
-
-    int n = read(newsockfd, decrypt, buf_size);
-    if (n < 0)
-        printf("ERROR reading from socket \n");
-#endif
-    int keysize = 0;
-    int coefsize = 0;
-    int mpz_t_size = 0;
-    memcpy(&keysize, decrypt, sizeof(int));
-    memcpy(&coefsize, decrypt + sizeof(int), sizeof(int));
-    memcpy(&mpz_t_size, decrypt + sizeof(int) * 2, sizeof(int));
-    mpz_t *Keys = (mpz_t *)malloc(sizeof(mpz_t) * keysize);
-    for (int k = 0; k < keysize; k++)
-        mpz_init(Keys[k]);
-    int *Coefficients = (int *)malloc(sizeof(int) * coefsize);
-    int position = 0;
-    for (int i = 0; i < keysize; i++) {
-        // char strkey[mpz_t_size + 1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end
-        char strkey[mpz_t_size + 1]; // clang doesnt like the above version
-        memset(strkey, 0x00, mpz_t_size + 1);
-        memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size);
-        mpz_set_str(Keys[i], strkey, BASE_10);
-        position += mpz_t_size;
-    }
-
-    memcpy(Coefficients, decrypt + sizeof(int) * 3 + mpz_t_size * keysize, sizeof(int) * coefsize);
-
-    for (int i = 0; i < keysize; i++) {
-        char strkey[mpz_t_size + 1];
-        memset(strkey, 0x00, mpz_t_size + 1);
-        // strkey[0] = 0;
-        mpz_get_str(strkey, BASE_10, Keys[i]);
-        std::string Strkey = strkey;
-        std::vector<int> temp;
-        for (int k = 0; k < coefsize / keysize; k++) {
-            temp.push_back(Coefficients[i * coefsize / keysize + k]);
-        }
-        // std::cout <<i<<" strkey: "<<Strkey <<std::endl;
-        shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
-    }
-    printf("Polynomials received... \n");
-    free(decrypt);
-}
 
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
@@ -1645,7 +1550,6 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
 #else
     printf("BENCHMARK MODE\n");
 #endif
-
 
     int K = alen;
     int M = ceil(log2(K));

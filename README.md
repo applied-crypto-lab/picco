@@ -105,7 +105,7 @@ In measurement mode, the public key filenames can be omitted leaving only the ID
 
 The **execution** uses $N$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation.
 
- **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. 
+ <!-- **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order.  -->
 
 Based on the computational mode 
 ([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
@@ -113,7 +113,9 @@ Based on the computational mode
 
 ## Measurement mode execution
 
-To initiate secure computation in measurement mode, each computational party **(in descending order according to their ID)** needs to execute the following command:
+To initiate secure computation in measurement mode, each computational party 
+<!-- **(in descending order according to their ID)**  -->
+executes the following command:
 
 ```
 ./user_program <ID> <runtime config> 
@@ -181,7 +183,9 @@ After the key pairs are created, the public keys should be distributed to all co
 
 ### Deployment mode execution 
 
-To initiate secure computation, each computational party **(in descending order according to their ID)** needs to execute the following command:
+To initiate secure computation, each computational party executes
+ <!-- **(in descending order according to their ID)** needs to execute  -->
+ the following command:
 ```
 ./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ```

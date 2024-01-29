@@ -24,19 +24,25 @@
 // key size in bytes; switching to a longer size will require more work than updating this constant as 128-bit encryption function calls are used
 #define KEYSIZE 16
 #define MAX_BUFFER_SIZE 229376 // in bytes
-// int MAX_BUFFER_SIZE = 4194304; // ?
 
-// the block size is always 16 with AES, use AES_BLOCK_SIZE
+// int MAX_BUFFER_SIZE = 4194304; // ?
 
 #include "NodeConfiguration.h"
 #include "stdint.h"
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <gmp.h>
 #include <map>
 #include <openssl/aes.h>
 #include <openssl/evp.h>
+#include <thread>
 #include <vector>
+
+using namespace std::chrono_literals;
+
+#define MAX_RETRIES 12000    // number of times we try to connect to a node (currently 1 minute)
+#define WAIT_INTERVAL 5ms // interval we wait before trying again
 
 class NodeNetwork {
 public:
@@ -176,7 +182,6 @@ private:
     uint16_t *SHIFT_16;
     uint32_t *SHIFT_32;
     uint64_t *SHIFT_64;
-
 };
 
 // used for debugging

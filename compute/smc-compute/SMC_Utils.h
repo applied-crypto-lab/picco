@@ -576,12 +576,6 @@ private:
     NodeNetwork net;
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
-
-    // Handle client connections and polynomail stuff
-    void clientConnect();
-    void receivePolynomials(std::string privatekey_filename, mpz_t modulus, int peers, int threshold);
-    // void setCoef();
-    int newsockfd;
 };
 
 #endif /* SMC_UTILS_H_ */
