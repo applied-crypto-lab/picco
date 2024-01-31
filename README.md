@@ -26,7 +26,7 @@ To compile or run user programs using PICCO code, a machine should have the foll
 - [GNU Bison parser](https://www.gnu.org/software/bison/)
 - [CMake](https://cmake.org/)
 
-Additionally, if you wish to compile and run multithreaded user programs, an additional library is required:
+Additionally, if you wish to compile and run multithreaded user programs, the following library is required:
 
 - [OMPi Compiler](https://paragroup.cse.uoi.gr/wpsite/software/ompi/) (v1.2.3)
 
