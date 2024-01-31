@@ -41,7 +41,9 @@
 
 using namespace std::chrono_literals;
 
-#define MAX_RETRIES 12000    // number of times we try to connect to a node (currently 1 minute)
+// The timeout time is calculated as (MAX_RETRIES * WAIT_INTERVAL), which comes out to 5 minutes with the constants below
+// Can be modified by the end user to better fit his/her use case.
+#define MAX_RETRIES 60000 // number of times we try to connect to a node.
 #define WAIT_INTERVAL 5ms // interval we wait before trying again
 
 class NodeNetwork {
