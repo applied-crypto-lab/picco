@@ -18,15 +18,15 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "SecretShare.h"
 #include "../shared.h"
+#include "SecretShare.h"
 #include <cmath>
 #include <fstream>
 #include <gmp.h>
 #include <iostream>
+#include <math.h>
 #include <sstream>
 #include <string.h>
-#include <math.h>
 using namespace std;
 
 // these will be eventually read from the config files;
@@ -38,7 +38,7 @@ int bits;
 int threshold;
 
 mpz_t modulus_shamir; // Global modulus_shamir variable
-int technique; // Global technique variable 
+int technique;        // Global technique variable
 
 std::ifstream var_list;
 
@@ -228,11 +228,11 @@ void writeToOutputFile(std::ofstream &outputFile, std::string value, std::string
 }
 
 /*
-The function produceOutputs() read the data from inputFiles, processes it based on the specified 
-data type and secrecy level, and writes the results to the outputFiles. This function generates 
-output files based on the specified input files, variable information, data type, secrecy level, 
-and dimensions. The generated outputs can be either public (non-secret) or private (secret-shared) 
-computations, depending on the parameters provided. Important variables used in this function are: 
+The function produceOutputs() read the data from inputFiles, processes it based on the specified
+data type and secrecy level, and writes the results to the outputFiles. This function generates
+output files based on the specified input files, variable information, data type, secrecy level,
+and dimensions. The generated outputs can be either public (non-secret) or private (secret-shared)
+computations, depending on the parameters provided. Important variables used in this function are:
 
     1. element; Represents an individual element during the computation.
     2. **shares; Represents an array of shares used in secure multi-party computation.
@@ -251,7 +251,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     if (!type.compare("int")) {
         std::vector<std::vector<std::string>> shares;
         // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
-        shares.resize(numOfComputeNodes, std::vector<std::string>(size2)); 
+        shares.resize(numOfComputeNodes, std::vector<std::string>(size2));
         // Set the size for result to size2
         std::vector<long long> result(size2);
         for (int i = 0; i < dim; i++) {
@@ -262,17 +262,17 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 if (secrecy == 1)
                     for (int j = 0; j < tokens.size(); j++)
                         shares[k][j] = tokens[j];
-                        /* 
-                        mpz_set_str is used to convert a string (tokens[j]) to an 
-                            arbitrary precision integer (shares[k][j]), taking into 
-                            account the base (10 in this case).
-                        
-                        In the second implementation the vector token of type string is
-                            directly set to the vector of shares[k]. To do this the 
-                            fucntion push_back() is used to make sure there isn't any 
-                            undefined behavior cause of the sizes of both vectors. 
-                            
-                        */
+                /*
+                mpz_set_str is used to convert a string (tokens[j]) to an
+                    arbitrary precision integer (shares[k][j]), taking into
+                    account the base (10 in this case).
+
+                In the second implementation the vector token of type string is
+                    directly set to the vector of shares[k]. To do this the
+                    fucntion push_back() is used to make sure there isn't any
+                    undefined behavior cause of the sizes of both vectors.
+
+                */
             }
             if (secrecy == 1)
                 result = ss->reconstructSecret(shares, size2);
@@ -290,7 +290,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 if (secrecy == 1) {
                     // deal with negative results
                     ss->flipNegative(result[j]);
-                    value = std::to_string(result[j]);  // The reconstructSecret returns long long so we need to convert it to str before outputting
+                    value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
                 }
                 writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
             }
@@ -319,7 +319,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     // private float
     else if (!type.compare("float") && secrecy == 1) {
         std::vector<std::vector<std::string>> shares;
-        shares.resize(numOfComputeNodes, std::vector<std::string>(4));  // Resize the vector of vectors
+        shares.resize(numOfComputeNodes, std::vector<std::string>(4)); // Resize the vector of vectors
         std::vector<long long> result(4);
 
         for (int i = 0; i < dim; i++) {
@@ -328,7 +328,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
                     for (int l = 0; l < 4; l++)
-                        //mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
+                        // mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
                         shares[k][l] = tokens[l];
                 }
                 result = ss->reconstructSecret(shares, 4);
@@ -340,13 +340,13 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 // p (result[1]): Exponent part.
                 // v (result[0]): Mantissa.
-                // z (result[2]): Indicator for special cases. if set, val=0 
+                // z (result[2]): Indicator for special cases. if set, val=0
                 // s (result[3]): Sign indicator.
                 if (result[2] != 1) {
                     element = result[0] * pow(2, result[1]);
                     if (result[3] == 1)
                         element = -element;
-                }              
+                }
                 if (j == 0) {
                     if (size1 == 0)
                         outputFiles[0] << name + "=";
@@ -367,18 +367,17 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
     }
 }
 
-
 /*
-The function produceInputs() read the data from inputFiles, processes it based on the specified 
-data type and secrecy level, and writes the results to the outputFiles. The data can be either 
-integers or floating-point numbers. The process includes generating shares of the data using 
-(ss->getShares()). Important variables used in this function are: 
+The function produceInputs() read the data from inputFiles, processes it based on the specified
+data type and secrecy level, and writes the results to the outputFiles. The data can be either
+integers or floating-point numbers. The process includes generating shares of the data using
+(ss->getShares()). Important variables used in this function are:
 
 1. long long element; Represents an individual element of the input data -> this gets passed to getShares().
-2. long long *elements; Represents an array of elements used when processing floating-point numbers -> this 
-   gets passed to convertFloat(). 
-3. std::vector<std::string> shares(numOfComputeNodes); Represents the shares obtained through 
-   secret sharing for a given element -> this stores the shares returned from getShares() fucntion.     
+2. long long *elements; Represents an array of elements used when processing floating-point numbers -> this
+   gets passed to convertFloat().
+3. std::vector<std::string> shares(numOfComputeNodes); Represents the shares obtained through
+   secret sharing for a given element -> this stores the shares returned from getShares() fucntion.
 */
 
 void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy, int len_sig, int len_exp) {
@@ -397,10 +396,10 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
             tokens = splitfunc(temp[1].c_str(), ",");
 
             for (int j = 0; j < tokens.size(); j++) {
-                // The str tokens[j] is converted to long long, using base 10. 
-                // (nullptr in here is not relevant to our computatuon, this version of stoll 
+                // The str tokens[j] is converted to long long, using base 10.
+                // (nullptr in here is not relevant to our computatuon, this version of stoll
                 // to make sure the conversion uses base 10.)
-                element = std::stoll(tokens[j], nullptr, BASE); 
+                element = std::stoll(tokens[j], nullptr, BASE);
                 if (secrecy == 1)
                     shares = ss->getShares(element);
                 for (int k = 0; k < numOfComputeNodes; k++) {
@@ -444,7 +443,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                     }
                 }
                 // Elements array was dynamically allocate memory using new -> free it once done
-                delete[] elements; 
+                delete[] elements;
             }
         }
     } else {
@@ -454,10 +453,9 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
     // No need to clear the shares vector
 }
 
-
 /*
 loadConfig reads the files from var_list file stream. Then it extracts
-the data and store it to the appropriate variables as follow: 
+the data and store it to the appropriate variables as follow:
 1. technique = technique_var
 2. bits = bits
 3. numOfComputeNodes = peers
@@ -469,61 +467,62 @@ the data and store it to the appropriate variables as follow:
 void loadConfig() {
     std::string line;
     std::vector<std::string> tokens;
-    int results[7];
-    
-    for (int i = 0; i < 7; i++) {
+    int results[6]; // 6 params for both shamir and RSS
+
+    for (int i = 0; i < 6; i++) {
         std::getline(var_list, line);
         tokens = splitfunc(line.c_str(), ":");
-
-        if (i == 0) {
-            technique = atoi(tokens[1].c_str());
-        } else {
-            // Based on the technique used read the last element (shamir, rss))
-            if (i == 6 && technique == SHAMIR_SS) {
-                mpz_init(modulus_shamir);
-                mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
-                // gmp_printf("%Zd\n", modulus_shamir);
-            } else {
-                results[i] = atoi(tokens[1].c_str());
-            }
-        }
+        results[i] = atoi(tokens[1].c_str());
     }
+
+    // Based on the technique used read the last element (shamir, rss))
+    technique = results[0];
     bits = results[1];
     numOfComputeNodes = results[2];
     threshold = results[3];
     numOfInputNodes = results[4];
     numOfOutputNodes = results[5];
-    
+
+    // only if technique is SHAMIR, read the next line to get the modulus
+    // this was causing a problem with utility for RSS in produceInputs
+    if (technique == SHAMIR_SS) {
+        // if RSS, this starts to read lines with info about inputs, hence why it's only called if technique=shamir
+        std::getline(var_list, line); 
+        tokens = splitfunc(line.c_str(), ":");
+        mpz_init(modulus_shamir);
+        mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
+    }
+
     if (technique == SHAMIR_SS) {
         ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
     } else if (technique == REPLICATED_SS) {
-        if (bits <= 8) { // Bits less than or equal to 8 
-            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); //the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
-        } else if (bits >= 9 && bits <= 16) { // Between 9 and 16 inclusive 
-            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits); 
-        } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive 
-            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits); 
-        } else if (bits >= 33 && bits <= 64){ // Between 33 and 64 inclusive 
-            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits); 
+        if (bits <= 8) {                                               // Bits less than or equal to 8
+            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); // the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
+        } else if (bits >= 9 && bits <= 16) {                          // Between 9 and 16 inclusive
+            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits);
+        } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
+            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits);
+        } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
+            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits);
         }
     }
 }
 
 /**
- * This fucntion converts floating-point number to a set of integer components based on 
- * the specified parameters K and L. The function does some bit manipulation on the floating-point 
- * representation of the input value to extract the sign bit (s), exponent (e), and mantissa (significand). 
- * 
+ * This fucntion converts floating-point number to a set of integer components based on
+ * the specified parameters K and L. The function does some bit manipulation on the floating-point
+ * representation of the input value to extract the sign bit (s), exponent (e), and mantissa (significand).
+ *
  * In particular, each floating point number is represented as a 4-tuple (v, p, s, z) where v is
  * an l-bit significand, p is a k-bit exponent, and s and z are sign and
- * zero bits, respectively (2013 CCS paper). 
- * 
- * The integers that will be stored in elements are as follows: 
+ * zero bits, respectively (2013 CCS paper).
+ *
+ * The integers that will be stored in elements are as follows:
  * 1. Significand part (significand)
  * 2. Exponent (p)
  * 3. Flag indicating zero (z)
  * 4. Sign (s)
-*/
+ */
 void convertFloat(float value, int K, int L, long long **elements) {
     unsigned int *newptr = (unsigned int *)&value;
     int s = *newptr >> 31;
@@ -534,7 +533,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
 
     int z;
     long v, p, k;
-    long long significand=0, one=1, two=2, tmp=0, tmpm=0;
+    long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
 
     if (e == 0 && m == 0) {
         s = 0;
@@ -547,8 +546,8 @@ void convertFloat(float value, int K, int L, long long **elements) {
             k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
             if (e - 127 - K + 1 > k) {
                 p = k;
-                significand = one << K; // Raise one to the power of K and store it to significand
-                significand = significand - 1; // Sub 1 
+                significand = one << K;        // Raise one to the power of K and store it to significand
+                significand = significand - 1; // Sub 1
             } else if (e - 127 - K + 1 < -k) {
                 p = -k;
                 significand = 1; // Set the value of significand to 1
@@ -571,7 +570,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
                 tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
                 significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
             } else {
-                significand = tmpm; // Set significand to tmpm
+                significand = tmpm;                    // Set significand to tmpm
                 significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
             }
         }
@@ -583,4 +582,3 @@ void convertFloat(float value, int K, int L, long long **elements) {
     (*elements)[2] = z;
     (*elements)[3] = s;
 }
-
