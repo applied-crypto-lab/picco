@@ -886,13 +886,13 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
             if (sockfd[i] < 0)
                 throw std::runtime_error("opening socket");
-                // the function below might not work in certain
-                // configurations, e.g., running all nodes from the
-                // same VM. it is not used for single-threaded programs
-                // and thus be commented out or replaced with an
-                // equivalent function otherwise.
-                // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
-                // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+            // the function below might not work in certain
+            // configurations, e.g., running all nodes from the
+            // same VM. it is not used for single-threaded programs
+            // and thus be commented out or replaced with an
+            // equivalent function otherwise.
+            // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
+            // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
             if (setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
                 throw std::runtime_error("setsockopt(SO_REUSEADDR)");
             if (setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0)
@@ -914,7 +914,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
                 if (res < 0) {
                     if (num_tries < MAX_RETRIES) {
                         // cross platform version of sleep(), C++14 and onward
-                        std::this_thread::sleep_for(WAIT_INTERVAL); 
+                        std::this_thread::sleep_for(WAIT_INTERVAL);
                         num_tries += 1;
                     } else {
                         throw std::runtime_error("timeout, error connecting " + std::to_string(errno) + " - " + strerror(errno));
@@ -978,7 +978,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             free(decrypt);
         }
     } catch (const std::runtime_error &ex) {
-        std::cout << "[requestConnection] runtime_error: " << ex.what() << "\n";
+        std::cerr << "[requestConnection] " << ex.what() << "\n";
         exit(1);
     }
 }
@@ -992,7 +992,6 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
     struct sockaddr_in serv_addr;
     struct sockaddr_in *cli_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
     try {
-
         fd_set master_set, working_set;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         // see comment for fcntl above
@@ -1043,7 +1042,6 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
                 FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
                 if (pubkeyfp == NULL)
                     throw std::runtime_error("Can't open public key " + config->getPeerPubKey(peer));
-                // printf("File Open %s error \n", (config->getPeerPubKey(peer)).c_str());
                 RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
                 if (publicRkey == NULL)
                     throw std::runtime_error("Read public Key for RSA");
@@ -1064,7 +1062,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
             }
         }
     } catch (const std::runtime_error &ex) {
-        std::cout << "[acceptPeers] runtime_error: " << ex.what() << "\n";
+        std::cerr << "[acceptPeers] " << ex.what() << "\n";
         exit(1);
     }
 }
@@ -1075,13 +1073,13 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     memset(iv, 0x00, AES_BLOCK_SIZE);
     memset(prg_seed_key, 0x00, KEYSIZE);
 
-    if (0 == nRead) // useKey KeyIV
-    {
+    if (0 == nRead) {
+        // useKey KeyIV
         memcpy(key, KeyIV, KEYSIZE);
         memcpy(iv, KeyIV + KEYSIZE, AES_BLOCK_SIZE);
         memcpy(prg_seed_key, KeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
-    } else // getKey from peers
-    {
+    } else {
+        // getKey from peers
         memcpy(key, peerKeyIV, KEYSIZE);
         memcpy(iv, peerKeyIV + KEYSIZE, AES_BLOCK_SIZE);
         memcpy(prg_seed_key, peerKeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);

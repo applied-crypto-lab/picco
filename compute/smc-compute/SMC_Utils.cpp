@@ -1522,7 +1522,6 @@ void SMC_Utils::smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resul
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
     if (t1->tv_usec > t2->tv_usec) {
@@ -1672,52 +1671,55 @@ void SMC_Utils::seedSetup(vector<int> &seed_map, int peers, int threshold) {
 #endif
     // its fine to reuse vectors when inserting into the final mapping
     FILE *fp = fopen("/dev/urandom", "r"); // used for pulling good randomness for seeds
-    for (auto &seed : seed_map) {
-        send_map = extract_share_WITH_ACCESS(seed, peers, id);
-        recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
+    try {
+        for (auto &seed : seed_map) {
+            send_map = extract_share_WITH_ACCESS(seed, peers, id);
+            recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
 
-        // ANB: is 32 bytes "enough" of a seed for Shamir SS?
-        // Previously in PRSS.cpp, the 'seeds' (denoted by "keys[i]") were generated as follows:
-        //      mpz_urandomm(keys[i], gmpRandState, modulus);
-        // keys[] is what is ultimately used to seed the shamir PRG (in shamir/SecretShare.cpp):
-        //      gmp_randseed(rstates[i], keys[i]);
-        // My take - I think it should be fine with the 32 bytes of "good" randomness
-        if (fread(RandomData_send, 1, (2 * KEYSIZE), fp) != (2 * KEYSIZE)) {
-            fprintf(stderr, "Could not read random bytes.");
-            exit(1);
-        }
-        assert(send_map.size() == recv_map.size());
-        for (size_t i = 0; i < send_map.size(); i++) {
-            // printf("send %i\n", send_map[i]);
-            net.sendDataToPeer(send_map[i], 2 * KEYSIZE, RandomData_send);
-            // printf("recv %i\n", recv_map[i]);
-            net.getDataFromPeer(recv_map[i], 2 * KEYSIZE, RandomData_recv);
+            // ANB: is 32 bytes "enough" of a seed for Shamir SS?
+            // Previously in PRSS.cpp, the 'seeds' (denoted by "keys[i]") were generated as follows:
+            //      mpz_urandomm(keys[i], gmpRandState, modulus);
+            // keys[] is what is ultimately used to seed the shamir PRG (in shamir/SecretShare.cpp):
+            //      gmp_randseed(rstates[i], keys[i]);
+            // My take - I think it should be fine with the 32 bytes of "good" randomness
+            if (fread(RandomData_send, 1, (2 * KEYSIZE), fp) != (2 * KEYSIZE))
+                throw std::runtime_error("error reading random bytes from /dev/urandom");
 
-            // generating the share id T corresponding to the key I just recieved
-            T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
-            sort(T_recv.begin(), T_recv.end());
+            assert(send_map.size() == recv_map.size());
+            for (size_t i = 0; i < send_map.size(); i++) {
+                // printf("send %i\n", send_map[i]);
+                net.sendDataToPeer(send_map[i], 2 * KEYSIZE, RandomData_send);
+                // printf("recv %i\n", recv_map[i]);
+                net.getDataFromPeer(recv_map[i], 2 * KEYSIZE, RandomData_recv);
+
+                // generating the share id T corresponding to the key I just recieved
+                T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
+                sort(T_recv.begin(), T_recv.end());
 #if __SHAMIR__
-            coefficients = generateCoefficients(T_recv, threshold);
-            shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_recv), coefficients));
+                coefficients = generateCoefficients(T_recv, threshold);
+                shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_recv), coefficients));
 
 #endif
 #if __RSS__
-            rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
+                rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
 
 #endif
-        }
-        sort(recv_map.begin(), recv_map.end()); // sorting now that we're done using it to know the order which we're recieving shares
+            }
+            sort(recv_map.begin(), recv_map.end()); // sorting now that we're done using it to know the order which we're recieving shares
 #if __SHAMIR__
-        coefficients = generateCoefficients(recv_map, threshold);
-        shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_send), coefficients));
+            coefficients = generateCoefficients(recv_map, threshold);
+            shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_send), coefficients));
 
 #endif
 #if __RSS__
-        rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
+            rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
 #endif
+        }
+        fclose(fp);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[seedSetup] " << ex.what() << "\n";
+        exit(1);
     }
-
-    fclose(fp);
 }
 
 // binary_rep = bianry encoding of share T generated from seed_map
