@@ -4,7 +4,10 @@
 #include "../../RSS_SecretShare.h"
 #include "../../NodeNetwork.h"
 
-
+// ANB, 1/30/2024
+// this is written in such a way that it checks both orderings of T_map.
+// we are now sorting the T_map in the SecertShare constructor
+// so we no longer really need to do this, provided we sort calculate what T_map[i] is compared against
 inline bool chi_p_prime_in_T(int p_prime, int *T_map, int n) {
     return (((((p_prime + 1 - 1) % n + 1) == T_map[0]) and (((p_prime + 2 - 1) % n + 1) == T_map[1])) or
             ((((p_prime + 1 - 1) % n + 1) == T_map[1]) and (((p_prime + 2 - 1) % n + 1) == T_map[0])));

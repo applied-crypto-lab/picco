@@ -20,7 +20,6 @@
 #ifndef RSS_SECRETSHARE_H
 #define RSS_SECRETSHARE_H
 
-#include "../NodeNetwork.h"
 #include "stdint.h"
 #include <cmath>
 #include <cstdlib>
@@ -55,6 +54,9 @@
 #include <wmmintrin.h> //for intrinsics for AES-NI
 #include <x86intrin.h>
 
+#define CONTAINER_SIZE 16
+#define KEYSIZE 16
+
 #define KE2(NK, OK, RND)                           \
     NK = OK;                                       \
     NK = _mm_xor_si128(NK, _mm_slli_si128(NK, 4)); \
@@ -64,20 +66,28 @@
 
 // the RSS SecretShare class is implemented entirely in this header file, due to it being templated (for 32- and 64- bit computation)
 
+// arithmetic mod the number of parties, values are in the ring 1,...,n
+// supports "negative" values, i.e. if you enter id-1, it will appropriately compute the "left" id in the ring
+template <typename T>
+T mod_n(T x, T n) {
+    return ((x - 1) % n + n) % n + 1;
+}
+
 template <typename T>
 class SecretShare {
 
 public:
-    SecretShare(NodeNetwork *nodeNet, uint _id, uint n, uint t, uint ring_size);
-    virtual ~SecretShare();
+    SecretShare(uint _id, uint _n, uint _t, uint ring_size, std::map<std::vector<int>, uint8_t *>);
+    ~SecretShare();
     uint getNumShares();
     uint getTotalNumShares();
-    uint getNumParties();
-    uint getThreshold();
+    uint getn();
+    uint gett();
     uint nCk(uint n, uint k);
 
     __m128i *prg_keyschedule(uint8_t *src);
     void prg_aes(uint8_t *, uint8_t *, __m128i *);
+    void prg_setup(std::map<std::vector<int>, uint8_t *>);
     void prg_setup_3();
     void prg_setup_5();
     void prg_setup_mp_7();
@@ -92,33 +102,31 @@ public:
     T *ODD;
     T *EVEN;
     uint RING;
-    // int map_3pc[2];
-    int **general_map = nullptr;
-    int **open_map_mpc = nullptr;
-    int **eda_map_mpc = nullptr;
-    int **T_map_mpc = nullptr;
+
+    std::vector<std::vector<int>> general_map;
+    std::vector<std::vector<int>> open_map_mpc;
+    std::vector<std::vector<int>> eda_map_mpc;
+    std::vector<std::vector<int>> T_map_mpc;
 
 private:
-    uint numParties;     // n
-    uint threshold;      // t
+    uint n;              // n
+    uint t;              // t
     uint numShares;      // (n-1) choose t
     uint totalNumShares; // n choose t
     uint8_t **random_container;
     int container_size;
     int *P_container;
     __m128i **prg_key;
-    NodeNetwork *nNet;
 };
 
 /* method definitions */
 template <typename T>
-SecretShare<T>::SecretShare(NodeNetwork *nodeNet, uint _id, uint n, uint t, uint ring_size) {
+SecretShare<T>::SecretShare(uint _id, uint _n, uint _t, uint ring_size, std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
     id = _id;
-    numParties = n;
-    threshold = t;
-    numShares = nCk(numParties - 1, threshold);  // shares PER PARTY
-    totalNumShares = nCk(numParties, threshold); // total shares
-    nNet = nodeNet;                              // just stores a reference to nodeNet, only used for prg_setup
+    n = _n;
+    t = _t;
+    numShares = nCk(n - 1, t);  // shares PER PARTY
+    totalNumShares = nCk(n, t); // total shares
 
     SHIFT = new T[sizeof(T) * 8];
     ODD = new T[ring_size + 2];
@@ -141,287 +149,147 @@ SecretShare<T>::SecretShare(NodeNetwork *nodeNet, uint _id, uint n, uint t, uint
         temp = temp << 1;
     }
     for (T i = 0; i < ring_size + 1; i++) {
-        EVEN[i] = (temp >> 1) & SHIFT[i];
+        EVEN[i] = (temp >> T(1)) & SHIFT[i];
         ODD[i] = (temp)&SHIFT[i];
     }
 
-    general_map = new int *[2];
-    for (size_t i = 0; i < 2; i++) {
-        general_map[i] = new int[threshold];
+    switch (n) {
+    case 3:
+        general_map = {
+            {mod_n(id + 2, n), NULL},
+            {mod_n(id + 1, n), NULL},
+        };
+        break;
+    case 5:
+        open_map_mpc = {
+            {mod_n(id + 1, n), mod_n(id + 4, n)},
+            {mod_n(id + 4, n), mod_n(id + 1, n)},
+        };
+        general_map = {
+            {mod_n(id + 3, n), mod_n(id + 4, n)}, // send
+            {mod_n(id + 2, n), mod_n(id + 1, n)}, // recv
+        };
+
+        T_map_mpc = {
+            {mod_n(id + 1, n), mod_n(id + 2, n)},
+            {mod_n(id + 1, n), mod_n(id + 3, n)},
+            {mod_n(id + 1, n), mod_n(id + 4, n)},
+            {mod_n(id + 2, n), mod_n(id + 3, n)},
+            {mod_n(id + 2, n), mod_n(id + 4, n)},
+            {mod_n(id + 3, n), mod_n(id + 4, n)},
+        };
+
+        // sorting the T_map
+        for (auto var : T_map_mpc) {
+            sort(var.begin(), var.end());
+        }
+
+        eda_map_mpc = {
+            {((id < 4) ? mod_n(id - 1, n) : -1), // if my id < 4, compute as normal, otherwise set to -1
+             ((id < 4) ? mod_n(id - 2, n) : -1)},
+            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1), // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+             (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
+        };
+        break;
+    case 7:
+        open_map_mpc = {
+            {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 3, n)},
+            {mod_n(id - 1, n), mod_n(id - 2, n), mod_n(id - 3, n)},
+
+        };
+        general_map = {
+            {mod_n(id + 4, n), mod_n(id + 5, n), mod_n(id + 6, n)}, // send
+            {mod_n(id + 3, n), mod_n(id + 2, n), mod_n(id + 1, n)}, // recv
+        };
+
+        T_map_mpc = {
+            {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 3, n)},
+            {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 4, n)},
+            {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 5, n)},
+            {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 6, n)},
+            {mod_n(id + 1, n), mod_n(id + 3, n), mod_n(id + 4, n)},
+            {mod_n(id + 1, n), mod_n(id + 3, n), mod_n(id + 5, n)},
+            {mod_n(id + 1, n), mod_n(id + 3, n), mod_n(id + 6, n)},
+            {mod_n(id + 1, n), mod_n(id + 4, n), mod_n(id + 5, n)},
+            {mod_n(id + 1, n), mod_n(id + 4, n), mod_n(id + 6, n)},
+            {mod_n(id + 1, n), mod_n(id + 5, n), mod_n(id + 6, n)},
+            {mod_n(id + 2, n), mod_n(id + 3, n), mod_n(id + 4, n)},
+            {mod_n(id + 2, n), mod_n(id + 3, n), mod_n(id + 5, n)},
+            {mod_n(id + 2, n), mod_n(id + 3, n), mod_n(id + 6, n)},
+            {mod_n(id + 2, n), mod_n(id + 4, n), mod_n(id + 5, n)},
+            {mod_n(id + 2, n), mod_n(id + 4, n), mod_n(id + 6, n)},
+            {mod_n(id + 2, n), mod_n(id + 5, n), mod_n(id + 6, n)},
+            {mod_n(id + 3, n), mod_n(id + 4, n), mod_n(id + 5, n)},
+            {mod_n(id + 3, n), mod_n(id + 4, n), mod_n(id + 6, n)},
+            {mod_n(id + 3, n), mod_n(id + 5, n), mod_n(id + 6, n)},
+            {mod_n(id + 4, n), mod_n(id + 5, n), mod_n(id + 6, n)},
+        };
+
+        // sorting the T_map
+        for (auto var : T_map_mpc) {
+            sort(var.begin(), var.end());
+        }
+
+        eda_map_mpc = {
+            // if my id < 5, compute as normal, otherwise set to -1
+            {((id < 5) ? mod_n(id - 1, n) : -1),
+             ((id < 5) ? mod_n(id - 2, n) : -1),
+             ((id < 5) ? mod_n(id - 3, n) : -1)},
+            // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
+            {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
+             (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
+             (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
+        };
+        break;
+    default:
+        std::cerr << "ERROR: an invalid number of parties was provided. RSS only supports n = {3,5,7}\n";
+        exit(1);
     }
-    if (numParties == 3) {
+}
 
-        prg_setup_3();
-        general_map[0][0] = ((id + 2 - 1) % numParties + 1);
-        general_map[1][0] = ((id + 1 - 1) % numParties + 1);
-    } else {
-
-        open_map_mpc = new int *[2];
-        eda_map_mpc = new int *[2];
-        T_map_mpc = new int *[numShares];
-        for (size_t i = 0; i < 2; i++) {
-            open_map_mpc[i] = new int[threshold];
-            eda_map_mpc[i] = new int[threshold];
-        }
-        for (size_t i = 0; i < numShares; i++) {
-            T_map_mpc[i] = new int[threshold];
-        }
-
-        if (numParties == 5) {
-
-            printf("prg_setup_5\n");
-            prg_setup_5();
-
-            open_map_mpc[0][0] = (id + 1 - 1) % numParties + 1;
-            open_map_mpc[0][1] = (id + 4 - 1) % numParties + 1;
-
-            open_map_mpc[1][0] = (id + 4 - 1) % numParties + 1;
-            open_map_mpc[1][1] = (id + 1 - 1) % numParties + 1;
-            // send
-            general_map[0][0] = ((id + 3 - 1) % numParties + 1);
-            general_map[0][1] = ((id + 4 - 1) % numParties + 1);
-
-            // recv
-            general_map[1][0] = ((id + 2 - 1) % numParties + 1);
-            general_map[1][1] = ((id + 1 - 1) % numParties + 1);
-
-            // used for multiplication
-            T_map_mpc[0][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[0][1] = ((id + 2 - 1) % numParties + 1);
-
-            T_map_mpc[1][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[1][1] = ((id + 3 - 1) % numParties + 1);
-
-            T_map_mpc[2][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[2][1] = ((id + 4 - 1) % numParties + 1);
-
-            T_map_mpc[3][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[3][1] = ((id + 3 - 1) % numParties + 1);
-
-            T_map_mpc[4][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[4][1] = ((id + 4 - 1) % numParties + 1);
-
-            T_map_mpc[5][0] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[5][1] = ((id + 4 - 1) % numParties + 1);
-
-            switch (id) {
-            case 1:
-                eda_map_mpc[0][0] = 5;
-                eda_map_mpc[0][1] = 4;
-                eda_map_mpc[1][0] = 2;
-                eda_map_mpc[1][1] = 3;
-                // eda_5pc_comm_ctr = 2;
-                break;
-            case 2:
-                eda_map_mpc[0][0] = 1;
-                eda_map_mpc[0][1] = 5;
-                eda_map_mpc[1][0] = 3;
-                eda_map_mpc[1][1] = -1;
-                // eda_5pc_comm_ctr = 2;
-                break;
-            case 3:
-                eda_map_mpc[0][0] = 2;
-                eda_map_mpc[0][1] = 1;
-                eda_map_mpc[1][0] = -1;
-                eda_map_mpc[1][1] = -1;
-                // eda_5pc_comm_ctr = 2;
-                break;
-            case 4:
-                eda_map_mpc[0][0] = -1;
-                eda_map_mpc[0][1] = -1;
-                eda_map_mpc[1][0] = -1;
-                eda_map_mpc[1][1] = 1;
-                // eda_5pc_comm_ctr = 0;
-                break;
-            case 5:
-                eda_map_mpc[0][0] = -1;
-                eda_map_mpc[0][1] = -1;
-                eda_map_mpc[1][0] = 1;
-                eda_map_mpc[1][1] = 2;
-                // eda_5pc_comm_ctr = 0;
-                break;
-            }
-
-        } else if (numParties == 7) {
-            printf("prg_setup_mp_7\n");
-            prg_setup_mp_7();
-
-            open_map_mpc[0][0] = (id + 1 - 1) % numParties + 1;
-            open_map_mpc[0][1] = (id + 2 - 1) % numParties + 1;
-            open_map_mpc[0][2] = (id + 3 - 1) % numParties + 1;
-
-            open_map_mpc[1][0] = (id + 6 - 1) % numParties + 1;
-            open_map_mpc[1][1] = (id + 5 - 1) % numParties + 1;
-            open_map_mpc[1][2] = (id + 4 - 1) % numParties + 1;
-
-            // send
-            general_map[0][0] = ((id + 4 - 1) % numParties + 1);
-            general_map[0][1] = ((id + 5 - 1) % numParties + 1);
-            general_map[0][2] = ((id + 6 - 1) % numParties + 1);
-
-            // recv
-            general_map[1][0] = ((id + 3 - 1) % numParties + 1);
-            general_map[1][1] = ((id + 2 - 1) % numParties + 1);
-            general_map[1][2] = ((id + 1 - 1) % numParties + 1);
-
-            T_map_mpc[0][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[0][1] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[0][2] = ((id + 3 - 1) % numParties + 1);
-
-            T_map_mpc[1][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[1][1] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[1][2] = ((id + 4 - 1) % numParties + 1);
-
-            T_map_mpc[2][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[2][1] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[2][2] = ((id + 5 - 1) % numParties + 1);
-
-            T_map_mpc[3][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[3][1] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[3][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[4][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[4][1] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[4][2] = ((id + 4 - 1) % numParties + 1);
-
-            T_map_mpc[5][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[5][1] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[5][2] = ((id + 5 - 1) % numParties + 1);
-
-            T_map_mpc[6][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[6][1] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[6][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[7][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[7][1] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[7][2] = ((id + 5 - 1) % numParties + 1);
-
-            T_map_mpc[8][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[8][1] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[8][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[9][0] = ((id + 1 - 1) % numParties + 1);
-            T_map_mpc[9][1] = ((id + 5 - 1) % numParties + 1);
-            T_map_mpc[9][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[10][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[10][1] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[10][2] = ((id + 4 - 1) % numParties + 1);
-
-            T_map_mpc[11][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[11][1] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[11][2] = ((id + 5 - 1) % numParties + 1);
-
-            T_map_mpc[12][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[12][1] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[12][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[13][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[13][1] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[13][2] = ((id + 5 - 1) % numParties + 1);
-
-            T_map_mpc[14][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[14][1] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[14][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[15][0] = ((id + 2 - 1) % numParties + 1);
-            T_map_mpc[15][1] = ((id + 5 - 1) % numParties + 1);
-            T_map_mpc[15][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[16][0] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[16][1] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[16][2] = ((id + 5 - 1) % numParties + 1);
-
-            T_map_mpc[17][0] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[17][1] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[17][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[18][0] = ((id + 3 - 1) % numParties + 1);
-            T_map_mpc[18][1] = ((id + 5 - 1) % numParties + 1);
-            T_map_mpc[18][2] = ((id + 6 - 1) % numParties + 1);
-
-            T_map_mpc[19][0] = ((id + 4 - 1) % numParties + 1);
-            T_map_mpc[19][1] = ((id + 5 - 1) % numParties + 1);
-            T_map_mpc[19][2] = ((id + 6 - 1) % numParties + 1);
-
-            switch (id) {
-            case 1:
-                eda_map_mpc[0][0] = 7;
-                eda_map_mpc[0][1] = 6;
-                eda_map_mpc[0][2] = 5;
-                eda_map_mpc[1][0] = 2;
-                eda_map_mpc[1][1] = 3;
-                eda_map_mpc[1][2] = 4;
-                // eda_7pc_comm_ctr = 3;
-                break;
-            case 2:
-                eda_map_mpc[0][0] = 1;
-                eda_map_mpc[0][1] = 7;
-                eda_map_mpc[0][2] = 6;
-                eda_map_mpc[1][0] = 3;
-                eda_map_mpc[1][1] = 4;
-                eda_map_mpc[1][2] = -1;
-                // eda_7pc_comm_ctr = 3;
-                break;
-            case 3:
-                eda_map_mpc[0][0] = 2;
-                eda_map_mpc[0][1] = 1;
-                eda_map_mpc[0][2] = 7;
-                eda_map_mpc[1][0] = 4;
-                eda_map_mpc[1][1] = -1;
-                eda_map_mpc[1][2] = -1;
-                // eda_7pc_comm_ctr = 3;
-                break;
-            case 4:
-                eda_map_mpc[0][0] = 3;
-                eda_map_mpc[0][1] = 2;
-                eda_map_mpc[0][2] = 1;
-                eda_map_mpc[1][0] = -1;
-                eda_map_mpc[1][1] = -1;
-                eda_map_mpc[1][2] = -1;
-                // eda_7pc_comm_ctr = 3;
-                break;
-            case 5:
-                eda_map_mpc[0][0] = -1;
-                eda_map_mpc[0][1] = -1;
-                eda_map_mpc[0][2] = -1;
-                eda_map_mpc[1][0] = -1;
-                eda_map_mpc[1][1] = -1;
-                eda_map_mpc[1][2] = 1;
-                // eda_7pc_comm_ctr = 0;
-                break;
-            case 6:
-                eda_map_mpc[0][0] = -1;
-                eda_map_mpc[0][1] = -1;
-                eda_map_mpc[0][2] = -1;
-                eda_map_mpc[1][0] = -1;
-                eda_map_mpc[1][1] = 1;
-                eda_map_mpc[1][2] = 2;
-                // eda_7pc_comm_ctr = 0;
-                break;
-            case 7:
-                eda_map_mpc[0][0] = -1;
-                eda_map_mpc[0][1] = -1;
-                eda_map_mpc[0][2] = -1;
-                eda_map_mpc[1][0] = 1;
-                eda_map_mpc[1][1] = 2;
-                eda_map_mpc[1][2] = 3;
-                // eda_7pc_comm_ctr = 0;
-                break;
-            }
-        } else {
-            printf("ERROR: numParties are not 3, 5, or 7\n");
-        }
+// the keys in rss_share_seeds are ALREADY SORTED
+// we sorted T_map_mpc in the SecretShare constructor (above)
+// now we just need to access rss_share_seeds[T_map_mpc.at(i)] to get the corresponding value (32 random bytes, the "value")
+template <typename T>
+void SecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
+    // need to create numShares+1 keys, random containers, etc
+    uint numKeys = numShares + 1;
+    random_container = new uint8_t *[numKeys];
+    // uint8_t **tempKey = new uint8_t *[numKeys];
+    prg_key = new __m128i *[numKeys];
+    for (int i = 0; i < numKeys; i++) {
+        random_container[i] = new uint8_t[KEYSIZE];
+        memset(random_container[i], 0, sizeof(uint8_t) * KEYSIZE);
+        // tempKey[i] = new uint8_t[KEYSIZE];
+        // memset(tempKey[i], 0, sizeof(uint8_t) * KEYSIZE);
     }
-    // init_index_array
+    // initalizing P_container
+    P_container = new int[numKeys];
+    memset(P_container, 0, sizeof(int) * numKeys);
+
+    for (size_t i = 0; i < T_map_mpc.size(); i++) {
+        memcpy(random_container[i], rss_share_seeds[T_map_mpc.at(i)], KEYSIZE);
+        // memcpy(tempKey[i], rss_share_seeds[T_map_mpc.at(i)] + KEYSIZE, KEYSIZE);
+        prg_key[i] = prg_keyschedule(rss_share_seeds[T_map_mpc.at(i)] + KEYSIZE); // should be able to do this
+    }
+    uint8_t res[KEYSIZE] = {};
+    for (size_t i = 0; i < numKeys; i++) {
+        prg_aes(res, random_container[i], prg_key[i]);
+        memcpy(random_container[i], res, KEYSIZE);
+    }
+
+    printf("prg setup\n");
+    // for (int i = 0; i < numKeys; i++) {
+    //     delete[] tempKey[i];
+    // }
+    // delete[] tempKey;
 }
 
 template <typename T>
 __m128i *SecretShare<T>::prg_keyschedule(uint8_t *src) {
-    __m128i *r = (__m128i *)malloc(11 * sizeof(__m128i));
-
+    // __m128i *r = (__m128i *)malloc(11 * sizeof(__m128i));
+    __m128i *r = new __m128i[11]; // alternate
     r[0] = _mm_load_si128((__m128i *)src);
-
     KE2(r[1], r[0], 0x01)
     KE2(r[2], r[1], 0x02)
     KE2(r[3], r[2], 0x04)
@@ -432,7 +300,6 @@ __m128i *SecretShare<T>::prg_keyschedule(uint8_t *src) {
     KE2(r[8], r[7], 0x80)
     KE2(r[9], r[8], 0x1b)
     KE2(r[10], r[9], 0x36)
-
     return r;
 }
 template <typename T>
@@ -499,7 +366,7 @@ void SecretShare<T>::prg_setup_3() {
 
     // sending to i + 2 mod n
     // receiving from i + 1 mod n
-    // this depends on the threshold?
+    // this depends on the t?
     // but we end up with two keys - one we generate and send, and one we receive
     int map[2];
     switch (id) {
@@ -588,10 +455,10 @@ void SecretShare<T>::prg_setup_5() {
 
     int map[2][2];
     // star topology then ring
-    map[0][0] = ((id + 2 - 1) % numParties + numParties) % numParties + 1; // send s_3
-    map[0][1] = ((id + 1 - 1) % numParties + numParties) % numParties + 1; // send s_3
-    map[1][0] = ((id - 2 - 1) % numParties + numParties) % numParties + 1; // recv s_5
-    map[1][1] = ((id - 1 - 1) % numParties + numParties) % numParties + 1; // recv s_2
+    map[0][0] = ((id + 2 - 1) % n + n) % n + 1; // send s_3
+    map[0][1] = ((id + 1 - 1) % n + n) % n + 1; // send s_3
+    map[1][0] = ((id - 2 - 1) % n + n) % n + 1; // recv s_5
+    map[1][1] = ((id - 1 - 1) % n + n) % n + 1; // recv s_2
 
     nNet->sendDataToPeer(map[0][0], 32, RandomData);
     nNet->getDataFromPeer(map[1][0], 32, RandomData_recv);
@@ -688,40 +555,40 @@ void SecretShare<T>::prg_setup_mp_7() {
 
     int map[5][2][3];
 
-    map[0][0][0] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // send s1
-    map[0][0][1] = ((id + 5 - 1) % numParties + numParties) % numParties + 1; // send s1
-    map[0][0][2] = ((id + 6 - 1) % numParties + numParties) % numParties + 1; // send s1
-    map[0][1][0] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // recv s20
-    map[0][1][1] = ((id + 2 - 1) % numParties + numParties) % numParties + 1; // recv s17
-    map[0][1][2] = ((id + 1 - 1) % numParties + numParties) % numParties + 1; // recv s11
+    map[0][0][0] = ((id + 4 - 1) % n + n) % n + 1; // send s1
+    map[0][0][1] = ((id + 5 - 1) % n + n) % n + 1; // send s1
+    map[0][0][2] = ((id + 6 - 1) % n + n) % n + 1; // send s1
+    map[0][1][0] = ((id + 3 - 1) % n + n) % n + 1; // recv s20
+    map[0][1][1] = ((id + 2 - 1) % n + n) % n + 1; // recv s17
+    map[0][1][2] = ((id + 1 - 1) % n + n) % n + 1; // recv s11
 
-    map[1][0][0] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // send s2
-    map[1][0][1] = ((id + 5 - 1) % numParties + numParties) % numParties + 1; // send s2
-    map[1][0][2] = ((id + 6 - 1) % numParties + numParties) % numParties + 1; // send s2
-    map[1][1][0] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // recv s10
-    map[1][1][1] = ((id + 2 - 1) % numParties + numParties) % numParties + 1; // recv s18
-    map[1][1][2] = ((id + 1 - 1) % numParties + numParties) % numParties + 1; // recv s12
+    map[1][0][0] = ((id + 3 - 1) % n + n) % n + 1; // send s2
+    map[1][0][1] = ((id + 5 - 1) % n + n) % n + 1; // send s2
+    map[1][0][2] = ((id + 6 - 1) % n + n) % n + 1; // send s2
+    map[1][1][0] = ((id + 4 - 1) % n + n) % n + 1; // recv s10
+    map[1][1][1] = ((id + 2 - 1) % n + n) % n + 1; // recv s18
+    map[1][1][2] = ((id + 1 - 1) % n + n) % n + 1; // recv s12
 
-    map[2][0][0] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // send s3
-    map[2][0][1] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // send s3
-    map[2][0][2] = ((id + 6 - 1) % numParties + numParties) % numParties + 1; // send s3
-    map[2][1][0] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // recv s16
-    map[2][1][1] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // recv s8
-    map[2][1][2] = ((id + 1 - 1) % numParties + numParties) % numParties + 1; // recv s13
+    map[2][0][0] = ((id + 3 - 1) % n + n) % n + 1; // send s3
+    map[2][0][1] = ((id + 4 - 1) % n + n) % n + 1; // send s3
+    map[2][0][2] = ((id + 6 - 1) % n + n) % n + 1; // send s3
+    map[2][1][0] = ((id + 4 - 1) % n + n) % n + 1; // recv s16
+    map[2][1][1] = ((id + 3 - 1) % n + n) % n + 1; // recv s8
+    map[2][1][2] = ((id + 1 - 1) % n + n) % n + 1; // recv s13
 
-    map[3][0][0] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // send s4
-    map[3][0][1] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // send s4
-    map[3][0][2] = ((id + 5 - 1) % numParties + numParties) % numParties + 1; // send s4
-    map[3][1][0] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // recv s19
-    map[3][1][1] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // recv s14
-    map[3][1][2] = ((id + 2 - 1) % numParties + numParties) % numParties + 1; // recv s5
+    map[3][0][0] = ((id + 3 - 1) % n + n) % n + 1; // send s4
+    map[3][0][1] = ((id + 4 - 1) % n + n) % n + 1; // send s4
+    map[3][0][2] = ((id + 5 - 1) % n + n) % n + 1; // send s4
+    map[3][1][0] = ((id + 4 - 1) % n + n) % n + 1; // recv s19
+    map[3][1][1] = ((id + 3 - 1) % n + n) % n + 1; // recv s14
+    map[3][1][2] = ((id + 2 - 1) % n + n) % n + 1; // recv s5
 
-    map[4][0][0] = ((id + 2 - 1) % numParties + numParties) % numParties + 1; // send s6
-    map[4][0][1] = ((id + 4 - 1) % numParties + numParties) % numParties + 1; // send s6
-    map[4][0][2] = ((id + 6 - 1) % numParties + numParties) % numParties + 1; // send s6
-    map[4][1][0] = ((id + 5 - 1) % numParties + numParties) % numParties + 1; // recv s7
-    map[4][1][1] = ((id + 3 - 1) % numParties + numParties) % numParties + 1; // recv s9
-    map[4][1][2] = ((id + 1 - 1) % numParties + numParties) % numParties + 1; // recv s15
+    map[4][0][0] = ((id + 2 - 1) % n + n) % n + 1; // send s6
+    map[4][0][1] = ((id + 4 - 1) % n + n) % n + 1; // send s6
+    map[4][0][2] = ((id + 6 - 1) % n + n) % n + 1; // send s6
+    map[4][1][0] = ((id + 5 - 1) % n + n) % n + 1; // recv s7
+    map[4][1][1] = ((id + 3 - 1) % n + n) % n + 1; // recv s9
+    map[4][1][2] = ((id + 1 - 1) % n + n) % n + 1; // recv s15
 
     uint8_t recived_order[5][3] = {
         {19, 17, 10},
@@ -835,13 +702,13 @@ void SecretShare<T>::prg_getrandom(uint size, uint length, uint8_t *dest) {
 }
 
 template <typename T>
-uint SecretShare<T>::getNumParties() {
-    return numParties;
+uint SecretShare<T>::getn() {
+    return n;
 }
 
 template <typename T>
-uint SecretShare<T>::getThreshold() {
-    return threshold;
+uint SecretShare<T>::gett() {
+    return t;
 }
 
 template <typename T>
@@ -886,7 +753,7 @@ SecretShare<T>::~SecretShare() {
     }
     delete[] general_map;
 
-    if (numParties == 5 or numParties == 7) {
+    if (n == 5 or n == 7) {
         for (size_t i = 0; i < 2; i++) {
             delete[] open_map_mpc[i];
             delete[] eda_map_mpc[i];
