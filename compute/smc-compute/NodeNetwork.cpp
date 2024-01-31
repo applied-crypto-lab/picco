@@ -1008,7 +1008,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(portno);
         if ((bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0) {
-            throw std::runtime_error("error on binding");
+            throw std::runtime_error("error on binding to socket, try again with a different port number.");
         }
         listen(sockfd, 7);
         // start to accept connections

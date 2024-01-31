@@ -41,7 +41,7 @@
 
 using namespace std::chrono_literals;
 
-#define MAX_RETRIES 1200    // number of times we try to connect to a node (currently 1 minute)
+#define MAX_RETRIES 12000    // number of times we try to connect to a node (currently 1 minute)
 #define WAIT_INTERVAL 5ms // interval we wait before trying again
 
 class NodeNetwork {
