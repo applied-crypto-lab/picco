@@ -42,6 +42,8 @@
 #include <time.h>
 // #include "config.h"
 #include <gmp.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 static aststmt ast; /* The AST we use as our original */
 symtab stab;        /* Our symbol table */
@@ -80,6 +82,49 @@ int kappa_nu;
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
+
+// Code added to check for the path of the file name given
+int directoryExists(const char *path) {
+  DIR *dir = opendir(path);
+  if (dir != NULL) {
+     closedir(dir);
+     return 1; // Directory exists
+  } else {
+     return 0; // Directory doesn't exist or there was an error
+  }
+}
+
+// Create the directory using _mkdir for windows and makdir for UNix-like systems 
+int createDirectory(const char *path) {
+  #ifdef _WIN32
+     return _mkdir(path);
+  #else
+     return mkdir(path, 0777);
+  #endif
+}
+
+// Function that creates the path and directory needed for files needed 
+void pathCreater(char *final_list){
+    
+   // Check if the file name contains a path separator /
+   char *path_separator = strchr(final_list, '/');
+
+   // IF there is a path_separator
+   if (path_separator != NULL || strchr(final_list, '\\') != NULL) {
+
+      // File name contains a path, extract the directory path
+      char directory[256]; // array to store the path - I used the max possible 
+      strncpy(directory, final_list, path_separator - final_list);
+      directory[path_separator - final_list] = '\0';
+
+      // Check if the directory exists, create it if not
+      if (!directoryExists(directory)) {
+         if (createDirectory(directory) != 0) {
+            perror("Error creating directory");
+         }
+      }
+   }
+}
 
 // will have new argument for flag
 // If mode is true -> -m
@@ -449,6 +494,7 @@ int main(int argc, char *argv[]) {
     final_list = argv[5];
     var_list = "var_list";
 
+    pathCreater(argv[4]);
     output_filename = (char *)malloc(sizeof(char) * strlen(argv[4]) + 5);
     sprintf(output_filename, "%s.cpp", argv[4]);
 
@@ -491,6 +537,8 @@ int main(int argc, char *argv[]) {
 
     /* 2.1 Append the smc-config contents into var_list */
 
+    // Open the file using the provided path
+    pathCreater(final_list);
     FILE *fp = fopen(final_list, "w+");
     FILE *vfp = fopen(var_list, "r");
     char *line = (char *)malloc(sizeof(char) * 256);
