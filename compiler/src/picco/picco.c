@@ -413,9 +413,9 @@ void loadConfig(char *config) {
 
     // Check if 'technique' meet the requirments.
     if (strlen(technique) == 0) {
-        printf("Warning: No technique provided, defaulting to RSS.\n");
-        strcpy(technique, "rss"); // Set technique to RSS
-        technique_var = REPLICATED_SS; // Default to RSS-1
+        printf("Warning: No technique provided, defaulting to Shamir.\n");
+        strcpy(technique, "shamir"); // Set technique to Shamir
+        technique_var = SHAMIR_SS;   // Default to Shamir
     } else if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
         fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
         exit(1);
