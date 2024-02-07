@@ -277,8 +277,9 @@ void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int re
 }
 
 // these two versions of EQZ are only called if BOTH inputs are single bits
-// don't need to run full protocol, only simplified versions
+// Full protocol specifications are unnecessary for shares of bits (alen = blen = 1)
 void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    // printf("ALT EQZ, private-private\n");
     mpz_t const1, const2;
     mpz_init_set_ui(const1, 1);
     mpz_init_set_ui(const2, 2);
@@ -287,8 +288,8 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
     for (int i = 0; i < size; i++) {
         mpz_init(temp[i]);
     }
+    // computing the expression 2*a*b + 1 - a - b, which is equivalent to EQZ(a-b) for BITS
     Mult(temp, a, b, size, threadID, net, id, ss);
-
     ss->modMul(temp, temp, const2, size); // multiplying every value in temp by 2
     ss->modAdd(temp, temp, const1, size); // adding 1 to every value in temp
     ss->modSub(temp, temp, a, size);      // subtracting a
@@ -304,6 +305,7 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
 }
 
 void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    // printf("ALT EQZ, private-public\n");
     mpz_t const1;
     mpz_init_set_ui(const1, 1);
     for (size_t i = 0; i < size; i++) {

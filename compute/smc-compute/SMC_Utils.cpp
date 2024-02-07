@@ -715,6 +715,15 @@ void SMC_Utils::smc_eqeq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, 
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
 }
 
+void SMC_Utils::smc_eqeq(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+    doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
+}
+
+void SMC_Utils::smc_eqeq(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+    doOperation_EQZ(result, b, a, alen, blen, resultlen, size, threadID, net, id, ss);
+}
+
+
 void SMC_Utils::smc_eqeq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, id, ss);
 }

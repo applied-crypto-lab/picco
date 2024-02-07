@@ -33,11 +33,11 @@
 #include "bit_utils.h"
 #include "openssl/bio.h"
 #include "unistd.h"
+#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <math.h>
-#include <cassert>
 #include <netinet/in.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
@@ -280,6 +280,9 @@ public:
     /************ batch operations *********/
     void smc_eqeq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID);
     void smc_eqeq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID);
+
+    void smc_eqeq(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID);
+    void smc_eqeq(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID);
 
     /************************* singular operations **************************/
     // 1) private int != private int
@@ -558,7 +561,7 @@ public:
     void smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID);
 
     std::map<std::string, std::vector<int>> shamir_seeds_coefs; // mapping of keys (str) to polynomial coefficients
-    std::map<std::vector<int>, uint8_t*> rss_share_seeds; 
+    std::map<std::vector<int>, uint8_t *> rss_share_seeds;
 
     int id;
 
