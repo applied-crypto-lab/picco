@@ -1178,11 +1178,12 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int count = 0, rounds = 0;
     int idx = 0;
     getRounds(size, &count, &rounds);
-    for (uint i = 0; i < threshold; i++) {
-        for (uint k = 0; k <= rounds; k++) {
-            idx = threshold - i - 1;
-
+    for (uint k = 0; k <= rounds; k++) {
+        for (uint i = 0; i < threshold; i++) {
             sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size);
+        }
+        for (uint i = 0; i < threshold; i++) {
+            idx = threshold - i - 1;
             getDataFromPeer(RecvFromIDs[idx], data[2 * threshold - i], k * count, count, size);
         }
     }
@@ -1252,10 +1253,12 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int idx = 0;
     getRounds(size, &count, &rounds);
     // gmp_printf("send data: %Zu\n", data[0]);
-    for (uint i = 0; i < threshold; i++) {
-        for (uint k = 0; k <= rounds; k++) {
-            idx = threshold - i - 1;
+    for (uint k = 0; k <= rounds; k++) {
+        for (uint i = 0; i < threshold; i++) {
             sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size);
+        }
+        for (uint i = 0; i < threshold; i++) {
+            idx = threshold - i - 1;
             getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size);
         }
     }

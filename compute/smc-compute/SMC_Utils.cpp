@@ -88,10 +88,12 @@ float SMC_Utils::smc_open(mpz_t *var, int threadID) {
 }
 
 // for integer variable I/O
+// why is this a pointer?
 void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
 }
 
+// why is this a pointer?
 void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_input(id, var, type, inputStreams);
@@ -101,10 +103,12 @@ void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 }
 
 // for float variable I/O
+// why is this a pointer?
 void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
 }
 
+// why is this a 2d pointer? should only be one
 void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_input(id, var, type, inputStreams);
@@ -390,22 +394,11 @@ void SMC_Utils::smc_mult(mpz_t *a, mpz_t b, mpz_t *result, int alen_sig, int ale
 }
 
 void SMC_Utils::smc_mult(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
-        mpz_init_set_si(atmp[i], a[i]);
-        ss->modMul(result[i], atmp[i], b[i]);
-    }
-    ss_batch_free_operator(&atmp, size);
+    ss->modMul(result, b, a, size);
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
-        mpz_init_set_si(btmp[i], b[i]);
-        ss->modMul(result[i], a[i], btmp[i]);
-    }
-    smc_mult(a, btmp, alen, blen, result, resultlen, size, type, threadID);
-    ss_batch_free_operator(&btmp, size);
+    ss->modMul(result, a, b, size);
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
@@ -1676,20 +1669,12 @@ void SMC_Utils::seedSetup(vector<int> &seed_map, int peers, int threshold) {
             send_map = extract_share_WITH_ACCESS(seed, peers, id);
             recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
 
-            // ANB: is 32 bytes "enough" of a seed for Shamir SS?
-            // Previously in PRSS.cpp, the 'seeds' (denoted by "keys[i]") were generated as follows:
-            //      mpz_urandomm(keys[i], gmpRandState, modulus);
-            // keys[] is what is ultimately used to seed the shamir PRG (in shamir/SecretShare.cpp):
-            //      gmp_randseed(rstates[i], keys[i]);
-            // My take - I think it should be fine with the 32 bytes of "good" randomness
             if (fread(RandomData_send, 1, (2 * KEYSIZE), fp) != (2 * KEYSIZE))
-                throw std::runtime_error("error reading random bytes from /dev/urandom");
+                throw std::runtime_error("error reading random bytes from /dev/urandom. Which OS are you using?");
 
             assert(send_map.size() == recv_map.size());
             for (size_t i = 0; i < send_map.size(); i++) {
-                // printf("send %i\n", send_map[i]);
                 net.sendDataToPeer(send_map[i], 2 * KEYSIZE, RandomData_send);
-                // printf("recv %i\n", recv_map[i]);
                 net.getDataFromPeer(recv_map[i], 2 * KEYSIZE, RandomData_recv);
 
                 // generating the share id T corresponding to the key I just recieved

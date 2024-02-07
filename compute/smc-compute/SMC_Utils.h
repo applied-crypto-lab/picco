@@ -45,6 +45,8 @@
 #include <sstream>
 #include <string>
 
+// for rss, can we do
+// typedef uint32_T* priv_int; //? where any mpz_t is converted to at least a 1d array
 typedef mpz_t priv_int;
 #define MPZ_CAST(X) (mpz_t *)(X)
 // typedef unsigned long priv_int;
