@@ -1,4 +1,21 @@
+/*
+   PICCO: A General Purpose Compiler for Private Distributed Computation
+   ** Copyright (C) from 2023 PICCO Team
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
+   PICCO is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   PICCO is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef SHAMIROPS_H_
 #define SHAMIROPS_H_
 
@@ -12,6 +29,9 @@
 void ss_init_set(mpz_t x, mpz_t x_val);
 void ss_init(mpz_t x);
 void ss_set(mpz_t x, mpz_t x_val);
+void ss_clear(mpz_t x);
+void ss_add_ui(mpz_t rop, mpz_t op1, uint op2);
+void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2);
 
 
 void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, SecretShare *ss);

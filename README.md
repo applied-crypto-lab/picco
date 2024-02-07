@@ -18,27 +18,31 @@ The source code of PICCO mainly consists of two directories: *compiler* and *com
 
 To compile or run user programs using PICCO code, a machine should have the following libraries installed:
 
-- GCC or LLVM/clang (clang generally performs better than GCC and is recommended)
-- GMP library
-- OpenSSL library (1.1.1 or newer)
-- Crypto++ library
-- Flex - fast lexical analyzer generator
-- GNU Bison parser
-- CMake
+- [GCC](https://gcc.gnu.org/) or [LLVM/clang](https://clang.llvm.org/) (clang generally performs better than GCC and is recommended)
+- [GMP](https://gmplib.org/)
+- [OpenSSL](https://www.openssl.org/source/) (v1.1.1 or newer)
+- [Crypto++](https://cryptopp.com/)
+- [Flex](https://github.com/westes/flex.git) - fast lexical analyzer generator
+- [GNU Bison parser](https://www.gnu.org/software/bison/)
+- [CMake](https://cmake.org/)
+
+Additionally, if you wish to compile and run multithreaded user programs, the following library is required:
+
+- [OMPi Compiler](https://paragroup.cse.uoi.gr/wpsite/software/ompi/) (v1.2.3)
+
 
 ## Compilation of PICCO
 
-To use PICCO, the following three programs need to be compiled: 
+To use PICCO, the following two programs need to be compiled: 
 
-1. the PICCO compiler itself, 
-2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation, 
-3. the seed program that will generate and transmit secret random seeds to each of the computational parties at the time of program initiation (so that shares of random values can be locally produced by each party without interaction). 
+1. the PICCO compiler itself, and
+2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation.
 
-To compile all three programs, one needs to go to the directory `compiler/` and run the command
+To compile both programs, one needs to go to the directory `compiler/` and run the command
 ```
 ./compile.sh
 ``` 
-which produces three executable files `picco`, `picco-utility`, and `picco-seed` and moves them in the directory `compiler/bin/`. The three executable files correspond to the PICCO compiler, the utility, and the seed program, respectively, and can be placed in any directory of user's choice at a later time. 
+which produces the executable files `picco` and `picco-utility`, and moves them in the directory `compiler/bin/`. The executables correspond to the PICCO compiler and the utility, respectively, and can be placed in any directory of user's choice at a later time. 
 
 These executable programs are used to compile a user's program written in an extension of C into its secure implementation, produce shares of private inputs to be used in secure computation, and reconstruct the output from the shares after secure execution of the user program. 
 
@@ -47,13 +51,17 @@ These executable programs are used to compile a user's program written in an ext
 Before describing the procedure for compiling a user program, we explain the composition of the **SMC config** file that the program expects.
 
 
-**SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P:V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The value of each parameter will be retrieved from the line at which it is positioned in the file, not based on the string $P$ with which it is labeled. For instance, the value of $V$ on the first line will always store the modulus size regardless of $P$. The reason for including $P$ in the config file is to provide intuitive information to end-users when they edit the file, so that each parameter is assigned a correct value. 
+**SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P=V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The SMC config file contains the following parameters:
 
-  Out of the five lines, the first three specify parameters of a secret sharing scheme, which are: the modulus size, the number of computational parties, and the threshold value (in that order).  Specifying the modulus size is optional, and if the programmer is uncertain what modulus size should be used, its value $V$ should be left blank in the config file. In this case, the PICCO compiler will determine the optimal modulus size by analyzing the program at the translation time, and later make it available to the utility program.
+1. `technique` - the secret sharing technique to be used. Currently we only support the value `shamir`.
+2. `bits` - the bit size of the modulus. This parameter is optional, and if the programmer is uncertain what modulus size should be used, its value should be left blank in the config file. 
+3. `peers` - the number of computational praties
+4. `threshold`- the threshold value
+5. `inputs` - the number of input parties 
+6. `outputs` - the number of output parties
 
-  The last two lines specify the number of input and output parties in the computation. By specifying these two values, a user is able to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. 
-
-  Later, it will be assumed that input/output/computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
+The parameters can be placed in any order. 
+The `inputs` and `outputs` parameters allow a user to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. It will be assumed that input/output computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
   
 **Compilation mode.** PICCO is equipped with two possible modes for compilation and execution. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols.
 
@@ -99,9 +107,10 @@ In measurement mode, the public key filenames can be omitted leaving only the ID
 
 ## Program execution
 
-The **execution** uses $N+1$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation. Out of these machines, $N$ machines correspond to computational nodes and the remaining machine is an additional node that supplies shared randomness to the computational parties using the seed program `picco-seed` (produced at the time of PICCO compilation) and can be controlled by the data owners. Strictly speaking, the seeds need to be communicated to the given set of computational parties only once, after which the computational parties can execute secure implementations of various programs any number of times. However, for simplicity, our implementation expects communication from `picco-seed` for each program execution, and the time for generating and transmitting the seeds is not counted in the program execution time. 
+The **execution** uses $N$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation.
+There is currently a 5 minute timeout and 5 milisecond wait interval in the networking setup where nodes establish connections to one another. These times can be adjusted by the end user depending on the specific use case by modifying `MAX_RETRIES` and `WAIT_INTERVAL` in `NodeNetwork.h`.
 
-**Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order. 
+ <!-- **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order.  -->
 
 Based on the computational mode 
 ([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
@@ -109,17 +118,14 @@ Based on the computational mode
 
 ## Measurement mode execution
 
-To initiate secure computation in measurement mode, each computational party **(in descending order according to their ID)** needs to execute the following command:
+To initiate secure computation in measurement mode, each computational party 
+<!-- **(in descending order according to their ID)**  -->
+executes the following command:
 
 ```
 ./user_program <ID> <runtime config> 
 ```
-where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. After all computational parties start, the $(N+1)$'th machine needs to run:
-
-```
-./picco-seed -m <runtime config> <utility config>
-``` 
-
+where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. 
 ## Deployment mode setup and execution
 
 ### Input share generation
@@ -181,19 +187,14 @@ After the key pairs are created, the public keys should be distributed to all co
 
 ### Deployment mode execution 
 
-To initiate secure computation, each computational party **(in descending order according to their ID)** needs to execute the following command:
+To initiate secure computation, each computational party executes
+ <!-- **(in descending order according to their ID)** needs to execute  -->
+ the following command:
 ```
-./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ```
 
 The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
-
-After all computational parties start, the $(N+1)$'th machine needs to run:
-
-```
-./picco-seed -d <runtime config> <utility config>
-``` 
 
 Upon computation completion, each program outputs the program running time and stores the result of computation (output using `smcoutput`) in a file for each output party. If the output for some output party contains private variables, that party will need to use the utility program to reconstruct the result.
 

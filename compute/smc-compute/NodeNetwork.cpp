@@ -44,9 +44,6 @@
 
 NodeConfiguration *config;
 EVP_CIPHER_CTX *en, *de;
-int base = 36;
-int MAX_BUFFER_SIZE = 229376; // in bytes
-// int MAX_BUFFER_SIZE = 4194304;
 
 std::map<int, EVP_CIPHER_CTX *> peer2enlist;
 std::map<int, EVP_CIPHER_CTX *> peer2delist;
@@ -78,9 +75,6 @@ int NodeNetwork::mode = 0;              // -1 -- non-thread, 0 -- thread
 int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed modes so far
 /************************************************************/
 
-// 11/21/23 antcipated changes
-// add conditional based on deployment for encrpytion
-// privatekey_filename will be passed as null
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
@@ -89,17 +83,14 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     int peers = config->getPeerCount();
     // allocate space for prgSeeds
     threshold = peers / 2;
-    // prgSeeds = (unsigned char **)malloc(peers * sizeof(unsigned char *));
     prgSeeds = new unsigned char *[2 * threshold];
     for (unsigned int i = 0; i < peers; i++) {
-        // prgSeeds[i] = (unsigned char *)malloc(sizeof(unsigned char) * KEYSIZE);
         prgSeeds[i] = new unsigned char[KEYSIZE];
         memset(prgSeeds[i], 0, KEYSIZE);
         // print_hexa(prgSeeds[i],KEYSIZE);
     }
 
     connectToPeers();
-    // printf("connecttopeers end\n");
 
     numOfThreads = num_threads; // it should be read from parsing
     int numb = 8 * sizeof(char);
@@ -163,21 +154,25 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
 
+    SHIFT_16 = new uint16_t[sizeof(uint16_t) * 8];
     SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
     SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
-    for (uint32_t i = 0; i <= sizeof(uint32_t) * 8 - 1; i++) {
-        SHIFT_32[i] = (uint32_t(1) << uint32_t(i)) - uint32_t(1); // mod 2^i
+    for (uint16_t i = 0; i <= sizeof(uint16_t) * 8 - 1; i++) {
+        SHIFT_16[i] = (uint16_t(1) << uint16_t(i)) - uint16_t(1); // mod 2^i
         // this is needed to handle "undefined behavior" of << when we want
         // to shift by more than the size of the type (in bits)
+        if (i == sizeof(uint16_t) * 8) {
+            SHIFT_16[i] = -1;
+        }
+    }
+    for (uint32_t i = 0; i <= sizeof(uint32_t) * 8 - 1; i++) {
+        SHIFT_32[i] = (uint32_t(1) << uint32_t(i)) - uint32_t(1); // mod 2^i
         if (i == sizeof(uint32_t) * 8) {
             SHIFT_32[i] = -1;
         }
     }
-
     for (uint64_t i = 0; i <= sizeof(uint64_t) * 8 - 1; i++) {
         SHIFT_64[i] = (uint64_t(1) << uint64_t(i)) - uint64_t(1); // mod 2^i
-        // this is needed to handle "undefined behavior" of << when we want
-        // to shift by more than the size of the type (in bits)
         if (i == sizeof(uint64_t) * 8) {
             SHIFT_64[i] = -1;
         }
@@ -523,14 +518,18 @@ void NodeNetwork::broadcastToPeers(long long *data, int size, long long **result
 
 void NodeNetwork::connectToPeers() {
     int peers = config->getPeerCount();
-    for (int i = 1; i <= peers + 1; i++)
+    for (int i = 1; i <= peers + 1; i++) {
         if (config->getID() == i) {
             if (i != (peers + 1))
                 requestConnection(peers + 1 - i);
             if (i != 1)
                 acceptPeers(i - 1);
         }
-    pthread_create(&manager, NULL, &managerWorkHelper, this);
+    }
+    // pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
+}
+void NodeNetwork::launchManager() {
+    pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
 }
 
 void *NodeNetwork::managerWorkHelper(void *net) {
@@ -539,6 +538,7 @@ void *NodeNetwork::managerWorkHelper(void *net) {
 }
 
 void *NodeNetwork::managerWork() {
+    printf("Starting thread manager...\n");
     fd_set socketDescriptorSet;
     int fdmax = 0, nReady = 0, index = 0, threadID;
     int peers = config->getPeerCount();
@@ -565,7 +565,9 @@ void *NodeNetwork::managerWork() {
         }
         for (int i = 0; i < peers; i++) {
             if (FD_ISSET(socks[i], &socketDescriptorSet)) {
+
                 getDataFromPeer(nodes[i], 1, &threadID);
+
                 if (threadID == -2) {
                     numOfChangedNodes++;
                     if (numOfChangedNodes == peers) {
@@ -874,88 +876,110 @@ void NodeNetwork::requestConnection(int numOfPeers) {
     struct sockaddr_in *serv_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
     struct hostent **server = (struct hostent **)malloc(sizeof(struct hostent *) * numOfPeers);
     int on = 1;
-
-    for (int i = 0; i < numOfPeers; i++) {
-        int ID = config->getID() + i + 1;
-        portno[i] = config->getPeerPort(ID);
-        sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd[i] < 0)
-            fprintf(stderr, "ERROR, opening socket\n");
-        // the function below might not work in certain
-        // configurations, e.g., running all nodes from the
-        // same VM. it is not used for single-threaded programs
-        // and thus be commented out or replaced with an
-        // equivalent function otherwise.
-        // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
-        int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
-        rc = setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
-        server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
-        if (server[i] == NULL)
-            fprintf(stderr, "ERROR, no such hosts \n");
-        bzero((char *)&serv_addr[i], sizeof(serv_addr[i]));
-        serv_addr[i].sin_family = AF_INET;
-        bcopy((char *)server[i]->h_addr, (char *)&serv_addr[i].sin_addr.s_addr, server[i]->h_length);
-        serv_addr[i].sin_port = htons(portno[i]);
-
-        int res, valopt = -1;
-        fd_set myset;
-        struct timeval tv;
-        socklen_t lon;
-        res = connect(sockfd[i], (struct sockaddr *)&serv_addr[i], sizeof(serv_addr[i]));
-        if (res < 0) {
-            if (errno == EINPROGRESS) {
-                tv.tv_sec = 15;
-                tv.tv_usec = 0;
-                FD_ZERO(&myset);
-                FD_SET(sockfd[i], &myset);
-                if (select(sockfd[i] + 1, NULL, &myset, NULL, &tv) > 0) {
-                    lon = sizeof(int);
-                    getsockopt(sockfd[i], SOL_SOCKET, SO_ERROR, (void *)(&valopt), &lon);
-                    if (valopt) {
-                        fprintf(stderr, "Error in connection() %d - %s\n", valopt, strerror(valopt));
-                        exit(0);
+    int ID;
+    try {
+        for (int i = 0; i < numOfPeers; i++) {
+            int num_tries = 0;
+            ID = config->getID() + i + 1;
+            printf("Attempting to connect to node %d...\n", ID);
+            portno[i] = config->getPeerPort(ID);
+            sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
+            if (sockfd[i] < 0)
+                throw std::runtime_error("opening socket");
+            // the function below might not work in certain
+            // configurations, e.g., running all nodes from the
+            // same VM. it is not used for single-threaded programs
+            // and thus be commented out or replaced with an
+            // equivalent function otherwise.
+            // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
+            // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+            if (setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+                throw std::runtime_error("setsockopt(SO_REUSEADDR)");
+            if (setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0)
+                throw std::runtime_error("setsockopt(IPPROTO_TCP)");
+            server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
+            if (server[i] == NULL)
+                throw std::runtime_error("no such host with IP address " + config->getPeerIP(ID));
+            bzero((char *)&serv_addr[i], sizeof(serv_addr[i]));
+            serv_addr[i].sin_family = AF_INET;
+            bcopy((char *)server[i]->h_addr, (char *)&serv_addr[i].sin_addr.s_addr, server[i]->h_length);
+            serv_addr[i].sin_port = htons(portno[i]);
+            while (true) {
+                // int valopt = -1;
+                // fd_set myset;
+                // struct timeval tv;
+                // socklen_t lon;
+                int res = connect(sockfd[i], (struct sockaddr *)&serv_addr[i], sizeof(serv_addr[i]));
+                // printf("res : %i\n", res);
+                if (res < 0) {
+                    if (num_tries < MAX_RETRIES) {
+                        // cross platform version of sleep(), C++14 and onward
+                        std::this_thread::sleep_for(WAIT_INTERVAL);
+                        num_tries += 1;
+                    } else {
+                        throw std::runtime_error("timeout, error connecting " + std::to_string(errno) + " - " + strerror(errno));
                     }
+
+                    // this block of code only is only executed if connect() fails
+                    // if (errno == EINPROGRESS) {
+                    //     tv.tv_sec = 15;
+                    //     tv.tv_usec = 0;
+                    //     FD_ZERO(&myset);
+                    //     FD_SET(sockfd[i], &myset);
+                    //     if (select(sockfd[i] + 1, NULL, &myset, NULL, &tv) > 0) {
+                    //         lon = sizeof(int);
+                    //         getsockopt(sockfd[i], SOL_SOCKET, SO_ERROR, (void *)(&valopt), &lon);
+                    //         if (valopt)
+                    //             throw std::runtime_error("Error in connection() " + std::to_string(valopt) + " - " + strerror(valopt));
+                    //     } else {
+                    //         throw std::runtime_error("select error " + std::to_string(valopt) + " - " + strerror(valopt));
+                    //     }
+                    // } else {
+                    //     throw std::runtime_error("Error connecting " + std::to_string(errno) + " - " + strerror(errno));
+                    // }
                 } else {
-                    fprintf(stderr, "Timeout or error() %d - %s\n", valopt, strerror(valopt));
-                    exit(0);
+                    break; // connection was successful!
+                    // connected = true;
                 }
-            } else {
-                fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno));
-                exit(0);
             }
-        }
-        printf("Connected to node %d\n", ID);
-        peer2sock.insert(std::pair<int, int>(ID, sockfd[i]));
-        sock2peer.insert(std::pair<int, int>(sockfd[i], ID));
+
+            printf("Successfully connected to node %d\n", ID);
+            peer2sock.insert(std::pair<int, int>(ID, sockfd[i]));
+            sock2peer.insert(std::pair<int, int>(sockfd[i], ID));
 #if __DEPLOYMENT__
-        FILE *prikeyfp = fopen(privatekeyfile.c_str(), "r");
-        if (prikeyfp == NULL)
-            printf("File Open %s error\n", privatekeyfile.c_str());
-        RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
-        if (priRkey == NULL)
-            printf("Read Private Key for RSA Error\n");
-        char *buffer = (char *)malloc(RSA_size(priRkey));
-        int n = read(sockfd[i], buffer, RSA_size(priRkey));
-        if (n < 0)
-            printf("ERROR reading from socket \n");
-        char *decrypt = (char *)malloc(n);
-        memset(decrypt, 0x00, n);
-        int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
-        if (dec_len < 1)
-            printf("RSA private decrypt error\n");
-        free(buffer);
+            FILE *prikeyfp = fopen(privatekeyfile.c_str(), "r");
+            if (prikeyfp == NULL)
+                throw std::runtime_error("Can't open private key " + privatekeyfile);
+            RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
+            if (priRkey == NULL)
+                throw std::runtime_error("Read Private Key for RSA");
+            char *buffer = (char *)malloc(RSA_size(priRkey));
+            int n = read(sockfd[i], buffer, RSA_size(priRkey));
+            if (n < 0)
+                throw std::runtime_error("reading from socket");
+            char *decrypt = (char *)malloc(n);
+            memset(decrypt, 0x00, n);
+            int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
+            if (dec_len < 1)
+                throw std::runtime_error("RSA private decrypt");
+            free(buffer);
+            fclose(prikeyfp);
+
 #else
-        char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
-        // check that this is the number of bytes that are supposed to be read from the socket
-        int n = read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        if (n < 0)
-            printf("ERROR reading from socket \n");
+            char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
+            // check that this is the number of bytes that are supposed to be read from the socket
+            if (read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
+                throw std::runtime_error("reading from socket");
 #endif
 
-        memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        // print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
-        init_keys(ID, 1);
-        free(decrypt);
+            memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            // print_hexa(peerKeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            init_keys(ID, 1);
+            free(decrypt);
+        }
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[requestConnection] " << ex.what() << "\n";
+        exit(1);
     }
 }
 
@@ -967,98 +991,95 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
     socklen_t *clilen = (socklen_t *)malloc(sizeof(socklen_t) * numOfPeers);
     struct sockaddr_in serv_addr;
     struct sockaddr_in *cli_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
-
-    fd_set master_set, working_set;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    // see comment for fcntl above
-    // fcntl(sockfd, F_SETFL, O_NONBLOCK);
-    if (sockfd < 0)
-        fprintf(stderr, "ERROR, opening socket\n");
-    int rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
-    rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
-    if (rc < 0)
-        printf("setsockopt() or ioctl() failed\n");
-    bzero((char *)&serv_addr, sizeof(serv_addr));
-    portno = config->getPort();
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
-    if ((bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
-        printf("ERROR, on binding \n");
-    listen(sockfd, 7);
-    // start to accept connections
-    FD_ZERO(&master_set);
-    maxsd = sockfd;
-    FD_SET(sockfd, &master_set);
-    for (int i = 0; i < numOfPeers; i++) {
-        memcpy(&working_set, &master_set, sizeof(master_set));
-        rc = select(maxsd + 1, &working_set, NULL, NULL, NULL);
-        if (rc <= 0)
-            printf("select failed or time out \n");
-        if (FD_ISSET(sockfd, &working_set)) {
-            clilen[i] = sizeof(cli_addr[i]);
-            newsockfd[i] = accept(sockfd, (struct sockaddr *)&cli_addr[i], &clilen[i]);
-            if (newsockfd[i] < 0)
-                fprintf(stderr, "ERROR, on accept\n");
-            // see comment for fcntl above
-            // fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
-            peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
-            sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
-
-            unsigned char key_iv[2 * KEYSIZE + AES_BLOCK_SIZE];
-            RAND_status();
-            if (!RAND_bytes(key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE))
-                printf("Key, iv generation error\n");
-            memcpy(KeyIV, key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE);
-            int peer = config->getID() - (i + 1);
-#if __DEPLOYMENT__
-            FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
-            if (pubkeyfp == NULL)
-                printf("File Open %s error \n", (config->getPeerPubKey(peer)).c_str());
-            RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
-            if (publicRkey == NULL)
-                printf("Read Public Key for RSA Error\n");
-            char *encrypt = (char *)malloc(RSA_size(publicRkey));
-            memset(encrypt, 0x00, RSA_size(publicRkey));
-            int enc_len = RSA_public_encrypt(2 * KEYSIZE + AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
-            if (enc_len < 1)
-                printf("RSA public encrypt error\n");
-            int n = write(newsockfd[i], encrypt, enc_len); // sending to peer
-            if (n < 0)
-                printf("ERROR writing to socket \n");
-            free(encrypt);
-#else
-            // std::cout<<KeyIV<<std::endl;
-            // print_hexa(KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE);
-            int n = write(newsockfd[i], KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE); // sending to peer
-            if (n < 0)
-                printf("ERROR writing to socket \n");
-#endif
-            init_keys(peer, 0);
+    try {
+        fd_set master_set, working_set;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        // see comment for fcntl above
+        // fcntl(sockfd, F_SETFL, O_NONBLOCK);
+        if (sockfd < 0)
+            throw std::runtime_error("error opening socket");
+        int rc = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+        rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on));
+        if (rc < 0)
+            throw std::runtime_error("setsockopt() or ioctl() failed");
+        bzero((char *)&serv_addr, sizeof(serv_addr));
+        portno = config->getPort();
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        serv_addr.sin_port = htons(portno);
+        if ((bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0) {
+            throw std::runtime_error("error on binding to socket, try again with a different port number.");
         }
+        listen(sockfd, 7);
+        // start to accept connections
+        FD_ZERO(&master_set);
+        maxsd = sockfd;
+        FD_SET(sockfd, &master_set);
+        for (int i = 0; i < numOfPeers; i++) {
+            memcpy(&working_set, &master_set, sizeof(master_set));
+            rc = select(maxsd + 1, &working_set, NULL, NULL, NULL);
+            if (rc <= 0) {
+                throw std::runtime_error("select failed or time out");
+            }
+            if (FD_ISSET(sockfd, &working_set)) {
+                clilen[i] = sizeof(cli_addr[i]);
+                newsockfd[i] = accept(sockfd, (struct sockaddr *)&cli_addr[i], &clilen[i]);
+                if (newsockfd[i] < 0) {
+                    throw std::runtime_error("ERROR, on accept");
+                }
+                // see comment for fcntl above
+                // fcntl(newsockfd[i], F_SETFL, O_NONBLOCK);
+                peer2sock.insert(std::pair<int, int>(config->getID() - (i + 1), newsockfd[i]));
+                sock2peer.insert(std::pair<int, int>(newsockfd[i], config->getID() - (i + 1)));
+
+                unsigned char key_iv[2 * KEYSIZE + AES_BLOCK_SIZE];
+                RAND_status();
+                if (!RAND_bytes(key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE))
+                    throw std::runtime_error("ERROR, key, iv generation");
+                memcpy(KeyIV, key_iv, 2 * KEYSIZE + AES_BLOCK_SIZE);
+                int peer = config->getID() - (i + 1);
+#if __DEPLOYMENT__
+                FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
+                if (pubkeyfp == NULL)
+                    throw std::runtime_error("Can't open public key " + config->getPeerPubKey(peer));
+                RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
+                if (publicRkey == NULL)
+                    throw std::runtime_error("Read public Key for RSA");
+                char *encrypt = (char *)malloc(RSA_size(publicRkey));
+                memset(encrypt, 0x00, RSA_size(publicRkey));
+                int enc_len = RSA_public_encrypt(2 * KEYSIZE + AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
+                if (enc_len < 1)
+                    throw std::runtime_error("RSA public encrypt error");
+                if (write(newsockfd[i], encrypt, enc_len) < 0) // sending to peer
+                    throw std::runtime_error("ERROR writing to socket");
+                free(encrypt);
+                fclose(pubkeyfp);
+#else
+                if (write(newsockfd[i], KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
+                    throw std::runtime_error("ERROR writing to socket");
+#endif
+                init_keys(peer, 0);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[acceptPeers] " << ex.what() << "\n";
+        exit(1);
     }
 }
 
-// used for debugging
-void print_hexa(uint8_t *message, int message_length) {
-    for (int i = 0; i < message_length; i++) {
-        printf("%02x", message[i]);
-    }
-    printf(";\n");
-}
 void NodeNetwork::init_keys(int peer, int nRead) {
     unsigned char key[KEYSIZE], iv[AES_BLOCK_SIZE], prg_seed_key[KEYSIZE];
     memset(key, 0x00, KEYSIZE);
     memset(iv, 0x00, AES_BLOCK_SIZE);
     memset(prg_seed_key, 0x00, KEYSIZE);
 
-    if (0 == nRead) // useKey KeyIV
-    {
+    if (0 == nRead) {
+        // useKey KeyIV
         memcpy(key, KeyIV, KEYSIZE);
         memcpy(iv, KeyIV + KEYSIZE, AES_BLOCK_SIZE);
         memcpy(prg_seed_key, KeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
-    } else // getKey from peers
-    {
+    } else {
+        // getKey from peers
         memcpy(key, peerKeyIV, KEYSIZE);
         memcpy(iv, peerKeyIV + KEYSIZE, AES_BLOCK_SIZE);
         memcpy(prg_seed_key, peerKeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
@@ -1088,16 +1109,15 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
 }
 
-void NodeNetwork::mpzFromString(char *str, mpz_t *no, int *lengths, int size) {
-
-    for (int i = 0; i < size; i++) {
-        char temp[lengths[i]]; // = (char*)malloc(sizeof(char) * lengths[i]);
-        memcpy(temp, str, lengths[i]);
-        temp[lengths[i]] = '\0';
-        str += lengths[i];
-        mpz_set_str(no[i], temp, base);
-    }
-}
+// void NodeNetwork::mpzFromString(char *str, mpz_t *no, int *lengths, int size) {
+//     for (int i = 0; i < size; i++) {
+//         char temp[lengths[i]]; // = (char*)malloc(sizeof(char) * lengths[i]);
+//         memcpy(temp, str, lengths[i]);
+//         temp[lengths[i]] = '\0';
+//         str += lengths[i];
+//         mpz_set_str(no[i], temp, BASE_36);
+//     }
+// }
 
 void NodeNetwork::getRounds(int size, int *count, int *rounds) {
     int bits = config->getBits();
@@ -1117,9 +1137,7 @@ double NodeNetwork::time_diff(struct timeval *t1, struct timeval *t2) {
         t2->tv_usec += 1000000;
         t2->tv_sec--;
     }
-
     elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
-
     return (elapsed);
 }
 
@@ -1130,6 +1148,7 @@ int NodeNetwork::getID() {
 int NodeNetwork::getNumOfThreads() {
     return numOfThreads;
 }
+
 unsigned char *NodeNetwork::aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len) {
     int c_len = *len + AES_BLOCK_SIZE;
     int f_len = 0;
@@ -1154,89 +1173,18 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
     return plaintext;
 }
 
-// void NodeNetwork::getRandOfPeer(int id, mpz_t *rand_id, int size) {
-//     int length = 16;
-//     char *buffer = (char *)malloc(sizeof(char) * 16);
-//     memset(buffer, 0, 16);
-//     int i;
-//     EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-//     for (i = 0; i < size; i++) {
-//         unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &length);
-//         memcpy(buffer, encrypted, 16);
-//         mpz_import(rand_id[i], 16, -1, 1, -1, 0, encrypted);
-//     }
-//     free(buffer);
-//     // free(encrypted);
-// }
-
-// void NodeNetwork::multicastToPeers_Mul(mpz_t **data, int size, int threadID) {
-//     test_flags[threadID]++;
-//     int id = getID();
-//     int peers = config->getPeerCount();
-//     if (size == 0)
-//         return;
-//     if (threadID == -1) {
-//         if (mode != -1) {
-//             sendModeToPeers(id);
-//             pthread_mutex_lock(&buffer_mutex);
-//             while (numOfChangedNodes < peers)
-//                 pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
-//             pthread_mutex_unlock(&buffer_mutex);
-//             numOfChangedNodes = 0;
-//             mode = -1;
-//         }
-//         multicastToPeers_Mul2(data, size);
-//         return;
-//     } else {
-//         if (mode != 0) {
-//             pthread_mutex_lock(&buffer_mutex);
-//             pthread_cond_signal(&manager_conditional_variable);
-//             pthread_mutex_unlock(&buffer_mutex);
-//             mode = 0;
-//         }
-//     }
-// }
-
-// void NodeNetwork::multicastToPeers_Mul2(mpz_t **data, int size) {
-//     int myid = getID();
-//     int peers = config->getPeerCount();
-//     int id_p1;
-//     int id_m1;
-//     id_p1 = (myid + 1) % (peers + 2);
-//     if (id_p1 == 0)
-//         id_p1 = 1;
-
-//     id_m1 = (myid - 1) % (peers + 2);
-//     if (id_m1 == 0)
-//         id_m1 = peers + 1;
-
-//     // int sendIdx = 0, getIdx = 0;
-//     // compute the maximum size of data that can be communicated
-//     int count = 0, rounds = 0;
-//     getRounds(size, &count, &rounds);
-//     for (int k = 0; k <= rounds; k++) {
-//         sendDataToPeer(id_m1, data[id_m1 - 1], k * count, count, size);
-//         getDataFromPeer(id_p1, data[id_p1 - 1], k * count, count, size);
-//     }
-// }
-
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     int idx = 0;
     getRounds(size, &count, &rounds);
-    for (uint i = 0; i < threshold; i++) {
-        for (uint k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
+        for (uint i = 0; i < threshold; i++) {
+            sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size);
+        }
+        for (uint i = 0; i < threshold; i++) {
             idx = threshold - i - 1;
-            // printf("sendTo %u, recFrom %u, src_idx %i, dst_idx %i, idx %i\n", sendtoIDs[i],RecvFromIDs[idx], i, 2*threshold - i, idx);
-            // gmp_printf("data[0][%i]: %Zu\n",i, data[0][i]);
-
-            sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size); // fix data indices
-            // printf("recvfrom %u\n", RecvFromIDs[idx]);
-            // printf("idx %i\n",idx);
-            // printf("threshold + idx + 1 = %i\n",threshold + idx+1);
-            getDataFromPeer(RecvFromIDs[idx], data[2 * threshold - i], k * count, count, size); // fix data indices
-            // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size); // fix data indices
+            getDataFromPeer(RecvFromIDs[idx], data[2 * threshold - i], k * count, count, size);
         }
     }
 }
@@ -1305,17 +1253,325 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int idx = 0;
     getRounds(size, &count, &rounds);
     // gmp_printf("send data: %Zu\n", data[0]);
-    for (uint i = 0; i < threshold; i++) {
-        for (uint k = 0; k <= rounds; k++) {
-            idx = threshold - i - 1;
-
-            // casting to int just to avoid having to rewrite everything
+    for (uint k = 0; k <= rounds; k++) {
+        for (uint i = 0; i < threshold; i++) {
             sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size);
+        }
+        for (uint i = 0; i < threshold; i++) {
+            idx = threshold - i - 1;
             getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size);
-            // gmp_printf("send %Zu to %u, recv %Zu from %u, dst_idx %i \n", data[0], sendtoIDs[i], buffer[idx][0], RecvFromIDs[idx],idx);
-            // gmp_printf("to %u, from %u, idx %i: (%Zu, %Zu)\n",  sendtoIDs[i], RecvFromIDs[idx],idx, data[0], buffer[idx][0]);
-            // gmp_printf("recvied %Zu\n", buffer[idx][0]);
-            // getDataFromPeer(RecvFromIDs[idx], data[threshold + idx], k * count, count, size);
         }
     }
 }
+
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+// NEW RSS NETWORKING FUNCTIONALITIES ////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+void NodeNetwork::getRounds(int size, uint *count, uint *rounds, uint ring_size) {
+    int peers = config->getPeerCount();
+    int unit_size = (ring_size + 7) >> 3;
+    *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
+    if (size % (*count) != 0)
+        *rounds = size / (*count);
+    else
+        *rounds = size / (*count) - 1;
+}
+
+void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, int **send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds_bit(size, &count, &rounds);
+    for (size_t i = 0; i < threshold; i++) {
+        for (int k = 0; k <= rounds; k++) {
+            sendDataToPeer_bit(send_recv_map[0][i], SendData, k * count, count, size);
+            getDataFromPeer_bit(send_recv_map[1][i], RecvData[i], k * count, count, size);
+        }
+    }
+}
+
+void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t **RecvData, int size, uint ring_size, int **send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (size_t i = 0; i < threshold; i++) {
+        for (int k = 0; k <= rounds; k++) {
+            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
+            if (send_recv_map[0][i] > 0) {
+                sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+            }
+            if (send_recv_map[1][i] > 0) {
+                getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
+            }
+        }
+    }
+}
+
+void NodeNetwork::sendDataToPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size) {
+    try {
+        uint read_amount = 0;
+        if (start + amount > size)
+            read_amount = size - start;
+        else
+            read_amount = amount;
+        int unit_size = (ring_size + 7) >> 3;
+        int buffer_size = unit_size * read_amount;
+        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
+        char *pointer = buffer;
+        memset(buffer, 0, buffer_size);
+        for (int i = start; i < start + read_amount; i++) {
+            // I think this is here to preserve security beyond the ell (or k) bits of the shares
+            data[i] = data[i] & SHIFT_32[ring_size];
+            memcpy(pointer, &data[i], unit_size);
+            pointer += unit_size;
+        }
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
+        sendDataToPeer(id, 1, &buffer_size);
+        sendDataToPeer(id, buffer_size, encrypted);
+        free(buffer);
+        free(encrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::sendDataToPeer(int id, int size, uint32_t *data, uint ring_size) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (int k = 0; k <= rounds; k++)
+        sendDataToPeer(id, data, k * count, count, size, ring_size);
+}
+
+void NodeNetwork::getDataFromPeer(int id, int size, uint32_t *buffer, uint ring_size) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    memset(buffer, 0, sizeof(uint32_t) * size);
+    for (int k = 0; k <= rounds; k++)
+        getDataFromPeer(id, buffer, k * count, count, size, ring_size);
+}
+
+void NodeNetwork::getDataFromPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size) {
+    try {
+        int write_amount = 0;
+        if (start + amount > size)
+            write_amount = size - start;
+        else
+            write_amount = amount;
+        int unit_size = (ring_size + 7) >> 3;
+        int length = 0;
+        getDataFromPeer(id, 1, &length);
+        char *buffer = (char *)malloc(sizeof(char) * length);
+        getDataFromPeer(id, length, (unsigned char *)buffer);
+        EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+        char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
+        memset(&data[start], 0, sizeof(uint32_t) * write_amount);
+        for (int i = start; i < start + write_amount; i++) {
+            memcpy(&data[i], decrypted, unit_size);
+            decrypted += unit_size;
+        }
+        decrypted -= (write_amount)*unit_size;
+        free(buffer);
+        free(decrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::multicastToPeers(uint32_t **data, uint32_t **buffers, int size, uint ring_size) {
+    int id = getID();
+    int peers = config->getPeerCount();
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (int k = 0; k <= rounds; k++) {
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            sendDataToPeer(j, data[j - 1], k * count, count, size, ring_size);
+        }
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            getDataFromPeer(j, buffers[j - 1], k * count, count, size, ring_size);
+        }
+    }
+    // numBytesSent += size * sizeof(uint32_t) * peers;
+}
+
+void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t **RecvData, int size, uint ring_size, int **send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (size_t i = 0; i < threshold; i++) {
+        for (int k = 0; k <= rounds; k++) {
+            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
+            if (send_recv_map[0][i] > 0) {
+                sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+            }
+            if (send_recv_map[1][i] > 0) {
+                getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
+            }
+        }
+    }
+}
+
+void NodeNetwork::sendDataToPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size) {
+    try {
+        uint read_amount = 0;
+        if (start + amount > size)
+            read_amount = size - start;
+        else
+            read_amount = amount;
+        int unit_size = (ring_size + 7) >> 3;
+        int buffer_size = unit_size * read_amount;
+        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
+        char *pointer = buffer;
+        memset(buffer, 0, buffer_size);
+        for (int i = start; i < start + read_amount; i++) {
+            data[i] = data[i] & SHIFT_64[ring_size]; // WHY IS THIS HERE, I THOUGHT WE ONLY MASK WHEN OPENING
+            // I think this is here to preserve security beyond the ell (or k) bits of the shares
+            memcpy(pointer, &data[i], unit_size);
+            pointer += unit_size;
+        }
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
+        sendDataToPeer(id, 1, &buffer_size);
+        sendDataToPeer(id, buffer_size, encrypted);
+        free(buffer);
+        free(encrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::sendDataToPeer(int id, int size, uint64_t *data, uint ring_size) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (int k = 0; k <= rounds; k++)
+        sendDataToPeer(id, data, k * count, count, size, ring_size);
+}
+
+void NodeNetwork::getDataFromPeer(int id, int size, uint64_t *buffer, uint ring_size) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    memset(buffer, 0, sizeof(uint64_t) * size);
+    for (int k = 0; k <= rounds; k++)
+        getDataFromPeer(id, buffer, k * count, count, size, ring_size);
+}
+
+void NodeNetwork::getDataFromPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size) {
+    try {
+        int write_amount = 0;
+        if (start + amount > size)
+            write_amount = size - start;
+        else
+            write_amount = amount;
+        int unit_size = (ring_size + 7) >> 3;
+        int length = 0;
+        getDataFromPeer(id, 1, &length);
+        char *buffer = (char *)malloc(sizeof(char) * length);
+        getDataFromPeer(id, length, (unsigned char *)buffer);
+        EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+        char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
+        memset(&data[start], 0, sizeof(uint64_t) * write_amount);
+        for (int i = start; i < start + write_amount; i++) {
+            memcpy(&data[i], decrypted, unit_size);
+            decrypted += unit_size;
+        }
+        decrypted -= (write_amount)*unit_size;
+        free(buffer);
+        free(decrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::multicastToPeers(uint64_t **data, uint64_t **buffers, int size, uint ring_size) {
+    int id = getID();
+    int peers = config->getPeerCount();
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (int k = 0; k <= rounds; k++) {
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            sendDataToPeer(j, data[j - 1], k * count, count, size, ring_size);
+        }
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            getDataFromPeer(j, buffers[j - 1], k * count, count, size, ring_size);
+        }
+    }
+}
+
+void NodeNetwork::sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size) {
+    try {
+        int read_amount = 0;
+        if (start + amount > size)
+            read_amount = size - start;
+        else
+            read_amount = amount;
+        int unit_size = 1;
+        int buffer_size = unit_size * read_amount;
+        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
+        char *pointer = buffer;
+        memset(buffer, 0, buffer_size);
+        memcpy(pointer, &data[start], unit_size * read_amount);
+
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
+        sendDataToPeer(id, 1, &buffer_size);
+        sendDataToPeer(id, buffer_size, encrypted);
+        free(buffer);
+        free(encrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size) {
+    try {
+        int write_amount = 0;
+        if (start + amount > size)
+            write_amount = size - start;
+        else
+            write_amount = amount;
+        int unit_size = 1;
+        int length = 0;
+        getDataFromPeer(id, 1, &length);
+        char *buffer = (char *)malloc(sizeof(char) * length);
+        getDataFromPeer(id, length, (unsigned char *)buffer);
+        EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+        char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
+        memset(&data[start], 0, sizeof(uint8_t) * write_amount);
+        memcpy(&data[start], decrypted, unit_size * write_amount);
+        free(buffer);
+        free(decrypted);
+
+    } catch (std::exception &e) {
+        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
+    // size means number of bytes
+    int peers = config->getPeerCount();
+    int unit_size = 1;
+    *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
+    if (size % (*count) != 0)
+        *rounds = size / (*count);
+    else
+        *rounds = size / (*count) - 1;
+}
+
+// void NodeNetwork::mask_data(uint64_t *data, int size) {
+//     for (int i = 0; i < size; i++) {
+//         data[i] = data[i] & SHIFT_64[ring_size];
+//     }
+// }
+
+// void NodeNetwork::mask_data(uint32_t *data, int size) {
+//     for (int i = 0; i < size; i++) {
+//         data[i] = data[i] & SHIFT_32[ring_size];
+//     }
+// }

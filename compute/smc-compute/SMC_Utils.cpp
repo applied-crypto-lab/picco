@@ -20,8 +20,8 @@
 #include "SMC_Utils.h"
 
 // Constructors
-SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads) {
-
+SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
+    id = _id;
 #if __DEPLOYMENT__
     printf("DEPLOYMENT MODE\n");
 #else
@@ -36,14 +36,19 @@ SMC_Utils::SMC_Utils(int id, std::string runtime_config, std::string privatekey_
 
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
-    net = *nodeNet;
+    net = *nodeNet; // dereferencing, net is "copy initialized"
+    seedSetup(seed_map, numOfPeers, threshold);
 
-    std::cout << "Recieving keys and polynomials from seed\n";
-    clientConnect();
-    receivePolynomials(privatekey_filename, modulus, numOfPeers, threshold);
+    // only starting the manager if the program we're running is multithreaded
+    // actually doesnt work in the current state, because the way multicast/broadcast is written
+    // even if we're running a single-threaded program, it still sends the mode/threadID/some other BS that interferes
+    // need to launch manager regardless
+    // if (num_threads > 1) {
+    net.launchManager(); // launching thread manager here as to not conflict with seed setup
+    // }
 
     std::cout << "Creating SecretShare\n";
-    ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), polynomials);
+    ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
@@ -83,10 +88,12 @@ float SMC_Utils::smc_open(mpz_t *var, int threadID) {
 }
 
 // for integer variable I/O
+// why is this a pointer?
 void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
 }
 
+// why is this a pointer?
 void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_input(id, var, type, inputStreams);
@@ -96,10 +103,12 @@ void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 }
 
 // for float variable I/O
+// why is this a pointer?
 void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
     ss->ss_input(id, var, type, inputStreams);
 }
 
+// why is this a 2d pointer? should only be one
 void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_input(id, var, type, inputStreams);
@@ -385,22 +394,11 @@ void SMC_Utils::smc_mult(mpz_t *a, mpz_t b, mpz_t *result, int alen_sig, int ale
 }
 
 void SMC_Utils::smc_mult(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
-        mpz_init_set_si(atmp[i], a[i]);
-        ss->modMul(result[i], atmp[i], b[i]);
-    }
-    ss_batch_free_operator(&atmp, size);
+    ss->modMul(result, b, a, size);
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
-        mpz_init_set_si(btmp[i], b[i]);
-        ss->modMul(result[i], a[i], btmp[i]);
-    }
-    smc_mult(a, btmp, alen, blen, result, resultlen, size, type, threadID);
-    ss_batch_free_operator(&btmp, size);
+    ss->modMul(result, a, b, size);
 }
 
 void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
@@ -1517,115 +1515,13 @@ void SMC_Utils::smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resul
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-/* Clienct Connection and Data Passing */
-void SMC_Utils::clientConnect() {
-    int sockfd, portno;
-    socklen_t clilen;
-    struct sockaddr_in server_addr, cli_addr;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0)
-        fprintf(stderr, "ERROR, opening socket\n");
-    bzero((char *)&server_addr, sizeof(server_addr));
-    portno = nodeConfig->getPort() + 100;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(portno);
-    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-        fprintf(stderr, "ERROR, on binding\n");
-    listen(sockfd, 5);
-    clilen = sizeof(cli_addr);
-    newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
-    if (newsockfd < 0)
-        fprintf(stderr, "ERROR, on accept\n");
-    printf("Client connected\n");
-}
-
-void SMC_Utils::receivePolynomials(std::string privatekey_filename, mpz_t modulus, int peers, int threshold) {
-#if __DEPLOYMENT__
-    FILE *prikeyfp = fopen(privatekey_filename.c_str(), "r");
-    if (prikeyfp == NULL)
-        printf("File Open %s error\n", privatekey_filename.c_str());
-    RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
-    if (priRkey == NULL)
-        printf("Read Private Key for RSA Error\n");
-    char *buffer = (char *)malloc(RSA_size(priRkey));
-    int n = read(newsockfd, buffer, RSA_size(priRkey));
-    if (n < 0)
-        printf("ERROR reading from socket \n");
-    char *decrypt = (char *)malloc(n);
-    memset(decrypt, 0x00, n);
-    int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
-    if (dec_len < 1)
-        printf("RSA private decrypt error\n");
-    if (dec_len < 1) {
-        printf("RSA private decrypt error\n");
-    }
-    free(buffer);
-
-#else
-    char *strkey = (char *)malloc(64);
-    mpz_get_str(strkey, 10, modulus);
-    int mpz_t_size_b = strlen(strkey);
-    int numKeys = nChoosek(peers- 1, threshold);
-    // the buffer size can be calculated beforehand
-    int buf_size = sizeof(int) * (3 + (numKeys*(threshold+1))) + mpz_t_size_b * numKeys + 1;
-    char *decrypt = (char *)malloc(buf_size);
-    memset(decrypt, 0x00, buf_size);
-
-    int n = read(newsockfd, decrypt, buf_size);
-    if (n < 0)
-        printf("ERROR reading from socket \n");
-#endif
-    int keysize = 0;
-    int coefsize = 0;
-    int mpz_t_size = 0;
-    memcpy(&keysize, decrypt, sizeof(int));
-    memcpy(&coefsize, decrypt + sizeof(int), sizeof(int));
-    memcpy(&mpz_t_size, decrypt + sizeof(int) * 2, sizeof(int));
-    mpz_t *Keys = (mpz_t *)malloc(sizeof(mpz_t) * keysize);
-    for (int k = 0; k < keysize; k++)
-        mpz_init(Keys[k]);
-    int *Coefficients = (int *)malloc(sizeof(int) * coefsize);
-    int position = 0;
-    for (int i = 0; i < keysize; i++) {
-        // char strkey[mpz_t_size + 1] = {0}; // this needed to be added, otherwise some garbage was appearing at the end
-        char strkey[mpz_t_size + 1]; // clang doesnt like the above version
-        memset(strkey, 0x00, mpz_t_size + 1);
-        memcpy(strkey, decrypt + sizeof(int) * 3 + position, mpz_t_size);
-        mpz_set_str(Keys[i], strkey, BASE_10);
-        position += mpz_t_size;
-    }
-
-    memcpy(Coefficients, decrypt + sizeof(int) * 3 + mpz_t_size * keysize, sizeof(int) * coefsize);
-
-    for (int i = 0; i < keysize; i++) {
-        char strkey[mpz_t_size + 1];
-        memset(strkey, 0x00, mpz_t_size + 1);
-        // strkey[0] = 0;
-        mpz_get_str(strkey, BASE_10, Keys[i]);
-        std::string Strkey = strkey;
-        std::vector<int> temp;
-        for (int k = 0; k < coefsize / keysize; k++) {
-            temp.push_back(Coefficients[i * coefsize / keysize + k]);
-        }
-        // std::cout <<i<<" strkey: "<<Strkey <<std::endl;
-        polynomials.insert(std::pair<std::string, std::vector<int>>(Strkey, temp));
-    }
-    printf("Polynomials received... \n");
-    free(decrypt);
-
-}
-
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
-
     if (t1->tv_usec > t2->tv_usec) {
         t2->tv_usec += 1000000;
         t2->tv_sec--;
     }
-
     elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
-
     return elapsed;
 }
 
@@ -1647,41 +1543,41 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     printf("BENCHMARK MODE\n");
 #endif
 
-    // int K = alen;
-    // int M = ceil(log2(K));
+    int K = alen;
+    int M = ceil(log2(K));
 
     mpz_t field;
     mpz_init(field);
     ss->getFieldSize(field);
-    // printf("Testing PRandInt for (K = %i, M = %i), size = %i)\n", K, M, size);
-    // PRandInt(K, M, size, a, threadID, ss);
-    // // for (int i = 0; i < size; i++) {
-    // //     gmp_printf("a[%i] %Zu\n", i, a[i]);
-    // // }
-    // Open(a, b, size, threadID, net, ss);
-    // for (int i = 0; i < size; i++) {
-    //     gmp_printf("result[%i] %Zu\n", i, b[i]);
-    // }
+    printf("Testing PRandInt for (K = %i, M = %i), size = %i)\n", K, M, size);
+    PRandInt(K, M, size, a, threadID, ss);
+    for (int i = 0; i < size; i++) {
+        gmp_printf("a[%i] %Zu\n", i, a[i]);
+    }
+    Open(a, b, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        gmp_printf("result[%i] %Zu\n", i, b[i]);
+    }
 
-    // printf("Testing PRandBit for (K = %i, M = %i), size = %i)\n", K, M, size);
-    // PRandBit(size, a, threadID, net, id, ss);
-    // // for (int i = 0; i < size; i++) {
-    // //     gmp_printf("a[%i] %Zu\n", i, a[i]);
-    // // }
-    // Open(a, a, size, threadID, net, ss);
-    // for (int i = 0; i < size; i++) {
-    //     gmp_printf("result[%i] %Zu\n", i, a[i]);
-    // }
+    printf("Testing PRandBit for (K = %i, M = %i), size = %i)\n", K, M, size);
+    PRandBit(size, a, threadID, net, id, ss);
+    for (int i = 0; i < size; i++) {
+        gmp_printf("a[%i] %Zu\n", i, a[i]);
+    }
+    Open(a, a, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        gmp_printf("result[%i] %Zu\n", i, a[i]);
+    }
 
-    // K = 32;
-    // int Kp1 = K + 1;
-    // M = ceil(log2(K));
-    // mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (Kp1));
-    // for (int i = 0; i < Kp1; ++i) {
-    //     V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    //     for (int j = 0; j < size; ++j)
-    //         mpz_init(V[i][j]);
-    // }
+    K = 32;
+    int Kp1 = K + 1;
+    M = ceil(log2(K));
+    mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (Kp1));
+    for (int i = 0; i < Kp1; ++i) {
+        V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int j = 0; j < size; ++j)
+            mpz_init(V[i][j]);
+    }
 
     mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *a_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1691,58 +1587,58 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
         mpz_init(a_test[i]);
         mpz_init(res_check[i]);
     }
-    // gmp_printf("Testing PRZS for (mod = %Zu), size = %i)\n", field, size);
-    ss->PRZS(field, size, a_test);
-    // printf("PRZS end\n");
-    Open_from_all(a_test, res, size, threadID, net, ss);
-    for (int i = 0; i < size; i++) {
-        gmp_printf("result[%i] %Zu\n", i, res[i]);
+    // // gmp_printf("Testing PRZS for (mod = %Zu), size = %i)\n", field, size);
+    // ss->PRZS(field, size, a_test);
+    // // printf("PRZS end\n");
+    // Open_from_all(a_test, res, size, threadID, net, ss);
+    // for (int i = 0; i < size; i++) {
+    //     gmp_printf("result[%i] %Zu\n", i, res[i]);
+    // }
+
+    PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
+
+    printf("Testing PRandM for (K = %i, M = %i), size = %i)\n", K, M, size);
+
+    for (int i = 0; i < Kp1 - 1; i++) {
+        Open(V[i], res, size, threadID, net, ss);
+        for (int j = 0; j < size; j++) {
+            gmp_printf("%Zu ", res[j]);
+        }
+        printf("\n");
+    }
+    unsigned long pow = 1;
+
+    // Open(V[0], res, size, threadID, net, ss);
+    for (int j = 0; j < size; j++) {
+        mpz_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
+    }
+    mpz_t temp;
+    mpz_init(temp);
+
+    for (int i = 1; i < Kp1 - 1; i++) {
+        pow = pow << 1;
+        // Open(V[i], res, size, threadID, net, ss);
+        for (int j = 0; j < size; j++) {
+            mpz_mul_ui(temp, V[i][j], pow);
+            ss->modAdd(res_check[j], res_check[j], temp);
+        }
     }
 
-    // PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
+    Open(V[Kp1 - 1], res, size, threadID, net, ss);
+    for (int j = 0; j < size; j++) {
+        gmp_printf("result[%i] %Zu\n", j, res[j]);
+    }
 
-    // printf("Testing PRandM for (K = %i, M = %i), size = %i)\n", K, M, size);
+    Open(res_check, res, size, threadID, net, ss);
+    for (int j = 0; j < size; j++) {
+        gmp_printf("res_check[%i] %Zu\n", j, res[j]);
+    }
 
-    // for (int i = 0; i < Kp1 - 1; i++) {
-    //     Open(V[i], res, size, threadID, net, ss);
-    //     for (int j = 0; j < size; j++) {
-    //         gmp_printf("%Zu ", res[j]);
-    //     }
-    //     printf("\n");
-    // }
-    // unsigned long pow = 1;
-
-    // // Open(V[0], res, size, threadID, net, ss);
-    // for (int j = 0; j < size; j++) {
-    //     mpz_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
-    // }
-    // mpz_t temp;
-    // mpz_init(temp);
-
-    // for (int i = 1; i < Kp1 - 1; i++) {
-    //     pow = pow << 1;
-    //     // Open(V[i], res, size, threadID, net, ss);
-    //     for (int j = 0; j < size; j++) {
-    //         mpz_mul_ui(temp, V[i][j], pow);
-    //         ss->modAdd(res_check[j], res_check[j], temp);
-    //     }
-    // }
-
-    // Open(V[Kp1 - 1], res, size, threadID, net, ss);
-    // for (int j = 0; j < size; j++) {
-    //     gmp_printf("result[%i] %Zu\n", j, res[j]);
-    // }
-
-    // Open(res_check, res, size, threadID, net, ss);
-    // for (int j = 0; j < size; j++) {
-    //     gmp_printf("res_check[%i] %Zu\n", j, res[j]);
-    // }
-
-    // for (int i = 0; i < Kp1; ++i) {
-    //     for (int j = 0; j < size; ++j)
-    //         mpz_clear(V[i][j]);
-    //     free(V[i]);
-    // }
+    for (int i = 0; i < Kp1; ++i) {
+        for (int j = 0; j < size; ++j)
+            mpz_clear(V[i][j]);
+        free(V[i]);
+    }
 
     for (int i = 0; i < size; ++i) {
         mpz_clear(res[i]);
@@ -1756,44 +1652,132 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     free(a_test);
 }
 
-// proof of concept type-specifc implementations
+// seed_map - contains binary encodings of access sets T (as defined in Baccarini et al., "Multi-Party Replicated Secret Sharing over a Ring with Applications to Privacy-Preserving Machine Learning," 2023)
+// 2*KEYSIZE - 16 bytes for
+void SMC_Utils::seedSetup(vector<int> &seed_map, int peers, int threshold) {
+    uint8_t RandomData_send[2 * KEYSIZE];
+    uint8_t RandomData_recv[2 * KEYSIZE];
+    memset(RandomData_recv, 0, sizeof(uint8_t) * 2 * KEYSIZE);
+    vector<int> T_recv, send_map, recv_map; // declaring once to be reused
+#if __SHAMIR__
+    vector<int> coefficients;
+#endif
+    // its fine to reuse vectors when inserting into the final mapping
+    FILE *fp = fopen("/dev/urandom", "r"); // used for pulling good randomness for seeds
+    try {
+        for (auto &seed : seed_map) {
+            send_map = extract_share_WITH_ACCESS(seed, peers, id);
+            recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
 
-// void SMC_Utils::test_type(int x) {
-//     priv_int value;
-//     ss_init_set_si(value, x);
-//     gmp_printf("value %Zd\n", value);
-//     // printf("value %lu\n", value);
+            if (fread(RandomData_send, 1, (2 * KEYSIZE), fp) != (2 * KEYSIZE))
+                throw std::runtime_error("error reading random bytes from /dev/urandom. Which OS are you using?");
 
-//     ss_clear(value);
-//     // printf("value %lu\n", value);
-//     gmp_printf("value %Zd\n", value); // value is cleared at this point, returns garbage
+            assert(send_map.size() == recv_map.size());
+            for (size_t i = 0; i < send_map.size(); i++) {
+                net.sendDataToPeer(send_map[i], 2 * KEYSIZE, RandomData_send);
+                net.getDataFromPeer(recv_map[i], 2 * KEYSIZE, RandomData_recv);
 
-//     uint size = 3;
-//     // priv_int *val_arr = (priv_int *)malloc(sizeof(priv_int) * size);
-//     priv_int *val_arr = new priv_int[size];
-//     ss_init_set_si(val_arr[0], x);
-//     ss_init_set_si(val_arr[1], x + 3);
-//     ss_init_set_si(val_arr[2], x + 16);
-//     for (size_t i = 0; i < size; i++) {
-//         // printf("val_arr[%lu] %lu\n", i, val_arr[i]);
-//         gmp_printf("val_arr[%i] %Zd\n", i, val_arr[i]);
-//     }
-//     ss_free_arr(val_arr, size);
-//     for (size_t i = 0; i < size; i++) {
-//         // printf("val_arr[%lu] %lu\n", i, val_arr[i]);
-//         gmp_printf("val_arr[%i] %Zd\n", i, val_arr[i]);
-//     }
-// }
+                // generating the share id T corresponding to the key I just recieved
+                T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
+                sort(T_recv.begin(), T_recv.end());
+#if __SHAMIR__
+                coefficients = generateCoefficients(T_recv, threshold);
+                shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_recv), coefficients));
 
-// void ss_init_set_si(unsigned long &x, int x_val) {
-//     x = x_val;
-// }
+#endif
+#if __RSS__
+                rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
 
-// // for ul's, dont need to do anything for within-scope single variables, so just return
-// void ss_clear(unsigned long &x) {}
+#endif
+            }
+            sort(recv_map.begin(), recv_map.end()); // sorting now that we're done using it to know the order which we're recieving shares
+#if __SHAMIR__
+            coefficients = generateCoefficients(recv_map, threshold);
+            shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_send), coefficients));
 
-// // // frees space oucupied by x
+#endif
+#if __RSS__
+            rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
+#endif
+        }
+        fclose(fp);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[seedSetup] " << ex.what() << "\n";
+        exit(1);
+    }
+}
 
-// void ss_free_arr(unsigned long *op, int size) {
-//     delete[] op;
-// }
+// binary_rep = bianry encoding of share T generated from seed_map
+// e.g. 0001111
+// produces either the set of parties with access (set bits, 1s) or without access (unset bits, 0s)
+// the LSB is IGNORED, since that corresponds to the party itself, and is ALWAYS SET
+// id - my PID (1,...,n)
+// result - UNsorted vector of party ID's with or without access
+// ANB: w.r.t. sending keys for seeds, DONT CHANGE THE ORDER (yet)
+// this explicitly informs us the exact order which shares will be sent/received from
+vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers, int id) {
+    // iterate through bits from right to left
+    vector<int> result;
+    for (int i = 1; i < peers; i++) { // scans through remaining n-1 (LSB always set)
+        if (GET_BIT(binary_rep, i)) {
+            result.push_back(((id + i - 1) % peers + 1));
+        }
+    }
+    return result;
+}
+vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
+    // iterate through bits from left to right
+    vector<int> result;
+    for (int i = peers - 1; i > 0; i--) { // scans through remaining n-1 (LSB always set)
+        if (!GET_BIT(binary_rep, i)) {
+            result.push_back(((id + i - 1) % peers + 1));
+        }
+    }
+    return result;
+}
+
+// taken from PRSS in seed/
+void SMC_Utils::getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int>> &result) {
+    if (depth >= reqLen) {
+        std::vector<int> temp;
+        for (unsigned int i = 0; i < pos.size(); i++)
+            temp.push_back(elements.at(pos.at(i)));
+        result.push_back(temp);
+        return;
+    }
+    if ((elements.size() - margin) < (unsigned int)(reqLen - depth))
+        return;
+    for (unsigned int i = margin; i < elements.size(); i++) {
+        pos.at(depth) = i;
+        getCombinations(elements, reqLen, pos, depth + 1, i + 1, result);
+    }
+    return;
+}
+
+// used for Shamir secret sharing only, not applicable for RSS
+// generates the polynomials described in  section 3.1 of Cramer et al. TCC'05 paper
+// one polynomial for maximum unqualified set (T_set)
+// T_set is generated from the current seed and the party id of who I'm recieving a key from (or myself if it's the key I generated)
+// threshold is the degree of the polynomial
+std::vector<int> SMC_Utils::generateCoefficients(std::vector<int> T_set, int threshold) {
+    std::vector<int> coefficients = {1}; // the first coefficient is always 1
+
+    transform(T_set.begin(), T_set.end(), T_set.begin(), std::bind(std::multiplies<int>(), std::placeholders::_1, -1)); // negating every element in T_set (only within the scope of this function since it's passed by value
+
+    for (int j = 1; j <= threshold; j++) {
+        std::vector<int> pos(j);
+        std::vector<std::vector<int>> result;
+        getCombinations(T_set, j, pos, 0, 0, result);
+        int coef = 0;
+        for (unsigned int m = 0; m < result.size(); m++) {
+            std::vector<int> temp = result.at(m);
+            int tmp = 1;
+            for (unsigned int n = 0; n < temp.size(); n++) {
+                tmp *= temp.at(n);
+            }
+            coef += tmp;
+        }
+        coefficients.push_back(coef);
+    }
+    return coefficients;
+}

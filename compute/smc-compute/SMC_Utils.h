@@ -29,32 +29,33 @@
 #if __RSS__
 #include "rss/RSSOps.h"
 #endif
-// #include "rss/rssOps.h"
-#include <fstream>
-#include <iostream>
-#include <math.h>
-#include <sstream>
-#include <string>
+
+#include "bit_utils.h"
 #include "openssl/bio.h"
 #include "unistd.h"
 #include <cmath>
+#include <fstream>
+#include <iostream>
+#include <math.h>
+#include <cassert>
 #include <netinet/in.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <sstream>
 #include <string>
 
+// for rss, can we do
+// typedef uint32_T* priv_int; //? where any mpz_t is converted to at least a 1d array
 typedef mpz_t priv_int;
 #define MPZ_CAST(X) (mpz_t *)(X)
-
 // typedef unsigned long priv_int;
-
 // typedef unsigned long Lint; // for ring size in [31,62];
 
 void ss_init_set_si(mpz_t &x, int x_val);
 void ss_init_set_si(unsigned long &x, int x_val);
-void ss_clear(unsigned long &x);
-void ss_clear(mpz_t &x);
+// void ss_clear(unsigned long &x);
+// void ss_clear(mpz_t &x);
 
 void ss_free_arr(mpz_t *op, int size);
 void ss_free_arr(unsigned long *op, int size);
@@ -62,7 +63,7 @@ void ss_free_arr(unsigned long *op, int size);
 class SMC_Utils {
 public:
     // Constructors
-    SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, int num_threads);
+    SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads);
     // Share a secret between
     int smc_open(mpz_t var, int threadID);
     float smc_open(mpz_t *var, int threadID);
@@ -556,12 +557,19 @@ public:
 
     void smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID);
 
-    std::map<std::string, std::vector<int>> polynomials; // temporarily public
-    // mpz_t coef[9];                                       // temporarily public
-    int id; // temporarily public;
+    std::map<std::string, std::vector<int>> shamir_seeds_coefs; // mapping of keys (str) to polynomial coefficients
+    std::map<std::vector<int>, uint8_t*> rss_share_seeds; 
+
+    int id;
 
     double time_diff(struct timeval *, struct timeval *);
     std::vector<std::string> splitfunc(const char *str, const char *delim);
+
+    void seedSetup(vector<int> &seed_map, int peers, int threshold);
+    vector<int> extract_share_WITH_ACCESS(int binary_rep, int peers, int id);
+    vector<int> extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id);
+    void getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int>> &result);
+    std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 private:
     SecretShare *ss;
@@ -570,12 +578,6 @@ private:
     NodeNetwork net;
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
-
-    // Handle client connections and polynomail stuff
-    void clientConnect();
-    void receivePolynomials(std::string privatekey_filename,mpz_t modulus, int peers, int threshold);
-    // void setCoef();
-    int newsockfd;
 };
 
 #endif /* SMC_UTILS_H_ */

@@ -24,10 +24,15 @@
 #ifndef __OMPI_H__
 #define __OMPI_H__
 
+#include "../shared.h"
+
 #include "scanner.h"
 #include "symtab.h"
 #include <stdbool.h> 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 extern int enableOpenMP;      /* If 0, ignore OpenMP constructs */
 extern int enableOmpix;       /* Enable OMPi-extensions */
@@ -84,7 +89,12 @@ extern aststmt parse_and_declare_blocklist_string(char *format, ...);
  */
 extern void exit_error(int exitvalue, char *format, ...);
 extern void warning(char *format, ...);
+uint *generateSeedMap(uint n, uint t, uint *num_solutions) ;
+
 
 extern int nChoosek(int n, int k);
+
+// The constant variable for the technique_var: REPLICATED_SS-1 or SHAMIR_SS-2
+extern int technique_var;
 
 #endif

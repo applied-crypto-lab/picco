@@ -1,6 +1,6 @@
 /*
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) from 2023 PICCO Team
+   ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
    PICCO is free software: you can redistribute it and/or modify
@@ -17,25 +17,17 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SHAMIR_UTIL_H_
-#define SHAMIR_UTIL_H_
+#ifndef __SHARED_H_
+#define __SHARED_H_
 
-#include "stdint.h"
-#include <cstdlib>
-#include <gmp.h>
-#include <iostream>
-#include <math.h>
-#include <vector>
+// this header houses constants that are common for picco, picco-seed, and picco-util 
 
-int modulo(int a, int b);
-long long nChoosek(long long n, long long k);
+// Technique constants aren't used in the compute/ directory, since the techniques are handled directly by CMake, which is responsible for defining/setting the variables
+#define SHAMIR_SS 2 
+#define REPLICATED_SS 1
 
-
-void ss_batch_free_operator(mpz_t **op, int size);
-void ss_batch_free_operator(mpz_t ***op, int size);
-int smc_compute_len(int alen, int blen);
-
-void convertFloat(float value, int K, int L, mpz_t **elements);
-void convertDouble(double value, int K, int L, mpz_t **elements);
+//these constants ARE common with the compute directory. If they are changed here in compiler/, they must be changed in compute/
+#define KEYSIZE 16
+#define BASE 10
 
 #endif

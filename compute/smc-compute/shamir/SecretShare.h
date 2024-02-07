@@ -21,11 +21,11 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
-#include "../NodeNetwork.h"
 #include "ShamirUtil.h"
 #include "stdint.h"
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <functional>
@@ -37,6 +37,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <map>
+
+#define KEYSIZE 16
 
 #define COEFF_BOUND 10 // specifies the number of sets of coefs we generate for symmetric function evaluation
 #define COEFF_OFFSET 1 // specifies what m value we start with (m = 1), DO NOT CHANGE !!!!!!!!!
@@ -84,6 +87,7 @@ public:
     void modMul(mpz_t, mpz_t, long);
     void modMul(mpz_t *, mpz_t *, long, int);
     void modMul(mpz_t *, mpz_t *, mpz_t, int);
+    void modMul(mpz_t *result, mpz_t *x, int *y, int size);
 
     // Modular Addition
     void modAdd(mpz_t, mpz_t, mpz_t);
@@ -111,6 +115,7 @@ public:
     void modPow(mpz_t *, mpz_t *, mpz_t *, int);
     void modPow(mpz_t, mpz_t, long);
     void modPow(mpz_t *, mpz_t *, long, int);
+    
     void modPow2(mpz_t, int);
     void modPow2(mpz_t, mpz_t);
     void modPow2(mpz_t *result, int *exponent, int size);
@@ -151,7 +156,6 @@ public:
 
     int getCoefIndex(int k);
 
-    mpz_t **coef;
 
     std::vector<std::string> splitfunc(const char *str, const char *delim);
 
@@ -181,6 +185,8 @@ public:
     void ss_single_convert_to_private_float(float a, mpz_t **priv_a, int len_sig, int len_exp);
 
     void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
+    mpz_t **coef; //public because eqz uses it directly
+
 
 private:
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?

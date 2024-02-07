@@ -19,13 +19,6 @@
 */
 
 #include "SecretShare.h"
-#include "stdint.h"
-#include <cstdlib>
-#include <cstring>
-#include <gmp.h>
-#include <iostream>
-#include <math.h>
-#include <vector>
 
 /*
  * the constructor receives:
@@ -42,7 +35,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     threshold = t;
     myID = id;
 
-    polynomials = _polynomials;
+    polynomials = _polynomials; // doesnt even really need to be a map
     numThreads = _numThreads;
 
     mpz_init(fieldSize);
@@ -79,12 +72,12 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 
 void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
 
-    gmp_randinit_mt(rstate);
+    gmp_randinit_default(rstate);
 
     mpz_t seed;
     mpz_init(seed);
     unsigned char temp_key[KEYSIZE];
-    gmp_randinit_mt(rstate_mine);
+    gmp_randinit_default(rstate_mine);
     if (!RAND_bytes(temp_key, KEYSIZE))
         printf("Key, iv generation error\n");
     mpz_import(seed, KEYSIZE, 1, sizeof(temp_key[0]), 0, 0, temp_key);
@@ -94,7 +87,7 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
 
     rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * (2 * threshold));
     for (int i = 0; i < 2 * threshold; i++) {
-        gmp_randinit_mt(rstatesMult[i]);
+        gmp_randinit_default(rstatesMult[i]);
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
         gmp_randseed(rstatesMult[i], seed);
     }
@@ -464,6 +457,17 @@ void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t y, int size) {
     }
 }
 
+void SecretShare::modMul(mpz_t *result, mpz_t *x, int *y, int size) {
+ mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++) {
+        mpz_init_set_si(ytmp[i], y[i]);
+        modMul(result[i], ytmp[i], x[i]);
+    }
+    for (int i = 0; i < size; i++)
+        mpz_clear(ytmp[i]);
+}
+
+
 void SecretShare::modAdd(mpz_t result, mpz_t x, mpz_t y) {
     mpz_add(result, x, y);
     mpz_mod(result, result, fieldSize);
@@ -556,10 +560,6 @@ void SecretShare::modSub(mpz_t *result, mpz_t x, mpz_t *y, int size) {
         modSub(result[i], x, y[i]);
 }
 
-// void SecretShare::modSub(mpz_t *result, long x, mpz_t *y, int size) {
-//     for (int i = 0; i < size; ++i)
-//         modSub(result[i], x, y[i]);
-// }
 void SecretShare::modSub(mpz_t *result, mpz_t *x, int *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
@@ -1120,6 +1120,11 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
     mpz_init(rand);
     mpz_init(temp);
 
+    if (rand_isFirst_thread[threadID] == 0) {
+        randInit_thread(threadID);
+        rand_isFirst_thread[threadID] = 1;
+    }
+
     /************* Generate the random values ******************/
     for (int i = 0; i < size; i++) {
         for (int m = 0; m < polysize; m++) {
@@ -1352,7 +1357,6 @@ void SecretShare::ss_input(mpz_t **var, int size, std::string type) {
 }
 
 void SecretShare::ss_output(int id, int *var, std::string type, std::ofstream *outputStreams) {
-    std::string value;
     std::stringstream s;
     s << *var;
     outputStreams[id - 1] << s.str() + "\n";
@@ -1360,7 +1364,6 @@ void SecretShare::ss_output(int id, int *var, std::string type, std::ofstream *o
 }
 
 void SecretShare::ss_output(int id, mpz_t *var, std::string type, std::ofstream *outputStreams) {
-    // smc_open(*var, threadID);
     std::string value;
     value = mpz_get_str(NULL, BASE_10, *var);
     outputStreams[id - 1] << value + "\n";
@@ -1368,7 +1371,6 @@ void SecretShare::ss_output(int id, mpz_t *var, std::string type, std::ofstream 
 }
 
 void SecretShare::ss_output(int id, float *var, std::string type, std::ofstream *outputStreams) {
-    std::string value;
     std::stringstream s;
 
     s << *var;
@@ -1378,7 +1380,6 @@ void SecretShare::ss_output(int id, float *var, std::string type, std::ofstream 
 
 void SecretShare::ss_output(int id, mpz_t **var, std::string type, std::ofstream *outputStreams) {
     std::string value;
-    // smc_open(*var, threadID);
     for (int i = 0; i < 4; i++) {
         value = mpz_get_str(NULL, BASE_10, (*var)[i]);
         if (i != 3)
@@ -1393,7 +1394,6 @@ void SecretShare::ss_output(int id, mpz_t *var, int size, std::string type, std:
     std::string value;
     for (int i = 0; i < size; i++) {
         value = mpz_get_str(NULL, BASE_10, var[i]);
-        // smc_open(var[i], threadID);
         if (i != size - 1)
             outputStreams[id - 1] << value + ",";
         else
@@ -1403,7 +1403,6 @@ void SecretShare::ss_output(int id, mpz_t *var, int size, std::string type, std:
 }
 
 void SecretShare::ss_output(int id, int *var, int size, std::string type, std::ofstream *outputStreams) {
-    std::string value;
     for (int i = 0; i < size; i++) {
         std::stringstream s;
         s << var[i];
@@ -1431,7 +1430,6 @@ void SecretShare::ss_output(int id, mpz_t **var, int size, std::string type, std
 }
 
 void SecretShare::ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams) {
-    std::string value;
     for (int i = 0; i < size; i++) {
         std::stringstream s;
         s << var[i];

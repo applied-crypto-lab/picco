@@ -42,6 +42,8 @@
 #include <time.h>
 // #include "config.h"
 #include <gmp.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 static aststmt ast; /* The AST we use as our original */
 symtab stab;        /* Our symbol table */
@@ -67,17 +69,62 @@ int enableCodeDup = 1;       /* Duplicate code where appropriate for speed */
 int needLimits = 0;          /* 1 if need limits.h constants (min/max) */
 int needFloat = 0;           /* 1 if need float.h constants (min/max) */
 char *MAIN_RENAME = "__original_main";
-int bits = 0;      /* Bits for modulus */
-int peers = 0;     /* Number of computational parties */
-int threshold = 0; /* Secret sharing parameter */
-int inputs = 0;    /* Number of input parties */
-int outputs = 0;   /* Number of ouput parties */
+int bits = 0;                /* Bits for modulus */
+int peers = 0;               /* Number of computational parties */
+int threshold = 0;           /* Secret sharing parameter */
+int inputs = 0;              /* Number of input parties */
+int outputs = 0;             /* Number of ouput parties */
+char technique[100] = ""; /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
 int kappa;
 int kappa_nu;
+int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
+
+// Code added to check for the path of the file name given
+int directoryExists(const char *path) {
+  DIR *dir = opendir(path);
+  if (dir != NULL) {
+     closedir(dir);
+     return 1; // Directory exists
+  } else {
+     return 0; // Directory doesn't exist or there was an error
+  }
+}
+
+// Create the directory using _mkdir for windows and makdir for UNix-like systems 
+int createDirectory(const char *path) {
+  #ifdef _WIN32
+     return _mkdir(path);
+  #else
+     return mkdir(path, 0777);
+  #endif
+}
+
+// Function that creates the path and directory needed for files needed 
+void pathCreater(char *final_list){
+    
+   // Check if the file name contains a path separator /
+   char *path_separator = strchr(final_list, '/');
+
+   // IF there is a path_separator
+   if (path_separator != NULL || strchr(final_list, '\\') != NULL) {
+
+      // File name contains a path, extract the directory path
+      char directory[256]; // array to store the path - I used the max possible 
+      strncpy(directory, final_list, path_separator - final_list);
+      directory[path_separator - final_list] = '\0';
+
+      // Check if the directory exists, create it if not
+      if (!directoryExists(directory)) {
+         if (createDirectory(directory) != 0) {
+            perror("Error creating directory");
+         }
+      }
+   }
+}
 
 // will have new argument for flag
 // If mode is true -> -m
@@ -91,11 +138,17 @@ void append_new_main(bool mode) {
                "/* smc-compiler generated main() */\n"
                "int %s(int argc, char **argv) {\n",
                MAIN_NEWNAME);
-    mpz_t modulus2;
-    mpz_init(modulus2);
-    getPrime(modulus2, bits);
-    char *res = mpz_get_str(NULL, 10, modulus2);
 
+    // Conditionally include the lines based on the technique_var variable (shamir-2)
+    char *res = "";
+    if (technique_var == SHAMIR_SS) {
+        mpz_t modulus2;
+        mpz_init(modulus2);
+        getPrime(modulus2, bits);
+        res = mpz_get_str(NULL, 10, modulus2);
+    } 
+    
+    
     // Check the input parameters
     // this will be different based on flag
     if (mode) {            // -m - measurement mode
@@ -105,7 +158,7 @@ void append_new_main(bool mode) {
                    "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
                    "  exit(1);\n}\n");
         str_printf(strA(),
-                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", %d);\n",
+                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
                    peers, threshold, bits, res, total_threads);
 
     } else {               // -d - deployment mode
@@ -119,7 +172,7 @@ void append_new_main(bool mode) {
                    "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
                    "for(int i = 0; i < argc-6; i++)\n"
                    "   IO_files[i] = argv[6+i];\n"
-                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", %d);\n",
+                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
                    peers, threshold, bits, res, total_threads);
     }
 
@@ -150,10 +203,10 @@ void append_new_main(bool mode) {
     /* mod */         // Not specified in the command line arguments.
     /* num_threads */ // Not specified in the command line arguments.
     str_printf(strA(),
-                "\n struct timeval tv1;"
-                "\n struct timeval tv2;"
-                "\n int _xval = 0;\n\n"
-                 " gettimeofday(&tv1,NULL);\n");
+               "\n struct timeval tv1;"
+               "\n struct timeval tv2;"
+               "\n int _xval = 0;\n\n"
+               " gettimeofday(&tv1,NULL);\n");
     if (num_threads > 0)
         str_printf(strA(), "  ort_initialize(&argc, &argv);\n"
                            "  omp_set_num_threads(%d);\n",
@@ -198,16 +251,186 @@ int getopts(int argc, char *argv[]) {
 }
 
 #include "ort.defs"
+/*Helper Functions for laodConfig() used to check if a value
+is a number and remove any extra digits from the input.
+
+removeNonDigit(value)
+This function takes a string (value) and removes any non-digit characters, replacing them with a space.
+
+isNumeric(value)
+This function checks if a given string (value) contains only numeric characters.
+*/
+
+char *removeNonDigit(char *value) {
+    for (char *c = value; *c; ++c) {
+        if (!isdigit(*c)) {
+            *c = ' ';
+        }
+    }
+    return value;
+}
+
+int isNumeric(const char *value) {
+    for (const char *c = value; *c; ++c) {
+        if (!isdigit(*c)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/*Extracts the data from the config file given during execution
+The function below could handle multiple cases:
+    1. Inputs could be in any order.
+    2. Defaults the technique rss.
+    3. Ignores extra spaces and tabs.
+    4. Provides a hard stop (execution termination with an error message) if
+        a. Any numeric field (bits, peers, threshold, inputs, outputs) contains something other than a single integer.
+        b. The technique field contains something other than "shamir" or "rss".
+        c. Peers is not an an odd integer.
+        d. Peers is not equal to 2*threshold+1.
+        e. If the same variable appears more than once or if a line is not of the form "var:value".
+*/
 void loadConfig(char *config) {
+
     FILE *fp;
     fp = fopen(config, "r");
-    int line[10];
-    fscanf(fp, "%[^:]:%d", line, &bits);
-    fscanf(fp, "%[^:]:%d", line, &peers);
-    fscanf(fp, "%[^:]:%d", line, &threshold);
-    fscanf(fp, "%[^:]:%d", line, &inputs);
-    fscanf(fp, "%[^:]:%d", line, &outputs);
+
+    char line[100];                // Buffer to store each line of the file.
+    char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
+
+    // Read each line from the file using fgets() function.
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        char key[100], value[100];
+
+        // Parse the line into key:value using sscanf function terminate with error if format is off.
+        if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
+
+            // Check for duplicated keys and terminate with an error if there is more than one.
+            for (int i = 0; i < 6; ++i) {
+                if (strcmp(key, encounteredKeys[i]) == 0) {
+                    fprintf(stderr, "Error: Duplicate key '%s' found.\n", key);
+                    exit(1);
+                }
+            }
+
+            // Stores encountered keys to check for duplicates.
+            for (int i = 0; i < 6; ++i) {
+                if (encounteredKeys[i][0] == '\0') {
+                    strncpy(encounteredKeys[i], key, sizeof(encounteredKeys[i]) - 1);
+                    encounteredKeys[i][sizeof(encounteredKeys[i]) - 1] = '\0';
+                    break;
+                }
+            }
+
+            // Updates the configuration values based on the encountered keys.
+            if (strcmp(key, "bits") == 0) {
+                bits = atoi(removeNonDigit(value));
+                if (bits == 0) {
+                    fprintf(stderr, "Error: 'bits' must be either empty or a non-zero integer.\n");
+                    exit(1);
+                }
+            } else if (strcmp(key, "peers") == 0) {
+                peers = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "threshold") == 0) {
+                threshold = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "inputs") == 0) {
+                inputs = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "outputs") == 0) {
+                outputs = atoi(removeNonDigit(value));
+            } else if (strcmp(key, "technique") == 0) {
+                strncpy(technique, value, sizeof(technique) - 1);
+                technique[sizeof(technique) - 1] = '\0';
+
+                // Convert technique to lowercase to take care of the case if user inputs Rss or Shamir.
+                for (char *c = technique; *c; ++c) {
+                    *c = tolower(*c);
+                }
+
+                // Check the value of 'technique' and set 'technique_var' accordingly
+                if (strcmp(technique, "rss") == 0) {
+                    technique_var = REPLICATED_SS; // Set to RSS-1
+                } else if (strcmp(technique, "shamir") == 0) {
+                    technique_var = SHAMIR_SS; // Set to Shamir-2
+                } else {
+                    fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
+                    exit(1);
+                }
+            }
+
+            // Validate numeric fields and terminate with an error if anything else is given.
+            if ((strcmp(key, "bits") == 0 || strcmp(key, "peers") == 0 ||
+                 strcmp(key, "threshold") == 0 || strcmp(key, "inputs") == 0 ||
+                 strcmp(key, "outputs") == 0) &&
+                !isNumeric(value)) {
+                fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                exit(1);
+            }
+        } else {
+            // Check for = only if the line is not a key:value meaning if user inputs key=value or key_value or key-value
+            if (strstr(line, "bits:") == NULL &&
+                strstr(line, "peers:") == NULL &&
+                strstr(line, "threshold:") == NULL &&
+                strstr(line, "inputs:") == NULL &&
+                strstr(line, "outputs:") == NULL &&
+                strstr(line, "technique:") == NULL) {
+                if (strstr(line, "=") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
+                    fprintf(stderr, "Error: Invalid Format! Use ':' between key and value!\n");
+                    exit(1);
+                }
+            }
+        }
+    }
+
     fclose(fp);
+
+    // Check if the required inputs have been given or not.
+    if (inputs == 0) {
+        fprintf(stderr, "Error: Inputs must be specified.\n");
+        exit(1);
+    } else if (peers == 0) {
+        fprintf(stderr, "Error: Peers must be specified.\n");
+        exit(1);
+    } else if (threshold == 0) {
+        fprintf(stderr, "Error: Threshold must be specified.\n");
+        exit(1);
+    } else if (outputs == 0) {
+        fprintf(stderr, "Error: Outputs must be specified.\n");
+        exit(1);
+    } 
+
+
+    // Check if 'peers' meet the requirments.
+    if (peers % 2 == 0) {
+        fprintf(stderr, "Error: Peers must be an odd integer equal to 2 * threshold + 1.\n");
+        exit(1);
+    }
+    if (peers != 2 * threshold + 1) {
+        fprintf(stderr, "Error: Peers must be equal to 2 * threshold + 1.\n");
+        exit(1);
+    }
+
+
+    // Check if 'technique' meet the requirments.
+    if (strlen(technique) == 0) {
+        printf("Warning: No technique provided, defaulting to Shamir.\n");
+        strcpy(technique, "shamir"); // Set technique to Shamir
+        technique_var = SHAMIR_SS;   // Default to Shamir
+    } else if (strcasecmp(technique, "shamir") != 0 && strcasecmp(technique, "rss") != 0) {
+        fprintf(stderr, "Error: Invalid value for technique. Use 'shamir' or 'rss'.\n");
+        exit(1);
+    }
+
+
+    // Validate 'peers' value based on 'technique' used
+    if (strcasecmp(technique, "rss") == 0 && peers > 7) {
+        fprintf(stderr, "Error: For 'rss' technique, peers must be less than or equal to 7.\n");
+        exit(1);
+    }
+    if (strcasecmp(technique, "shamir") == 0 && peers > 20) {
+        fprintf(stderr, "Error: For 'shamir' technique, peers must be less than or equal to 20.\n");
+        exit(1);
+    }
 }
 
 // In this code argc and argv will be increased by 1
@@ -251,32 +474,27 @@ int main(int argc, char *argv[]) {
     kappa = 48; // can be selected differently at a later point in time
     nu = ceil(log2(nChoosek(peers, threshold)));
     kappa_nu = kappa + nu;
-    /*
-     * 1. Preparations
-     */
-
-    /*if (argc < 3)
-    {
-    OMPI_FAILURE:
-        fprintf(stderr, "** %s should not be run directly; use %scc instead\n",
-  ;
-                  argv[0], argv[0]);
-        return (20);
+    uint map_size; // how many items are in seed_map, used to calculate buffer size
+    uint *seed_map = generateSeedMap(peers, threshold, &map_size);
+    int map_tmp_size = sizeof(int) * 4 * map_size + 200;
+    char map_tmp[map_tmp_size];
+    sprintf(map_tmp, "std::vector<int> seed_map = {");
+    int pos = 0;
+    char text[snprintf(NULL, 0, "%li", sizeof(int)) + 1];
+    for (uint i = 0; i < map_size; i++) {
+        sprintf(text, "%i", seed_map[i]);
+        strncat(map_tmp, text, strlen(text));
+        if (i != (map_size - 1)) {
+            strcat(map_tmp, ", ");
+        }
     }
-    if (strcmp(argv[2], "__ompi__") != 0)
-    {
-        if (strcmp(argv[2], "__intest__") == 0)
-            testingmode = 1;
-        else
-            goto OMPI_FAILURE;
-    }
-    if (argc > 3 && getopts(argc-3, argv+3))
-        goto OMPI_FAILURE;*/
+    strcat(map_tmp, "};");
 
     filename = argv[2];
     final_list = argv[5];
     var_list = "var_list";
 
+    pathCreater(argv[4]);
     output_filename = (char *)malloc(sizeof(char) * strlen(argv[4]) + 5);
     sprintf(output_filename, "%s.cpp", argv[4]);
 
@@ -303,9 +521,9 @@ int main(int argc, char *argv[]) {
      */
     ast = parse_file(filename, &r);
     if (bits == 0)
-        bits = modulus + 1;
+        bits = modulus + 1; // setting modulus to right above the computed bitlength
     else if (bits > 0 && bits < modulus)
-        printf("WARNING: the modulus user provided is not large enough for correct computation\n");
+        printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
     bits = fmax(bits, ceil(log(peers)) + 1);
     if (r)
         return (r);
@@ -319,22 +537,31 @@ int main(int argc, char *argv[]) {
 
     /* 2.1 Append the smc-config contents into var_list */
 
+    // Open the file using the provided path
+    pathCreater(final_list);
     FILE *fp = fopen(final_list, "w+");
     FILE *vfp = fopen(var_list, "r");
     char *line = (char *)malloc(sizeof(char) * 256);
 
-    mpz_t modulus2;
-    mpz_init(modulus2);
-    getPrime(modulus2, bits);
-    // gmp_printf("%Zd\n", modulus2);
-    char *res = mpz_get_str(NULL, 10, modulus2);
+    // Conditionally include the lines based on the technique_var variable (shamir-2)
+    char *res = "";
+    if (technique_var == SHAMIR_SS) {
+        mpz_t modulus2;
+        mpz_init(modulus2);
+        getPrime(modulus2, bits);
+        res = mpz_get_str(NULL, 10, modulus2);
+    }
 
+    // Print technique_var as well as the other variables
+    fprintf(fp, "%s:%d\n", "technique", technique_var);
     fprintf(fp, "%s:%d\n", "bits", bits);
-    fprintf(fp, "%s:%s\n", "modulus", res);
     fprintf(fp, "%s:%d\n", "peers", peers);
     fprintf(fp, "%s:%d\n", "threshold", threshold);
     fprintf(fp, "%s:%d\n", "inputs", inputs);
     fprintf(fp, "%s:%d\n", "outputs", outputs);
+    if (technique_var == SHAMIR_SS) { // Print modulus only if technique_var is shamir-2
+        fprintf(fp, "%s:%s\n", "modulus", res);
+    }
 
     while (fgets(line, sizeof(line), vfp) != NULL)
         fprintf(fp, "%s", line);
@@ -354,6 +581,7 @@ int main(int argc, char *argv[]) {
     p = BlockList(p, verbit("#include <gmp.h>"));
     p = BlockList(p, verbit("#include <omp.h>"));
     p = BlockList(p, verbit("\nSMC_Utils *__s;\n"));
+    p = BlockList(p, Verbatim(strdup(map_tmp)));
 
     ast = BlockList(p, ast);
 
@@ -372,55 +600,10 @@ int main(int argc, char *argv[]) {
         if (num_threads > 0)
             ast = BlockList(verbit(rtlib_defs), ast);
     }
-    /*if ((__has_omp  && enableOpenMP) ||
-        (__has_ompix && enableOmpix) || testingmode || processmode)
-    {
-        aststmt prepend = NULL;
-
-        /* Runtime library definitions */
-    /*if (__has_omp && enableOpenMP)
-    {
-        /* If <omp.h> was not included, then we must define a few things */
-    /*if (includes_omph)
-        p = NULL;
-    else
-    {
-        p = verbit(
-            "typedef void *omp_nest_lock_t;"   /* The only stuff we needed */
-    // "typedef void *omp_lock_t; "       /* from <omp.h> */
-    //"typedef enum omp_sched_t { omp_sched_static = 1,"
-    //"omp_sched_dynamic = 2,omp_sched_guided = 3,omp_sched_auto = 4"
-    //" } omp_sched_t;"
-    //"int omp_in_parallel(void); "
-    //"int omp_get_thread_num(void); "
-    //"int omp_get_num_threads(void); "
-    //"int omp_in_final(void); "         /* 3.1 */
-    /*);
-    assert(p != NULL);
-    p = BlockList(verbit("# 1 \"omp.mindefs\""), p);
-}
-
-/* Notice here that any types in omp.h will be defined *after* this */
-    /* prepend = parse_and_declare_blocklist_string(rtlib_defs);
-     assert(prepend != NULL);
-     prepend = BlockList(verbit("# 1 \"ort.defs\""), prepend);
-     if (p)
-         prepend = BlockList(p, prepend);
-     /*if (__has_affinitysched)
-         prepend = BlockList(prepend,
-                             parse_and_declare_blocklist_string(
-                                                                "int ort_affine_iteration(int *);"
-                                                                ));*/
-
-    /*ast = BlockList(prepend, ast);
-}
-
-ast = BlockList(verbit("# 1 \"%s\"", filename), ast);
-ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
+  
     ast->file = Symbol(filename);
 
     ast_parentize(ast); /* Parentize */
-                        /*symtab_drain(stab);    /* Empty it; new globals will be traversed again */
     ast_xform(&ast);    /* The transformation phase */
     p = verbit(tmp);
     // if (needLimits)
@@ -457,6 +640,7 @@ ast = BlockList(ast, verbit("\n"));    /* Dummy node @ bottom */
         xt_free_retired();
     }
     free(output_filename);
+    free(seed_map);
     return (0);
 }
 
@@ -502,4 +686,46 @@ int nChoosek(int n, int k) {
         result /= i;
     }
     return result;
+}
+
+// remember to de-allocate solutions wherever this function is called
+uint *generateSeedMap(uint n, uint t, uint *num_solutions) {
+    *num_solutions = nChoosek(n, t) / n;
+    uint *solutions = (uint *)malloc(sizeof(uint) * (*num_solutions)); //  array of size (nCt / n)
+    uint v = (1 << (n - t)) - 1;
+    uint upper_bound = 1 << n;
+    uint w, x, b1, b2, mask1, mask2, permutation;
+    bool cond;
+    int ctr = 0;
+    while (v <= (upper_bound)) {
+        // cyclic permute
+        cond = true;
+        for (uint i = 0; i < n; i++) {
+            mask2 = ((1 << (n - i)) - 1) << i;
+            mask1 = ~mask2 & ((1 << n) - 1);
+            b1 = v & mask1;
+            b2 = v & mask2;
+            permutation = (b1 << (n - i)) | (b2 >> i);
+            if ((v > permutation)) {
+                cond = false;
+                break;
+            }
+        }
+        if (cond) {
+            solutions[ctr] = v;
+            ctr++;
+        }
+
+        // generating next permutation
+        x = v | (v - 1); // x gets v's least significant 0 bits set to 1
+        // Next set to 1 the most significant bit to change,
+        // set to 0 the least significant ones, and add the necessary 1 bits.
+        w = (x + 1) | (((~x & -~x) - 1) >> (__builtin_ctz(v) + 1));
+        // making sure we dont go past n
+        if (w > upper_bound) {
+            break;
+        }
+        v = w; // updating for next iteration
+    }
+    return solutions;
 }
