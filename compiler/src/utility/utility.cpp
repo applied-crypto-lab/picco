@@ -27,6 +27,14 @@
 #include <math.h>
 #include <sstream>
 #include <string.h>
+#include <string>
+
+#ifdef _WIN32
+    #include <direct.h>
+#else
+    #include <sys/stat.h>
+#endif
+
 using namespace std;
 
 // these will be eventually read from the config files;
@@ -51,6 +59,8 @@ void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstre
 void readVarList(std::ifstream &, std::ifstream[], std::ofstream[], int);
 void writeToOutputFile(std::ofstream &, std::string, std::string, int, int, int);
 void convertFloat(float value, int K, int L, long long **elements);
+bool createDirectory(const std::string& path);
+void pathCreator(const std::string& file_name);
 
 int main(int argc, char **argv) {
 
@@ -106,6 +116,7 @@ int main(int argc, char **argv) {
     /******************************************************/
     // open all input and output files
     std::string file(argv[3]);
+    pathCreator(argv[5]);
     std::string output(argv[5]);
     stringstream s;
     openInputOutputFiles(file, output, inputFiles, outputFiles, mode);
@@ -581,4 +592,25 @@ void convertFloat(float value, int K, int L, long long **elements) {
     (*elements)[1] = p;
     (*elements)[2] = z;
     (*elements)[3] = s;
+}
+
+// Create the directory if it doesn't exists
+bool createDirectory(const std::string& path) {
+#ifdef _WIN32
+    #include <direct.h>
+    return _mkdir(path.c_str()) == 0;
+#else
+    #include <sys/stat.h>
+    return mkdir(path.c_str(), 0777) == 0;
+#endif
+}
+
+// Check and create the directory 
+void pathCreator(const std::string& file_name) {
+    size_t path_separator_pos = file_name.find('/');
+    
+    if (path_separator_pos != std::string::npos || file_name.find('\\') != std::string::npos) {
+        std::string directory = file_name.substr(0, path_separator_pos);
+        createDirectory(directory);
+    }
 }
