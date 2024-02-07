@@ -458,7 +458,7 @@ void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t y, int size) {
 }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, int *y, int size) {
- mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++) {
         mpz_init_set_si(ytmp[i], y[i]);
         modMul(result[i], ytmp[i], x[i]);
@@ -466,7 +466,6 @@ void SecretShare::modMul(mpz_t *result, mpz_t *x, int *y, int size) {
     for (int i = 0; i < size; i++)
         mpz_clear(ytmp[i]);
 }
-
 
 void SecretShare::modAdd(mpz_t result, mpz_t x, mpz_t y) {
     mpz_add(result, x, y);
@@ -1246,7 +1245,7 @@ std::vector<std::string> SecretShare::splitfunc(const char *str, const char *del
 void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
     std::string line;
     std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
+    std::getline(inputStreams[id - 1], line); // add error checking here
     tokens = splitfunc(line.c_str(), "=");
     *var = atoi(tokens[1].c_str());
 }
