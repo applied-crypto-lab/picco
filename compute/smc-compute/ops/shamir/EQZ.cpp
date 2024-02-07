@@ -249,17 +249,69 @@ void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int 
     for (int i = 0; i < size; ++i)
         mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
-    ss->modSub(sub, a, b, size);
-    doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
-    ss_batch_free_operator(&sub, size);
+    if (len < 2) {
+        doOperation_EQZ_bit(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
+    } else {
+        ss->modSub(sub, a, b, size);
+        doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
+        ss_batch_free_operator(&sub, size);
+    }
 }
+
 void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
-    ss->modSub(sub, a, b, size);
-    doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
-    ss_batch_free_operator(&sub, size);
+    if (len < 2) {
+        doOperation_EQZ_bit(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
+    } else {
+        // this is complicated for signed vs unsigned
+        // single bit cannot be signed
+        // can impact other things
+        // were having problems for comparing bits
+        ss->modSub(sub, a, b, size);
+        doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
+        ss_batch_free_operator(&sub, size);
+    }
 }
 
+// these two versions of EQZ are only called if BOTH inputs are single bits
+// don't need to run full protocol, only simplified versions
+void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    mpz_t const1, const2;
+    mpz_init_set_ui(const1, 1);
+    mpz_init_set_ui(const2, 2);
+
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++) {
+        mpz_init(temp[i]);
+    }
+    Mult(temp, a, b, size, threadID, net, id, ss);
+
+    ss->modMul(temp, temp, const2, size); // multiplying every value in temp by 2
+    ss->modAdd(temp, temp, const1, size); // adding 1 to every value in temp
+    ss->modSub(temp, temp, a, size);      // subtracting a
+    ss->modSub(result, temp, b, size);    // subtracting b
+
+    mpz_clear(const1);
+    mpz_clear(const2);
+    for (int i = 0; i < size; i++) {
+        mpz_clear(temp[i]);
+    }
+
+    free(temp);
+}
+
+void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    mpz_t const1;
+    mpz_init_set_ui(const1, 1);
+    for (size_t i = 0; i < size; i++) {
+        if (b[i]) {
+            mpz_set(result[i], a[i]); // return a
+        } else {
+            ss->modSub(result[i], const1, a[i]); // return 1-a
+        }
+    }
+    mpz_clear(const1);
+}

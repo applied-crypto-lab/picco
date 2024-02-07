@@ -50,6 +50,7 @@ void doOperation_LT(mpz_t *result, int *a, mpz_t *b, int alen, int blen, int res
     doOperation_LTZ(result, sub, len, size, threadID, net, id, ss);
     ss_batch_free_operator(&sub, size);
 }
+
 void doOperation_LT(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)

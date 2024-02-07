@@ -18,6 +18,7 @@
 */
 
 #include "ShamirOps.h"
+#include <gmp.h>
 
 void ss_init_set(mpz_t x, mpz_t x_val) {
     mpz_init_set(x, x_val);
@@ -28,6 +29,10 @@ void ss_init(mpz_t x) {
 }
 void ss_set(mpz_t x, mpz_t x_val) {
     mpz_set(x, x_val);
+}
+
+void ss_set_ui(mpz_t x, unsigned long x_val) {
+    mpz_set_ui(x, x_val);
 }
 
 void ss_clear(mpz_t x) {
