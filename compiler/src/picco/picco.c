@@ -304,7 +304,7 @@ void loadConfig(char *config) {
         char key[100], value[100];
 
         // Parse the line into key:value using sscanf function terminate with error if format is off.
-        if (sscanf(line, " %99[^:]: %99[^\n]", key, value) == 2) {
+        if (sscanf(line, " %99[^=]= %99[^\n]", key, value) == 2) {
 
             // Check for duplicated keys and terminate with an error if there is more than one.
             for (int i = 0; i < 6; ++i) {
@@ -374,7 +374,7 @@ void loadConfig(char *config) {
                 strstr(line, "inputs:") == NULL &&
                 strstr(line, "outputs:") == NULL &&
                 strstr(line, "technique:") == NULL) {
-                if (strstr(line, "=") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
+                if (strstr(line, ":") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
                     fprintf(stderr, "Error: Invalid Format! Use ':' between key and value!\n");
                     exit(1);
                 }
