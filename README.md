@@ -51,13 +51,17 @@ These executable programs are used to compile a user's program written in an ext
 Before describing the procedure for compiling a user program, we explain the composition of the **SMC config** file that the program expects.
 
 
-**SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P:V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The value of each parameter will be retrieved from the line at which it is positioned in the file, not based on the string $P$ with which it is labeled. For instance, the value of $V$ on the first line will always store the modulus size regardless of $P$. The reason for including $P$ in the config file is to provide intuitive information to end-users when they edit the file, so that each parameter is assigned a correct value. 
+**SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P=V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The SMC config file contains the following parameters:
 
-  Out of the five lines, the first three specify parameters of a secret sharing scheme, which are: the modulus size, the number of computational parties, and the threshold value (in that order).  Specifying the modulus size is optional, and if the programmer is uncertain what modulus size should be used, its value $V$ should be left blank in the config file. In this case, the PICCO compiler will determine the optimal modulus size by analyzing the program at the translation time, and later make it available to the utility program.
+1. `technique` - the secret sharing technique to be used. Currently we only support the value `shamir`.
+2. `bits` - the bit size of the modulus. This parameter is optional, and if the programmer is uncertain what modulus size should be used, its value should be left blank in the config file. 
+3. `peers` - the number of computational praties
+4. `threshold`- the threshold value
+5. `inputs` - the number of input parties 
+6. `outputs` - the number of output parties
 
-  The last two lines specify the number of input and output parties in the computation. By specifying these two values, a user is able to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. 
-
-  Later, it will be assumed that input/output/computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
+The parameters can be placed in any order. 
+The `inputs` and `outputs` parameters allow a user to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. It will be assumed that input/output computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
   
 **Compilation mode.** PICCO is equipped with two possible modes for compilation and execution. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols.
 
