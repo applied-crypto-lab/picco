@@ -871,6 +871,10 @@ void ss_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen
 }
 
 void ss_batch_BOP_int(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, std::string op, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+
+    // removing any whitespace from the operand (was causing issues for assignment, or "=")
+    op.erase(std::remove(op.begin(),op.end(),' '),op.end());
+
     mpz_t *result_org = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         ss_init_set(result_org[i], result[i]);
@@ -915,7 +919,7 @@ void ss_batch_BOP_int(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen, int alen
     } else if (op == "<<") {
         ss_shl(a, b, alen, blen, result, resultlen, size, type, threadID, net, id, ss);
     } else {
-        std::cout << "Unrecognized op: " << op << "\n";
+        std::cout << "[ss_batch_BOP_int] Unrecognized op: " << op << "\n";
     }
 
     ss_batch_handle_priv_cond(result, result_org, out_cond, priv_cond, counter, size, threadID, net, id, ss);
@@ -923,6 +927,10 @@ void ss_batch_BOP_int(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen, int alen
 }
 
 void ss_batch_BOP_float_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, std::string op, std::string type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+    // removing any whitespace from the operand (was causing issues for assignment, or "=")
+    op.erase(std::remove(op.begin(),op.end(),' '),op.end());
+
+
     mpz_t **result_org = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     for (int i = 0; i < size; i++) {
         result_org[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
@@ -949,7 +957,11 @@ void ss_batch_BOP_float_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int res
         ss_process_results(result, resultlen_sig, resultlen_exp, alen_sig, alen_exp, size, threadID, net, id, ss);
     } else if (op == "=") {
         ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
+    } else {
+        std::cout << "[ss_batch_BOP_float_arithmetic] Unrecognized op: " << op << "\n";
     }
+
+
 
     mpz_t *result_unify = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
     mpz_t *result_org_unify = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
