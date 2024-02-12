@@ -181,7 +181,7 @@ void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int thr
 
 void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
-    ss->ss_output(id, var, type, outputStreams);
+    ss->ss_output(id, var, size, type, outputStreams);
 #endif
 }
 
