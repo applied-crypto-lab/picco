@@ -303,7 +303,7 @@ void loadConfig(char *config) {
     while (fgets(line, sizeof(line), fp) != NULL) {
         char key[100], value[100];
 
-        // Parse the line into key:value using sscanf function terminate with error if format is off.
+        // Parse the line into key=value using sscanf function terminate with error if format is off.
         if (sscanf(line, " %99[^=]= %99[^\n]", key, value) == 2) {
 
             // Check for duplicated keys and terminate with an error if there is more than one.
@@ -367,15 +367,15 @@ void loadConfig(char *config) {
                 exit(1);
             }
         } else {
-            // Check for = only if the line is not a key:value meaning if user inputs key=value or key_value or key-value
-            if (strstr(line, "bits:") == NULL &&
-                strstr(line, "peers:") == NULL &&
-                strstr(line, "threshold:") == NULL &&
-                strstr(line, "inputs:") == NULL &&
-                strstr(line, "outputs:") == NULL &&
-                strstr(line, "technique:") == NULL) {
+            // Check for = only if the line is not a key=value meaning if user inputs key:value or key_value or key-value
+            if (strstr(line, "bits=") == NULL &&
+                strstr(line, "peers=") == NULL &&
+                strstr(line, "threshold=") == NULL &&
+                strstr(line, "inputs=") == NULL &&
+                strstr(line, "outputs=") == NULL &&
+                strstr(line, "technique=") == NULL) {
                 if (strstr(line, ":") != NULL || strstr(line, "-") != NULL || strstr(line, "_") != NULL) {
-                    fprintf(stderr, "Error: Invalid Format! Use ':' between key and value!\n");
+                    fprintf(stderr, "Error: Invalid Format! Use '=' between key and value!\n");
                     exit(1);
                 }
             }
