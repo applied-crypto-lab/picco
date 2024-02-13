@@ -20,9 +20,11 @@
 
 #include "Inv.h"
 
-
+// where is this protocol from??????
+// referenced as a building block in Aliasgari et al., 2013
 void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
+
     mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -39,15 +41,20 @@ void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, Node
     }
 
     // start computation
-    // Rand->generateRandValue(id, ss->getBits(), size, R, threadID);
     mpz_t field; //
     mpz_init(field);
     ss->getFieldSize(field);
     ss->generateRandValue(field, size, R, threadID); //
+
+    // Open_print(shares, "Inv shares ", size, threadID, net, ss);
+    // Open_print(R, "Inv R ", size, threadID, net, ss);
+
     ss->modMul(temp, shares, R, size);
     // net.broadcastToPeers(temp, size, buffer, threadID);
     // ss->reconstructSecret(results, buffer, size);
-    Open(results, results, size, threadID, net, ss); 
+    // Open(temp, results, size, threadID, net, ss); // why does this not work?
+    Open_from_all(temp, results, size, threadID, net, ss); // only works when we reconstruct from all
+    // Open_print(results, "Inv R*shares ", size, threadID, net, ss);
 
     ss->modInv(results, results, size);
     ss->modMul(results, R, results, size);
