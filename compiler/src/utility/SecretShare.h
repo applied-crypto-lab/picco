@@ -50,9 +50,6 @@
 // #include "aes_ni.h"
 // }
 
-// #define KEYSIZE 16
-// #define BASE 10
-
 std::vector<std::string> splitfunc(const char *str, const char *delim);
 
 class SecretShare {
