@@ -470,7 +470,7 @@ int main(int argc, char *argv[]) {
     }
 
     loadConfig(argv[3]);
-    nu = ceil(log2(nChoosek(peers, threshold)));
+    nu = ceil(log2(nChoosek(peers, threshold))); //Catrina and de Hoogh, 2010, pg. 4
     kappa_nu = SECURITY_PARAMETER + nu;
     uint map_size; // how many items are in seed_map, used to calculate buffer size
     uint *seed_map = generateSeedMap(peers, threshold, &map_size);
