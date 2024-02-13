@@ -21,7 +21,7 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
-#include "../shared.h"
+#include "../../../common/shared.h"
 #include "stdint.h"
 #include <charconv>
 #include <cstdlib>
