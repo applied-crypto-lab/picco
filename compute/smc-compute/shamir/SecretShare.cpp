@@ -1268,9 +1268,12 @@ std::vector<std::string> SecretShare::split(const std::string s, const std::stri
         if (delimiter == "=") { // should only be two values in the output, the variable name (result[0]) and a string of shares "s_0,s_1,...,s_n" (result[1])
             if (result.size() != 2)
                 throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
-        } else if (delimiter == ",") { // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
+        } else if (delimiter == ",") { 
+            // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
+            if (expected_size <= 0)
+                throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size  <= 0");
             if (result.size() != expected_size)
-                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected size = " + std::to_string(expected_size) + ", Actual size = " + std::to_string(result.size()));
+                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size()) + " value(s)");
         } else
             std::cout << "Delimter other than  \'=\' or \',\' was passed. I'm not checking the expected length!" << std::endl;
         return result;
@@ -1286,47 +1289,79 @@ void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *in
     try {
         std::string line;
         std::vector<std::string> tokens;
-        std::vector<std::string> temp;
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
-        *var = stoi(tokens[1]); // discards any whitespace, non-numerical characters automatically
+        *var = stoi(tokens[1]);   // discards any whitespace, non-numerical characters automatically
     } catch (const std::runtime_error &ex) {
         // capturing error message from original throw
         std::string error(ex.what());
         // appending to new throw, then re-throwing
-        throw std::runtime_error("[ss_input] input stream from party " + std::to_string(id) + ": " + error);
+        throw std::runtime_error("[ss_input, public int] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
 // input private int
 void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    mpz_set_str(*var, tokens[1].c_str(), BASE_10);
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
+        mpz_set_str(*var, tokens[1].c_str(), BASE_10);
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input public float
 void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atof(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        split(tokens[1], ",", 1); // done for correctness testing for single inputs (non-array only)
+        *var = stof(tokens[1]);   // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private float
 void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> temp;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < 4; i++)
-        mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", 4);
+        for (int i = 0; i < 4; i++)
+            mpz_set_str((*var)[i], temp[i].c_str(), BASE_10);
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float] stream from party " + std::to_string(id) + ": " + error);
+    }
+
+    // std::string line;
+    // std::vector<std::string> temp;
+    // std::vector<std::string> tokens;
+    // std::getline(inputStreams[id - 1], line);
+    // temp = splitfunc(line.c_str(), "=");
+    // tokens = splitfunc(temp[1].c_str(), ",");
+    // for (int i = 0; i < 4; i++)
+    //     mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
 }
 
 // one-dimensional int array I/O

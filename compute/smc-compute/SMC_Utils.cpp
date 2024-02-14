@@ -18,6 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
+#include <string>
 
 // Constructors
 SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
@@ -52,27 +53,34 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
-    inputStreams = new std::ifstream[numOfInputPeers];
-    outputStreams = new std::ofstream[numOfOutputPeers];
-    for (int i = 0; i < numOfInputPeers; i++) {
-        inputStreams[i].open(IO_files[i].c_str(), std::ifstream::in);
-        if (!inputStreams[i]) {
-            std::cout << "Input files could not be opened\n";
-            std::exit(1);
+    try {
+        inputStreams = new std::ifstream[numOfInputPeers];
+        outputStreams = new std::ofstream[numOfOutputPeers];
+        for (int i = 0; i < numOfInputPeers; i++) {
+            inputStreams[i].open(IO_files[i].c_str(), std::ifstream::in);
+            if (!inputStreams[i]) {
+                std::cout << "Input files from input party " + std::to_string(i + 1) + " could not be opened\n";
+                std::exit(1);
+            }
         }
+        for (int i = 0; i < numOfOutputPeers; i++) {
+            std::stringstream c;
+            c << id;
+            std::string s = c.str();
+            IO_files[numOfInputPeers + i] = IO_files[numOfInputPeers + i] + s;
+            outputStreams[i].open(IO_files[numOfInputPeers + i].c_str(), std::ofstream::out);
+            if (!outputStreams[i]) {
+                std::cout << "Output files from output party " + std::to_string(i + 1) + " could not be opened\n";
+                std::exit(1);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[SMC_Utils, constructor] " + error);
     }
 
-    for (int i = 0; i < numOfOutputPeers; i++) {
-        std::stringstream c;
-        c << id;
-        std::string s = c.str();
-        IO_files[numOfInputPeers + i] = IO_files[numOfInputPeers + i] + s;
-        outputStreams[i].open(IO_files[numOfInputPeers + i].c_str(), std::ofstream::out);
-        if (!outputStreams[i]) {
-            std::cout << "Output files could not be opened\n";
-            std::exit(1);
-        }
-    }
 #endif
 }
 
@@ -723,7 +731,6 @@ void SMC_Utils::smc_eqeq(int *a, mpz_t *b, int alen, int blen, mpz_t *result, in
     doOperation_EQZ(result, b, a, alen, blen, resultlen, size, threadID, net, id, ss);
 }
 
-
 void SMC_Utils::smc_eqeq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, id, ss);
 }
@@ -809,9 +816,9 @@ void SMC_Utils::smc_shr(mpz_t a, int b, mpz_t result, int alen, int blen, int re
 }
 
 void SMC_Utils::smc_shr(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    if (blen == -1) {// public b
+    if (blen == -1) { // public b
         // doOperation_Trunc(result, a, alen, b[0], size, threadID, net, id, ss);
-        
+
         // check that m is !> k
 
         int *b_tmp = (int *)malloc(sizeof(int) * size);
@@ -1543,7 +1550,6 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     printf("BENCHMARK MODE\n");
 #endif
 
-
     mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *a_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *res_check = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1553,7 +1559,7 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
         mpz_init(res_check[i]);
     }
 
-    int K =10;
+    int K = 10;
     int M = K - 1;
 
     mpz_t field;
@@ -1564,7 +1570,6 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
 
     mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
 
-
     M = 32;
     for (int i = 0; i < M + 1; i++) {
         S[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1573,12 +1578,10 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     }
     Open_print(MPZ_CAST(a[2]), "a[2]", size, threadID, net, ss);
 
-
     doOperation_bitDec(S, MPZ_CAST(a[2]), M, M, size, threadID, net, id, ss); // problem here
     for (int i = 0; i < M + 1; i++) {
         Open_print(S[i], "S[0]", size, threadID, net, ss);
     }
-
 
     for (int i = 0; i < M + 1; i++) {
         for (int j = 0; j < size; j++)
