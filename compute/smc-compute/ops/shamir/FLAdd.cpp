@@ -29,7 +29,7 @@
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/
 /*A[3](B[3]) contains a sign bit S*/
-    void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1,  int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss){
+void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -218,7 +218,7 @@
     Mult(temp3, temp2, temp3, size, threadID, net, id, ss);
     ss->modAdd(temp3, temp1, temp3, size);
     ss->modMul(temp3, temp3, constP2K, size);
-    doOperation_Inv(pow2, temp1, size, threadID, net, id, ss);
+    doOperation_Inv(pow2, temp1, size, threadID, net, id, ss); // 2/13/2024, ANB: fixed problem with Open in Inversion
     Mult(temp2, temp3, temp1, size, threadID, net, id, ss);
     doOperation_Trunc(V, temp2, 2 * K + 1, K - 1, size, threadID, net, id, ss);
 

@@ -1100,6 +1100,7 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
         for (int m = 0; m < polysize; m++) {
             // Generate a uniformly distributed random integer in the range 0 to 2*bits-1, inclusive.
             mpz_urandomb(rand, rstates[m], bits);
+
             // mpz_div_ui(rand, rand, combinations);
             modMul(temp, rand, poly_evaluation[m]);
             modAdd(results[i], results[i], temp);

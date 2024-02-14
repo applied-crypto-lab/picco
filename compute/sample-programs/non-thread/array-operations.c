@@ -26,6 +26,7 @@ public int main() {
   D = C + C; 
   smcoutput(D, 1, K); 
   
+  // dot product
   private int a; 
   a = A @ B; 
   smcoutput(a, 1);

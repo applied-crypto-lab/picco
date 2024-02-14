@@ -638,7 +638,10 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
         if (tree->u.expr->right->flag == PUB || (tree->u.expr->right->type == CASTEXPR && tree->u.expr->right->left->flag == PUB)) {
             (*narray_element_index)++;
             str_printf(leftop, "_picco_batch_tmp_array%d", *narray_element_index);
-            sprintf(op, "%s", ASS_symbols[tree->u.expr->opid]);
+            // previous version had " %s ", which would insert whitespace around only the equality operator
+            // When op is written inside the smc_batch string below, it caused caused problems  in smc-compute since " = " was unrecognized
+            // replaced with "%s" solves the issue
+            sprintf(op, "%s", ASS_symbols[tree->u.expr->opid]); 
         } else if (tree->u.expr->right->flag == PRI) {
             if (tree->u.expr->right->type != BOP) {
                 // consider the casting

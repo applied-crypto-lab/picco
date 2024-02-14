@@ -20,11 +20,11 @@
 
 #include "Open.h"
 
-// Reconstructss shares into result using t+1 shares
+// Reconstructs shares into result using t+1 shares
 // Can be used where the output is stored in the input's location
 void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s) {
-    uint threshold = s->getThreshold();
 
+    uint threshold = s->getThreshold();
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
     for (int i = 0; i < (threshold + 1); i++) {
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -77,7 +77,7 @@ int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *s) {
     mpz_init(results[0]);
     mpz_set(data[0], var);
 
-    Open(data, results,1, threadID, nodeNet, s);
+    Open(data, results, 1, threadID, nodeNet, s);
 
     mpz_t tmp, field;
     mpz_init(tmp);
@@ -97,7 +97,6 @@ int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *s) {
     free(results);
     return result;
 }
-
 
 float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss) {
 
@@ -123,6 +122,11 @@ float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss)
     double p = mpz_get_d(results[1]);
     double z = mpz_get_d(results[2]);
     double s = mpz_get_d(results[3]);
+    // std::cout << "v : " << v << std::endl;
+    // std::cout << "p : " << p << std::endl;
+    // std::cout << "z : " << z << std::endl;
+    // std::cout << "s : " << s << std::endl;
+
     double result = 0;
 
     // free the memory
@@ -150,40 +154,18 @@ float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss)
     return result;
 }
 
-
 void Open_print(mpz_t *shares, std::string name, int size, int threadID, NodeNetwork nodeNet, SecretShare *s) {
-    uint threshold = s->getThreshold();
     mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++){
+    for (int i = 0; i < size; i++) {
         mpz_init(res[i]);
     }
-
-    mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
-    for (int i = 0; i < (threshold + 1); i++) {
-        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; j++)
-            mpz_init(buffer[i][j]);
-    }
-
-    nodeNet.multicastToPeers_Open(s->getSendToIDs(), s->getRecvFromIDs(), shares, buffer, size, threadID);
-
-    for (int i = 0; i < size; i++) {
-        // putting my share into last position of buff as to match lagrangeWeightsThreshold[i]
-        mpz_set(buffer[threshold][i], shares[i]);
-    }
-    s->reconstructSecretFromMin(res, buffer, size);
-
+    Open(shares, res, size, threadID, nodeNet, s);
     for (size_t i = 0; i < size; i++) {
-        std::cout<<name<<"["<<i<<"] : ";
+        std::cout << name << "[" << i << "] : ";
         gmp_printf("%Zu\n", res[i]);
     }
-
-
-    // freeing
-    for (int i = 0; i < (threshold + 1); i++) {
-        for (int j = 0; j < size; j++)
-            mpz_clear(buffer[i][j]);
-        free(buffer[i]);
+    for (int i = 0; i < size; ++i) {
+        mpz_clear(res[i]);
     }
-    free(buffer);
+    free(res);
 }

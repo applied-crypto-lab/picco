@@ -77,7 +77,6 @@ int outputs = 0;             /* Number of ouput parties */
 char technique[100] = ""; /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
-int kappa;
 int kappa_nu;
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
@@ -471,9 +470,8 @@ int main(int argc, char *argv[]) {
     }
 
     loadConfig(argv[3]);
-    kappa = 48; // can be selected differently at a later point in time
-    nu = ceil(log2(nChoosek(peers, threshold)));
-    kappa_nu = kappa + nu;
+    nu = ceil(log2(nChoosek(peers, threshold))); //Catrina and de Hoogh, 2010, pg. 4
+    kappa_nu = SECURITY_PARAMETER + nu;
     uint map_size; // how many items are in seed_map, used to calculate buffer size
     uint *seed_map = generateSeedMap(peers, threshold, &map_size);
     int map_tmp_size = sizeof(int) * 4 * map_size + 200;
@@ -513,8 +511,6 @@ int main(int argc, char *argv[]) {
      */
     symtab_put(stab, Symbol("__func__"), IDNAME);
 
-    time(&now); /* Advertise us */
-    sprintf(tmp, "/* File generated from [%s] by PICCO %s */", filename, ctime(&now));
 
     /*
      * 2. Parse & get the AST
@@ -605,6 +601,11 @@ int main(int argc, char *argv[]) {
 
     ast_parentize(ast); /* Parentize */
     ast_xform(&ast);    /* The transformation phase */
+
+
+    time(&now); /* Advertise us */
+    sprintf(tmp, "/* File generated from [%s] by PICCO %s */", filename, ctime(&now));
+
     p = verbit(tmp);
     // if (needLimits)
     p = BlockList(p, verbit("#include <limits.h>"));

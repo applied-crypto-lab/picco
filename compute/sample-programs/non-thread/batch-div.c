@@ -13,7 +13,7 @@ public int main()
 	for(i = 0; i < K-1; i++)[
 		B[i] = A[i]/A[i+1]; 	
 	]
-	smcoutput(B, 1, K); 
+	smcoutput(B, 1, K); // last element will be zero, since we only did K-1 divisions above
 
 	for(i = 0; i < K1-1; i++)[
 		FB[i] = FA[i]/FA[i+1];
@@ -41,15 +41,15 @@ public int main()
 	smcoutput(FB, 1, K1);
 	/**************** BOTH PRIVATE BUT FROM PUBLIC ASSIGNMENTS ************/
 	for(i = 0; i < K1; i++)[
-		A[i] = 2 * i + 3; 
-		B[i] = i + 1; 
-		B[i] = A[i]/B[i]; 
+		A[i]=2 * i + 3; 
+		B[i]=i + 1; 
+		B[i]=A[i]/B[i]; 
  	]
 	smcoutput(B, 1, K1); 
 	for(i = 0; i < K1; i++)[
-		FA[i] = 2 * i + 3; 
-		FB[i] = i+1; 
-		FB[i] = FA[i]/FB[i]; 
+		FA[i]=2 * i + 3; 
+		FB[i]=i+1; 
+		FB[i]=FA[i]/FB[i]; 
 	]
 	smcoutput(FB, 1, K1); 
 	return 0;

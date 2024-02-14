@@ -20,10 +20,11 @@
 
 #include "BitDec.h"
 
-// Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
+// Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 5.14 page 57
 void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     int peers = ss->getPeers();
+    int threshold = ss->getThreshold();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t *R1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -37,7 +38,10 @@ void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadI
     mpz_init_set_ui(constK, K);
     mpz_init_set_ui(const2, 2);
     mpz_init_set_ui(constM, M);
-    mpz_init_set_ui(constS, K + 48); // changed from 55 to 48
+
+    // mpz_init_set_ui(constS, K + SECURITY_PARAMETER); // should also add nu = ceil(log2(nChoosek(n,t)))
+    mpz_init_set_ui(constS, K + SECURITY_PARAMETER + ceil(log2(nChoosek(peers, threshold)))); // This is actually what is specified in 
+
     mpz_init(pow2K);
     mpz_init(pow2M);
     mpz_init(pow2S);
@@ -74,16 +78,17 @@ void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadI
     ss->modPow(pow2S, const2, constS);
 
     // start computation
-    PRandInt(K, M, size, R1, threadID, ss);
-    ss->modMul(R1, R1, pow2M, size);
-    PRandM(M, size, R, threadID, net, id, ss);
-    ss->modAdd(temp, A, pow2K, size);
-    ss->modAdd(temp, temp, pow2S, size);
+    PRandInt(K, M, size, R1, threadID, ss);    // generating r''
+    PRandM(M, size, R, threadID, net, id, ss); // generating r', r'_M-1,...,r'_0
+    ss->modMul(R1, R1, pow2M, size);           // computing [r'']*2^m
+    // 2/13/2024, ANB: this implementation did not add the "nu" part, which is required to guarantee values do not wraparound.
+    // Catrina and Saxen state the modulus q >  2^{k + kappa + nu + 1}
+    ss->modAdd(temp, A, pow2K, size);    // adding 2^k
+    ss->modAdd(temp, temp, pow2S, size); // adding 2^{k+kappa+nu} 
     ss->modSub(temp, temp, R[M], size);
     ss->modSub(temp, temp, R1, size);
-    // net.broadcastToPeers(temp, size, resultShares, threadID);
-    // ss->reconstructSecret(temp, resultShares, size);
-    Open(temp, temp, size, threadID, net, ss); 
+    
+    Open(temp, temp, size, threadID, net, ss);
 
     for (int i = 0; i < size; i++)
         binarySplit(temp[i], B[i], M);

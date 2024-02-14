@@ -21,7 +21,7 @@
 #ifndef SECRETSHARE_H_
 #define SECRETSHARE_H_
 
-#include "../shared.h"
+#include "../../../common/shared.h"
 #include "stdint.h"
 #include <charconv>
 #include <cstdlib>
@@ -49,9 +49,6 @@
 // extern "C" {
 // #include "aes_ni.h"
 // }
-
-// #define KEYSIZE 16
-// #define BASE 10
 
 std::vector<std::string> splitfunc(const char *str, const char *delim);
 

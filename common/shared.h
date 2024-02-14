@@ -17,14 +17,16 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __SHARED_H_
-#define __SHARED_H_
+#ifndef _SHARED_CONSTANTS_H_
+#define _SHARED_CONSTANTS_H_
 
-// this header houses constants that are common for picco, picco-seed, and picco-util 
+// this header houses constants that are common for picco, and picco-util 
 
 // Technique constants aren't used in the compute/ directory, since the techniques are handled directly by CMake, which is responsible for defining/setting the variables
 #define SHAMIR_SS 2 
 #define REPLICATED_SS 1
+
+#define SECURITY_PARAMETER 48 // the security parameter kappa
 
 //these constants ARE common with the compute directory. If they are changed here in compiler/, they must be changed in compute/
 #define KEYSIZE 16

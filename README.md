@@ -53,14 +53,14 @@ Before describing the procedure for compiling a user program, we explain the com
 
 **SMC config.** The SMC config is a text file that consists of five lines, with each of them being in the format of $P=V$, where $P$ indicates an SMC parameter and $V$ indicates its value. The SMC config file contains the following parameters:
 
-1. `technique` - the secret sharing technique to be used. Currently we only support the value `shamir`.
+1. `technique` - the secret sharing technique to be used. Currently, we only support the value `shamir` for Shamir secret sharing.
 2. `bits` - the bit size of the modulus. This parameter is optional, and if the programmer is uncertain what modulus size should be used, its value should be left blank in the config file. 
-3. `peers` - the number of computational praties
-4. `threshold`- the threshold value
+3. `peers` - the number of computational parties $N$
+4. `threshold` - the threshold value $t$, which is the maximum number of corrupted/colluding parties. For techniques that assume an honest majority (e.g. Shamir secret sharing), we expect $N = 2 \cdot t + 1$.
 5. `inputs` - the number of input parties 
 6. `outputs` - the number of output parties
 
-The parameters can be placed in any order. 
+The parameters can be placed in any order in the SMC config. 
 The `inputs` and `outputs` parameters allow a user to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. It will be assumed that input/output computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
   
 **Compilation mode.** PICCO is equipped with two possible modes for compilation and execution. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols.
@@ -94,7 +94,7 @@ The binary executable of the translated program is produced by running the follo
 ```
 ./compile-usr-prog.sh [-d | -m] <user_program>
 ```
-where `-d` and `-m` are the compilation mode flags and `user_program` is the name of the translated program generated earlier (note, without the .cpp extension). The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
+where `-d` and `-m` are the compilation mode flags and `user_program` is the name of the translated program generated earlier (note, without the `.cpp` extension). The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
 
 The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
 
@@ -108,7 +108,7 @@ In measurement mode, the public key filenames can be omitted leaving only the ID
 ## Program execution
 
 The **execution** uses $N$ machines that can communicate with each other, where $N$ is the number of computational parties participating in the computation.
-There is currently a 5 minute timeout and 5 milisecond wait interval in the networking setup where nodes establish connections to one another. These times can be adjusted by the end user depending on the specific use case by modifying `MAX_RETRIES` and `WAIT_INTERVAL` in `NodeNetwork.h`.
+There is currently a 5-minute timeout and 5 millisecond wait interval in the networking setup phase where nodes establish connections to one another. These times can be adjusted by the end user depending on the specific use case by modifying `MAX_RETRIES` and `WAIT_INTERVAL` in `NodeNetwork.h`.
 
  <!-- **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order.  -->
 
@@ -176,7 +176,7 @@ Input and output in user programs is handled through built-in I/O functions `smc
 
 ### Public-private key pair generation
 
-Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported and a key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
+Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
 
 ```
 openssl genrsa -out private_ID.pem 2048
@@ -187,13 +187,10 @@ After the key pairs are created, the public keys should be distributed to all co
 
 ### Deployment mode execution 
 
-To initiate secure computation, each computational party executes
- <!-- **(in descending order according to their ID)** needs to execute  -->
- the following command:
+To initiate secure computation, each computational party executes the following command:
 ```
 ./user_program <ID> <runtime config> <privkey file> M K <share file 1> ... <share file M> <output 1> ... <output K>
 ```
-
 The first two arguments to the program are the ID of the computational party and the name of the runtime config file. The third argument stores the private key of the public-private key pair of the computational party running the computation. `M` and `K` are the number of input and output parties, respectively. After the first five arguments, the next `M` arguments list the names of the files containing input shares of input parties 1 through `M`. The `K` arguments that follow will be used for storing the output of the execution. These arguments specify prefixes of output files for each of the output parties. The program will store shares of the output for the output party `i` in a file named "`<output i>ID`" using the ID of the computational party. The same prefixes for the output filenames need to be used across all computational parties. This is because the output reconstruction program expects consistent naming of the output files.
 
 Upon computation completion, each program outputs the program running time and stores the result of computation (output using `smcoutput`) in a file for each output party. If the output for some output party contains private variables, that party will need to use the utility program to reconstruct the result.
@@ -223,7 +220,7 @@ In the current implementation, not all features of C are supported in user progr
  
 - Our current implementation does not allow code that uses private variables to be located in multiple files, e.g., in header files. Thus, all code to be translated needs to be placed in a single file.
 - Our current implementation does not allow for global private variable declaration. 
-- During program translation, the PICCO compiler places a number of temporary variables in the translated user program. Thus, if the user program contains variables with the same names, they might result in conflicts and it is the best to avoid declaring variables with the same names in the user program. The variables created by the compiler are: 
+- During program translation, the PICCO compiler places a number of temporary variables in the translated user program. Thus, if the user program contains variables with the same names, they might result in conflicts. Therefore, it is  best to avoid declaring variables with the same names in the user program. The variables created by the compiler are: 
 
   - `tmp`
   - `ftmp`

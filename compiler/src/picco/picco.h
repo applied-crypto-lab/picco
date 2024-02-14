@@ -24,7 +24,7 @@
 #ifndef __OMPI_H__
 #define __OMPI_H__
 
-#include "../shared.h"
+#include "../../../common/shared.h"
 
 #include "scanner.h"
 #include "symtab.h"
@@ -58,7 +58,6 @@ extern int is_priv_struct_ptr_struct_field_appear;
 
 extern int combinations; // number of RSS shares that are communciated (to be computed) 
 extern int nu; // log (combinations)
-extern int kappa; // 48 
 extern int kappa_nu; // kappa + nu
 extern int modulus; // this is the optimal modulus size that gets computed when the program is parsed
 extern int thread_id;

@@ -181,7 +181,7 @@ void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int thr
 
 void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
-    ss->ss_output(id, var, type, outputStreams);
+    ss->ss_output(id, var, size, type, outputStreams);
 #endif
 }
 
@@ -1552,41 +1552,6 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     printf("BENCHMARK MODE\n");
 #endif
 
-    int K = alen;
-    int M = ceil(log2(K));
-
-    mpz_t field;
-    mpz_init(field);
-    ss->getFieldSize(field);
-    printf("Testing PRandInt for (K = %i, M = %i), size = %i)\n", K, M, size);
-    PRandInt(K, M, size, a, threadID, ss);
-    for (int i = 0; i < size; i++) {
-        gmp_printf("a[%i] %Zu\n", i, a[i]);
-    }
-    Open(a, b, size, threadID, net, ss);
-    for (int i = 0; i < size; i++) {
-        gmp_printf("result[%i] %Zu\n", i, b[i]);
-    }
-
-    printf("Testing PRandBit for (K = %i, M = %i), size = %i)\n", K, M, size);
-    PRandBit(size, a, threadID, net, id, ss);
-    for (int i = 0; i < size; i++) {
-        gmp_printf("a[%i] %Zu\n", i, a[i]);
-    }
-    Open(a, a, size, threadID, net, ss);
-    for (int i = 0; i < size; i++) {
-        gmp_printf("result[%i] %Zu\n", i, a[i]);
-    }
-
-    K = 32;
-    int Kp1 = K + 1;
-    M = ceil(log2(K));
-    mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (Kp1));
-    for (int i = 0; i < Kp1; ++i) {
-        V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; ++j)
-            mpz_init(V[i][j]);
-    }
 
     mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *a_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1596,6 +1561,60 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
         mpz_init(a_test[i]);
         mpz_init(res_check[i]);
     }
+
+    int K =10;
+    int M = K - 1;
+
+    mpz_t field;
+    mpz_init(field);
+    ss->getFieldSize(field);
+    printf("Testing PRandInt for (K = %i, M = %i), size = %i)\n", K, M, size);
+    PRandInt(K, M, size, a_test, threadID, ss);
+
+    mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
+
+
+    M = 32;
+    for (int i = 0; i < M + 1; i++) {
+        S[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int j = 0; j < size; j++)
+            mpz_init(S[i][j]);
+    }
+    Open_print(MPZ_CAST(a[2]), "a[2]", size, threadID, net, ss);
+
+
+    doOperation_bitDec(S, MPZ_CAST(a[2]), M, M, size, threadID, net, id, ss); // problem here
+    for (int i = 0; i < M + 1; i++) {
+        Open_print(S[i], "S[0]", size, threadID, net, ss);
+    }
+
+
+    for (int i = 0; i < M + 1; i++) {
+        for (int j = 0; j < size; j++)
+            mpz_clear(S[i][j]);
+        free(S[i]);
+    }
+    free(S);
+    // printf("Testing PRandBit for (K = %i, M = %i), size = %i)\n", K, M, size);
+    // PRandBit(size, a, threadID, net, id, ss);
+    // for (int i = 0; i < size; i++) {
+    //     gmp_printf("a[%i] %Zu\n", i, a[i]);
+    // }
+    // Open(a, a, size, threadID, net, ss);
+    // for (int i = 0; i < size; i++) {
+    //     gmp_printf("result[%i] %Zu\n", i, a[i]);
+    // }
+
+    // K = 32;
+    // int Kp1 = K + 1;
+    // M = ceil(log2(K));
+    // mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (Kp1));
+    // for (int i = 0; i < Kp1; ++i) {
+    //     V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    //     for (int j = 0; j < size; ++j)
+    //         mpz_init(V[i][j]);
+    // }
+
     // // gmp_printf("Testing PRZS for (mod = %Zu), size = %i)\n", field, size);
     // ss->PRZS(field, size, a_test);
     // // printf("PRZS end\n");
@@ -1604,50 +1623,50 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     //     gmp_printf("result[%i] %Zu\n", i, res[i]);
     // }
 
-    PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
+    // PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
 
-    printf("Testing PRandM for (K = %i, M = %i), size = %i)\n", K, M, size);
+    // printf("Testing PRandM for (K = %i, M = %i), size = %i)\n", K, M, size);
 
-    for (int i = 0; i < Kp1 - 1; i++) {
-        Open(V[i], res, size, threadID, net, ss);
-        for (int j = 0; j < size; j++) {
-            gmp_printf("%Zu ", res[j]);
-        }
-        printf("\n");
-    }
-    unsigned long pow = 1;
+    // for (int i = 0; i < Kp1 - 1; i++) {
+    //     Open(V[i], res, size, threadID, net, ss);
+    //     for (int j = 0; j < size; j++) {
+    //         gmp_printf("%Zu ", res[j]);
+    //     }
+    //     printf("\n");
+    // }
+    // unsigned long pow = 1;
 
-    // Open(V[0], res, size, threadID, net, ss);
-    for (int j = 0; j < size; j++) {
-        mpz_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
-    }
-    mpz_t temp;
-    mpz_init(temp);
+    // // Open(V[0], res, size, threadID, net, ss);
+    // for (int j = 0; j < size; j++) {
+    //     mpz_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
+    // }
+    // mpz_t temp;
+    // mpz_init(temp);
 
-    for (int i = 1; i < Kp1 - 1; i++) {
-        pow = pow << 1;
-        // Open(V[i], res, size, threadID, net, ss);
-        for (int j = 0; j < size; j++) {
-            mpz_mul_ui(temp, V[i][j], pow);
-            ss->modAdd(res_check[j], res_check[j], temp);
-        }
-    }
+    // for (int i = 1; i < Kp1 - 1; i++) {
+    //     pow = pow << 1;
+    //     // Open(V[i], res, size, threadID, net, ss);
+    //     for (int j = 0; j < size; j++) {
+    //         mpz_mul_ui(temp, V[i][j], pow);
+    //         ss->modAdd(res_check[j], res_check[j], temp);
+    //     }
+    // }
 
-    Open(V[Kp1 - 1], res, size, threadID, net, ss);
-    for (int j = 0; j < size; j++) {
-        gmp_printf("result[%i] %Zu\n", j, res[j]);
-    }
+    // Open(V[Kp1 - 1], res, size, threadID, net, ss);
+    // for (int j = 0; j < size; j++) {
+    //     gmp_printf("result[%i] %Zu\n", j, res[j]);
+    // }
 
-    Open(res_check, res, size, threadID, net, ss);
-    for (int j = 0; j < size; j++) {
-        gmp_printf("res_check[%i] %Zu\n", j, res[j]);
-    }
+    // Open(res_check, res, size, threadID, net, ss);
+    // for (int j = 0; j < size; j++) {
+    //     gmp_printf("res_check[%i] %Zu\n", j, res[j]);
+    // }
 
-    for (int i = 0; i < Kp1; ++i) {
-        for (int j = 0; j < size; ++j)
-            mpz_clear(V[i][j]);
-        free(V[i]);
-    }
+    // for (int i = 0; i < Kp1; ++i) {
+    //     for (int j = 0; j < size; ++j)
+    //         mpz_clear(V[i][j]);
+    //     free(V[i]);
+    // }
 
     for (int i = 0; i < size; ++i) {
         mpz_clear(res[i]);

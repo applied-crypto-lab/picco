@@ -19,15 +19,13 @@
 */
 #include "FLMult.h"
 
-
-
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLMult, page 6
 /*A[0](B[0]) contains a value V*/
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/
 /*A[3](B[3]) contains a sign bit S*/
-    void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss){
+void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
 
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
