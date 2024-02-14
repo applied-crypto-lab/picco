@@ -159,6 +159,7 @@ public:
 
 
     std::vector<std::string> splitfunc(const char *str, const char *delim);
+    std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size = 0);
 
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams);

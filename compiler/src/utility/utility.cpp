@@ -404,8 +404,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
         for (int i = 0; i < dim; i++) {
             std::getline(inputFiles[0], line);
             temp = splitfunc(line.c_str(), "=");
-            tokens = splitfunc(temp[1].c_str(), ",");
-
+            tokens = splitfunc(temp[1].c_str(), ","); // not stripping whitespace from the values we are reading
             for (int j = 0; j < tokens.size(); j++) {
                 // The str tokens[j] is converted to long long, using base 10.
                 // (nullptr in here is not relevant to our computatuon, this version of stoll

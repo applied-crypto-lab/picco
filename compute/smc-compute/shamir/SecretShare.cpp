@@ -1231,6 +1231,14 @@ void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
     mpz_clear(temp2);
 }
 
+// to do:
+// convert inputs from const char* to std::strings, no reason to use C functions here.
+// check correctness
+// different expected size based on delim "=" or ","
+// if "=", check if result.size != 2
+// if ",", check if result.size != expected_size
+// throw error, catch in calling function, throw again and pass up the call stack (prepending function name in the process to know exactly where )
+// depracated, to be removed
 std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {
     char *saveptr;
     char *token = strtok_r((char *)str, delim, &saveptr);
@@ -1242,13 +1250,53 @@ std::vector<std::string> SecretShare::splitfunc(const char *str, const char *del
     return result;
 }
 
+// modern, robust C++ version of the above function
+// expected_size is an OPTIONAL ARGUMENT (default 0)
+std::vector<std::string> SecretShare::split(const std::string s, const std::string delimiter, int expected_size) {
+    try {
+        if (s.empty())
+            throw std::runtime_error("Empty string passed to split.");
+        size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+        std::string token;
+        std::vector<std::string> result;
+        while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+            token = s.substr(pos_start, pos_end - pos_start);
+            pos_start = pos_end + delim_len;
+            result.push_back(token);
+        }
+        result.push_back(s.substr(pos_start));
+        if (delimiter == "=") { // should only be two values in the output, the variable name (result[0]) and a string of shares "s_0,s_1,...,s_n" (result[1])
+            if (result.size() != 2)
+                throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
+        } else if (delimiter == ",") { // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
+            if (result.size() != expected_size)
+                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected size = " + std::to_string(expected_size) + ", Actual size = " + std::to_string(result.size()));
+        } else
+            std::cout << "Delimter other than  \'=\' or \',\' was passed. I'm not checking the expected length!" << std::endl;
+        return result;
+    } catch (const std::runtime_error &ex) {
+        //  can throw from interior function, as long as we catch elsewhere
+        std::string error(ex.what()); // capturing the message from the exception to concatenate below
+        throw std::runtime_error("[splitfunc] " + error);
+    }
+}
+
 // input public int
 void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line); // add error checking here
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atoi(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
+        *var = stoi(tokens[1]); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input] input stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private int
