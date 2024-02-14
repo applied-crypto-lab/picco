@@ -100,7 +100,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     ss->modMul(r_pp, r_pp, const2K, size); // 2^k*[r'']
     // The below line is in the original protocol but somehow causes results to be incorrect
     // ss->modAdd(C, C, const2K_m1, size);    // ([r'] + [a]) + 2^{k-1}
-    ss->modAdd(C, C, r_pp, size); // (2^{k-1} + [r'] + [a]) + 2^k*[r'']
+    ss->modAdd(C, C, r_pp, size); //  ([r'] + [a]) + 2^k*[r'']
 
     Open(C, c, size, threadID, net, ss);
 
@@ -304,6 +304,8 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
     free(temp);
 }
 
+// version for comparing a private bit a and public bit b
+// requires zero interaction
 void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
     // printf("ALT EQZ, private-public\n");
     mpz_t const1;
