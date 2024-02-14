@@ -172,7 +172,6 @@ private:
     uint numShares;      // (n-1) choose t
     uint totalNumShares; // n choose t
     uint8_t **random_container;
-    int container_size;
     int *P_container;
     __m128i **prg_key;
 };
@@ -449,31 +448,31 @@ void replicatedSecretShare<T>::prg_aes(uint8_t *dest, uint8_t *src, __m128i *ri)
 
 template <typename T>
 void replicatedSecretShare<T>::prg_getrandom(int keyID, uint size, uint length, uint8_t *dest) {
-    // we assume container_size is 16, so all *container_size are replaced as <<4
+    // we assume CONTAINER_SIZE is 16, so all *CONTAINER_SIZE are replaced as <<4
     // this size means how many random bytes we need
     // uint8_t *buffer = new uint8_t [size];
     // its always size * length
     // printf("curent P is %d \n",P_container[keyID]);
-    uint rounds = ((size * length - container_size + P_container[keyID]) + 15) >> 4;
+    uint rounds = ((size * length - CONTAINER_SIZE + P_container[keyID]) + 15) >> 4;
     if (rounds == 0) {
         memcpy(dest, random_container[keyID] + P_container[keyID], size * length);
         P_container[keyID] = P_container[keyID] + size * length;
     } else {
-        memcpy(dest, random_container[keyID] + P_container[keyID], container_size - P_container[keyID]);
+        memcpy(dest, random_container[keyID] + P_container[keyID], CONTAINER_SIZE - P_container[keyID]);
         if (rounds >= 2) {
-            prg_aes(dest + (container_size - P_container[keyID]), random_container[keyID], prg_key[keyID]);
+            prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]), random_container[keyID], prg_key[keyID]);
             for (int i = 1; i < rounds - 1; i++) {
                 // segfault in this loop for "large" size
                 // printf("i : %u\n", i);
-                prg_aes(dest + (container_size - P_container[keyID]) + (i << 4), dest + (container_size - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
+                prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]) + (i << 4), dest + (CONTAINER_SIZE - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
             }
-            prg_aes(random_container[keyID], dest + (container_size - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - ((rounds - 1) << 4) - container_size + P_container[keyID];
+            prg_aes(random_container[keyID], dest + (CONTAINER_SIZE - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID];
         } else {
             prg_aes(random_container[keyID], random_container[keyID], prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID], random_container[keyID], size * length - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - container_size + P_container[keyID];
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID], random_container[keyID], size * length - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - CONTAINER_SIZE + P_container[keyID];
         }
     }
 }
@@ -481,28 +480,28 @@ void replicatedSecretShare<T>::prg_getrandom(int keyID, uint size, uint length, 
 template <typename T>
 void replicatedSecretShare<T>::prg_getrandom(uint size, uint length, uint8_t *dest) {
     // uses party's OWN KEY not shared with others to locally generate shares
-    // we assume container_size is 16, so all *container_size are replaced as <<4
+    // we assume CONTAINER_SIZE is 16, so all *CONTAINER_SIZE are replaced as <<4
     // this size means how many random bytes we need
     // when this functions is called we use the party's private key stored in the LAST position [numKeys - 1] (or just numShares since numShares = numKeys + 1)
     uint keyID = numShares;
-    uint rounds = ((size * length - container_size + P_container[keyID]) + 15) >> 4;
+    uint rounds = ((size * length - CONTAINER_SIZE + P_container[keyID]) + 15) >> 4;
     if (rounds == 0) {
         memcpy(dest, random_container[keyID] + P_container[keyID], size * length);
         P_container[keyID] = P_container[keyID] + size * length;
     } else {
-        memcpy(dest, random_container[keyID] + P_container[keyID], container_size - P_container[keyID]);
+        memcpy(dest, random_container[keyID] + P_container[keyID], CONTAINER_SIZE - P_container[keyID]);
         if (rounds >= 2) {
-            prg_aes(dest + (container_size - P_container[keyID]), random_container[keyID], prg_key[keyID]);
+            prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]), random_container[keyID], prg_key[keyID]);
             for (int i = 1; i < rounds - 1; i++) {
-                prg_aes(dest + (container_size - P_container[keyID]) + (i << 4), dest + (container_size - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
+                prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]) + (i << 4), dest + (CONTAINER_SIZE - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
             }
-            prg_aes(random_container[keyID], dest + (container_size - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - ((rounds - 1) << 4) - container_size + P_container[keyID];
+            prg_aes(random_container[keyID], dest + (CONTAINER_SIZE - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID];
         } else {
             prg_aes(random_container[keyID], random_container[keyID], prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID], random_container[keyID], size * length - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - container_size + P_container[keyID];
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID], random_container[keyID], size * length - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - CONTAINER_SIZE + P_container[keyID];
         }
     }
 }
