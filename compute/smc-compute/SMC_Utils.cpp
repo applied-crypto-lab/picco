@@ -809,8 +809,10 @@ void SMC_Utils::smc_shr(mpz_t a, int b, mpz_t result, int alen, int blen, int re
 }
 
 void SMC_Utils::smc_shr(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
-    if (blen == -1) {
+    if (blen == -1) {// public b
         // doOperation_Trunc(result, a, alen, b[0], size, threadID, net, id, ss);
+        
+        // check that m is !> k
 
         int *b_tmp = (int *)malloc(sizeof(int) * size);
         for (int i = 0; i < size; i++)
@@ -1532,17 +1534,6 @@ double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     }
     elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
     return elapsed;
-}
-
-std::vector<std::string> SMC_Utils::splitfunc(const char *str, const char *delim) {
-    char *saveptr;
-    char *token = strtok_r((char *)str, delim, &saveptr);
-    std::vector<std::string> result;
-    while (token != NULL) {
-        result.push_back(token);
-        token = strtok_r(NULL, delim, &saveptr);
-    }
-    return result;
 }
 
 void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID) {

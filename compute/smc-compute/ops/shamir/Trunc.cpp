@@ -54,7 +54,14 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, i
         if (M[i] != M[0])
             same = 0;
     if (same) {
-        doOperation_Trunc(result, shares1, K, M[0], size, threadID, net, id, ss);
+        if (M[0] >= K) {
+            for (int i = 0; i < size; i++) {
+                mpz_set_ui(result[i], 0); // set to zero when the number of bits we are shifting by is greater than K (the bitlength of K)
+            }
+        } else {
+            doOperation_Trunc(result, shares1, K, M[0], size, threadID, net, id, ss);
+        }
+
     } else {
         // this is a very rare edge case, where each piece of data in shares1 is shifted by a different number of bits (stored in M)
         // we then do everything sequentially
@@ -67,14 +74,18 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, i
         ss->modPow(const2M, const2, power);
 
         for (int i = 0; i < size; i++) {
-            mpz_init_set_ui(power, M[i]);
-            ss->modInv(constInv2M, const2M);
-            // initialization
-            mpz_init_set(shares[i], shares1[i]);
-            // start computation
-            doOperation_Mod2M((mpz_t*)&result[i], (mpz_t*)&shares[i], K, M[i], size, threadID, net, id, ss);
-            ss->modSub(result[i], shares[i], result[i]);
-            ss->modMul(result[i], result[i], constInv2M);
+            if (M[i] >= K) {
+                mpz_set_ui(result[i], 0); // set to zero when the number of bits we are shifting by is greater than K (the bitlength of K)
+            } else {
+                mpz_init_set_ui(power, M[i]);
+                ss->modInv(constInv2M, const2M);
+                // initialization
+                mpz_init_set(shares[i], shares1[i]);
+                // start computation
+                doOperation_Mod2M((mpz_t *)&result[i], (mpz_t *)&shares[i], K, M[i], size, threadID, net, id, ss);
+                ss->modSub(result[i], shares[i], result[i]);
+                ss->modMul(result[i], result[i], constInv2M);
+            }
         }
 
         // free memory

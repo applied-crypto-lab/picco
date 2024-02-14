@@ -566,7 +566,6 @@ public:
     int id;
 
     double time_diff(struct timeval *, struct timeval *);
-    std::vector<std::string> splitfunc(const char *str, const char *delim);
 
     void seedSetup(vector<int> &seed_map, int peers, int threshold);
     vector<int> extract_share_WITH_ACCESS(int binary_rep, int peers, int id);
