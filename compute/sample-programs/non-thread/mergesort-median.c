@@ -1,3 +1,5 @@
+// program currently does not compile, throws segfauls at the pointer access lines
+// needs further examination 
 
 public int K=32;
 
@@ -28,9 +30,10 @@ public int mergesort(private int* A, public int l, public int r) {
     for (i = size >> 1; i > 0; i = i >> 1)
       for (j = 0; j < size; j += 2*i)
 	for (k = j; k < j + i; k++) {  
-	  temp1 = &A[k+i+l];
-	  temp2 = &A[k+l];
-	  swap(temp1, temp2);
+	  temp1 = &A[k+i+l];   // segfaults
+	  temp2 = &A[k+l];     // also segfaults
+	  swap(&A[k+i+l], &A[k+l]); 
+	  // swap(temp1, temp2); // original
 	}
   }
   return 0; 
