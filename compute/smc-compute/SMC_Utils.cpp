@@ -98,13 +98,24 @@ float SMC_Utils::smc_open(mpz_t *var, int threadID) {
 // for integer variable I/O
 // why is this a pointer?
 void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
-    ss->ss_input(id, var, type, inputStreams);
+    try {
+        ss->ss_input(id, var, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        exit(1);
+    }
 }
 
 // why is this a pointer?
 void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 #if __DEPLOYMENT__
-    ss->ss_input(id, var, type, inputStreams);
+    try {
+        ss->ss_input(id, var, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        exit(1);
+    }
+
 #else
     ss->ss_input(var, type);
 #endif
@@ -113,13 +124,23 @@ void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 // for float variable I/O
 // why is this a pointer?
 void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
-    ss->ss_input(id, var, type, inputStreams);
+    try {
+        ss->ss_input(id, var, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        exit(1);
+    }
 }
 
 // why is this a 2d pointer? should only be one
 void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
 #if __DEPLOYMENT__
-    ss->ss_input(id, var, type, inputStreams);
+    try {
+        ss->ss_input(id, var, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        exit(1);
+    }
 #else
     ss->ss_input(var, type);
 #endif

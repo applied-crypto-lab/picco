@@ -1271,11 +1271,7 @@ std::vector<std::string> SecretShare::split(const std::string s, const std::stri
         std::vector<std::string> result;
         while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
             token = s.substr(pos_start, pos_end - pos_start);
-            // if (token.empty())
-            // throw std::runtime_error("Empty token found.");
-
             pos_start = pos_end + delim_len;
-
             result.push_back(token);
         }
         result.push_back(s.substr(pos_start));
@@ -1283,10 +1279,8 @@ std::vector<std::string> SecretShare::split(const std::string s, const std::stri
             if (result.size() != 2)
                 throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
         } else if (delimiter == ",") {
-            for (auto &var : result) {
-
+            for (auto &var : result)
                 var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
-            }
 
             // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
             if (expected_size <= 0)
@@ -1313,12 +1307,9 @@ void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *in
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
-        // tokens[1] = std::regex_replace(tokens[1], std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
-
         if (!is_int(tokens.front()))
             throw std::runtime_error("Non-integer input provided: " + tokens.front());
-
-        cout << "ss_input, public int :" << tokens.front() << endl;
+        // cout << "ss_input, public int :" << tokens.front() << endl;
         *var = stoi(tokens.front()); // discards any whitespace, non-numerical characters automatically
     } catch (const std::runtime_error &ex) {
         // capturing error message from original throw
@@ -1338,8 +1329,7 @@ void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *
         tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
         if (!is_int(tokens.front()))
             throw std::runtime_error("Non-integer input provided: " + tokens.front());
-
-        cout << "ss_input, private int :" << tokens.front() << endl;
+        // cout << "ss_input, private int :" << tokens.front() << endl;
         mpz_set_str(*var, tokens.front().c_str(), BASE_10);
     } catch (const std::runtime_error &ex) {
         // capturing error message from original throw
@@ -1359,7 +1349,7 @@ void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *
         tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs (non-array only)
         if (!is_float(tokens.front()))
             throw std::runtime_error("Non-float input provided: " + tokens.front());
-        cout << "ss_input, public float :" << tokens.front() << endl;
+        // cout << "ss_input, public float :" << tokens.front() << endl;
         *var = stof(tokens.front()); // discards any whitespace, non-numerical characters automatically
     } catch (const std::runtime_error &ex) {
         // capturing error message from original throw
@@ -1375,13 +1365,11 @@ void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream 
         std::string line;
         std::vector<std::string> tokens;
         std::vector<std::string> temp;
-
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         temp = split(tokens[1], ",", 4);
-        for (auto v : temp) {
-            cout << "ss_input, private float :" << v << endl;
-        }
+        // for (auto v : temp) 
+        //     cout << "ss_input, private float :" << v << endl;
         for (int i = 0; i < 4; i++) {
             if (!is_int(temp[i]))
                 throw std::runtime_error("Non-integer input provided: " + temp[i]);
