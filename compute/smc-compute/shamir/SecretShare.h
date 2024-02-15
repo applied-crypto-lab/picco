@@ -30,6 +30,7 @@
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <regex>
 #include <gmp.h>
 #include <iostream>
 #include <math.h>
@@ -160,6 +161,10 @@ public:
 
     std::vector<std::string> splitfunc(const char *str, const char *delim);
     std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size = 0);
+
+bool is_int(const std::string &str);
+bool is_float(const std::string &str);
+
 
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams);
