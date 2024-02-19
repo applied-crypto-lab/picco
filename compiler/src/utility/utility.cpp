@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
         // open var_list and set values for parameters
         var_list.open(argv[4], std::ifstream::in);
         if (!var_list) {
-            throw std::runtime_error("Variable list " + var_list + " cannot be opened");
+            throw std::runtime_error("Variable list var_list cannot be opened");
         }
 
         mpz_init(modulus_shamir);
