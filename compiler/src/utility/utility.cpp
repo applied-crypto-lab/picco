@@ -28,6 +28,8 @@
 #include <sstream>
 #include <string.h>
 #include <string>
+#include <iostream>
+#include <cstdlib>
 
 #ifdef _WIN32
     #include <direct.h>
@@ -67,7 +69,7 @@ int main(int argc, char **argv) {
     if (argc != 6) {
         fprintf(stderr, "Incorrect input parameters:\n");
         fprintf(stderr, "Usage: picco-utility -I/O <input/output party ID> <input/output filename> <utility-config> <share/result>\n");
-        exit(1);
+        std::exit(1);
     }
 
     // set the mode: 0 - input, 1 - output
@@ -251,130 +253,126 @@ computations, depending on the parameters provided. Important variables used in 
 */
 
 void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy) {
-    std::string line;
-    std::string value;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    double element = 0;
-    int dim = (size1 == 0) ? 1 : size1;
+    try {
+        std::string line;
+        std::string value;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        double element = 0;
+        int dim = (size1 == 0) ? 1 : size1;
 
-    // works for both one or two dimensional arrays
-    if (!type.compare("int")) {
-        std::vector<std::vector<std::string>> shares;
-        // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
-        shares.resize(numOfComputeNodes, std::vector<std::string>(size2));
-        // Set the size for result to size2
-        std::vector<long long> result(size2);
-        for (int i = 0; i < dim; i++) {
-            // extract the shares
-            for (int k = 0; k < numOfComputeNodes; k++) {
-                std::getline(inputFiles[k], line);
-                tokens = splitfunc(line.c_str(), ",");
-                if (secrecy == 1)
-                    for (int j = 0; j < tokens.size(); j++)
-                        shares[k][j] = tokens[j];
-                /*
-                mpz_set_str is used to convert a string (tokens[j]) to an
-                    arbitrary precision integer (shares[k][j]), taking into
-                    account the base (10 in this case).
-
-                In the second implementation the vector token of type string is
-                    directly set to the vector of shares[k]. To do this the
-                    fucntion push_back() is used to make sure there isn't any
-                    undefined behavior cause of the sizes of both vectors.
-
-                */
-            }
-            if (secrecy == 1)
-                result = ss->reconstructSecret(shares, size2);
-
-            for (int j = 0; j < tokens.size(); j++) {
-                // for single variable or one-dimension
-                if (size1 == 0 && j == 0)
-                    outputFiles[0] << name + "=";
-                // for two-dimension
-                else if (size1 != 0 && j == 0) {
-                    stringstream s;
-                    s << i;
-                    outputFiles[0] << name + "[" + s.str() + "]=";
-                }
-                if (secrecy == 1) {
-                    // deal with negative results
-                    ss->flipNegative(result[j]);
-                    value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
-                }
-                writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
-            }
-        }
-    }
-    // public float
-    else if (!type.compare("float") && secrecy == 2) {
-        for (int i = 0; i < dim; i++) {
-            for (int k = 0; k < numOfComputeNodes; k++) {
-                std::getline(inputFiles[k], line);
-                tokens = splitfunc(line.c_str(), ",");
-            }
-            for (int j = 0; j < tokens.size(); j++) {
-                if (size1 == 0 && j == 0)
-                    outputFiles[0] << name + "=";
-                else if (size1 != 0 && j == 0) {
-                    stringstream s1, s2;
-                    s1 << i;
-                    s2 << j;
-                    outputFiles[0] << name + "[" + s1.str() + "][" + s2.str() + "]=";
-                }
-                writeToOutputFile(outputFiles[0], "", tokens[j], 2, j, tokens.size());
-            }
-        }
-    }
-    // private float
-    else if (!type.compare("float") && secrecy == 1) {
-        std::vector<std::vector<std::string>> shares;
-        shares.resize(numOfComputeNodes, std::vector<std::string>(4)); // Resize the vector of vectors
-        std::vector<long long> result(4);
-
-        for (int i = 0; i < dim; i++) {
-            for (int j = 0; j < size2; j++) {
+        // works for both one or two dimensional arrays
+        if (!type.compare("int")) {
+            std::vector<std::vector<std::string>> shares;
+            // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
+            shares.resize(numOfComputeNodes, std::vector<std::string>(size2));
+            // Set the size for result to size2
+            std::vector<long long> result(size2);
+            for (int i = 0; i < dim; i++) {
+                // extract the shares
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
-                    for (int l = 0; l < 4; l++)
-                        // mpz_set_str(shares[k][l], tokens[l].c_str(), 10);
-                        shares[k][l] = tokens[l];
+                    if (secrecy == 1)
+                        for (int j = 0; j < tokens.size(); j++)
+                            shares[k][j] = tokens[j];
                 }
-                result = ss->reconstructSecret(shares, 4);
-                for (int k = 0; k < 4; k++) {
-                    if (k == 1) {
-                        // deal with negative results
-                        ss->flipNegative(result[1]);
-                    }
-                }
-                // p (result[1]): Exponent part.
-                // v (result[0]): Mantissa.
-                // z (result[2]): Indicator for special cases. if set, val=0
-                // s (result[3]): Sign indicator.
-                if (result[2] != 1) {
-                    element = result[0] * pow(2, result[1]);
-                    if (result[3] == 1)
-                        element = -element;
-                }
-                if (j == 0) {
-                    if (size1 == 0)
+                if (secrecy == 1)
+                    result = ss->reconstructSecret(shares, size2);
+
+                for (int j = 0; j < tokens.size(); j++) {
+                    // for single variable or one-dimension
+                    if (size1 == 0 && j == 0)
                         outputFiles[0] << name + "=";
-                    else {
-                        stringstream s1;
-                        s1 << i;
-                        outputFiles[0] << name + "[" + s1.str() + "]=";
+                    // for two-dimension
+                    else if (size1 != 0 && j == 0) {
+                        std::stringstream s;
+                        s << i;
+                        outputFiles[0] << name + "[" + s.str() + "]=";
                     }
+                    if (secrecy == 1) {
+                        // deal with negative results
+                        ss->flipNegative(result[j]);
+                        value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
+                    }
+                    writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
                 }
-                std::ostringstream ss;
-                ss << element;
-                writeToOutputFile(outputFiles[0], ss.str(), "", 1, j, size2);
             }
         }
-    } else {
-        std::cout << "Wrong type has been detected";
+        // public float
+        else if (!type.compare("float") && secrecy == 2) {
+            for (int i = 0; i < dim; i++) {
+                for (int k = 0; k < numOfComputeNodes; k++) {
+                    std::getline(inputFiles[k], line);
+                    tokens = splitfunc(line.c_str(), ",");
+                }
+                for (int j = 0; j < tokens.size(); j++) {
+                    if (size1 == 0 && j == 0)
+                        outputFiles[0] << name + "=";
+                    else if (size1 != 0 && j == 0) {
+                        std::stringstream s1, s2;
+                        s1 << i;
+                        s2 << j;
+                        outputFiles[0] << name + "[" + s1.str() + "][" + s2.str() + "]=";
+                    }
+                    writeToOutputFile(outputFiles[0], "", tokens[j], 2, j, tokens.size());
+                }
+            }
+        }
+        // private float
+        else if (!type.compare("float") && secrecy == 1) {
+            std::vector<std::vector<std::string>> shares;
+            shares.resize(numOfComputeNodes, std::vector<std::string>(4)); // Resize the vector of vectors
+            std::vector<long long> result(4);
+
+            for (int i = 0; i < dim; i++) {
+                for (int j = 0; j < size2; j++) {
+                    for (int k = 0; k < numOfComputeNodes; k++) {
+                        std::getline(inputFiles[k], line);
+                        tokens = splitfunc(line.c_str(), ",");
+                        for (int l = 0; l < 4; l++)
+                            shares[k][l] = tokens[l];
+                    }
+                    result = ss->reconstructSecret(shares, 4);
+                    for (int k = 0; k < 4; k++) {
+                        if (k == 1) {
+                            // deal with negative results
+                            ss->flipNegative(result[1]);
+                        }
+                    }
+                    // p (result[1]): Exponent part.
+                    // v (result[0]): Mantissa.
+                    // z (result[2]): Indicator for special cases. if set, val=0
+                    // s (result[3]): Sign indicator.
+                    if (result[2] != 1) {
+                        element = result[0] * pow(2, result[1]);
+                        if (result[3] == 1)
+                            element = -element;
+                    }
+                    if (j == 0) {
+                        if (size1 == 0)
+                            outputFiles[0] << name + "=";
+                        else {
+                            std::stringstream s1;
+                            s1 << i;
+                            outputFiles[0] << name + "[" + s1.str() + "]=";
+                        }
+                    }
+                    std::ostringstream ss;
+                    ss << element;
+                    writeToOutputFile(outputFiles[0], ss.str(), "", 1, j, size2);
+                }
+            }
+        } else {
+            std::cout << "Wrong type has been detected";
+            std::exit(1);
+        }
+    } catch (const std::runtime_error &e) {
+        std::cerr << "An exception occurred during the reconstruction of inputs. Please review the program and ensure the accuracy of the provided data. Details: " << e.what() << "\nExiting..." << std::endl;
         std::exit(1);
+    } catch (const std::exception &e) {
+        std::cerr << "An exception occurred during the reconstruction of inputs. Please review the program and ensure the accuracy of the provided data. Details: " << e.what() << "\nExiting..." << std::endl;
+        std::exit(1); 
     }
 }
 
@@ -392,75 +390,83 @@ integers or floating-point numbers. The process includes generating shares of th
 */
 
 void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy, int len_sig, int len_exp) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    long long element;
-    std::vector<std::string> shares(numOfComputeNodes);
-    int dim = (size1 == 0) ? 1 : size1;
+        try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        long long element;
+        std::vector<std::string> shares(numOfComputeNodes);
+        int dim = (size1 == 0) ? 1 : size1;
 
-    // works for both one or two dimensional arrays
-    if (!type.compare("int")) {
-        for (int i = 0; i < dim; i++) {
-            std::getline(inputFiles[0], line);
-            temp = splitfunc(line.c_str(), "=");
-            tokens = splitfunc(temp[1].c_str(), ","); // not stripping whitespace from the values we are reading
-            for (int j = 0; j < tokens.size(); j++) {
-                // The str tokens[j] is converted to long long, using base 10.
-                // (nullptr in here is not relevant to our computatuon, this version of stoll
-                // to make sure the conversion uses base 10.)
-                element = std::stoll(tokens[j], nullptr, BASE);
-                if (secrecy == 1)
-                    shares = ss->getShares(element);
-                for (int k = 0; k < numOfComputeNodes; k++) {
-                    if (j == 0)
-                        outputFiles[k] << name + "=";
-                    writeToOutputFile(outputFiles[k], shares[k], tokens[j], secrecy, j, tokens.size());
-                }
-            }
-        }
-    } else if (!type.compare("float") && secrecy == 2) {
-        for (int i = 0; i < dim; i++) {
-            std::getline(inputFiles[0], line);
-            temp = splitfunc(line.c_str(), "=");
-            tokens = splitfunc(temp[1].c_str(), ",");
-
-            for (int j = 0; j < tokens.size(); j++) {
-                for (int k = 0; k < numOfComputeNodes; k++) {
-                    if (j == 0)
-                        outputFiles[k] << name + "=";
-                    writeToOutputFile(outputFiles[k], "", tokens[j], 2, j, tokens.size());
-                }
-            }
-        }
-
-    } else if (!type.compare("float") && secrecy == 1) {
-        for (int i = 0; i < dim; i++) {
-            std::getline(inputFiles[0], line);
-            temp = splitfunc(line.c_str(), "=");
-            tokens = splitfunc(temp[1].c_str(), ",");
-
-            for (int j = 0; j < tokens.size(); j++) {
-                long long *elements = new long long[4];
-                convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
-
-                for (int m = 0; m < 4; m++) {
-                    shares = ss->getShares(elements[m]);
+        // works for both one or two dimensional arrays
+        if (!type.compare("int")) {
+            for (int i = 0; i < dim; i++) {
+                std::getline(inputFiles[0], line);
+                temp = splitfunc(line.c_str(), "=");
+                tokens = splitfunc(temp[1].c_str(), ","); // not stripping whitespace from the values we are reading
+                for (int j = 0; j < tokens.size(); j++) {
+                    // The str tokens[j] is converted to long long, using base 10.
+                    // (nullptr in here is not relevant to our computation, this version of stoll
+                    // to make sure the conversion uses base 10.)
+                    element = std::stoll(tokens[j], nullptr, BASE);
+                    if (secrecy == 1)
+                        shares = ss->getShares(element);
                     for (int k = 0; k < numOfComputeNodes; k++) {
-                        if (m == 0)
+                        if (j == 0)
                             outputFiles[k] << name + "=";
-                        writeToOutputFile(outputFiles[k], shares[k], "", 1, m, 4);
+                        writeToOutputFile(outputFiles[k], shares[k], tokens[j], secrecy, j, tokens.size());
                     }
                 }
-                // Elements array was dynamically allocate memory using new -> free it once done
-                delete[] elements;
             }
+        } else if (!type.compare("float") && secrecy == 2) {
+            for (int i = 0; i < dim; i++) {
+                std::getline(inputFiles[0], line);
+                temp = splitfunc(line.c_str(), "=");
+                tokens = splitfunc(temp[1].c_str(), ",");
+
+                for (int j = 0; j < tokens.size(); j++) {
+                    for (int k = 0; k < numOfComputeNodes; k++) {
+                        if (j == 0)
+                            outputFiles[k] << name + "=";
+                        writeToOutputFile(outputFiles[k], "", tokens[j], 2, j, tokens.size());
+                    }
+                }
+            }
+
+        } else if (!type.compare("float") && secrecy == 1) {
+            for (int i = 0; i < dim; i++) {
+                std::getline(inputFiles[0], line);
+                temp = splitfunc(line.c_str(), "=");
+                tokens = splitfunc(temp[1].c_str(), ",");
+
+                for (int j = 0; j < tokens.size(); j++) {
+                    long long *elements = new long long[4];
+                    convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
+
+                    for (int m = 0; m < 4; m++) {
+                        shares = ss->getShares(elements[m]);
+                        for (int k = 0; k < numOfComputeNodes; k++) {
+                            if (m == 0)
+                                outputFiles[k] << name + "=";
+                            writeToOutputFile(outputFiles[k], shares[k], "", 1, m, 4);
+                        }
+                    }
+                    // Elements array was dynamically allocated memory using new -> free it once done
+                    delete[] elements;
+                }
+            }
+        } else {
+            std::cout << "Wrong type has been detected";
+            std::exit(1);
         }
-    } else {
-        std::cout << "Wrong type has been detected";
+        // No need to clear the shares vector
+    } catch (const std::runtime_error &e) {
+        std::cerr << "An exception occurred while attempting to generate inputs. Please verify the accuracy of your input data! Details: " << e.what() << "\nExiting..." << std::endl;
         std::exit(1);
+    } catch (const std::exception &e) {
+        std::cerr << "An exception occurred while attempting to generate inputs. Please verify the accuracy of your input data! Details: " << e.what() << "\nExiting..." << std::endl;
+        std::exit(1); 
     }
-    // No need to clear the shares vector
 }
 
 /*
@@ -475,46 +481,60 @@ the data and store it to the appropriate variables as follow:
 7. modulus_shamir = modulus_shamir (Conditional - set only if shamir is used)
 */
 void loadConfig() {
-    std::string line;
-    std::vector<std::string> tokens;
-    int results[6]; // 6 params for both shamir and RSS
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        int results[6]; // 6 params for both shamir and RSS
 
-    for (int i = 0; i < 6; i++) {
-        std::getline(var_list, line);
-        tokens = splitfunc(line.c_str(), ":");
-        results[i] = atoi(tokens[1].c_str());
-    }
-
-    // Based on the technique used read the last element (shamir, rss))
-    technique = results[0];
-    bits = results[1];
-    numOfComputeNodes = results[2];
-    threshold = results[3];
-    numOfInputNodes = results[4];
-    numOfOutputNodes = results[5];
-
-    // only if technique is SHAMIR, read the next line to get the modulus
-    // this was causing a problem with utility for RSS in produceInputs
-    if (technique == SHAMIR_SS) {
-        // if RSS, this starts to read lines with info about inputs, hence why it's only called if technique=shamir
-        std::getline(var_list, line); 
-        tokens = splitfunc(line.c_str(), ":");
-        mpz_init(modulus_shamir);
-        mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
-    }
-
-    if (technique == SHAMIR_SS) {
-        ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
-    } else if (technique == REPLICATED_SS) {
-        if (bits <= 8) {                                               // Bits less than or equal to 8
-            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); // the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
-        } else if (bits >= 9 && bits <= 16) {                          // Between 9 and 16 inclusive
-            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits);
-        } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
-            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits);
-        } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
-            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits);
+        for (int i = 0; i < 6; i++) {
+            std::getline(var_list, line);
+            tokens = splitfunc(line.c_str(), ":");
+            if (tokens.size() < 2) {
+                throw std::runtime_error("Invalid configuration format: missing value");
+            }
+            results[i] = std::atoi(tokens[1].c_str());
         }
+
+        // Based on the technique used read the last element (shamir, rss))
+        technique = results[0];
+        bits = results[1];
+        numOfComputeNodes = results[2];
+        threshold = results[3];
+        numOfInputNodes = results[4];
+        numOfOutputNodes = results[5];
+
+        // only if technique is SHAMIR, read the next line to get the modulus
+        // this was causing a problem with utility for RSS in produceInputs
+        if (technique == SHAMIR_SS) {
+            // if RSS, this starts to read lines with info about inputs, hence why it's only called if technique=shamir
+            std::getline(var_list, line); 
+            tokens = splitfunc(line.c_str(), ":");
+            if (tokens.size() < 2) {
+                throw std::runtime_error("Invalid configuration format: missing modulus value");
+            }
+            mpz_init(modulus_shamir);
+            mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
+        }
+
+        if (technique == SHAMIR_SS) {
+            ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
+        } else if (technique == REPLICATED_SS) {
+            if (bits <= 8) {                                               // Bits less than or equal to 8
+                ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); // the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
+            } else if (bits >= 9 && bits <= 16) {                          // Between 9 and 16 inclusive
+                ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits);
+            } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
+                ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits);
+            } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
+                ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits);
+            }
+        }
+    } catch (const std::runtime_error &e) {
+        std::cerr << "An exception occurred while reading the given Utility Config. Please double check your utility config file! " << e.what() << "\nExiting..." << std::endl;
+        std::exit(1);
+    } catch (const std::exception &e) {
+        std::cerr << "An exception occurred while reading the given Utility Config. Please double check your utility config file! " << e.what() << "\nExiting..." << std::endl;
+        std::exit(1);
     }
 }
 
@@ -534,33 +554,45 @@ void loadConfig() {
  * 4. Sign (s)
  */
 void convertFloat(float value, int K, int L, long long **elements) {
-    unsigned int *newptr = (unsigned int *)&value;
-    int s = *newptr >> 31;
-    int e = *newptr & 0x7f800000;
-    e >>= 23;
-    int m = 0;
-    m = *newptr & 0x007fffff;
+    try {
+        unsigned int *newptr = (unsigned int *)&value;
+        int s = *newptr >> 31;
+        int e = *newptr & 0x7f800000;
+        e >>= 23;
+        int m = 0;
+        m = *newptr & 0x007fffff;
 
-    int z;
-    long v, p, k;
-    long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
+        int z;
+        long v, p, k;
+        long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
 
-    if (e == 0 && m == 0) {
-        s = 0;
-        z = 1;
-        significand = 0;
-        p = 0;
-    } else {
-        z = 0;
-        if (L < 8) {
-            k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
-            if (e - 127 - K + 1 > k) {
-                p = k;
-                significand = one << K;        // Raise one to the power of K and store it to significand
-                significand = significand - 1; // Sub 1
-            } else if (e - 127 - K + 1 < -k) {
-                p = -k;
-                significand = 1; // Set the value of significand to 1
+        if (e == 0 && m == 0) {
+            s = 0;
+            z = 1;
+            significand = 0;
+            p = 0;
+        } else {
+            z = 0;
+            if (L < 8) {
+                k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
+                if (e - 127 - K + 1 > k) {
+                    p = k;
+                    significand = one << K;        // Raise one to the power of K and store it to significand
+                    significand = significand - 1; // Sub 1
+                } else if (e - 127 - K + 1 < -k) {
+                    p = -k;
+                    significand = 1; // Set the value of significand to 1
+                } else {
+                    p = e - 127 - K + 1;
+                    m = m + (1 << 23);
+                    tmpm = m; // Set the value of tmpm to m
+                    if (K < 24) {
+                        tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                        significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
+                    } else {
+                        significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
+                    }
+                }
             } else {
                 p = e - 127 - K + 1;
                 m = m + (1 << 23);
@@ -569,51 +601,59 @@ void convertFloat(float value, int K, int L, long long **elements) {
                     tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
                     significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
                 } else {
-                    significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
+                    significand = tmpm;                    // Set significand to tmpm
+                    significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
                 }
             }
-        } else {
-            p = e - 127 - K + 1;
-            m = m + (1 << 23);
-            tmpm = m; // Set the value of tmpm to m
-            if (K < 24) {
-                tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
-                significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
-            } else {
-                significand = tmpm;                    // Set significand to tmpm
-                significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
-            }
         }
-    }
 
-    printf("sig  %lli\n", significand);
-    printf("p    %li\n", p);
-    printf("z    %i\n", z);
-    printf("sgn  %i\n", s);
-    // Set the significand, p, z, and s value directly to the long long array of elements.
-    (*elements)[0] = significand;
-    (*elements)[1] = p;
-    (*elements)[2] = z;
-    (*elements)[3] = s;
+        printf("sig  %lli\n", significand);
+        printf("p    %li\n", p);
+        printf("z    %i\n", z);
+        printf("sgn  %i\n", s);
+        // Set the significand, p, z, and s value directly to the long long array of elements.
+        (*elements)[0] = significand;
+        (*elements)[1] = p;
+        (*elements)[2] = z;
+        (*elements)[3] = s;
+    } catch (const std::exception &e) {
+        std::cerr << "An exception occurred during float conversion! Details: " << e.what() << "\nExiting...";
+        std::exit(1);
+    }
 }
 
-// Create the directory if it doesn't exists
+
 bool createDirectory(const std::string& path) {
 #ifdef _WIN32
     #include <direct.h>
-    return _mkdir(path.c_str()) == 0;
+    if (_mkdir(path.c_str()) == 0) {
+        return _mkdir(path.c_str()) == 0;
+    } else {
+        std::cerr << "Error creating directory: " << path << "\nExiting...";
+        std::exit(1);
+    }
 #else
     #include <sys/stat.h>
-    return mkdir(path.c_str(), 0777) == 0;
+    if (mkdir(path.c_str(), 0777) == 0) {
+        return mkdir(path.c_str(), 0777) == 0;
+    } else {
+        std::cerr << "Error creating directory: " << path << "\nExiting...";
+        std::exit(1);
+    }
 #endif
 }
 
 // Check and create the directory 
 void pathCreator(const std::string& file_name) {
-    size_t path_separator_pos = file_name.find('/');
-    
-    if (path_separator_pos != std::string::npos || file_name.find('\\') != std::string::npos) {
-        std::string directory = file_name.substr(0, path_separator_pos);
-        createDirectory(directory);
+    try {
+        size_t path_separator_pos = file_name.find('/');
+        
+        if (path_separator_pos != std::string::npos || file_name.find('\\') != std::string::npos) {
+            std::string directory = file_name.substr(0, path_separator_pos);
+            createDirectory(directory);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "An exception occurred in creating the paths for shares/results files. Details: " << e.what() << "\nExiting...";
+        std::exit(1);
     }
 }

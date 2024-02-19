@@ -295,6 +295,11 @@ void loadConfig(char *config) {
     FILE *fp;
     fp = fopen(config, "r");
 
+    if (fp == NULL) {
+        printf("Error: Configuration file '%s' does not exist. Please make sure it is created and the path is correct.\n", config);
+        exit(EXIT_FAILURE); // Exit the program gracefully
+    }
+
     char line[100];                // Buffer to store each line of the file.
     char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
 
