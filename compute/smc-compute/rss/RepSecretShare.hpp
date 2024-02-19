@@ -224,8 +224,8 @@ replicatedSecretShare<T>::replicatedSecretShare(uint _id, uint _n, uint _t, uint
     case 3:
 
         general_map = {
-            {mod_n(id + 2, n), NULL},
-            {mod_n(id + 1, n), NULL},
+            {mod_n(id + 2, n)},
+            {mod_n(id + 1, n)},
         };
         // p1: s2, s3
         // p2: s3, s1
