@@ -1,5 +1,5 @@
-#ifndef BITADD_H_
-#define BITADD_H_
+#ifndef _ADDBITWISE_HPP_
+#define _ADDBITWISE_HPP_
 
 #include "NodeNetwork.h"
 #include "Mult.h"
