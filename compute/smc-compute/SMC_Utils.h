@@ -27,6 +27,7 @@
 #include "shamir/ShamirOps.h"
 #endif
 #if __RSS__
+#include "rss/RSSHeaders.h"
 #include "rss/RSSOps.h"
 #endif
 
