@@ -273,12 +273,23 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
+                    if (tokens.empty()) {
+                        throw std::runtime_error("[Int] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
+                    }
                     if (secrecy == 1)
                         for (int j = 0; j < tokens.size(); j++)
                             shares[k][j] = tokens[j];
                 }
-                if (secrecy == 1)
-                    result = ss->reconstructSecret(shares, size2);
+                if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
+                    throw std::runtime_error("[Int] Shares vector is not set correctly.");
+                }
+                if (secrecy == 1) {
+                    try {
+                        result = ss->reconstructSecret(shares, size2);
+                    } catch (const std::runtime_error &e) {
+                        throw std::runtime_error("[reconstructSecret, int] Error in reconstructing secret: " + std::string(e.what()));
+                    }
+                }
 
                 for (int j = 0; j < tokens.size(); j++) {
                     // for single variable or one-dimension
@@ -305,6 +316,9 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 for (int k = 0; k < numOfComputeNodes; k++) {
                     std::getline(inputFiles[k], line);
                     tokens = splitfunc(line.c_str(), ",");
+                    if (tokens.empty()) {
+                        throw std::runtime_error("[Public Float] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
+                    }
                 }
                 for (int j = 0; j < tokens.size(); j++) {
                     if (size1 == 0 && j == 0)
@@ -330,10 +344,22 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                     for (int k = 0; k < numOfComputeNodes; k++) {
                         std::getline(inputFiles[k], line);
                         tokens = splitfunc(line.c_str(), ",");
+                        if (tokens.empty()) {
+                            throw std::runtime_error("[Private Float] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
+                        }
                         for (int l = 0; l < 4; l++)
                             shares[k][l] = tokens[l];
                     }
-                    result = ss->reconstructSecret(shares, 4);
+                    if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
+                        throw std::runtime_error("[Private Float] Shares vector is not set correctly.");
+                    }
+                    if (secrecy == 1) {
+                        try {
+                            result = ss->reconstructSecret(shares, 4);
+                        } catch (const std::runtime_error &e) {
+                            throw std::runtime_error("[reconstructSecret, private float] Error in reconstructing secret for [private float]: " + std::string(e.what()));
+                        }
+                    }
                     for (int k = 0; k < 4; k++) {
                         if (k == 1) {
                             // deal with negative results
@@ -364,15 +390,11 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
             }
         } else {
-            std::cout << "Wrong type has been detected";
-            std::exit(1);
+            throw std::runtime_error("Wrong type has been detected");
         }
     } catch (const std::runtime_error &e) {
-        std::cerr << "An exception occurred during the reconstruction of inputs. Please review the program and ensure the accuracy of the provided data. Details: " << e.what() << "\nExiting..." << std::endl;
+        std::cerr << "[utility.cpp, produceOutputs] " << e.what() << "\nExiting..." << std::endl;
         std::exit(1);
-    } catch (const std::exception &e) {
-        std::cerr << "An exception occurred during the reconstruction of inputs. Please review the program and ensure the accuracy of the provided data. Details: " << e.what() << "\nExiting..." << std::endl;
-        std::exit(1); 
     }
 }
 
@@ -404,13 +426,27 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                 std::getline(inputFiles[0], line);
                 temp = splitfunc(line.c_str(), "=");
                 tokens = splitfunc(temp[1].c_str(), ","); // not stripping whitespace from the values we are reading
+                if (tokens.empty()) {
+                    throw std::runtime_error("[Int] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]");
+                }
                 for (int j = 0; j < tokens.size(); j++) {
                     // The str tokens[j] is converted to long long, using base 10.
                     // (nullptr in here is not relevant to our computation, this version of stoll
                     // to make sure the conversion uses base 10.)
-                    element = std::stoll(tokens[j], nullptr, BASE);
-                    if (secrecy == 1)
-                        shares = ss->getShares(element);
+                    try {
+                        element = std::stoll(tokens[j], nullptr, BASE);
+                    } catch (const std::invalid_argument& e) {
+                        throw std::runtime_error("[Int] Error converting element to long long: " + std::string(e.what()));
+                    } catch (const std::out_of_range& e) {
+                        throw std::runtime_error("[Int] Error converting element to long long (out of range): " + std::string(e.what()));
+                    }
+                    if (secrecy == 1) {
+                        try {
+                            shares = ss->getShares(element);
+                        } catch (const std::runtime_error& e) {
+                            throw std::runtime_error("[getShares, Int] Error in getting shares: " + std::string(e.what()));
+                        }
+                    }
                     for (int k = 0; k < numOfComputeNodes; k++) {
                         if (j == 0)
                             outputFiles[k] << name + "=";
@@ -423,7 +459,9 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                 std::getline(inputFiles[0], line);
                 temp = splitfunc(line.c_str(), "=");
                 tokens = splitfunc(temp[1].c_str(), ",");
-
+                if (tokens.empty()) {
+                    throw std::runtime_error("[Private Float] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]");
+                }
                 for (int j = 0; j < tokens.size(); j++) {
                     for (int k = 0; k < numOfComputeNodes; k++) {
                         if (j == 0)
@@ -438,13 +476,19 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                 std::getline(inputFiles[0], line);
                 temp = splitfunc(line.c_str(), "=");
                 tokens = splitfunc(temp[1].c_str(), ",");
-
+                if (tokens.empty()) {
+                    throw std::runtime_error("[Public Float] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]");
+                }
                 for (int j = 0; j < tokens.size(); j++) {
                     long long *elements = new long long[4];
                     convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
 
                     for (int m = 0; m < 4; m++) {
-                        shares = ss->getShares(elements[m]);
+                        try {
+                            shares = ss->getShares(elements[m]);
+                        } catch (const std::runtime_error& e) {
+                            throw std::runtime_error("[getShares, Public Float] Error in getting shares: " + std::string(e.what()));
+                        }
                         for (int k = 0; k < numOfComputeNodes; k++) {
                             if (m == 0)
                                 outputFiles[k] << name + "=";
@@ -456,16 +500,12 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
                 }
             }
         } else {
-            std::cout << "Wrong type has been detected";
-            std::exit(1);
+            throw std::runtime_error("Wrong type has been detected");
         }
         // No need to clear the shares vector
     } catch (const std::runtime_error &e) {
-        std::cerr << "An exception occurred while attempting to generate inputs. Please verify the accuracy of your input data! Details: " << e.what() << "\nExiting..." << std::endl;
+        std::cerr << "[utility.cpp, produceInputs] " << e.what() << "\nExiting..." << std::endl;
         std::exit(1);
-    } catch (const std::exception &e) {
-        std::cerr << "An exception occurred while attempting to generate inputs. Please verify the accuracy of your input data! Details: " << e.what() << "\nExiting..." << std::endl;
-        std::exit(1); 
     }
 }
 
@@ -530,10 +570,7 @@ void loadConfig() {
             }
         }
     } catch (const std::runtime_error &e) {
-        std::cerr << "An exception occurred while reading the given Utility Config. Please double check your utility config file! " << e.what() << "\nExiting..." << std::endl;
-        std::exit(1);
-    } catch (const std::exception &e) {
-        std::cerr << "An exception occurred while reading the given Utility Config. Please double check your utility config file! " << e.what() << "\nExiting..." << std::endl;
+        std::cerr << "[utility.cpp, loadConfig] " << e.what() << "\nExiting..." << std::endl;
         std::exit(1);
     }
 }
@@ -617,7 +654,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
         (*elements)[2] = z;
         (*elements)[3] = s;
     } catch (const std::exception &e) {
-        std::cerr << "An exception occurred during float conversion! Details: " << e.what() << "\nExiting...";
+        std::cerr << "[utility.cpp, convertFlost] " << e.what() << "\nExiting...";
         std::exit(1);
     }
 }
@@ -629,7 +666,7 @@ bool createDirectory(const std::string& path) {
     if (_mkdir(path.c_str()) == 0) {
         return _mkdir(path.c_str()) == 0;
     } else {
-        std::cerr << "Error creating directory: " << path << "\nExiting...";
+        std::cerr << "[utility.cpp, createDirectory] Error creating directory: " << path << "\nExiting...";
         std::exit(1);
     }
 #else
@@ -637,7 +674,7 @@ bool createDirectory(const std::string& path) {
     if (mkdir(path.c_str(), 0777) == 0) {
         return mkdir(path.c_str(), 0777) == 0;
     } else {
-        std::cerr << "Error creating directory: " << path << "\nExiting...";
+        std::cerr << "[utility.cpp, createDirectory] Error creating directory: " << path << "\nExiting...";
         std::exit(1);
     }
 #endif
@@ -653,7 +690,7 @@ void pathCreator(const std::string& file_name) {
             createDirectory(directory);
         }
     } catch (const std::exception& e) {
-        std::cerr << "An exception occurred in creating the paths for shares/results files. Details: " << e.what() << "\nExiting...";
+        std::cerr << "[utility.cpp, pathCreator] creating the paths for " << file_name << e.what() << "\nExiting...";
         std::exit(1);
     }
 }
