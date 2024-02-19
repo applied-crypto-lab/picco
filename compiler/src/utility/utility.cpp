@@ -607,10 +607,10 @@ void convertFloat(float value, int K, int L, long long **elements) {
             }
         }
 
-        printf("sig  %lli\n", significand);
-        printf("p    %li\n", p);
-        printf("z    %i\n", z);
-        printf("sgn  %i\n", s);
+        // printf("sig  %lli\n", significand);
+        // printf("p    %li\n", p);
+        // printf("z    %i\n", z);
+        // printf("sgn  %i\n", s);
         // Set the significand, p, z, and s value directly to the long long array of elements.
         (*elements)[0] = significand;
         (*elements)[1] = p;
