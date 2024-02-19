@@ -21,9 +21,9 @@
 #ifndef SMC_UTILS_H_
 #define SMC_UTILS_H_
 
-#include "Headers.h"
 
 #if __SHAMIR__
+#include "shamir/ShamirHeaders.h"
 #include "shamir/ShamirOps.h"
 #endif
 #if __RSS__

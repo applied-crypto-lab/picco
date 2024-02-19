@@ -19,7 +19,7 @@
 #ifndef SHAMIROPS_H_
 #define SHAMIROPS_H_
 
-#include "Headers.h"
+#include "ShamirHeaders.h"
 #include <fstream>
 #include <iostream>
 #include <math.h>

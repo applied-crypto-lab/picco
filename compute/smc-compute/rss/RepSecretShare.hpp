@@ -17,11 +17,13 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef REPLICATED_SECRETSHARE_H
-#define REPLICATED_SECRETSHARE_H
+#ifndef _REPSECRETSHARE_HPP_
+#define _REPSECRETSHARE_HPP_
+
 
 #include "stdint.h"
 #include <charconv>
+#include <regex>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -93,6 +95,10 @@ public:
     void prg_getrandom(uint size, uint length, uint8_t *dest);
 
     std::vector<std::string> splitfunc(const char *str, const char *delim);
+
+    std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size);
+    bool is_int(const std::string &str);
+    bool is_float(const std::string &str);
 
     // I/O functions
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
@@ -516,6 +522,66 @@ std::vector<std::string> replicatedSecretShare<T>::splitfunc(const char *str, co
         token = strtok_r(NULL, delim, &saveptr);
     }
     return result;
+}
+
+template <typename T>
+bool replicatedSecretShare<T>::is_int(const std::string &str) {
+    return str.find_first_not_of("0123456789") == std::string::npos;
+}
+template <typename T>
+bool replicatedSecretShare<T>::is_float(const std::string &str) {
+    return str.find_first_not_of(".0123456789") == std::string::npos;
+}
+
+// modern, robust C++ version of the above function
+// expected_size is an OPTIONAL ARGUMENT (default 0)
+template <typename T>
+std::vector<std::string> replicatedSecretShare<T>::split(const std::string s, const std::string delimiter, int expected_size) {
+    try {
+        if (s.empty())
+            throw std::runtime_error("Empty string passed to split.");
+        size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+        std::string token;
+        std::vector<std::string> result;
+        while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+            token = s.substr(pos_start, pos_end - pos_start);
+            pos_start = pos_end + delim_len;
+            result.push_back(token);
+        }
+        result.push_back(s.substr(pos_start));
+        if (delimiter == "=") { // should only be two values in the output, the variable name (result[0]) and a string of shares "s_00;s_01;...;s_0numShares,s_10;s_11;...;s_1numShares" (result[1])
+            if (result.size() != 2)
+                throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
+        } else if (delimiter == ",") {
+            for (auto &var : result)
+                var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
+            // should only be `expected_size` number of entries in result.size(): <"s_00;s_01;...;s_0numShares", "s_10;s_11;...;s_1numShares", ...>
+            if (expected_size <= 0)
+                throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
+            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
+                int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
+                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
+            }
+        } else if (delimiter == ";") { // delimeter for individual shares
+            for (auto &var : result)
+                var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
+            // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
+            if (expected_size <= 0)
+                throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
+            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
+                int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
+                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
+            }
+        } 
+        
+        else
+            std::cout << "Delimter other than  \'=\' or \',\' was passed. I'm not checking the expected length!" << std::endl;
+        return result;
+    } catch (const std::runtime_error &ex) {
+        //  can throw from interior function, as long as we catch elsewhere
+        std::string error(ex.what()); // capturing the message from the exception to concatenate below
+        throw std::runtime_error("[splitfunc] " + error);
+    }
 }
 
 // input public int

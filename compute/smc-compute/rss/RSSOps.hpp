@@ -19,7 +19,6 @@
 #ifndef _RSSOPS_HPP_
 #define _RSSOPS_HPP_
 
-// #include "Headers.h"
 #include "NodeNetwork.h"
 #include "RepSecretShare.hpp"
 #include <fstream>
