@@ -17,6 +17,13 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+
+/* 
+ANB, 2/19/2024
+- IntPtr.cpp isn't integrated into the compiler
+- has never been included, dating back to at least commit be80ec07209d0ba7fead0fd614435bd0648555b7
+ */
+
 #ifndef INT_PTR_SHAMIR_H_
 #define INT_PTR_SHAMIR_H_
 
