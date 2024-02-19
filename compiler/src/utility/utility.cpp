@@ -65,128 +65,143 @@ bool createDirectory(const std::string& path);
 void pathCreator(const std::string& file_name);
 
 int main(int argc, char **argv) {
+    try {
+        if (argc != 6) {
+            fprintf(stderr, "Incorrect input parameters:\n");
+            fprintf(stderr, "Usage: picco-utility -I/O <input/output party ID> <input/output filename> <utility-config> <share/result>\n");
+            std::exit(1);
+        }
 
-    if (argc != 6) {
-        fprintf(stderr, "Incorrect input parameters:\n");
-        fprintf(stderr, "Usage: picco-utility -I/O <input/output party ID> <input/output filename> <utility-config> <share/result>\n");
-        std::exit(1);
+        // set the mode: 0 - input, 1 - output
+        /**************************************************/
+        int mode;
+        if (!strcmp(argv[1], "-I") || !strcmp(argv[1], "-i"))
+            mode = 0;
+        if (!strcmp(argv[1], "-O") || !strcmp(argv[1], "-o"))
+            mode = 1;
+        /*************************************************/
+        // read the input/ouptut party ID
+        party = atoi(argv[2]);
+        /************************************************/
+        // open var_list and set values for parameters
+        var_list.open(argv[4], std::ifstream::in);
+        if (!var_list) {
+            throw std::runtime_error("Variable list " + var_list + " cannot be opened");
+        }
+
+        mpz_init(modulus_shamir);
+        loadConfig();
+        int numOfInput, numOfOutput;
+        if (mode == 0) {
+            numOfInput = numOfInputNodes;
+            numOfOutput = numOfComputeNodes;
+        } else {
+            numOfInput = numOfComputeNodes;
+            numOfOutput = numOfOutputNodes;
+        }
+
+        std::ifstream inputFiles[numOfInput];
+        std::ofstream outputFiles[numOfOutput];
+
+        // this will go where we determine which technique we're using
+        // ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
+        // ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
+        // return 0;
+        // testing polymorphism
+        // mp z_t field_test;
+        // mp z_init(field_test);
+        // ss->getFieldSize(field_test);
+        // gmp_printf("field_test %Zd\n", field_test);
+        // return 0;
+
+        /******************************************************/
+        // open all input and output files
+        std::string file(argv[3]);
+        pathCreator(argv[5]);
+        std::string output(argv[5]);
+        stringstream s;
+        openInputOutputFiles(file, output, inputFiles, outputFiles, mode);
+        /******************************************************/
+        // read and analyze variable list
+        readVarList(var_list, inputFiles, outputFiles, mode);
+        /******************************************************/
+        // close all files
+        var_list.close();
+        for (int i = 0; i < numOfInput; i++)
+            inputFiles[i].close();
+        for (int i = 0; i < numOfOutput; i++)
+            outputFiles[i].close();
+
+    } catch (const std::exception &e) {
+        std::cerr << "[utility.cpp, main] " << e.what() << "\nExiting...";
+        exit(1);
     }
-
-    // set the mode: 0 - input, 1 - output
-    /**************************************************/
-    int mode;
-    if (!strcmp(argv[1], "-I") || !strcmp(argv[1], "-i"))
-        mode = 0;
-    if (!strcmp(argv[1], "-O") || !strcmp(argv[1], "-o"))
-        mode = 1;
-    /*************************************************/
-    // read the input/ouptut party ID
-    party = atoi(argv[2]);
-    /************************************************/
-    // open var_list and set values for parameters
-    var_list.open(argv[4], std::ifstream::in);
-    if (!var_list) {
-        std::cout << "Variable list cannot be opened...\n";
-        std::exit(1);
-    }
-
-    mpz_init(modulus_shamir);
-    loadConfig();
-    int numOfInput, numOfOutput;
-    if (mode == 0) {
-        numOfInput = numOfInputNodes;
-        numOfOutput = numOfComputeNodes;
-    } else {
-        numOfInput = numOfComputeNodes;
-        numOfOutput = numOfOutputNodes;
-    }
-
-    std::ifstream inputFiles[numOfInput];
-    std::ofstream outputFiles[numOfOutput];
-
-    // this will go where we determine which technique we're using
-    // ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
-    // ss = new RSS<uint64_t>(numOfComputeNodes, threshold, 64);
-    // return 0;
-    // testing polymorphism
-    // mp z_t field_test;
-    // mp z_init(field_test);
-    // ss->getFieldSize(field_test);
-    // gmp_printf("field_test %Zd\n", field_test);
-    // return 0;
-
-    /******************************************************/
-    // open all input and output files
-    std::string file(argv[3]);
-    pathCreator(argv[5]);
-    std::string output(argv[5]);
-    stringstream s;
-    openInputOutputFiles(file, output, inputFiles, outputFiles, mode);
-    /******************************************************/
-    // read and analyze variable list
-    readVarList(var_list, inputFiles, outputFiles, mode);
-    /******************************************************/
-    // close all files
-    var_list.close();
-    for (int i = 0; i < numOfInput; i++)
-        inputFiles[i].close();
-    for (int i = 0; i < numOfOutput; i++)
-        outputFiles[i].close();
 }
 
 void readVarList(std::ifstream &var_list, std::ifstream inputFiles[], std::ofstream outputFiles[], int mode) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    int secrecy, size, ID, sig_len, exp_len;
-    std::string name, type;
-    // read each line from var_list
-    if (mode == 0) {
-        while (std::getline(var_list, line)) {
-            temp = splitfunc(line.c_str(), ":");
-            if (!temp[0].compare("I")) {
-                tokens = splitfunc(temp[1].c_str(), ",");
-                secrecy = atoi(tokens[0].c_str());
-                name = tokens[1];
-                type = tokens[2];
-                ID = atoi(tokens[3].c_str());
-                size = atoi(tokens[4].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        int secrecy, size, ID, sig_len, exp_len;
+        std::string name, type;
+        // read each line from var_list
+        if (mode == 0) {
+            while (std::getline(var_list, line)) {
+                temp = splitfunc(line.c_str(), ":");
+                if (!temp[0].compare("I")) {
+                    if (tokens.size() < 5) {
+                        throw std::invalid_argument("Invalid number of tokens in input line: " + line);
+                    }
+                    tokens = splitfunc(temp[1].c_str(), ",");
+                    secrecy = atoi(tokens[0].c_str());
+                    name = tokens[1];
+                    type = tokens[2];
+                    ID = atoi(tokens[3].c_str());
+                    size = atoi(tokens[4].c_str());
 
-                // process only the lines with their ID = party
-                if (ID == party) {
-                    if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7)) {
-                        if (!type.compare("int"))
-                            produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), -1);
-                        else
-                            produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), atoi(tokens[6].c_str()));
-                    } else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8)) {
-                        if (!type.compare("int"))
-                            produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), -1);
-                        else
-                            produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), atoi(tokens[7].c_str()));
+                    // process only the lines with their ID = party
+                    if (ID == party) {
+                        if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7)) {
+                            if (!type.compare("int"))
+                                produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), -1);
+                            else
+                                produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), atoi(tokens[6].c_str()));
+                        } else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8)) {
+                            if (!type.compare("int"))
+                                produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), -1);
+                            else
+                                produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), atoi(tokens[7].c_str()));
+                        }
+                    }
+                }
+            }
+        } else {
+            while (std::getline(var_list, line)) {
+                temp = splitfunc(line.c_str(), ":");
+                if (!temp[0].compare("O")) {
+                    if (tokens.size() < 5) {
+                        throw std::invalid_argument("Invalid number of tokens in output line: " + line);
+                    }
+                    tokens = splitfunc(temp[1].c_str(), ",");
+                    secrecy = atoi(tokens[0].c_str());
+                    name = tokens[1];
+                    type = tokens[2];
+                    ID = atoi(tokens[3].c_str());
+                    size = atoi(tokens[4].c_str());
+                    // process only the lines with their ID == party
+                    if (ID == party) {
+                        if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7))
+                            produceOutputs(inputFiles, outputFiles, name, type, 0, size, secrecy);
+                        else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8))
+                            produceOutputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy);
                     }
                 }
             }
         }
-    } else {
-        while (std::getline(var_list, line)) {
-            temp = splitfunc(line.c_str(), ":");
-            if (!temp[0].compare("O")) {
-                tokens = splitfunc(temp[1].c_str(), ",");
-                secrecy = atoi(tokens[0].c_str());
-                name = tokens[1];
-                type = tokens[2];
-                ID = atoi(tokens[3].c_str());
-                size = atoi(tokens[4].c_str());
-                // process only the lines with their ID == party
-                if (ID == party) {
-                    if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7))
-                        produceOutputs(inputFiles, outputFiles, name, type, 0, size, secrecy);
-                    else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8))
-                        produceOutputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy);
-                }
-            }
-        }
+    } catch (const std::exception& e) {
+        std::cerr << "[utility.cpp, readVarList] " << e.what() << std::endl;
+        exit(1);
     }
 }
 
@@ -194,7 +209,7 @@ void openInputOutputFiles(std::string file, std::string output, std::ifstream in
     if (mode == 0) {
         inputFiles[0].open(file.c_str(), std::ifstream::in);
         if (!inputFiles[0]) {
-            std::cout << "input file could not be opened" << std::endl;
+            std::cout << "input file " << file << " could not be opened" << std::endl;
             std::exit(1);
         }
         for (int i = 1; i <= numOfComputeNodes; i++) {
@@ -203,7 +218,7 @@ void openInputOutputFiles(std::string file, std::string output, std::ifstream in
             std::string outfile = output + s.str();
             outputFiles[i - 1].open(outfile.c_str(), std::ofstream::out);
             if (!outputFiles[i - 1]) {
-                std::cout << "output file could not be opened" << std::endl;
+                std::cout << "output file " << outfile << " could not be opened" << std::endl;
                 std::exit(1);
             }
         }
@@ -214,29 +229,34 @@ void openInputOutputFiles(std::string file, std::string output, std::ifstream in
             std::string infile = file + s.str(); // file||ID
             inputFiles[i - 1].open(infile.c_str(), std::ifstream::in);
             if (!inputFiles[i - 1]) {
-                std::cout << "input file could not be opened" << std::endl;
+                std::cout << "input file " << infile << " could not be opened" << std::endl;
                 std::exit(1);
             }
         }
         outputFiles[0].open(output.c_str(), std::ofstream::out);
         if (!outputFiles[0]) {
-            std::cout << "output file could not be opened" << std::endl;
+            std::cout << "output file " << output << " could not be opened" << std::endl;
             std::exit(1);
         }
     }
 }
 
 void writeToOutputFile(std::ofstream &outputFile, std::string value, std::string token, int secrecy, int index, int size) {
-    if (secrecy == 1) {
-        if (index != size - 1)
-            outputFile << value + ",";
-        else
-            outputFile << value + "\n";
-    } else {
-        if (index != size - 1)
-            outputFile << token + ",";
-        else
-            outputFile << token + "\n";
+    try {
+        if (secrecy == 1) {
+            if (index != size - 1)
+                outputFile << value + ",";
+            else
+                outputFile << value + "\n";
+        } else {
+            if (index != size - 1)
+                outputFile << token + ",";
+            else
+                outputFile << token + "\n";
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[utility.cpp, writeToOutputFile] " << e.what() << std::endl;
+        exit(1); 
     }
 }
 
