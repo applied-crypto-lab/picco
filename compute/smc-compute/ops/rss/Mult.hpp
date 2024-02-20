@@ -6,6 +6,7 @@
 
 template <typename T>
 void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+// from here, we defer to the 3-, 5-, or 7-party implementations
 
 
 }
@@ -24,7 +25,7 @@ inline bool chi_p_prime_in_T(int p_prime, int *T_map, int n) {
 
 // CHECK
 // does the mapping {p_prime+1, p_prime+2} need to be sorted?
-// i think so,
+// i think so, so we're better off just checking the combinations directly
 inline bool chi_p_prime_in_T_new(int p_prime, std::vector<int> T_map_mpc, int n) {
     // return ((
     //     (mod_n(p_prime + 1, n) == T_map_mpc[0]) and
