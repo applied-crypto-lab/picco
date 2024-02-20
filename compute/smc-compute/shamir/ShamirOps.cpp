@@ -35,6 +35,10 @@ void ss_set_ui(mpz_t x, unsigned long x_val) {
     mpz_set_ui(x, x_val);
 }
 
+void ss_init_set_ui(mpz_t x, unsigned long x_val) {
+    mpz_init_set_ui(x, x_val);
+}
+
 void ss_clear(mpz_t x) {
     mpz_clear(x);
 }
@@ -45,6 +49,10 @@ void ss_add_ui(mpz_t rop, mpz_t op1, uint op2) {
 
 void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2) {
     mpz_sub_ui(rop, op1, op2);
+}
+
+long int ss_get_si(mpz_t x) {
+    return mpz_get_si(x);
 }
 
 void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, SecretShare *ss) {
