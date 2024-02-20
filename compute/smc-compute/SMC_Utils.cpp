@@ -30,9 +30,12 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 #endif
 
     std::cout << "SMC_Utils constructor\n";
-    mpz_t modulus;
-    mpz_init(modulus);
+#if __SHAMIR__
+    priv_int modulus;
+    ss_init(modulus);
     mpz_set_str(modulus, mod.c_str(), BASE_10);
+#endif
+
     nodeConfig = new NodeConfiguration(id, runtime_config, bits);
 
     std::cout << "Creating the NodeNetwork\n";
@@ -49,7 +52,27 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     // }
 
     std::cout << "Creating SecretShare\n";
+
+#if __SHAMIR__
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
+#endif
+#if __RSS__
+    uint ring_size = 64; // temporary, will replace use "bits" constructor argument
+                         // if (bits <= 8) {     // Bits less than or equal to 8
+                         //     ss = new replicatedSecretShare<uint8_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
+
+    // } else if (bits >= 9 && bits <= 16) { // Between 9 and 16 inclusive
+    //     ss = new replicatedSecretShare<uint16_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
+
+    // } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
+    //     ss = new replicatedSecretShare<uint32_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
+
+    // } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
+    ss = new replicatedSecretShare<uint64_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
+    // }
+
+// need an alternate solution since we need to either a) know the bitlength/priv_size at compile-time, or b) make SMC-utils templated, in order to pass the template on to the the rss object (will consequently need to typedef priv_int)
+#endif
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
@@ -86,12 +109,12 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
 /* Specific SMC Utility Functions */
 // open a single integer value
-int SMC_Utils::smc_open(mpz_t var, int threadID) {
+int SMC_Utils::smc_open(priv_int var, int threadID) {
     return Open_int(var, threadID, net, ss);
 }
 
 // open a single floating-point value
-float SMC_Utils::smc_open(mpz_t *var, int threadID) {
+float SMC_Utils::smc_open(priv_int *var, int threadID) {
     return Open_float(var, threadID, net, ss);
 }
 
@@ -107,7 +130,7 @@ void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
 }
 
 // why is this a pointer?
-void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
+void SMC_Utils::smc_input(int id, priv_int *var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     try {
         ss->ss_input(id, var, type, inputStreams);
@@ -122,7 +145,6 @@ void SMC_Utils::smc_input(int id, mpz_t *var, std::string type, int threadID) {
 }
 
 // for float variable I/O
-// why is this a pointer?
 void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
     try {
         ss->ss_input(id, var, type, inputStreams);
@@ -132,8 +154,8 @@ void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
     }
 }
 
-// why is this a 2d pointer? should only be one
-void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
+// input private float
+void SMC_Utils::smc_input(int id, priv_int **var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     try {
         ss->ss_input(id, var, type, inputStreams);
@@ -147,7 +169,7 @@ void SMC_Utils::smc_input(int id, mpz_t **var, std::string type, int threadID) {
 }
 
 // one-dimensional int array I/O
-void SMC_Utils::smc_input(int id, mpz_t *var, int size, std::string type, int threadID) {
+void SMC_Utils::smc_input(int id, priv_int *var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_input(id, var, size, type, inputStreams);
 #else
@@ -160,7 +182,7 @@ void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int thre
 }
 
 // one-dimensional float array I/O
-void SMC_Utils::smc_input(int id, mpz_t **var, int size, std::string type, int threadID) {
+void SMC_Utils::smc_input(int id, priv_int **var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_input(id, var, size, type, inputStreams);
 #else
@@ -178,7 +200,7 @@ void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {
 #endif // otherwise, do nothing
 }
 
-void SMC_Utils::smc_output(int id, mpz_t *var, std::string type, int threadID) {
+void SMC_Utils::smc_output(int id, priv_int *var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_output(id, var, type, outputStreams);
 #endif
@@ -190,13 +212,13 @@ void SMC_Utils::smc_output(int id, float *var, std::string type, int threadID) {
 #endif
 }
 
-void SMC_Utils::smc_output(int id, mpz_t **var, std::string type, int threadID) {
+void SMC_Utils::smc_output(int id, priv_int **var, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_output(id, var, type, outputStreams);
 #endif
 }
 
-void SMC_Utils::smc_output(int id, mpz_t *var, int size, std::string type, int threadID) {
+void SMC_Utils::smc_output(int id, priv_int *var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_output(id, var, size, type, outputStreams);
 #endif
@@ -208,7 +230,7 @@ void SMC_Utils::smc_output(int id, int *var, int size, std::string type, int thr
 #endif
 }
 
-void SMC_Utils::smc_output(int id, mpz_t **var, int size, std::string type, int threadID) {
+void SMC_Utils::smc_output(int id, priv_int **var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
     ss->ss_output(id, var, size, type, outputStreams);
 #endif
@@ -221,287 +243,287 @@ void SMC_Utils::smc_output(int id, float *var, int size, std::string type, int t
 }
 
 /* SMC Addition */
-void SMC_Utils::smc_add(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_add(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, a, b);
 }
 
-void SMC_Utils::smc_add(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_add(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, a, b);
 }
 
-void SMC_Utils::smc_add(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_add(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, b, a);
 }
 
-void SMC_Utils::smc_add(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_add(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_add(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
 
-void SMC_Utils::smc_add(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_add(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_add(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_add(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+void SMC_Utils::smc_add(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "+", threadID, net, id, ss);
 }
 
 // batch version of smc_add
-void SMC_Utils::smc_add(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_add(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, b, a, size);
 }
 
-void SMC_Utils::smc_add(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_add(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, a, b, size);
 }
 
-void SMC_Utils::smc_add(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_add(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, a, b, size);
 }
 
-void SMC_Utils::smc_add(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **btmp;
+void SMC_Utils::smc_add(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    priv_int **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     smc_add(a, btmp, alen_sig, alen_exp, alen_sig, alen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&btmp, size);
 }
 
-void SMC_Utils::smc_add(float *a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **atmp;
+void SMC_Utils::smc_add(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    priv_int **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_add(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
 
-void SMC_Utils::smc_add(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_add(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "+", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_set(mpz_t *a, mpz_t *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_set(mpz_t **a, mpz_t **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_set(priv_int **a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     for (int i = 0; i < size; i++)
         ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_set(float a, mpz_t *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+void SMC_Utils::smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_set(mpz_t a, mpz_t result, int alen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_set(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_set(mpz_t *a, mpz_t *result, int alen, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
     for (int i = 0; i < size; i++)
         ss_set(a[i], result[i], alen, resultlen, type, threadID, net, id, ss);
 }
 
 // this routine should implement in a way that result = a + share[0]
-void SMC_Utils::smc_set(int a, mpz_t result, int alen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_priv_eval(mpz_t a, mpz_t b, mpz_t cond, int threadID) {
+void SMC_Utils::smc_priv_eval(priv_int a, priv_int b, priv_int cond, int threadID) {
     ss_priv_eval(a, b, cond, threadID, net, id, ss);
 }
 
 // floating point
-void SMC_Utils::smc_priv_eval(mpz_t *a, mpz_t *b, mpz_t cond, int threadID) {
+void SMC_Utils::smc_priv_eval(priv_int *a, priv_int *b, priv_int cond, int threadID) {
     ss_priv_eval(a, b, cond, threadID, net, id, ss);
 }
 
 /* SMC Subtraction */
-void SMC_Utils::smc_sub(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, a, b);
 }
 
-void SMC_Utils::smc_sub(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, a, b);
 }
 
-void SMC_Utils::smc_sub(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_sub(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, a, b);
 }
 
-void SMC_Utils::smc_sub(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_sub(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_sub(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
 
-void SMC_Utils::smc_sub(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_sub(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_sub(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_sub(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_sub(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID, net, id, ss);
 }
 
 // batch operations of subtraction
-void SMC_Utils::smc_sub(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modSub(result, a, b, size);
 }
 
-void SMC_Utils::smc_sub(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_sub(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modSub(result, a, b, size);
 }
 
-void SMC_Utils::smc_sub(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modSub(result, a, b, size);
 }
 
-void SMC_Utils::smc_sub(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_sub(float *a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_sub(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_sub(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_sub(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, id, ss);
 }
 
 /* SMC Multiplication */
-void SMC_Utils::smc_mult(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // double check this works (passing reference to essentiall up-cast to mpz_t*)
+void SMC_Utils::smc_mult(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    // double check this works (passing reference to essentiall up-cast to priv_int*)
     // cant use & for some reason, wont compile
-    // replacing mpz_t* with & works on
+    // replacing priv_int* with & works on
     Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net, id, ss);
 }
 
 /******************************************************/
-void SMC_Utils::smc_mult(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_mult(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modMul(result, a, b);
 }
 
-void SMC_Utils::smc_mult(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_mult(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modMul(result, b, a);
 }
 
-void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+void SMC_Utils::smc_mult(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "*", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_mult(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_mult(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_mult(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_mult(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_mult(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_mult(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
 
 // private float * private int (needs more examinations)
-void SMC_Utils::smc_mult(mpz_t *a, mpz_t b, mpz_t *result, int alen_sig, int alen_exp, int blen, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t b1, one;
-    mpz_init(b1);
-    mpz_init_set_ui(one, 1);
+void SMC_Utils::smc_mult(priv_int *a, priv_int b, priv_int *result, int alen_sig, int alen_exp, int blen, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int b1, one;
+    ss_init(b1);
+    ss_init_set_ui(one, 1);
     // start computation
     ss->modSub(b1, one, b);
     smc_lor(a[2], b1, result[2], 1, 1, 1, type, threadID);
     // free the memory
-    mpz_clear(b1);
-    mpz_clear(one);
+    ss_clear(b1);
+    ss_clear(one);
 }
 
-void SMC_Utils::smc_mult(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_mult(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modMul(result, b, a, size);
 }
 
-void SMC_Utils::smc_mult(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_mult(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modMul(result, a, b, size);
 }
 
-void SMC_Utils::smc_mult(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_mult(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     Mult(result, a, b, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_mult(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **btmp;
+void SMC_Utils::smc_mult(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    priv_int **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     smc_mult(a, btmp, alen_sig, alen_exp, alen_sig, alen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&btmp, size);
 }
 
-void SMC_Utils::smc_mult(float *a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **atmp;
+void SMC_Utils::smc_mult(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    priv_int **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_mult(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
 
-void SMC_Utils::smc_mult(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_mult(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "*", threadID, net, id, ss);
 }
 
 /* SMC Integer Division*/
-void SMC_Utils::smc_div(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_div(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), resultlen, 1, threadID, net, id, ss);
     // doOperation_IntDiv(result, a, b, resultlen, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_div(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv_Pub(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_div(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_div(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_div(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_div(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv_Pub(result, a, b, resultlen, size, threadID, net, id, ss);
 }
 
 /* SMC Floating-point division */
-void SMC_Utils::smc_div(mpz_t *a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+void SMC_Utils::smc_div(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "/", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *));
-    mpz_t **as = (mpz_t **)malloc(sizeof(mpz_t *));
-    mpz_t **bs;
+void SMC_Utils::smc_div(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int **results = (priv_int **)malloc(sizeof(priv_int *));
+    priv_int **as = (priv_int **)malloc(sizeof(priv_int *));
+    priv_int **bs;
 
-    as[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    results[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+    as[0] = (priv_int *)malloc(sizeof(priv_int) * 4);
+    results[0] = (priv_int *)malloc(sizeof(priv_int) * 4);
     ss_batch_convert_to_private_float(&b, &bs, alen_sig, alen_exp, 1, ss);
 
     for (int i = 0; i < 4; i++) {
-        mpz_init(results[0][i]);
-        mpz_init_set(as[0][i], a[i]);
+        ss_init(results[0][i]);
+        ss_init_set(as[0][i], a[i]);
     }
 
     doOperation_FLDiv_Pub(as, bs, results, alen_sig, 1, threadID, net, id, ss);
     ss_process_results(results, resultlen_sig, resultlen_exp, alen_sig, alen_exp, 1, threadID, net, id, ss);
 
     for (int i = 0; i < 4; i++)
-        mpz_set(result[i], results[0][i]);
+        ss_set(result[i], results[0][i]);
 
     // free the memory
     ss_batch_free_operator(&as, 1);
@@ -509,141 +531,141 @@ void SMC_Utils::smc_div(mpz_t *a, float b, mpz_t *result, int alen_sig, int alen
     ss_batch_free_operator(&results, 1);
 }
 
-void SMC_Utils::smc_div(float a, mpz_t *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_div(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_div(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_div(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+void SMC_Utils::smc_div(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "/", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_div(mpz_t **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **btmp;
+void SMC_Utils::smc_div(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    priv_int **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     doOperation_FLDiv_Pub(a, btmp, result, alen_sig, size, threadID, net, id, ss);
     ss_process_results(result, resultlen_sig, resultlen_exp, alen_sig, alen_exp, size, threadID, net, id, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
-void SMC_Utils::smc_div(float *a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    mpz_t **atmp;
+void SMC_Utils::smc_div(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    priv_int **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_div(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
 
 /* All Comparisons */
-void SMC_Utils::smc_lt(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_lt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lt(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_lt(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lt(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_lt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lt(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_lt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lt(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_lt(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, id, ss);
     ss_batch_free_operator(&btmp, 4);
 }
 
-void SMC_Utils::smc_lt(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_lt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
     ss_batch_free_operator(&atmp, 4);
 }
 
 // batch operations of comparisons
-void SMC_Utils::smc_lt(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_lt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lt(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_lt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_gt(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_gt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_gt(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_gt(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&b, MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_gt(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_gt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_gt(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_gt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_gt(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_gt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_gt(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_gt(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, id, ss);
     ss_batch_free_operator(&btmp, 4);
 }
 
 // batch operations of gt
-void SMC_Utils::smc_gt(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_gt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_gt(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_gt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_leq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_leq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_leq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_leq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&b, MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_leq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_leq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_leq(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_leq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_leq(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_leq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_leq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_leq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result);
@@ -651,46 +673,46 @@ void SMC_Utils::smc_leq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_
 }
 
 // batch operations of leq
-void SMC_Utils::smc_leq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_leq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
 }
 
-void SMC_Utils::smc_leq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_leq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
 }
 
-void SMC_Utils::smc_geq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_geq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_geq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_geq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_geq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_geq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_geq(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_geq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_geq(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_geq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_geq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_geq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result);
@@ -698,94 +720,94 @@ void SMC_Utils::smc_geq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_
 }
 
 // batch operations of geq
-void SMC_Utils::smc_geq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_geq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
 }
 
-void SMC_Utils::smc_geq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_geq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
 }
 
 // Equality and Inequality
-void SMC_Utils::smc_eqeq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_eqeq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "==", threadID, net, id, ss);
     ss_batch_free_operator(&btmp, 4);
 }
 
-void SMC_Utils::smc_eqeq(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_eqeq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, id, ss);
     ss_batch_free_operator(&atmp, 4);
 }
 
 // batch operations of eqeq
-void SMC_Utils::smc_eqeq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(int *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, b, a, alen, blen, resultlen, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_eqeq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_eqeq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_neq(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_neq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_neq(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_neq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_neq(int a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_neq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_neq(mpz_t *a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_neq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, id, ss);
     ss->modSub(result, 1, result);
 }
 
-void SMC_Utils::smc_neq(float a, mpz_t *b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *atmp;
+void SMC_Utils::smc_neq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, id, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&atmp, 4);
 }
 
-void SMC_Utils::smc_neq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    mpz_t *btmp;
+void SMC_Utils::smc_neq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "==", threadID, net, id, ss);
     ss->modSub(result, 1, result);
@@ -793,50 +815,50 @@ void SMC_Utils::smc_neq(mpz_t *a, float b, mpz_t result, int alen_sig, int alen_
 }
 
 // batch operations of neq
-void SMC_Utils::smc_neq(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_neq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
 }
 
-void SMC_Utils::smc_neq(mpz_t **a, mpz_t **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_neq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, id, ss);
     ss->modSub(result, 1, result, size);
 }
 
 // Bitwise Operations
-void SMC_Utils::smc_land(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_land(mpz_t *a, mpz_t *b, int size, mpz_t *result, std::string type, int threadID) {
+void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
     BitAnd(a, b, result, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_xor(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_xor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_xor(mpz_t *a, mpz_t *b, int size, mpz_t *result, std::string type, int threadID) {
+void SMC_Utils::smc_xor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
     BitXor(a, b, result, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lor(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_lor(mpz_t *a, mpz_t *b, int size, mpz_t *result, std::string type, int threadID) {
+void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
     BitOr(a, b, result, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_shr(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_shr(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     smc_shr(MPZ_CAST(a), MPZ_CAST(b), alen, blen, MPZ_CAST(result), resultlen, 1, type, threadID);
 }
 
-void SMC_Utils::smc_shr(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_shr(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     smc_shr(MPZ_CAST(a), (int *)&b, alen, blen, MPZ_CAST(result), resultlen, 1, type, threadID);
 }
 
-void SMC_Utils::smc_shr(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_shr(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) { // public b
         // doOperation_Trunc(result, a, alen, b[0], size, threadID, net, id, ss);
 
@@ -844,7 +866,7 @@ void SMC_Utils::smc_shr(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
 
         int *b_tmp = (int *)malloc(sizeof(int) * size);
         for (int i = 0; i < size; i++)
-            b_tmp[i] = mpz_get_si(b[i]);
+            b_tmp[i] = ss_get_si(b[i]);
         doOperation_Trunc(result, a, alen, b_tmp, size, threadID, net, id, ss);
         // smc_shr(a, b_tmp, alen, blen, result, resultlen, size, type, threadID);
         free(b_tmp);
@@ -852,14 +874,14 @@ void SMC_Utils::smc_shr(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
         doOperation_TruncS(result, a, alen, b, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_shr(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_shr(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_Trunc(result, a, alen, b, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_shl(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    if (blen == -1) {
-
-        ss->modPow2(result, b);
+// ANB: does the compiler actually ever produce code that calls this?
+void SMC_Utils::smc_shl(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    if (blen == -1) {           // b is public, but stored in an priv_int
+        ss->modPow2(result, b); // problem for RSS, since we have an incompatible type ()
         ss->modMul(result, a, result);
     } else {
         doOperation_Pow2(MPZ_CAST(result), MPZ_CAST(b), blen, 1, threadID, net, id, ss);
@@ -867,14 +889,14 @@ void SMC_Utils::smc_shl(mpz_t a, mpz_t b, mpz_t result, int alen, int blen, int 
     }
 }
 
-void SMC_Utils::smc_shl(mpz_t a, int b, mpz_t result, int alen, int blen, int resultlen, std::string type, int threadID) {
+void SMC_Utils::smc_shl(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modPow2(result, b);
     ss->modMul(result, a, result);
 }
 
-void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_shl(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) {
-        // b is PUBLIC, but stored in type mpz_t
+        // b is PUBLIC, but stored in type priv_int
         ss->modPow2(result, b, size);
         ss->modMul(result, a, result, size);
     } else {
@@ -883,132 +905,136 @@ void SMC_Utils::smc_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, i
     }
 }
 
-void SMC_Utils::smc_shl(mpz_t *a, int *b, int alen, int blen, mpz_t *result, int resultlen, int size, std::string type, int threadID) {
+void SMC_Utils::smc_shl(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modPow2(result, b, size);
     ss->modMul(result, a, result, size);
 }
 
 // Dot Product
-void SMC_Utils::smc_dot(mpz_t *a, mpz_t *b, int size, mpz_t result, int threadID) {
+void SMC_Utils::smc_dot(priv_int *a, priv_int *b, int size, priv_int result, int threadID) {
     doOperation_DotProduct(a, b, result, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dot(mpz_t **a, mpz_t **b, int size, int array_size, mpz_t *result, std::string type, int threadID) {
+void SMC_Utils::smc_dot(priv_int **a, priv_int **b, int size, int array_size, priv_int *result, std::string type, int threadID) {
     doOperation_DotProduct(a, b, result, size, array_size, threadID, net, id, ss);
 }
 
 // one-dimension private integer singular read
-void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t *array, mpz_t result, int dim, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int index, priv_int *array, priv_int result, int dim, std::string type, int threadID) {
     doOperation_PrivIndex_int(index, array, result, dim, 0, threadID, net, id, ss);
 }
 
 // two-dimension private integer singular read
-void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int index, priv_int **array, priv_int result, int dim1, int dim2, std::string type, int threadID) {
     doOperation_PrivIndex_int_arr(index, array, result, dim1, dim2, 0, threadID, net, id, ss);
 }
 
 // one-dimension private float singular read
-void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t **array, mpz_t *result, int dim, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int index, priv_int **array, priv_int *result, int dim, std::string type, int threadID) {
     doOperation_PrivIndex_float(index, array, result, dim, 1, threadID, net, id, ss);
 }
 
 // two-dimension private float singular read
-void SMC_Utils::smc_privindex_read(mpz_t index, mpz_t ***array, mpz_t *result, int dim1, int dim2, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int index, priv_int ***array, priv_int *result, int dim1, int dim2, std::string type, int threadID) {
     doOperation_PrivIndex_float_arr(index, array, result, dim1, dim2, 0, threadID, net, id, ss);
 }
 
 // one-dimension private integer singular write
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t *array, int len_sig, int len_exp, int value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
-    doOperation_PrivIndex_Write((mpz_t *)index, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
+    doOperation_PrivIndex_Write((priv_int *)index, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t *array, int len_sig, int len_exp, mpz_t value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, priv_int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
 
-    doOperation_PrivIndex_Write((mpz_t *)index, array, (mpz_t *)value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
+    doOperation_PrivIndex_Write((priv_int *)index, array, (priv_int *)value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
 // two-dimension private integer singular write
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, int value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, int value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
 
     doOperation_PrivIndex_Write_2d(MPZ_CAST(index), array, (int *)&value, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, mpz_t value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, priv_int value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     doOperation_PrivIndex_Write_2d(MPZ_CAST(index), array, MPZ_CAST(value), dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
 // one-dimension private float singular write
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, float value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, float value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(index, array, len_sig, len_exp, value, dim, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t **array, int len_sig, int len_exp, mpz_t *value, int dim, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, priv_int *value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(index, array, len_sig, len_exp, value, dim, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
 // two-dimension private float singular write
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t ***array, int len_sig, int len_exp, float value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int ***array, int len_sig, int len_exp, float value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(index, array, len_sig, len_exp, value, dim1, dim2, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_privindex_write(mpz_t index, mpz_t ***array, int len_sig, int len_exp, mpz_t *value, int dim1, int dim2, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int ***array, int len_sig, int len_exp, priv_int *value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(index, array, len_sig, len_exp, value, dim1, dim2, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
 // one-dimension private integer batch read
-void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t *arrays, mpz_t *results, int dim, int size, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int *indices, priv_int *arrays, priv_int *results, int dim, int size, std::string type, int threadID) {
     doOperation_PrivIndex_Read(indices, arrays, results, dim, size, threadID, 0, net, id, ss);
 }
 
 // two-dimension private integer batch read
-void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t **array, mpz_t *results, int dim1, int dim2, int size, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int *indices, priv_int **array, priv_int *results, int dim1, int dim2, int size, std::string type, int threadID) {
     ss_privindex_read(indices, array, results, dim1, dim2, size, type, threadID, net, id, ss);
 }
 
 // one-dimension private float batch read
-void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t **array, mpz_t **results, int dim, int size, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int *indices, priv_int **array, priv_int **results, int dim, int size, std::string type, int threadID) {
     ss_privindex_read(indices, array, results, dim, size, type, threadID, net, id, ss);
 }
 
 // two-dimension private float batch read
-void SMC_Utils::smc_privindex_read(mpz_t *indices, mpz_t ***array, mpz_t **results, int dim1, int dim2, int size, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_read(priv_int *indices, priv_int ***array, priv_int **results, int dim1, int dim2, int size, std::string type, int threadID) {
     ss_privindex_read(indices, array, results, dim1, dim2, size, type, threadID, net, id, ss);
 }
 
 // one-dimension private integer batch write
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, int len_exp, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int *array, int len_sig, int len_exp, int *values, int dim, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     doOperation_PrivIndex_Write(indices, array, values, dim, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t *array, int len_sig, int len_exp, mpz_t *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int *array, int len_sig, int len_exp, priv_int *values, int dim, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     doOperation_PrivIndex_Write(indices, array, values, dim, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
 }
 
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int **array, int len_sig, int len_exp, int *values, int dim1, int dim2, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(indices, array, len_sig, len_exp, values, dim1, dim2, size, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
 // two-dimension private integer batch write
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int **array, int len_sig, int len_exp, priv_int *values, int dim1, int dim2, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(indices, array, len_sig, len_exp, values, dim1, dim2, size, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
 // one-dimension private float batch write
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, float *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int **array, int len_sig, int len_exp, float *values, int dim, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(indices, array, len_sig, len_exp, values, dim, size, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t **array, int len_sig, int len_exp, mpz_t **values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int **array, int len_sig, int len_exp, priv_int **values, int dim, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(indices, array, len_sig, len_exp, values, dim, size, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
 
 // two-dimension private float batch write
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig, int len_exp, float *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int ***array, int len_sig, int len_exp, float *values, int dim1, int dim2, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(indices, array, len_sig, len_exp, values, dim1, dim2, size, out_cond, priv_cond, counter, type, threadID, net, id, ss);
 }
-void SMC_Utils::smc_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig, int len_exp, mpz_t **values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID) {
+void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int ***array, int len_sig, int len_exp, priv_int **values, int dim1, int dim2, int size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     ss_privindex_write(indices, array, len_sig, len_exp, values, dim1, dim2, size, out_cond, priv_cond, counter, type, threadID, net, id, ss);
     ;
 }
+
+#if __SHAMIR__
+
+// private pointer arithmetic only supported by shamirSS currently
 
 priv_ptr SMC_Utils::smc_new_ptr(int level, int type) {
     return create_ptr(level, type);
@@ -1019,11 +1045,11 @@ priv_ptr *SMC_Utils::smc_new_ptr(int level, int type, int num) {
 }
 
 /*************/
-void SMC_Utils::smc_set_int_ptr(priv_ptr ptr, mpz_t *var_loc, std::string type, int threadID) {
+void SMC_Utils::smc_set_int_ptr(priv_ptr ptr, priv_int *var_loc, std::string type, int threadID) {
     set_ptr(ptr, var_loc, NULL, NULL, NULL, threadID);
 }
 
-void SMC_Utils::smc_set_float_ptr(priv_ptr ptr, mpz_t **var_loc, std::string type, int threadID) {
+void SMC_Utils::smc_set_float_ptr(priv_ptr ptr, priv_int **var_loc, std::string type, int threadID) {
     set_ptr(ptr, NULL, var_loc, NULL, NULL, threadID);
 }
 
@@ -1042,39 +1068,39 @@ void SMC_Utils::smc_set_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, std::string
 void SMC_Utils::smc_set_ptr(priv_ptr ptr, int var_loc, std::string type, int threadID) {
 }
 /****************/
-void SMC_Utils::smc_update_int_ptr(priv_ptr ptr, mpz_t *var_loc, mpz_t private_tag, int index, int threadID) {
+void SMC_Utils::smc_update_int_ptr(priv_ptr ptr, priv_int *var_loc, priv_int private_tag, int index, int threadID) {
     update_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, index, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_update_float_ptr(priv_ptr ptr, mpz_t **var_loc, mpz_t private_tag, int index, int threadID) {
+void SMC_Utils::smc_update_float_ptr(priv_ptr ptr, priv_int **var_loc, priv_int private_tag, int index, int threadID) {
     update_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, index, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_update_struct_ptr(priv_ptr ptr, void *var_loc, mpz_t private_tag, int index, int threadID) {
+void SMC_Utils::smc_update_struct_ptr(priv_ptr ptr, void *var_loc, priv_int private_tag, int index, int threadID) {
     update_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, index, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_update_ptr(priv_ptr ptr, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID) {
+void SMC_Utils::smc_update_ptr(priv_ptr ptr, priv_ptr *ptr_loc, priv_int private_tag, int index, int threadID) {
     update_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, index, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID) {
+void SMC_Utils::smc_update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, priv_int private_tag, int index, int threadID) {
     update_ptr(assign_ptr, right_ptr, private_tag, index, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_add_int_ptr(priv_ptr ptr, mpz_t *var_loc, mpz_t private_tag, int threadID) {
+void SMC_Utils::smc_add_int_ptr(priv_ptr ptr, priv_int *var_loc, priv_int private_tag, int threadID) {
     add_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, threadID);
 }
 
-void SMC_Utils::smc_add_float_ptr(priv_ptr ptr, mpz_t **var_loc, mpz_t private_tag, int threadID) {
+void SMC_Utils::smc_add_float_ptr(priv_ptr ptr, priv_int **var_loc, priv_int private_tag, int threadID) {
     add_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, threadID);
 }
 
-void SMC_Utils::smc_add_struct_ptr(priv_ptr ptr, void *var_loc, mpz_t private_tag, int threadID) {
+void SMC_Utils::smc_add_struct_ptr(priv_ptr ptr, void *var_loc, priv_int private_tag, int threadID) {
     add_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, threadID);
 }
 
-void SMC_Utils::smc_add_ptr(priv_ptr ptr, priv_ptr *ptr_loc, mpz_t private_tag, int threadID) {
+void SMC_Utils::smc_add_ptr(priv_ptr ptr, priv_ptr *ptr_loc, priv_int private_tag, int threadID) {
     add_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, threadID);
 }
 
@@ -1083,43 +1109,43 @@ void SMC_Utils::smc_shrink_ptr(priv_ptr ptr, int current_index, int parent_index
     shrink_ptr(ptr, current_index, parent_index, threadID);
 }
 /********************/
-void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, mpz_t result, int num_of_dereferences, mpz_t priv_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, priv_int result, int num_of_dereferences, priv_int priv_cond, std::string type, int threadID) {
     dereference_ptr_read_var(ptr, result, num_of_dereferences, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, mpz_t *result, int num_of_dereferences, mpz_t priv_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, priv_int *result, int num_of_dereferences, priv_int priv_cond, std::string type, int threadID) {
     dereference_ptr_read_var(ptr, result, num_of_dereferences, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, priv_ptr result, int num_of_dereferences, mpz_t priv_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_read_ptr(priv_ptr ptr, priv_ptr result, int num_of_dereferences, priv_int priv_cond, std::string type, int threadID) {
     dereference_ptr_read_ptr(ptr, result, num_of_dereferences, priv_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, mpz_t value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_int value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write_var(ptr, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_int_ptr(priv_ptr ptr, mpz_t *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_int_ptr(priv_ptr ptr, priv_int *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write(ptr, value, NULL, NULL, NULL, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, mpz_t *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_int *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write_var(ptr, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_float_ptr(priv_ptr ptr, mpz_t **value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_float_ptr(priv_ptr ptr, priv_int **value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write(ptr, NULL, value, NULL, NULL, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_struct_ptr(priv_ptr ptr, void *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_struct_ptr(priv_ptr ptr, void *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write(ptr, NULL, NULL, value, NULL, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr *value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write(ptr, NULL, NULL, NULL, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr value, int num_of_dereferences, mpz_t private_cond, std::string type, int threadID) {
+void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
     dereference_ptr_write_ptr(ptr, value, num_of_dereferences, private_cond, threadID, net, id, ss);
 }
 /*******************************************/
@@ -1134,164 +1160,166 @@ void SMC_Utils::smc_free_ptr(priv_ptr **ptrs, int num) {
     destroy_ptr(ptrs, num);
 }
 
-void SMC_Utils::smc_int2fl(int value, mpz_t *result, int gamma, int K, int L, int threadID) {
+#endif
+
+void SMC_Utils::smc_int2fl(int value, priv_int *result, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, gamma, K, L, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID) {
+void SMC_Utils::smc_int2fl(priv_int value, priv_int *result, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, gamma, K, L, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_int2int(int value, mpz_t result, int gamma1, int gamma2, int threadID) {
+void SMC_Utils::smc_int2int(int value, priv_int result, int gamma1, int gamma2, int threadID) {
     ss_int2int(value, result, gamma1, gamma2, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_int2int(mpz_t value, mpz_t result, int gamma1, int gamma2, int threadID) {
+void SMC_Utils::smc_int2int(priv_int value, priv_int result, int gamma1, int gamma2, int threadID) {
     ss_int2int(value, result, gamma1, gamma2, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID) {
+void SMC_Utils::smc_fl2int(float value, priv_int result, int K, int L, int gamma, int threadID) {
     ss_fl2int(value, result, K, L, gamma, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID) {
+void SMC_Utils::smc_fl2int(priv_int *value, priv_int result, int K, int L, int gamma, int threadID) {
     ss_fl2int(value, result, K, L, gamma, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID) {
+void SMC_Utils::smc_fl2fl(float value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
     ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID) {
+void SMC_Utils::smc_fl2fl(priv_int *value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
     ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, id, ss);
 }
 
 /************************************ INTEGER BATCH ****************************************/
-void SMC_Utils::smc_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // used to compute 1-priv_cond in a batch stmt
-void SMC_Utils::smc_batch(int a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
+void SMC_Utils::smc_batch(int a, priv_int *b, priv_int *result, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
     ss_batch(a, b, result, out_cond, priv_cond, counter, index_array, size, op, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t *a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
     ss_batch(a, b, result, out_cond, priv_cond, counter, index_array, size, op, threadID, net, id, ss);
 }
 
 // first param: int array
 // second param: int array
 // third param: one-dim private int array
-void SMC_Utils::smc_batch(int *a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: int array
 // second param: int array
 // third param: two-dim private int array
-void SMC_Utils::smc_batch(int *a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: int array
 // second param: one-dim private int array
 // third param: one-dim private int array
-void SMC_Utils::smc_batch(int *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: int array
 // second param: one-dim private int array
 // third param: two-dim private int array
-void SMC_Utils::smc_batch(int *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, priv_int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: one-dim private int array
 // second param: int array
 // third param: one-dim private int array
-void SMC_Utils::smc_batch(mpz_t *a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: one-dim private int array
 // second param: int array
 // third param: two-dim private int array
-void SMC_Utils::smc_batch(mpz_t *a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: integer array
 // second param: two-dim private int
 // assignment param: one-dim private int
-void SMC_Utils::smc_batch(int *a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, priv_int **b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: integer array
 // second param: two-dim private int
 // assignment param: two-dim private int
-void SMC_Utils::smc_batch(int *a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, priv_int **b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: two-dim private int
 // second param: integer array
 // assignment param: one-dim private int
-void SMC_Utils::smc_batch(mpz_t **a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: two-dim private int
 // second param: integer array
 // assignment param: two-dim private int
-void SMC_Utils::smc_batch(mpz_t **a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: one-dim private int
 // second param: two-dim private int
 // assignment param: two-dim private int
-void SMC_Utils::smc_batch(mpz_t *a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, priv_int **b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: two-dim private int
 // second param: one-dim private int
 // assignment param: two-dim private int
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: two-dim private int
 // second param: two-dim private int
 // assignment param: one-dim private int
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: one-dim private int
 // second param: one-dim private int
 // assignment param: two-dim private int
-void SMC_Utils::smc_batch(mpz_t *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 // first param: one-dim private int
 // second param: two-dim private int
 // assignment param: one-dim private int
-void SMC_Utils::smc_batch(mpz_t *a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int *a, priv_int **b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // first param: two-dim private int
 // second param: one-dim private int
 // assignment param: one-dim private int
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_dot(mpz_t **a, mpz_t **b, int size, int array_size, int *index_array, mpz_t *result, int threadID) {
+void SMC_Utils::smc_batch_dot(priv_int **a, priv_int **b, int size, int array_size, int *index_array, priv_int *result, int threadID) {
     ss_batch_dot(a, b, size, array_size, index_array, result, threadID, net, id, ss);
 }
 
@@ -1299,81 +1327,81 @@ void SMC_Utils::smc_batch_dot(mpz_t **a, mpz_t **b, int size, int array_size, in
 // second param: two-dim private int
 // assignment param: two-dim private int
 
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 /*********************************************** FLOAT BATCH ****************************************************/
 // public + private one-dimension float - arithmetic
-void SMC_Utils::smc_batch(float *a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, priv_int **b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t **a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, float *b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(float *a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, priv_int **b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t **a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, float *b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // public to private assignments
-void SMC_Utils::smc_batch(float *a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, float *b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(int *a, int *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, int *b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(float *a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, float *b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(int *a, int *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(int *a, int *b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // public + private two-dimension float - arithmetic
-void SMC_Utils::smc_batch(float *a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, priv_int ***b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t ***a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, float *b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(float *a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, priv_int ***b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t ***a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, float *b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // public + private one-dimension float - comparison
-void SMC_Utils::smc_batch(float *a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, priv_int **b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t **a, float *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, float *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // public + private two-dimension float - comparison
-void SMC_Utils::smc_batch(float *a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(float *a, priv_int ***b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t ***a, float *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, float *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
@@ -1381,7 +1409,7 @@ void SMC_Utils::smc_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen_sig, in
 // second parameter: two-dim float
 // assignment parameter: two-dim float
 
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int ***b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
@@ -1389,7 +1417,7 @@ void SMC_Utils::smc_batch(mpz_t **a, mpz_t ***b, mpz_t ***result, int alen_sig, 
 // second parameter: one-dim float
 // assignment parameter: two-dim float
 
-void SMC_Utils::smc_batch(mpz_t ***a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, priv_int **b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
@@ -1397,7 +1425,7 @@ void SMC_Utils::smc_batch(mpz_t ***a, mpz_t **b, mpz_t ***result, int alen_sig, 
 // second parameter: two-dim float
 // assignment parameter: one-dim float
 
-void SMC_Utils::smc_batch(mpz_t ***a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, priv_int ***b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
@@ -1405,7 +1433,7 @@ void SMC_Utils::smc_batch(mpz_t ***a, mpz_t ***b, mpz_t **result, int alen_sig, 
 // second parameter: one-dim float
 // assignment parameter: one-dim float
 
-void SMC_Utils::smc_batch(mpz_t ***a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, priv_int **b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
@@ -1413,7 +1441,7 @@ void SMC_Utils::smc_batch(mpz_t ***a, mpz_t **b, mpz_t **result, int alen_sig, i
 // second parameter: two-dim float
 // assignment parameter: one-dim float
 
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int ***b, priv_int **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
@@ -1421,136 +1449,136 @@ void SMC_Utils::smc_batch(mpz_t **a, mpz_t ***b, mpz_t **result, int alen_sig, i
 // second parameter: one-dim float
 // assignment parameter: two-dim float
 
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // two dimension float general computation
-void SMC_Utils::smc_batch(mpz_t ***a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, priv_int ***b, priv_int ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // two-dimensional float comparison
-void SMC_Utils::smc_batch(mpz_t ***a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, priv_int ***b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // one-dimensional float and two-dimensional float comparison
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int ***b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // two-dimensional float and one-dimensional float comparison
-void SMC_Utils::smc_batch(mpz_t ***a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int ***a, priv_int **b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 // one-dimensional float and one-dimensional float comparison
-void SMC_Utils::smc_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, id, ss);
 }
 
 /* conversion from public integer to private float*/
-void SMC_Utils::smc_batch_int2fl(int *a, mpz_t **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2fl(int *a, priv_int **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2fl(a, result, adim, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
 /* conversion from private integer to private float */
 // one-dimensional int array to one-dimensional float array
-void SMC_Utils::smc_batch_int2fl(mpz_t *a, mpz_t **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2fl(priv_int *a, priv_int **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2fl(a, result, adim, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_int2fl(int *a, mpz_t ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2fl(int *a, priv_int ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2fl(a, result, adim, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
 // one-dimensional int array to two-dimensional float array
-void SMC_Utils::smc_batch_int2fl(mpz_t *a, mpz_t ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2fl(priv_int *a, priv_int ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2fl(a, result, adim, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
 // two-dimensional int array to one-dimensional float array
-void SMC_Utils::smc_batch_int2fl(mpz_t **a, mpz_t **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2fl(priv_int **a, priv_int **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2fl(a, result, adim, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
 // two-dimensional int array to two-dimensional float array
-void SMC_Utils::smc_batch_int2fl(mpz_t **a, mpz_t ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2fl(priv_int **a, priv_int ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2fl(a, result, adim, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
 /*FL2INT*/
-void SMC_Utils::smc_batch_fl2int(float *a, mpz_t *result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2int(float *a, priv_int *result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2int(a, result, adim, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2int(float *a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2int(float *a, priv_int **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2int(a, result, adim, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2int(mpz_t **a, mpz_t *result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2int(priv_int **a, priv_int *result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2int(a, result, adim, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2int(mpz_t **a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2int(priv_int **a, priv_int **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2int(a, result, adim, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2int(mpz_t ***a, mpz_t *result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2int(priv_int ***a, priv_int *result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2int(a, result, adim, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2int(mpz_t ***a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2int(priv_int ***a, priv_int **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2int(a, result, adim, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 // INT2INT
-void SMC_Utils::smc_batch_int2int(int *a, mpz_t *result, int adim, int resultdim, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2int(int *a, priv_int *result, int adim, int resultdim, int alen, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2int(a, result, adim, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_int2int(int *a, mpz_t **result, int adim, int resultdim, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2int(int *a, priv_int **result, int adim, int resultdim, int alen, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2int(a, result, adim, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_int2int(mpz_t *a, mpz_t *result, int adim, int resultdim, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2int(priv_int *a, priv_int *result, int adim, int resultdim, int alen, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2int(a, result, adim, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_int2int(mpz_t **a, mpz_t *result, int adim, int resultdim, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2int(priv_int **a, priv_int *result, int adim, int resultdim, int alen, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2int(a, result, adim, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_int2int(mpz_t *a, mpz_t **result, int adim, int resultdim, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2int(priv_int *a, priv_int **result, int adim, int resultdim, int alen, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2int(a, result, adim, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_int2int(mpz_t **a, mpz_t **result, int adim, int resultdim, int alen, int blen, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_int2int(priv_int **a, priv_int **result, int adim, int resultdim, int alen, int blen, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_int2int(a, result, adim, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
 // FL2FL
-void SMC_Utils::smc_batch_fl2fl(float *a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2fl(float *a, priv_int **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2fl(float *a, mpz_t ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2fl(float *a, priv_int ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2fl(mpz_t **a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2fl(priv_int **a, priv_int **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2fl(mpz_t **a, mpz_t ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2fl(priv_int **a, priv_int ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2fl(mpz_t ***a, mpz_t **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2fl(priv_int ***a, priv_int **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
-void SMC_Utils::smc_batch_fl2fl(mpz_t ***a, mpz_t ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID) {
+void SMC_Utils::smc_batch_fl2fl(priv_int ***a, priv_int ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, id, ss);
 }
 
@@ -1564,38 +1592,40 @@ double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     return elapsed;
 }
 
-void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen, int size, int threadID) {
+void SMC_Utils::smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, int threadID) {
 #if __DEPLOYMENT__
     printf("DEPLOYMENT MODE\n");
 #else
     printf("BENCHMARK MODE\n");
 #endif
 
-    mpz_t *res = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *a_test = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *res_check = (mpz_t *)malloc(sizeof(mpz_t) * size);
+#if __SHAMIR__
+
+    priv_int *res = (priv_int *)malloc(sizeof(priv_int) * size);
+    priv_int *a_test = (priv_int *)malloc(sizeof(priv_int) * size);
+    priv_int *res_check = (priv_int *)malloc(sizeof(priv_int) * size);
     for (int i = 0; i < size; ++i) {
-        mpz_init(res[i]);
-        mpz_init(a_test[i]);
-        mpz_init(res_check[i]);
+        ss_init(res[i]);
+        ss_init(a_test[i]);
+        ss_init(res_check[i]);
     }
 
     int K = 10;
     int M = K - 1;
 
-    mpz_t field;
-    mpz_init(field);
+    priv_int field;
+    ss_init(field);
     ss->getFieldSize(field);
     printf("Testing PRandInt for (K = %i, M = %i), size = %i)\n", K, M, size);
     PRandInt(K, M, size, a_test, threadID, ss);
 
-    mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
+    priv_int **S = (priv_int **)malloc(sizeof(priv_int *) * (M + 1));
 
     M = 32;
     for (int i = 0; i < M + 1; i++) {
-        S[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        S[i] = (priv_int *)malloc(sizeof(priv_int) * size);
         for (int j = 0; j < size; j++)
-            mpz_init(S[i][j]);
+            ss_init(S[i][j]);
     }
     Open_print(MPZ_CAST(a[2]), "a[2]", size, threadID, net, ss);
 
@@ -1606,7 +1636,7 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
 
     for (int i = 0; i < M + 1; i++) {
         for (int j = 0; j < size; j++)
-            mpz_clear(S[i][j]);
+            ss_clear(S[i][j]);
         free(S[i]);
     }
     free(S);
@@ -1623,11 +1653,11 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
     // K = 32;
     // int Kp1 = K + 1;
     // M = ceil(log2(K));
-    // mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (Kp1));
+    // priv_int **V = (priv_int **)malloc(sizeof(priv_int *) * (Kp1));
     // for (int i = 0; i < Kp1; ++i) {
-    //     V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    //     V[i] = (priv_int *)malloc(sizeof(priv_int) * size);
     //     for (int j = 0; j < size; ++j)
-    //         mpz_init(V[i][j]);
+    //         ss_init(V[i][j]);
     // }
 
     // // gmp_printf("Testing PRZS for (mod = %Zu), size = %i)\n", field, size);
@@ -1653,10 +1683,10 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
 
     // // Open(V[0], res, size, threadID, net, ss);
     // for (int j = 0; j < size; j++) {
-    //     mpz_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
+    //     ss_set(res_check[j], V[0][j]); // setting the first bit of accumulator to b_0
     // }
-    // mpz_t temp;
-    // mpz_init(temp);
+    // priv_int temp;
+    // ss_init(temp);
 
     // for (int i = 1; i < Kp1 - 1; i++) {
     //     pow = pow << 1;
@@ -1679,32 +1709,42 @@ void SMC_Utils::smc_test_op(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *resul
 
     // for (int i = 0; i < Kp1; ++i) {
     //     for (int j = 0; j < size; ++j)
-    //         mpz_clear(V[i][j]);
+    //         ss_clear(V[i][j]);
     //     free(V[i]);
     // }
 
     for (int i = 0; i < size; ++i) {
-        mpz_clear(res[i]);
-        mpz_clear(a_test[i]);
-        mpz_clear(res_check[i]);
+        ss_clear(res[i]);
+        ss_clear(a_test[i]);
+        ss_clear(res_check[i]);
     }
-    mpz_clear(field);
+    ss_clear(field);
 
     free(res_check);
     free(res);
     free(a_test);
+
+#endif
 }
 
 // seed_map - contains binary encodings of access sets T (as defined in Baccarini et al., "Multi-Party Replicated Secret Sharing over a Ring with Applications to Privacy-Preserving Machine Learning," 2023)
 // 2*KEYSIZE - 16 bytes for
-void SMC_Utils::seedSetup(vector<int> &seed_map, int peers, int threshold) {
+void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) {
     uint8_t RandomData_send[2 * KEYSIZE];
     uint8_t RandomData_recv[2 * KEYSIZE];
     memset(RandomData_recv, 0, sizeof(uint8_t) * 2 * KEYSIZE);
-    vector<int> T_recv, send_map, recv_map; // declaring once to be reused
+
 #if __SHAMIR__
-    vector<int> coefficients;
+    std::vector<int> coefficients;
+    // typedef int var_type; // this is here because I don't feel like refactoring shamirSS to use uints
 #endif
+#if __RSS__
+    // typedef int var_type; // this is here because I don't feel like refactoring shamirSS to use uints
+    // typedef uint var_type;
+#endif
+
+    std::vector<int> T_recv, send_map, recv_map; // declaring once to be reused
+
     // its fine to reuse vectors when inserting into the final mapping
     FILE *fp = fopen("/dev/urandom", "r"); // used for pulling good randomness for seeds
     try {
@@ -1717,8 +1757,8 @@ void SMC_Utils::seedSetup(vector<int> &seed_map, int peers, int threshold) {
 
             assert(send_map.size() == recv_map.size());
             for (size_t i = 0; i < send_map.size(); i++) {
-                net.sendDataToPeer(send_map[i], 2 * KEYSIZE, RandomData_send);
-                net.getDataFromPeer(recv_map[i], 2 * KEYSIZE, RandomData_recv);
+                net.sendDataToPeer(static_cast<int>(send_map[i]), 2 * KEYSIZE, RandomData_send);
+                net.getDataFromPeer(static_cast<int>(recv_map[i]), 2 * KEYSIZE, RandomData_recv);
 
                 // generating the share id T corresponding to the key I just recieved
                 T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
@@ -1758,9 +1798,9 @@ void SMC_Utils::seedSetup(vector<int> &seed_map, int peers, int threshold) {
 // result - UNsorted vector of party ID's with or without access
 // ANB: w.r.t. sending keys for seeds, DONT CHANGE THE ORDER (yet)
 // this explicitly informs us the exact order which shares will be sent/received from
-vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers, int id) {
+std::vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers, int id) {
     // iterate through bits from right to left
-    vector<int> result;
+    std::vector<int> result;
     for (int i = 1; i < peers; i++) { // scans through remaining n-1 (LSB always set)
         if (GET_BIT(binary_rep, i)) {
             result.push_back(((id + i - 1) % peers + 1));
@@ -1768,9 +1808,9 @@ vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers, int 
     }
     return result;
 }
-vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
+std::vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
     // iterate through bits from left to right
-    vector<int> result;
+    std::vector<int> result;
     for (int i = peers - 1; i > 0; i--) { // scans through remaining n-1 (LSB always set)
         if (!GET_BIT(binary_rep, i)) {
             result.push_back(((id + i - 1) % peers + 1));
