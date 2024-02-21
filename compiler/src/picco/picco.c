@@ -253,20 +253,23 @@ int getopts(int argc, char *argv[]) {
 /*Helper Functions for laodConfig() used to check if a value
 is a number and remove any extra digits from the input.
 
-removeNonDigit(value)
+removeSpaces(value)
 This function takes a string (value) and removes any non-digit characters, replacing them with a space.
 
 isNumeric(value)
 This function checks if a given string (value) contains only numeric characters.
 */
 
-char *removeNonDigit(char *value) {
-    for (char *c = value; *c; ++c) {
-        if (!isdigit(*c)) {
-            *c = ' ';
+void removeSpaces(char *str) {
+    int i = 0, j = 0; // i is used to iterate over the original string, j for placing non-space characters
+
+    while (str[i]) {       // iterate until the end of the string
+        if (str[i] != ' ') { // if the current character is not a space
+            str[j++] = str[i]; // copy it to the jth position, then increment j
         }
+        i++; // always increment i
     }
-    return value;
+    str[j] = '\0'; // null-terminate the modified string
 }
 
 int isNumeric(const char *value) {
@@ -328,20 +331,42 @@ void loadConfig(char *config) {
             }
 
             // Updates the configuration values based on the encountered keys.
+            removeSpaces(value);
             if (strcmp(key, "bits") == 0) {
-                bits = atoi(removeNonDigit(value));
+                removeSpaces(value);
+                bits = atoi((value));
                 if (bits == 0) {
-                    fprintf(stderr, "Error: 'bits' must be either empty or a non-zero integer.\n");
-                    exit(1);
+                fprintf(
+                    stderr,
+                    "Error: 'bits' must be either empty or a non-zero integer.\n");
+                exit(1);
                 }
             } else if (strcmp(key, "peers") == 0) {
-                peers = atoi(removeNonDigit(value));
+                if (strcmp(key, "peers") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                peers = atoi((value));
             } else if (strcmp(key, "threshold") == 0) {
-                threshold = atoi(removeNonDigit(value));
+                if (strcmp(key, "threshold") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                threshold = atoi((value));
             } else if (strcmp(key, "inputs") == 0) {
-                inputs = atoi(removeNonDigit(value));
+                if (strcmp(key, "inputs") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                inputs = atoi((value));
+
             } else if (strcmp(key, "outputs") == 0) {
-                outputs = atoi(removeNonDigit(value));
+                if (strcmp(key, "outputs") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                outputs = atoi((value));
+
             } else if (strcmp(key, "technique") == 0) {
                 strncpy(technique, value, sizeof(technique) - 1);
                 technique[sizeof(technique) - 1] = '\0';
@@ -362,14 +387,6 @@ void loadConfig(char *config) {
                 }
             }
 
-            // Validate numeric fields and terminate with an error if anything else is given.
-            if ((strcmp(key, "bits") == 0 || strcmp(key, "peers") == 0 ||
-                 strcmp(key, "threshold") == 0 || strcmp(key, "inputs") == 0 ||
-                 strcmp(key, "outputs") == 0) &&
-                !isNumeric(value)) {
-                fprintf(stderr, "Error: %s must be a single integer.\n", key);
-                exit(1);
-            }
         } else {
             // Check for = only if the line is not a key:value meaning if user inputs key=value or key_value or key-value
             if (strstr(line, "bits:") == NULL &&
