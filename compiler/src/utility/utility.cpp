@@ -150,9 +150,9 @@ void readVarList(std::ifstream &var_list, std::ifstream inputFiles[], std::ofstr
             while (std::getline(var_list, line)) {
                 temp = splitfunc(line.c_str(), ":");
                 if (!temp[0].compare("I")) {
-                    if (tokens.size() < 5) {
-                        throw std::invalid_argument("Invalid number of tokens in input line: " + line);
-                    }
+                    // if (tokens.size() < 5) {
+                    //     throw std::invalid_argument("Invalid number of tokens in input line: " + line);
+                    // }
                     tokens = splitfunc(temp[1].c_str(), ",");
                     secrecy = atoi(tokens[0].c_str());
                     name = tokens[1];
@@ -180,9 +180,9 @@ void readVarList(std::ifstream &var_list, std::ifstream inputFiles[], std::ofstr
             while (std::getline(var_list, line)) {
                 temp = splitfunc(line.c_str(), ":");
                 if (!temp[0].compare("O")) {
-                    if (tokens.size() < 5) {
-                        throw std::invalid_argument("Invalid number of tokens in output line: " + line);
-                    }
+                    // if (tokens.size() < 5) {
+                    //     throw std::invalid_argument("Invalid number of tokens in output line: " + line);
+                    // }
                     tokens = splitfunc(temp[1].c_str(), ",");
                     secrecy = atoi(tokens[0].c_str());
                     name = tokens[1];
@@ -300,9 +300,9 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         for (int j = 0; j < tokens.size(); j++)
                             shares[k][j] = tokens[j];
                 }
-                if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
-                    throw std::runtime_error("[Int] Shares vector is not set correctly.");
-                }
+                // if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
+                //     throw std::runtime_error("[Int] Shares vector is not set correctly.");
+                // }
                 if (secrecy == 1) {
                     try {
                         result = ss->reconstructSecret(shares, size2);
@@ -370,9 +370,9 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         for (int l = 0; l < 4; l++)
                             shares[k][l] = tokens[l];
                     }
-                    if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
-                        throw std::runtime_error("[Private Float] Shares vector is not set correctly.");
-                    }
+                    // if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
+                    //     throw std::runtime_error("[Private Float] Shares vector is not set correctly.");
+                    // }
                     if (secrecy == 1) {
                         try {
                             result = ss->reconstructSecret(shares, 4);
