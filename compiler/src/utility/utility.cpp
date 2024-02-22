@@ -30,6 +30,7 @@
 #include <string>
 #include <iostream>
 #include <cstdlib>
+#include <unordered_set>
 
 #ifdef _WIN32
     #include <direct.h>
@@ -85,8 +86,9 @@ int main(int argc, char **argv) {
         /************************************************/
         // open var_list and set values for parameters
         var_list.open(argv[4], std::ifstream::in);
+        // Checks is the utility-conf opens or not 
         if (!var_list) {
-            throw std::runtime_error("Variable list var_list cannot be opened");
+            throw std::runtime_error("Variable list file " + std::string(argv[4]) + " cannot be opened. Check your file path!");
         }
 
         mpz_init(modulus_shamir);
@@ -137,7 +139,7 @@ int main(int argc, char **argv) {
             outputFiles[i].close();
 
     } catch (const std::exception &e) {
-        std::cerr << "[utility.cpp, main] " << e.what() << "\nExiting...";
+        std::cerr << "Error: [utility.cpp, main] " << e.what() << "\nExiting...\n";
         exit(1);
     }
 }
@@ -154,9 +156,6 @@ void readVarList(std::ifstream &var_list, std::ifstream inputFiles[], std::ofstr
             while (std::getline(var_list, line)) {
                 temp = splitfunc(line.c_str(), ":");
                 if (!temp[0].compare("I")) {
-                    // if (tokens.size() < 5) {
-                    //     throw std::invalid_argument("Invalid number of tokens in input line: " + line);
-                    // }
                     tokens = splitfunc(temp[1].c_str(), ",");
                     secrecy = atoi(tokens[0].c_str());
                     name = tokens[1];
@@ -184,9 +183,6 @@ void readVarList(std::ifstream &var_list, std::ifstream inputFiles[], std::ofstr
             while (std::getline(var_list, line)) {
                 temp = splitfunc(line.c_str(), ":");
                 if (!temp[0].compare("O")) {
-                    // if (tokens.size() < 5) {
-                    //     throw std::invalid_argument("Invalid number of tokens in output line: " + line);
-                    // }
                     tokens = splitfunc(temp[1].c_str(), ",");
                     secrecy = atoi(tokens[0].c_str());
                     name = tokens[1];
@@ -304,9 +300,6 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         for (int j = 0; j < tokens.size(); j++)
                             shares[k][j] = tokens[j];
                 }
-                // if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
-                //     throw std::runtime_error("[Int] Shares vector is not set correctly.");
-                // }
                 if (secrecy == 1) {
                     try {
                         result = ss->reconstructSecret(shares, size2);
@@ -374,9 +367,6 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         for (int l = 0; l < 4; l++)
                             shares[k][l] = tokens[l];
                     }
-                    // if (shares.size() != numOfComputeNodes || shares[0].size() != size2) {
-                    //     throw std::runtime_error("[Private Float] Shares vector is not set correctly.");
-                    // }
                     if (secrecy == 1) {
                         try {
                             result = ss->reconstructSecret(shares, 4);
@@ -417,7 +407,7 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
             throw std::runtime_error("Wrong type has been detected");
         }
     } catch (const std::runtime_error &e) {
-        std::cerr << "[utility.cpp, produceOutputs] " << e.what() << "\nExiting..." << std::endl;
+        std::cerr << "[utility.cpp, produceOutputs] " << e.what() << "\nExiting...\n";
         std::exit(1);
     }
 }
@@ -528,7 +518,7 @@ void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std:
         }
         // No need to clear the shares vector
     } catch (const std::runtime_error &e) {
-        std::cerr << "[utility.cpp, produceInputs] " << e.what() << "\nExiting..." << std::endl;
+        std::cerr << "[utility.cpp, produceInputs] " << e.what() << "\nExiting...\n";
         std::exit(1);
     }
 }
@@ -545,57 +535,109 @@ the data and store it to the appropriate variables as follow:
 7. modulus_shamir = modulus_shamir (Conditional - set only if shamir is used)
 */
 void loadConfig() {
-    try {
-        std::string line;
-        std::vector<std::string> tokens;
-        int results[6]; // 6 params for both shamir and RSS
+    std::string line;
+    std::vector<std::string> tokens;
+    std::unordered_set<std::string> variableSet; // Store the name of variable to check for duplicate variables
+    std::unordered_set<std::string> validVariables = {"technique", "bits", "peers", "threshold", "inputs", "outputs"}; // Valid variable names
+    int results[6]; // 6 params for both shamir and RSS
+    int peer_value = 1;
 
-        for (int i = 0; i < 6; i++) {
-            std::getline(var_list, line);
-            tokens = splitfunc(line.c_str(), ":");
-            if (tokens.size() < 2) {
-                throw std::runtime_error("Invalid configuration format: missing value");
-            }
-            results[i] = std::atoi(tokens[1].c_str());
+    for (int i = 0; i < 6; i++) {
+        std::getline(var_list, line);
+        tokens = splitfunc(line.c_str(), ":");
+
+        // Validate line format // If either key/value is missing or empty
+        if (tokens.size() != 2 || tokens[0].empty() || tokens[1].empty()) {
+            throw std::runtime_error("[loadConfig, Reading var_list] Invalid configuration format: each line must be in the form 'var:value'");
         }
 
-        // Based on the technique used read the last element (shamir, rss))
-        technique = results[0];
-        bits = results[1];
-        numOfComputeNodes = results[2];
-        threshold = results[3];
-        numOfInputNodes = results[4];
-        numOfOutputNodes = results[5];
-
-        // only if technique is SHAMIR, read the next line to get the modulus
-        // this was causing a problem with utility for RSS in produceInputs
-        if (technique == SHAMIR_SS) {
-            // if RSS, this starts to read lines with info about inputs, hence why it's only called if technique=shamir
-            std::getline(var_list, line); 
-            tokens = splitfunc(line.c_str(), ":");
-            if (tokens.size() < 2) {
-                throw std::runtime_error("Invalid configuration format: missing modulus value");
-            }
-            mpz_init(modulus_shamir);
-            mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
+        // Check if variable name is misspelled
+        if (validVariables.find(tokens[0]) == validVariables.end()) {
+            throw std::runtime_error("[loadConfig, Reading var_list] Unknown variable found: " + tokens[0]);
+        }
+        
+        // Check for duplicate variable
+        /* Logic used: 
+            - insert each variable name token[0] to the set
+            - Use .second to check if the insertion took place or not
+            - If false -> means the name was already in the set 
+            - Throw an exception saying a duplicated value was encountered 
+        */
+        if (!variableSet.insert(tokens[0]).second) {
+            throw std::runtime_error("[loadConfig, Reading var_list] Duplicate variable found: " + tokens[0] + "\n");
         }
 
-        if (technique == SHAMIR_SS) {
-            ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
-        } else if (technique == REPLICATED_SS) {
-            if (bits <= 8) {                                               // Bits less than or equal to 8
-                ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); // the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
-            } else if (bits >= 9 && bits <= 16) {                          // Between 9 and 16 inclusive
-                ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits);
-            } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
-                ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits);
-            } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
-                ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits);
+        // Check if the technique is shamir or rss
+        if (tokens[0] == "technique") {
+            if (std::stoi(tokens[1]) != 2 && std::stoi(tokens[1]) != 2) {
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for technique: '" + tokens[1] + "'. Must use single integer '2' for SHAMIR_SS or '1' for REPLICATED_SS!\n");
             }
         }
-    } catch (const std::runtime_error &e) {
-        std::cerr << "[utility.cpp, loadConfig] " << e.what() << "\nExiting..." << std::endl;
-        std::exit(1);
+        
+        // Check if values are all positive and non-zero
+        if (tokens[0] == "bits" || tokens[0] == "peers" || tokens[0] == "threshold" || tokens[0] == "inputs" || tokens[0] == "outputs") {
+            if (std::stoi(tokens[1]) <= 0) {
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": must be a non-zero and positive integer\n");
+            }
+        }
+
+        // Check if peers is set correctly
+        if (tokens[0] == "peers") {
+            if (std::stoi(tokens[1]) % 2 == 0) {
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for peers: must be an odd integer and equal to 2 * threshold + 1\n");
+            } else {
+                peer_value = std::stoi(tokens[1]);
+            }
+        }
+
+        // Check if threshold is set correctly
+        if (tokens[0] == "threshold") {
+            if (std::stoi(tokens[1]) != ((peer_value-1) / 2)) {
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for threshold: must be consistant to this formula 'peers=2*threshold+1' The given peer is: " +  std::to_string(peer_value) + ". The threshold should be set accordingly!");
+            } 
+        }
+        results[i] = std::atoi(tokens[1].c_str());
+    }
+
+    // Based on the technique used read the last element (shamir, rss))
+    technique = results[0];
+    bits = results[1];
+    numOfComputeNodes = results[2];
+    threshold = results[3];
+    numOfInputNodes = results[4];
+    numOfOutputNodes = results[5];
+
+    // only if technique is SHAMIR, read the next line to get the modulus
+    // this was causing a problem with utility for RSS in produceInputs
+    if (technique == SHAMIR_SS) {
+        // if RSS, this starts to read lines with info about inputs, hence why it's only called if technique=shamir
+        std::getline(var_list, line); 
+        tokens = splitfunc(line.c_str(), ":");
+        if (tokens.size() != 2 || tokens[0] != "modulus" || tokens[1].empty()) {
+            throw std::runtime_error("[loadConfig, Reading var_list] Invalid configuration format: missing or invalid modulus variable/value");
+        }
+        std::stringstream ss(tokens[1]);
+        signed long long int mod_value;
+        ss >> mod_value;
+        if (mod_value <= 0) {
+            throw std::runtime_error("[loadConfig, Reading var_list] Modulus should be a positive integer!");
+        }
+        mpz_init(modulus_shamir);
+        mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
+    }
+
+    if (technique == SHAMIR_SS) {
+        ss = new ShamirSS(numOfComputeNodes, threshold, modulus_shamir);
+    } else if (technique == REPLICATED_SS) {
+        if (bits <= 8) {                                               // Bits less than or equal to 8
+            ss = new RSS<uint8_t>(numOfComputeNodes, threshold, bits); // the last argument is supposed to be the ring size, which is stored in the bits field in utility_config
+        } else if (bits >= 9 && bits <= 16) {                          // Between 9 and 16 inclusive
+            ss = new RSS<uint16_t>(numOfComputeNodes, threshold, bits);
+        } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
+            ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits);
+        } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
+            ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits);
+        }
     }
 }
 
@@ -678,7 +720,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
         (*elements)[2] = z;
         (*elements)[3] = s;
     } catch (const std::exception &e) {
-        std::cerr << "[utility.cpp, convertFlost] " << e.what() << "\nExiting...";
+        std::cerr << "[utility.cpp, convertFlost] " << e.what() << "\nExiting...\n";
         std::exit(1);
     }
 }
@@ -702,7 +744,7 @@ void pathCreator(const std::string& file_name) {
             path_separator_pos = file_name.find('/', path_separator_pos + 1);
         }
     } catch (const std::exception& e) {
-        std::cerr << "[utility.cpp, pathCreator] creating the paths for " << file_name << e.what() << "\nExiting...";
+        std::cerr << "[utility.cpp, pathCreator] creating the paths for " << file_name << e.what() << "\nExiting...\n";
         std::exit(1);
     }
 }
