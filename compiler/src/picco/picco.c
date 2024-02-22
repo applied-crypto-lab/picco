@@ -82,47 +82,32 @@ int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
 
-// Code added to check for the path of the file name given
-int directoryExists(const char *path) {
-  DIR *dir = opendir(path);
-  if (dir != NULL) {
-     closedir(dir);
-     return 1; // Directory exists
-  } else {
-     return 0; // Directory doesn't exist or there was an error
-  }
-}
-
-// Create the directory using _mkdir for windows and makdir for UNix-like systems 
+// Create the directory using _mkdir for windows and mkdir for Unix-like systems 
 int createDirectory(const char *path) {
-  #ifdef _WIN32
-     return _mkdir(path);
-  #else
-     return mkdir(path, 0777);
-  #endif
+#ifdef _WIN32
+    return _mkdir(path);
+#else
+    return mkdir(path, 0777);
+#endif
 }
 
 // Function that creates the path and directory needed for files needed 
-void pathCreater(char *final_list){
+void pathCreater(char *final_list) {
+    char *path_separator = final_list;
+    char *next_separator = strchr(path_separator, '/');
     
-   // Check if the file name contains a path separator /
-   char *path_separator = strchr(final_list, '/');
-
-   // IF there is a path_separator
-   if (path_separator != NULL || strchr(final_list, '\\') != NULL) {
-
-      // File name contains a path, extract the directory path
-      char directory[256]; // array to store the path - I used the max possible 
-      strncpy(directory, final_list, path_separator - final_list);
-      directory[path_separator - final_list] = '\0';
-
-      // Check if the directory exists, create it if not
-      if (!directoryExists(directory)) {
-         if (createDirectory(directory) != 0) {
-            perror("Error creating directory");
-         }
-      }
-   }
+    // Loop through each segment of the path
+    while (next_separator != NULL) {
+        *next_separator = '\0'; // temporarily truncate the path
+        int result = createDirectory(final_list);
+        if (result != 0) {
+            fprintf(stderr, "Failed to create directory: %s\n", final_list);
+            exit(EXIT_FAILURE); // or handle error appropriately
+        }
+        *next_separator = '/'; // restore the path separator
+        path_separator = next_separator + 1; // move to the next segment
+        next_separator = strchr(path_separator, '/');
+    }
 }
 
 // will have new argument for flag

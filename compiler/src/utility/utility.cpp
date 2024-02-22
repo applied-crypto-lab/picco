@@ -117,7 +117,11 @@ int main(int argc, char **argv) {
         /******************************************************/
         // open all input and output files
         std::string file(argv[3]);
-        pathCreator(argv[5]);
+        try {
+            pathCreator(argv[5]);
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
         std::string output(argv[5]);
         stringstream s;
         openInputOutputFiles(file, output, inputFiles, outputFiles, mode);
@@ -682,21 +686,9 @@ void convertFloat(float value, int K, int L, long long **elements) {
 
 bool createDirectory(const std::string& path) {
 #ifdef _WIN32
-    #include <direct.h>
-    if (_mkdir(path.c_str()) == 0) {
-        return _mkdir(path.c_str()) == 0;
-    } else {
-        std::cerr << "[utility.cpp, createDirectory] Error creating directory: " << path << "\nExiting...";
-        std::exit(1);
-    }
+    return _mkdir(path.c_str()) == 0;
 #else
-    #include <sys/stat.h>
-    if (mkdir(path.c_str(), 0777) == 0) {
-        return mkdir(path.c_str(), 0777) == 0;
-    } else {
-        std::cerr << "[utility.cpp, createDirectory] Error creating directory: " << path << "\nExiting...";
-        std::exit(1);
-    }
+    return mkdir(path.c_str(), 0777) == 0;
 #endif
 }
 
@@ -704,10 +696,10 @@ bool createDirectory(const std::string& path) {
 void pathCreator(const std::string& file_name) {
     try {
         size_t path_separator_pos = file_name.find('/');
-        
-        if (path_separator_pos != std::string::npos || file_name.find('\\') != std::string::npos) {
+        while (path_separator_pos != std::string::npos) {
             std::string directory = file_name.substr(0, path_separator_pos);
             createDirectory(directory);
+            path_separator_pos = file_name.find('/', path_separator_pos + 1);
         }
     } catch (const std::exception& e) {
         std::cerr << "[utility.cpp, pathCreator] creating the paths for " << file_name << e.what() << "\nExiting...";
