@@ -541,10 +541,30 @@ void loadConfig() {
     std::unordered_set<std::string> validVariables = {"technique", "bits", "peers", "threshold", "inputs", "outputs"}; // Valid variable names
     int results[6]; // 6 params for both shamir and RSS
     int peer_value = 1;
+    bool techniqueEncountered = false; // Flag to track if 'technique' has been encountered
+    std::string::size_type pos; // The optional variable sent to stoi to check malformed input
+    int integer_value_token; // Variable to help check tokens
 
     for (int i = 0; i < 6; i++) {
         std::getline(var_list, line);
         tokens = splitfunc(line.c_str(), ":");
+
+        // Check if the token is an int or not before conversions 
+        /* Logic Used: The pos parameter in the std::stoi function call returns the index within the input string where parsing stopped. 
+        It's an optional output parameter used to indicate the position where the conversion stopped due to encountering a non-numeric character. 
+        - If the entire string can be converted to a valid integer without encountering any non-numeric characters, pos will be set to tokens[1].size(). 
+        This indicates that the entire string has been successfully parsed.
+        - If parsing stops before reaching the end of the string due to encountering a non-numeric character, pos will be set to the index of that character.
+        - This was used since the catch was not throwing an error if the given value was a number following with a character. This is due to stoi!
+        */
+        try {
+            integer_value_token = std::stoi(tokens[1], &pos);
+            if (pos != tokens[1].size()) {
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": '" + tokens[1] + "'. Conversion from string to integer failed.");
+            }
+        } catch (const std::invalid_argument& e) {
+            throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": '" + tokens[1] + "'. Conversion from string to integer failed.");
+        }
 
         // Validate line format // If either key/value is missing or empty
         if (tokens.size() != 2 || tokens[0].empty() || tokens[1].empty()) {
@@ -567,36 +587,45 @@ void loadConfig() {
             throw std::runtime_error("[loadConfig, Reading var_list] Duplicate variable found: " + tokens[0] + "\n");
         }
 
+        // Check to make sure the first value is always technique
+        if (!techniqueEncountered) {
+            if (tokens[0] != "technique") {
+                throw std::runtime_error("[loadConfig, Reading var_list] 'technique' must be the first variable encountered.");
+            }
+            techniqueEncountered = true; // Set the flag to true after encountering 'technique'
+        }
+
         // Check if the technique is shamir or rss
         if (tokens[0] == "technique") {
-            if (std::stoi(tokens[1]) != 2 && std::stoi(tokens[1]) != 2) {
+            if (integer_value_token != 2 && integer_value_token != 1) {
                 throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for technique: '" + tokens[1] + "'. Must use single integer '2' for SHAMIR_SS or '1' for REPLICATED_SS!\n");
             }
         }
         
         // Check if values are all positive and non-zero
         if (tokens[0] == "bits" || tokens[0] == "peers" || tokens[0] == "threshold" || tokens[0] == "inputs" || tokens[0] == "outputs") {
-            if (std::stoi(tokens[1]) <= 0) {
+            if (integer_value_token <= 0) {
                 throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": must be a non-zero and positive integer\n");
             }
         }
 
         // Check if peers is set correctly
         if (tokens[0] == "peers") {
-            if (std::stoi(tokens[1]) % 2 == 0) {
+            if (integer_value_token % 2 == 0) {
                 throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for peers: must be an odd integer and equal to 2 * threshold + 1\n");
             } else {
-                peer_value = std::stoi(tokens[1]);
+                peer_value = integer_value_token;
             }
         }
 
         // Check if threshold is set correctly
         if (tokens[0] == "threshold") {
-            if (std::stoi(tokens[1]) != ((peer_value-1) / 2)) {
+            if (integer_value_token != ((peer_value-1) / 2)) {
                 throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for threshold: must be consistant to this formula 'peers=2*threshold+1' The given peer is: " +  std::to_string(peer_value) + ". The threshold should be set accordingly!");
             } 
         }
-        results[i] = std::atoi(tokens[1].c_str());
+        // Assign integerValue to results[i]
+        results[i] = integer_value_token;
     }
 
     // Based on the technique used read the last element (shamir, rss))
