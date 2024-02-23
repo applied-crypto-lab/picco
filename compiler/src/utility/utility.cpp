@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
         try {
             pathCreator(argv[5]);
         } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
+            std::cerr << "[PathCreator] Error: " << e.what() << std::endl;
         }
         std::string output(argv[5]);
         stringstream s;
@@ -273,142 +273,200 @@ computations, depending on the parameters provided. Important variables used in 
 */
 
 void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy) {
-    try {
-        std::string line;
-        std::string value;
-        std::vector<std::string> tokens;
-        std::vector<std::string> temp;
-        double element = 0;
-        int dim = (size1 == 0) ? 1 : size1;
+    std::string line;
+    std::string value;
+    std::vector<std::string> tokens;
+    std::vector<std::string> temp;
+    double element = 0;
+    int dim = (size1 == 0) ? 1 : size1;
 
-        // works for both one or two dimensional arrays
-        if (!type.compare("int")) {
-            std::vector<std::vector<std::string>> shares;
-            // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
+    // works for both one or two dimensional arrays
+    if (!type.compare("int")) { // If this fails the last else will be throwed 
+        std::vector<std::vector<std::string>> shares;
+        // Set the size for shares[x][x] to numOfComputeNodes and for shares[x] to size2
+        try {
             shares.resize(numOfComputeNodes, std::vector<std::string>(size2));
-            // Set the size for result to size2
-            std::vector<long long> result(size2);
-            for (int i = 0; i < dim; i++) {
-                // extract the shares
-                for (int k = 0; k < numOfComputeNodes; k++) {
+        } catch (const std::bad_alloc& e) {
+            throw std::runtime_error("[Int] Failed to resize shares vector: " + std::string(e.what()));
+        }
+        // Set the size for result to size2
+        std::vector<long long> result(size2);
+        for (int i = 0; i < dim; i++) {
+            // extract the shares
+            for (int k = 0; k < numOfComputeNodes; k++) {
+                try {
                     std::getline(inputFiles[k], line);
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("[Int] Error reading input file: " + std::string(e.what()));
+                }
+                try {
                     tokens = splitfunc(line.c_str(), ",");
-                    if (tokens.empty()) {
-                        throw std::runtime_error("[Int] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
-                    }
-                    if (secrecy == 1)
-                        for (int j = 0; j < tokens.size(); j++)
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("[Int] Failed to split line into tokens: " + std::string(e.what()));
+                }
+                if (tokens.empty()) {
+                    throw std::runtime_error("[Int] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]" + std::string(e.what()));
+                }
+                if (secrecy == 1) {
+                    for (int j = 0; j < tokens.size(); j++) {
+                        if (j < shares[k].size()) { // Check if j is within the bounds of shares[k]
                             shares[k][j] = tokens[j];
+                        } else {
+                            throw std::runtime_error("[Int] Index out of bounds while assigning tokens to shares." + std::string(e.what()));
+                        }
+                    }
+                }
+            }
+            if (secrecy == 1) {
+                try {
+                    result = ss->reconstructSecret(shares, size2);
+                } catch (const std::runtime_error &e) {
+                    throw std::runtime_error("[reconstructSecret, int] Error in reconstructing secret: " + std::string(e.what()));
+                }
+            }
+
+            for (int j = 0; j < tokens.size(); j++) {
+                // for single variable or one-dimension
+                if (size1 == 0 && j == 0)
+                    outputFiles[0] << name + "=";
+                // for two-dimension
+                else if (size1 != 0 && j == 0) {
+                    std::stringstream s;
+                    s << i;
+                    outputFiles[0] << name + "[" + s.str() + "]=";
+                }
+                if (secrecy == 1) {
+                    if (j < result.size()) { // Check if j is within the bounds of result
+                        // deal with negative results
+                        try {
+                            ss->flipNegative(result[j]);
+                        } catch (const std::exception& e) {
+                            throw std::runtime_error("[Int] Failed to flip negative: " + std::string(e.what()));
+                        }
+                        try {
+                            value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
+                        } catch (const std::exception& e) {
+                            throw std::runtime_error("[Int] Failed to convert result to string: " + std::string(e.what()));
+                        }
+                    } else {
+                        throw std::runtime_error("[Int] Index out of bounds while accessing result." + std::string(e.what()));
+                    }
+                }
+                try {
+                    writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
+                } catch (const std::runtime_error& e) {
+                    throw std::runtime_error("[writeToOutputFile, Int] Error writing to the output file! " + std::string(e.what()));
+                }
+            }
+        }
+    }
+    // public float
+    else if (!type.compare("float") && secrecy == 2) {
+        for (int i = 0; i < dim; i++) {
+            for (int k = 0; k < numOfComputeNodes; k++) {
+                try {
+                    std::getline(inputFiles[k], line);
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("[Public Float] Error reading input file: " + std::string(e.what()));
+                }
+                try {
+                    tokens = splitfunc(line.c_str(), ",");
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("[Public Float] Failed to split line into tokens: " + std::string(e.what()));
+                }
+                if (tokens.empty()) {
+                    throw std::runtime_error("[Public Float] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
+                }
+            }
+            for (int j = 0; j < tokens.size(); j++) {
+                if (size1 == 0 && j == 0)
+                    outputFiles[0] << name + "=";
+                else if (size1 != 0 && j == 0) {
+                    std::stringstream s1, s2;
+                    s1 << i;
+                    s2 << j;
+                    outputFiles[0] << name + "[" + s1.str() + "][" + s2.str() + "]=";
+                }
+                try {
+                    writeToOutputFile(outputFiles[0], "", tokens[j], 2, j, tokens.size());
+                } catch (const std::runtime_error& e) {
+                    throw std::runtime_error("[writeToOutputFile, Public Float] Error writing to the output file! " + std::string(e.what()));
+                }
+                
+            }
+        }
+    }
+    // private float
+    else if (!type.compare("float") && secrecy == 1) {
+        std::vector<std::vector<std::string>> shares;
+        try {
+            shares.resize(numOfComputeNodes, std::vector<std::string>(4)); // Resize the vector of vectors
+        } catch (const std::bad_alloc& e) {
+            throw std::runtime_error("[Private Float] Failed to resize shares vector: " + std::string(e.what()));
+        }
+        std::vector<long long> result(4);
+
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < size2; j++) {
+                for (int k = 0; k < numOfComputeNodes; k++) {
+                    try {
+                        std::getline(inputFiles[k], line);
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("[Private Float] Error reading input file: " + std::string(e.what()));
+                    }
+                    try {
+                        tokens = splitfunc(line.c_str(), ",");
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("[Public Float] Failed to split line into tokens: " + std::string(e.what()));
+                    }
+                    if (tokens.empty()) {
+                        throw std::runtime_error("[Private Float] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]" + std::string(e.what()));
+                    }
+                    for (int l = 0; l < 4; l++)
+                        shares[k][l] = tokens[l];
                 }
                 if (secrecy == 1) {
                     try {
-                        result = ss->reconstructSecret(shares, size2);
+                        result = ss->reconstructSecret(shares, 4);
                     } catch (const std::runtime_error &e) {
-                        throw std::runtime_error("[reconstructSecret, int] Error in reconstructing secret: " + std::string(e.what()));
+                        throw std::runtime_error("[reconstructSecret, private float] Error in reconstructing secret for [private float]: " + std::string(e.what()));
                     }
                 }
-
-                for (int j = 0; j < tokens.size(); j++) {
-                    // for single variable or one-dimension
-                    if (size1 == 0 && j == 0)
-                        outputFiles[0] << name + "=";
-                    // for two-dimension
-                    else if (size1 != 0 && j == 0) {
-                        std::stringstream s;
-                        s << i;
-                        outputFiles[0] << name + "[" + s.str() + "]=";
-                    }
-                    if (secrecy == 1) {
+                for (int k = 0; k < 4; k++) {
+                    if (k == 1) {
                         // deal with negative results
-                        ss->flipNegative(result[j]);
-                        value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
-                    }
-                    writeToOutputFile(outputFiles[0], value, tokens[j], secrecy, j, tokens.size());
-                }
-            }
-        }
-        // public float
-        else if (!type.compare("float") && secrecy == 2) {
-            for (int i = 0; i < dim; i++) {
-                for (int k = 0; k < numOfComputeNodes; k++) {
-                    std::getline(inputFiles[k], line);
-                    tokens = splitfunc(line.c_str(), ",");
-                    if (tokens.empty()) {
-                        throw std::runtime_error("[Public Float] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
+                        ss->flipNegative(result[1]);
                     }
                 }
-                for (int j = 0; j < tokens.size(); j++) {
-                    if (size1 == 0 && j == 0)
+                // p (result[1]): Exponent part.
+                // v (result[0]): Mantissa.
+                // z (result[2]): Indicator for special cases. if set, val=0
+                // s (result[3]): Sign indicator.
+                if (result[2] != 1) {
+                    element = result[0] * pow(2, result[1]);
+                    if (result[3] == 1)
+                        element = -element;
+                }
+                if (j == 0) {
+                    if (size1 == 0)
                         outputFiles[0] << name + "=";
-                    else if (size1 != 0 && j == 0) {
-                        std::stringstream s1, s2;
+                    else {
+                        std::stringstream s1;
                         s1 << i;
-                        s2 << j;
-                        outputFiles[0] << name + "[" + s1.str() + "][" + s2.str() + "]=";
+                        outputFiles[0] << name + "[" + s1.str() + "]=";
                     }
-                    writeToOutputFile(outputFiles[0], "", tokens[j], 2, j, tokens.size());
                 }
-            }
-        }
-        // private float
-        else if (!type.compare("float") && secrecy == 1) {
-            std::vector<std::vector<std::string>> shares;
-            shares.resize(numOfComputeNodes, std::vector<std::string>(4)); // Resize the vector of vectors
-            std::vector<long long> result(4);
-
-            for (int i = 0; i < dim; i++) {
-                for (int j = 0; j < size2; j++) {
-                    for (int k = 0; k < numOfComputeNodes; k++) {
-                        std::getline(inputFiles[k], line);
-                        tokens = splitfunc(line.c_str(), ",");
-                        if (tokens.empty()) {
-                            throw std::runtime_error("[Private Float] Tokens vector is not set correctly. Line# " + std::to_string(k) + " inside [inputFiles]");
-                        }
-                        for (int l = 0; l < 4; l++)
-                            shares[k][l] = tokens[l];
-                    }
-                    if (secrecy == 1) {
-                        try {
-                            result = ss->reconstructSecret(shares, 4);
-                        } catch (const std::runtime_error &e) {
-                            throw std::runtime_error("[reconstructSecret, private float] Error in reconstructing secret for [private float]: " + std::string(e.what()));
-                        }
-                    }
-                    for (int k = 0; k < 4; k++) {
-                        if (k == 1) {
-                            // deal with negative results
-                            ss->flipNegative(result[1]);
-                        }
-                    }
-                    // p (result[1]): Exponent part.
-                    // v (result[0]): Mantissa.
-                    // z (result[2]): Indicator for special cases. if set, val=0
-                    // s (result[3]): Sign indicator.
-                    if (result[2] != 1) {
-                        element = result[0] * pow(2, result[1]);
-                        if (result[3] == 1)
-                            element = -element;
-                    }
-                    if (j == 0) {
-                        if (size1 == 0)
-                            outputFiles[0] << name + "=";
-                        else {
-                            std::stringstream s1;
-                            s1 << i;
-                            outputFiles[0] << name + "[" + s1.str() + "]=";
-                        }
-                    }
-                    std::ostringstream ss;
-                    ss << element;
+                std::ostringstream ss;
+                ss << element;
+                try {
                     writeToOutputFile(outputFiles[0], ss.str(), "", 1, j, size2);
+                } catch (const std::runtime_error& e) {
+                    throw std::runtime_error("[writeToOutputFile, Private Float] Error writing to the output file! " + std::string(e.what()));
                 }
             }
-        } else {
-            throw std::runtime_error("Wrong type has been detected");
         }
-    } catch (const std::runtime_error &e) {
-        std::cerr << "[utility.cpp, produceOutputs] " << e.what() << "\nExiting...\n";
-        std::exit(1);
+    } else {
+        throw std::runtime_error("Wrong type has been detected");
     }
 }
 
@@ -426,100 +484,122 @@ integers or floating-point numbers. The process includes generating shares of th
 */
 
 void produceInputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std::string name, std::string type, int size1, int size2, int secrecy, int len_sig, int len_exp) {
-        try {
-        std::string line;
-        std::vector<std::string> tokens;
-        std::vector<std::string> temp;
-        long long element;
-        std::vector<std::string> shares(numOfComputeNodes);
-        int dim = (size1 == 0) ? 1 : size1;
+    std::string line;
+    std::vector<std::string> tokens;
+    std::vector<std::string> temp;
+    long long element;
+    std::vector<std::string> shares(numOfComputeNodes);
+    int dim = (size1 == 0) ? 1 : size1;
 
-        // works for both one or two dimensional arrays
-        if (!type.compare("int")) {
-            for (int i = 0; i < dim; i++) {
+    // works for both one or two dimensional arrays
+    if (!type.compare("int")) {
+        for (int i = 0; i < dim; i++) {
+            try {
                 std::getline(inputFiles[0], line);
-                temp = splitfunc(line.c_str(), "=");
-                tokens = splitfunc(temp[1].c_str(), ","); // not stripping whitespace from the values we are reading
-                if (tokens.empty()) {
-                    throw std::runtime_error("[Int] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]");
+            } catch (const std::exception& e) {
+                throw std::runtime_error("[Int] Error reading input file: " + std::string(e.what()));
+            }
+            temp = splitfunc(line.c_str(), "=");
+            tokens = splitfunc(temp[1].c_str(), ","); // not stripping whitespace from the values we are reading
+            if (tokens.empty()) {
+                throw std::runtime_error("[Int] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]" + std::string(e.what()));
+            }
+            for (int j = 0; j < tokens.size(); j++) {
+                // The str tokens[j] is converted to long long, using base 10.
+                // (nullptr in here is not relevant to our computation, this version of stoll
+                // to make sure the conversion uses base 10.)
+                try {
+                    element = std::stoll(tokens[j], nullptr, BASE);
+                } catch (const std::invalid_argument& e) {
+                    throw std::runtime_error("[Int] Error converting element to long long: " + std::string(e.what()));
+                } catch (const std::out_of_range& e) {
+                    throw std::runtime_error("[Int] Error converting element to long long (out of range): " + std::string(e.what()));
                 }
-                for (int j = 0; j < tokens.size(); j++) {
-                    // The str tokens[j] is converted to long long, using base 10.
-                    // (nullptr in here is not relevant to our computation, this version of stoll
-                    // to make sure the conversion uses base 10.)
+                if (secrecy == 1) {
                     try {
-                        element = std::stoll(tokens[j], nullptr, BASE);
-                    } catch (const std::invalid_argument& e) {
-                        throw std::runtime_error("[Int] Error converting element to long long: " + std::string(e.what()));
-                    } catch (const std::out_of_range& e) {
-                        throw std::runtime_error("[Int] Error converting element to long long (out of range): " + std::string(e.what()));
+                        shares = ss->getShares(element);
+                    } catch (const std::runtime_error& e) {
+                        throw std::runtime_error("[Int] Error in getting shares: " + std::string(e.what()));
                     }
-                    if (secrecy == 1) {
-                        try {
-                            shares = ss->getShares(element);
-                        } catch (const std::runtime_error& e) {
-                            throw std::runtime_error("[getShares, Int] Error in getting shares: " + std::string(e.what()));
-                        }
-                    }
-                    for (int k = 0; k < numOfComputeNodes; k++) {
-                        if (j == 0)
-                            outputFiles[k] << name + "=";
+                }
+                for (int k = 0; k < numOfComputeNodes; k++) {
+                    if (j == 0)
+                        outputFiles[k] << name + "=";
+                    try {
                         writeToOutputFile(outputFiles[k], shares[k], tokens[j], secrecy, j, tokens.size());
+                    } catch (const std::runtime_error& e) {
+                        throw std::runtime_error("[writeToOutputFile, Int] Error writing to the output file! " + std::string(e.what()));
                     }
                 }
             }
-        } else if (!type.compare("float") && secrecy == 2) {
-            for (int i = 0; i < dim; i++) {
-                std::getline(inputFiles[0], line);
-                temp = splitfunc(line.c_str(), "=");
-                tokens = splitfunc(temp[1].c_str(), ",");
-                if (tokens.empty()) {
-                    throw std::runtime_error("[Private Float] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]");
-                }
-                for (int j = 0; j < tokens.size(); j++) {
-                    for (int k = 0; k < numOfComputeNodes; k++) {
-                        if (j == 0)
-                            outputFiles[k] << name + "=";
-                        writeToOutputFile(outputFiles[k], "", tokens[j], 2, j, tokens.size());
-                    }
-                }
-            }
-
-        } else if (!type.compare("float") && secrecy == 1) {
-            for (int i = 0; i < dim; i++) {
-                std::getline(inputFiles[0], line);
-                temp = splitfunc(line.c_str(), "=");
-                tokens = splitfunc(temp[1].c_str(), ",");
-                if (tokens.empty()) {
-                    throw std::runtime_error("[Public Float] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]");
-                }
-                for (int j = 0; j < tokens.size(); j++) {
-                    long long *elements = new long long[4];
-                    convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
-
-                    for (int m = 0; m < 4; m++) {
-                        try {
-                            shares = ss->getShares(elements[m]);
-                        } catch (const std::runtime_error& e) {
-                            throw std::runtime_error("[getShares, Public Float] Error in getting shares: " + std::string(e.what()));
-                        }
-                        for (int k = 0; k < numOfComputeNodes; k++) {
-                            if (m == 0)
-                                outputFiles[k] << name + "=";
-                            writeToOutputFile(outputFiles[k], shares[k], "", 1, m, 4);
-                        }
-                    }
-                    // Elements array was dynamically allocated memory using new -> free it once done
-                    delete[] elements;
-                }
-            }
-        } else {
-            throw std::runtime_error("Wrong type has been detected");
         }
-        // No need to clear the shares vector
-    } catch (const std::runtime_error &e) {
-        std::cerr << "[utility.cpp, produceInputs] " << e.what() << "\nExiting...\n";
-        std::exit(1);
+    } else if (!type.compare("float") && secrecy == 2) {
+        for (int i = 0; i < dim; i++) {
+            try {
+                std::getline(inputFiles[0], line);
+            } catch (const std::exception& e) {
+                throw std::runtime_error("[Private Float] Error reading input file: " + std::string(e.what()));
+            }
+            temp = splitfunc(line.c_str(), "=");
+            tokens = splitfunc(temp[1].c_str(), ",");
+            if (tokens.empty()) {
+                throw std::runtime_error("[Private Float] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]" + std::string(e.what()));
+            }
+            for (int j = 0; j < tokens.size(); j++) {
+                for (int k = 0; k < numOfComputeNodes; k++) {
+                    if (j == 0)
+                        outputFiles[k] << name + "=";
+                    try {
+                        writeToOutputFile(outputFiles[k], "", tokens[j], 2, j, tokens.size());
+                    } catch (const std::runtime_error& e) {
+                        throw std::runtime_error("[writeToOutputFile, Private Float] Error writing to the output file! " + std::string(e.what()));
+                    }
+                }
+            }
+        }
+
+    } else if (!type.compare("float") && secrecy == 1) {
+        for (int i = 0; i < dim; i++) {
+            try {
+                std::getline(inputFiles[0], line);
+            } catch (const std::exception& e) {
+                throw std::runtime_error("[Public Float] Error reading input file: " + std::string(e.what()));
+            }
+            temp = splitfunc(line.c_str(), "=");
+            tokens = splitfunc(temp[1].c_str(), ",");
+            if (tokens.empty()) {
+                throw std::runtime_error("[Public Float] Tokens vector is not set correctly. Line# " + std::to_string(0) + " inside [inputFiles]" + std::string(e.what()));
+            }
+            for (int j = 0; j < tokens.size(); j++) {
+                long long *elements = new long long[4];
+                try { 
+                    convertFloat((float)atof(tokens[j].c_str()), len_sig, len_exp, &elements);
+                } catch (const std::exception &e) {
+                    throw std::runtime_error("[Public Float, convertFloat] " + std::string(e.what()));
+                }
+
+                for (int m = 0; m < 4; m++) {
+                    try {
+                        shares = ss->getShares(elements[m]);
+                    } catch (const std::runtime_error& e) {
+                        throw std::runtime_error("[getShares, Public Float] Error in getting shares: " + std::string(e.what()));
+                    }
+                    for (int k = 0; k < numOfComputeNodes; k++) {
+                        if (m == 0)
+                            outputFiles[k] << name + "=";
+                        try {
+                            writeToOutputFile(outputFiles[k], shares[k], "", 1, m, 4);
+                        } catch (const std::runtime_error& e) {
+                            throw std::runtime_error("[writeToOutputFile, Public Float] Error writing to the output file! " + std::string(e.what()));
+                        }
+                    }
+                }
+                // Elements array was dynamically allocated memory using new -> free it once done
+                delete[] elements;
+            }
+        }
+    } else {
+        throw std::runtime_error("Wrong type has been detected");
     }
 }
 
@@ -560,20 +640,20 @@ void loadConfig() {
         try {
             integer_value_token = std::stoi(tokens[1], &pos);
             if (pos != tokens[1].size()) {
-                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": '" + tokens[1] + "'. Conversion from string to integer failed.");
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": '" + tokens[1] + "'. Conversion from string to integer failed." + std::string(e.what()));
             }
         } catch (const std::invalid_argument& e) {
-            throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": '" + tokens[1] + "'. Conversion from string to integer failed.");
+            throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": '" + tokens[1] + "'. Conversion from string to integer failed." + std::string(e.what()));
         }
 
         // Validate line format // If either key/value is missing or empty
         if (tokens.size() != 2 || tokens[0].empty() || tokens[1].empty()) {
-            throw std::runtime_error("[loadConfig, Reading var_list] Invalid configuration format: each line must be in the form 'var:value'");
+            throw std::runtime_error("[loadConfig, Reading var_list] Invalid configuration format: each line must be in the form 'var:value'" + std::string(e.what()));
         }
 
         // Check if variable name is misspelled
         if (validVariables.find(tokens[0]) == validVariables.end()) {
-            throw std::runtime_error("[loadConfig, Reading var_list] Unknown variable found: " + tokens[0]);
+            throw std::runtime_error("[loadConfig, Reading var_list] Unknown variable found: " + tokens[0]  + std::string(e.what()));
         }
         
         // Check for duplicate variable
@@ -584,13 +664,13 @@ void loadConfig() {
             - Throw an exception saying a duplicated value was encountered 
         */
         if (!variableSet.insert(tokens[0]).second) {
-            throw std::runtime_error("[loadConfig, Reading var_list] Duplicate variable found: " + tokens[0] + "\n");
+            throw std::runtime_error("[loadConfig, Reading var_list] Duplicate variable found: " + tokens[0] + "\n" + std::string(e.what()));
         }
 
         // Check to make sure the first value is always technique
         if (!techniqueEncountered) {
             if (tokens[0] != "technique") {
-                throw std::runtime_error("[loadConfig, Reading var_list] 'technique' must be the first variable encountered.");
+                throw std::runtime_error("[loadConfig, Reading var_list] 'technique' must be the first variable encountered." + std::string(e.what()));
             }
             techniqueEncountered = true; // Set the flag to true after encountering 'technique'
         }
@@ -598,21 +678,21 @@ void loadConfig() {
         // Check if the technique is shamir or rss
         if (tokens[0] == "technique") {
             if (integer_value_token != 2 && integer_value_token != 1) {
-                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for technique: '" + tokens[1] + "'. Must use single integer '2' for SHAMIR_SS or '1' for REPLICATED_SS!\n");
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for technique: '" + tokens[1] + "'. Must use single integer '2' for SHAMIR_SS or '1' for REPLICATED_SS!\n" + std::string(e.what()));
             }
         }
         
         // Check if values are all positive and non-zero
         if (tokens[0] == "bits" || tokens[0] == "peers" || tokens[0] == "threshold" || tokens[0] == "inputs" || tokens[0] == "outputs") {
             if (integer_value_token <= 0) {
-                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": must be a non-zero and positive integer\n");
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for " + tokens[0] + ": must be a non-zero and positive integer\n" + std::string(e.what()));
             }
         }
 
         // Check if peers is set correctly
         if (tokens[0] == "peers") {
             if (integer_value_token % 2 == 0) {
-                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for peers: must be an odd integer and equal to 2 * threshold + 1\n");
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for peers: must be an odd integer and equal to 2 * threshold + 1\n" + std::string(e.what()));
             } else {
                 peer_value = integer_value_token;
             }
@@ -621,7 +701,7 @@ void loadConfig() {
         // Check if threshold is set correctly
         if (tokens[0] == "threshold") {
             if (integer_value_token != ((peer_value-1) / 2)) {
-                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for threshold: must be consistant to this formula 'peers=2*threshold+1' The given peer is: " +  std::to_string(peer_value) + ". The threshold should be set accordingly!");
+                throw std::runtime_error("[loadConfig, Reading var_list] Invalid value for threshold: must be consistant to this formula 'peers=2*threshold+1' The given peer is: " +  std::to_string(peer_value) + ". The threshold should be set accordingly!" + std::string(e.what()));
             } 
         }
         // Assign integerValue to results[i]
@@ -643,13 +723,13 @@ void loadConfig() {
         std::getline(var_list, line); 
         tokens = splitfunc(line.c_str(), ":");
         if (tokens.size() != 2 || tokens[0] != "modulus" || tokens[1].empty()) {
-            throw std::runtime_error("[loadConfig, Reading var_list] Invalid configuration format: missing or invalid modulus variable/value");
+            throw std::runtime_error("[loadConfig, Reading var_list] Invalid configuration format: missing or invalid modulus variable/value" + std::string(e.what()));
         }
         std::stringstream ss(tokens[1]);
         signed long long int mod_value;
         ss >> mod_value;
         if (mod_value <= 0) {
-            throw std::runtime_error("[loadConfig, Reading var_list] Modulus should be a positive integer!");
+            throw std::runtime_error("[loadConfig, Reading var_list] Modulus should be a positive integer!" + std::string(e.what()));
         }
         mpz_init(modulus_shamir);
         mpz_set_str(modulus_shamir, tokens[1].c_str(), 10);
@@ -686,72 +766,80 @@ void loadConfig() {
  * 4. Sign (s)
  */
 void convertFloat(float value, int K, int L, long long **elements) {
-    try {
-        unsigned int *newptr = (unsigned int *)&value;
-        int s = *newptr >> 31;
-        int e = *newptr & 0x7f800000;
-        e >>= 23;
-        int m = 0;
-        m = *newptr & 0x007fffff;
+    unsigned int *newptr = (unsigned int *)&value;
+    int s = *newptr >> 31;
+    int e = *newptr & 0x7f800000;
+    e >>= 23;
+    int m = 0;
+    m = *newptr & 0x007fffff;
 
-        int z;
-        long v, p, k;
-        long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
+    int z;
+    long v, p, k;
+    long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
 
-        if (e == 0 && m == 0) {
-            s = 0;
-            z = 1;
-            significand = 0;
-            p = 0;
-        } else {
-            z = 0;
-            if (L < 8) {
-                k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
-                if (e - 127 - K + 1 > k) {
-                    p = k;
-                    significand = one << K;        // Raise one to the power of K and store it to significand
-                    significand = significand - 1; // Sub 1
-                } else if (e - 127 - K + 1 < -k) {
-                    p = -k;
-                    significand = 1; // Set the value of significand to 1
-                } else {
-                    p = e - 127 - K + 1;
-                    m = m + (1 << 23);
-                    tmpm = m; // Set the value of tmpm to m
-                    if (K < 24) {
-                        tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
-                        significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
-                    } else {
-                        significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
-                    }
-                }
+    if (e == 0 && m == 0) {
+        s = 0;
+        z = 1;
+        significand = 0;
+        p = 0;
+    } else {
+        z = 0;
+        if (L < 8) {
+            k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
+            if (e - 127 - K + 1 > k) {
+                p = k;
+                significand = one << K;        // Raise one to the power of K and store it to significand
+                significand = significand - 1; // Sub 1
+            } else if (e - 127 - K + 1 < -k) {
+                p = -k;
+                significand = 1; // Set the value of significand to 1
             } else {
                 p = e - 127 - K + 1;
                 m = m + (1 << 23);
                 tmpm = m; // Set the value of tmpm to m
                 if (K < 24) {
-                    tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                    try {
+                        tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                    } catch(const std::exception& e) {
+                        throw std::runtime_error("An exception occurred during pow operation: " + std::string(e.what()));
+                    }
+                    if (tmp == 0) // Division by zero check
+                        throw std::runtime_error("Division by zero: overflow in significand calculation" + std::string(e.what()));
                     significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
                 } else {
-                    significand = tmpm;                    // Set significand to tmpm
-                    significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
+                    significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
                 }
             }
+        } else {
+            p = e - 127 - K + 1;
+            m = m + (1 << 23);
+            tmpm = m; // Set the value of tmpm to m
+            if (K < 24) {
+                try {
+                    tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                } catch(const std::exception& e) {
+                    throw std::runtime_error("An exception occurred during pow operation: " + std::string(e.what()));
+                }
+                if (tmp == 0) // Division by zero check
+                    throw std::runtime_error("Division by zero: overflow in significand calculation" + std::string(e.what()));
+                significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
+            } else {
+                significand = tmpm;                    // Set significand to tmpm
+                significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
+            }
         }
-
-        // printf("sig  %lli\n", significand);
-        // printf("p    %li\n", p);
-        // printf("z    %i\n", z);
-        // printf("sgn  %i\n", s);
-        // Set the significand, p, z, and s value directly to the long long array of elements.
-        (*elements)[0] = significand;
-        (*elements)[1] = p;
-        (*elements)[2] = z;
-        (*elements)[3] = s;
-    } catch (const std::exception &e) {
-        std::cerr << "[utility.cpp, convertFlost] " << e.what() << "\nExiting...\n";
-        std::exit(1);
     }
+
+    // printf("sig  %lli\n", significand);
+    // printf("p    %li\n", p);
+    // printf("z    %i\n", z);
+    // printf("sgn  %i\n", s);
+    // Set the significand, p, z, and s value directly to the long long array of elements.
+    (*elements)[0] = significand;
+    (*elements)[1] = p;
+    (*elements)[2] = z;
+    (*elements)[3] = s;
+
 }
 
 
@@ -773,7 +861,6 @@ void pathCreator(const std::string& file_name) {
             path_separator_pos = file_name.find('/', path_separator_pos + 1);
         }
     } catch (const std::exception& e) {
-        std::cerr << "[utility.cpp, pathCreator] creating the paths for " << file_name << e.what() << "\nExiting...\n";
-        std::exit(1);
+        throw std::runtime_error(" creating the paths for " << file_name << + std::string(e.what()));
     }
 }
