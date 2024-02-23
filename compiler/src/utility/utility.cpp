@@ -31,6 +31,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <unordered_set>
+#include <regex>
 
 #ifdef _WIN32
     #include <direct.h>
@@ -162,105 +163,133 @@ void readVarList(std::ifstream &var_list, std::ifstream inputFiles[], std::ofstr
     std::vector<std::string> temp;
     int secrecy, size, ID, sig_len, exp_len;
     std::string name, type;
+    // Regular expression pattern for matching the line format
+    std::regex pattern("(I|O):(\\d+),([^,]+),(int|float),(\\d+),(\\d+),(\\d+)(,(\\d+))*(,(\\d+))*");
+
     // read each line from var_list
     if (mode == 0) {
-        while (std::getline(var_list, line)) {
-            try {
-                temp = splitfunc(line.c_str(), ":");
-            } catch (const std::exception& e) {
-                throw std::runtime_error("[splitfunc] Error reading input file: " + std::string(e.what()));
-            }
-            if (!temp[0].compare("I")) {
-                try {
-                    tokens = splitfunc(temp[1].c_str(), ",");
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("[splitfunc] Failed to split line into tokens: " + std::string(e.what()));
+        try {
+            while (std::getline(var_list, line)) {
+                if (!std::regex_match(line, pattern)) {
+                    throw std::runtime_error("Invalid line format: " + line);
                 }
                 try {
-                    secrecy = atoi(tokens[0].c_str());
+                    temp = splitfunc(line.c_str(), ":");
                 } catch (const std::exception& e) {
-                    throw std::runtime_error("Error converting string to integer (secrecy): " + std::string(e.what()));
+                    throw std::runtime_error("[splitfunc] Error reading input file: " + std::string(e.what()));
                 }
-                name = tokens[1];
-                type = tokens[2];
-                try {
-                    ID = atoi(tokens[3].c_str());
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Error converting string to integer (ID): " + std::string(e.what()));
-                }
-                try {
-                    size = atoi(tokens[4].c_str());
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Error converting string to integer (size): " + std::string(e.what()));
-                }
+                if (!temp[0].compare("I")) {
+                    try {
+                        tokens = splitfunc(temp[1].c_str(), ",");
+                        // if (tokens[2] == "float") {  // Check if the third argument in the line is "int"
+                        //     if (tokens.size() > 7) {
+                        //         throw std::runtime_error("Less numbers found for 'int' type.");
+                        //     }
+                        // }
+                        // if (tokens[2] == "int") {  // Check if the third argument in the line is "int"
+                        //     if (tokens.size() > 7) {
+                        //         throw std::runtime_error("Extra number found for 'int' type.");
+                        //     }
+                        // }
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("[splitfunc] Failed to split line into tokens: " + std::string(e.what()));
+                    }
+                    try {
+                        secrecy = atoi(tokens[0].c_str());
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Error converting string to integer (secrecy): " + std::string(e.what()));
+                    }
+                    name = tokens[1];
+                    type = tokens[2];
+                    try {
+                        ID = atoi(tokens[3].c_str());
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Error converting string to integer (ID): " + std::string(e.what()));
+                    }
+                    try {
+                        size = atoi(tokens[4].c_str());
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Error converting string to integer (size): " + std::string(e.what()));
+                    }
 
-                // process only the lines with their ID = party
-                if (ID == party) {
-                    if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7)) {
-                        try {
-                            if (!type.compare("int"))
-                                produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), -1);
-                            else
-                                produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), atoi(tokens[6].c_str()));
-                        } catch (const std::exception& e) {
-                            throw std::runtime_error("[produceInputs] : " + std::string(e.what()));
-                        } 
-                    } else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8)) {
-                        try {
-                            if (!type.compare("int"))
-                                produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), -1);
-                            else
-                                produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), atoi(tokens[7].c_str()));
-                        } catch (const std::exception& e) {
-                            throw std::runtime_error("[produceInputs]: " + std::string(e.what()));
-                        } 
+                    // process only the lines with their ID = party
+                    if (ID == party) {
+                        if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7)) {
+                            try {
+                                if (!type.compare("int"))
+                                    produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), -1);
+                                else
+                                    produceInputs(inputFiles, outputFiles, name, type, 0, size, secrecy, atoi(tokens[5].c_str()), atoi(tokens[6].c_str()));
+                            } catch (const std::exception& e) {
+                                throw std::runtime_error("[produceInputs] : " + std::string(e.what()));
+                            } 
+                        } else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8)) {
+                            try {
+                                if (!type.compare("int"))
+                                    produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), -1);
+                                else
+                                    produceInputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy, atoi(tokens[6].c_str()), atoi(tokens[7].c_str()));
+                            } catch (const std::exception& e) {
+                                throw std::runtime_error("[produceInputs]: " + std::string(e.what()));
+                            } 
+                        } else {
+                            throw std::runtime_error("[readVarList] It seems like there is an error in your utility_config!: "); 
+                        }
                     }
                 }
             }
+        } catch (const std::exception& e) {
+            throw std::runtime_error("[I]: " + std::string(e.what()));
+        }
+    } else if (mode == 1) {
+        try {
+            while (std::getline(var_list, line)) {
+                try {
+                    temp = splitfunc(line.c_str(), ":");
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("[splitfunc, temp] Error splitting line: " + std::string(e.what()));
+                }
+                if (!temp[0].compare("O")) {
+                    try {
+                        tokens = splitfunc(temp[1].c_str(), ",");
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("[splitfunc, tokens] Error splitting the second part: " + std::string(e.what()));
+                    }
+                    try {
+                        secrecy = atoi(tokens[0].c_str());
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Error converting string to integer (secrecy): " + std::string(e.what()));
+                    }
+                    name = tokens[1];
+                    type = tokens[2];
+                    try {
+                        ID = atoi(tokens[3].c_str());
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Error converting string to integer (ID): " + std::string(e.what()));
+                    }
+                    try {
+                        size = atoi(tokens[4].c_str());
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Error converting string to integer (size): " + std::string(e.what()));
+                    }
+                    // process only the lines with their ID == party
+                    if (ID == party) {
+                        try {
+                            if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7))
+                                produceOutputs(inputFiles, outputFiles, name, type, 0, size, secrecy);
+                            else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8))
+                                produceOutputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy);
+                        } catch (const std::exception& e) {
+                            throw std::runtime_error("[produceOutputs]: " + std::string(e.what()));
+                        }
+                    }
+                } 
+            }
+        } catch (const std::exception& e) {
+            throw std::runtime_error("[O]: " + std::string(e.what()));
         }
     } else {
-        while (std::getline(var_list, line)) {
-            try {
-                temp = splitfunc(line.c_str(), ":");
-            } catch (const std::exception& e) {
-                throw std::runtime_error("[splitfunc, temp] Error splitting line: " + std::string(e.what()));
-            }
-            if (!temp[0].compare("O")) {
-                try {
-                    tokens = splitfunc(temp[1].c_str(), ",");
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("[splitfunc, tokens] Error splitting the second part: " + std::string(e.what()));
-                }
-                try {
-                    secrecy = atoi(tokens[0].c_str());
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Error converting string to integer (secrecy): " + std::string(e.what()));
-                }
-                name = tokens[1];
-                type = tokens[2];
-                try {
-                    ID = atoi(tokens[3].c_str());
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Error converting string to integer (ID): " + std::string(e.what()));
-                }
-                try {
-                    size = atoi(tokens[4].c_str());
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Error converting string to integer (size): " + std::string(e.what()));
-                }
-                // process only the lines with their ID == party
-                if (ID == party) {
-                    try {
-                        if ((!type.compare("int") && tokens.size() == 6) || (!type.compare("float") && tokens.size() == 7))
-                            produceOutputs(inputFiles, outputFiles, name, type, 0, size, secrecy);
-                        else if ((!type.compare("int") && tokens.size() == 7) || (!type.compare("float") && tokens.size() == 8))
-                            produceOutputs(inputFiles, outputFiles, name, type, size, atoi(tokens[5].c_str()), secrecy);
-                    } catch (const std::exception& e) {
-                        throw std::runtime_error("[produceOutputs]: " + std::string(e.what()));
-                    }
-                }
-            }
-        }
+        throw std::runtime_error("[readVarList] Invalid mode specified");
     }
 }
 
