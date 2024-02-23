@@ -543,8 +543,17 @@ int main(int argc, char *argv[]) {
     // Open the file using the provided path
     pathCreater(final_list);
     FILE *fp = fopen(final_list, "w+");
+    if (fp == NULL) {
+        fprintf(stderr, "Error opening file: %s\n", final_list);
+        exit(1);
+    }
     FILE *vfp = fopen(var_list, "r");
     char *line = (char *)malloc(sizeof(char) * 256);
+    if (line == NULL) {
+        fprintf(stderr, "Memory allocation failed for line buffer\n");
+        exit(1);
+    }
+
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
     char *res = "";
