@@ -50,6 +50,8 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     // if (num_threads > 1) {
     net.launchManager(); // launching thread manager here as to not conflict with seed setup
     // }
+    // for RSS, launch manager doesn't even need to be called (since theres not multithreading support!)
+    //that way we can use the OG networking funcs from the RSS repo
 
     std::cout << "Creating SecretShare\n";
 
@@ -124,7 +126,7 @@ void SMC_Utils::smc_input(int id, int *var, std::string type, int threadID) {
     try {
         ss->ss_input(id, var, type, inputStreams);
     } catch (const std::runtime_error &ex) {
-        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
 }
@@ -135,7 +137,7 @@ void SMC_Utils::smc_input(int id, priv_int *var, std::string type, int threadID)
     try {
         ss->ss_input(id, var, type, inputStreams);
     } catch (const std::runtime_error &ex) {
-        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
 
@@ -149,7 +151,7 @@ void SMC_Utils::smc_input(int id, float *var, std::string type, int threadID) {
     try {
         ss->ss_input(id, var, type, inputStreams);
     } catch (const std::runtime_error &ex) {
-        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
 }
@@ -160,7 +162,7 @@ void SMC_Utils::smc_input(int id, priv_int **var, std::string type, int threadID
     try {
         ss->ss_input(id, var, type, inputStreams);
     } catch (const std::runtime_error &ex) {
-        std::cerr << "[smc_input] " << ex.what() << "\nExiting...";
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
 #else
@@ -171,27 +173,47 @@ void SMC_Utils::smc_input(int id, priv_int **var, std::string type, int threadID
 // one-dimensional int array I/O
 void SMC_Utils::smc_input(int id, priv_int *var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
+    try {
     ss->ss_input(id, var, size, type, inputStreams);
+        } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
+        exit(1);
+    }
 #else
     ss->ss_input(var, size, type);
 #endif
 }
 
 void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int threadID) {
+    try {
     ss->ss_input(id, var, size, type, inputStreams);
+        } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
+        exit(1);
+    }
 }
 
 // one-dimensional float array I/O
 void SMC_Utils::smc_input(int id, priv_int **var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
+    try {
     ss->ss_input(id, var, size, type, inputStreams);
+        } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
+        exit(1);
+    }
 #else
     ss->ss_input(var, size, type);
 #endif
 }
 
 void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
+        try {
     ss->ss_input(id, var, size, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
+        exit(1);
+    }
 }
 
 void SMC_Utils::smc_output(int id, int *var, std::string type, int threadID) {

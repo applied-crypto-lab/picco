@@ -1368,7 +1368,7 @@ void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream 
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         temp = split(tokens[1], ",", 4);
-        // for (auto v : temp) 
+        // for (auto v : temp)
         //     cout << "ss_input, private float :" << v << endl;
         for (int i = 0; i < 4; i++) {
             if (!is_int(temp[i]))
@@ -1383,53 +1383,97 @@ void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream 
     }
 }
 
-// one-dimensional int array I/O
+// one-dimensional PRIVATE int array I/O
 void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++) {
-        mpz_set_str(var[i], tokens[i].c_str(), BASE_10);
-    }
-}
-
-void SecretShare::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atoi(tokens[i].c_str());
-}
-
-// one-dimensional float array I/O
-void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    for (int i = 0; i < size; i++) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
         std::getline(inputStreams[id - 1], line);
-        temp = splitfunc(line.c_str(), "=");
-        tokens = splitfunc(temp[1].c_str(), ",");
-        for (int j = 0; j < 4; j++)
-            mpz_set_str(var[i][j], tokens[j].c_str(), BASE_10);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            mpz_set_str(var[i], temp[i].c_str(), BASE_10);
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int array] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
+// one-dimensional PUBLIC int array I/O
+void SecretShare::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            var[i] = atoi(temp[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int array] stream from party " + std::to_string(id) + ": " + error);
+    }
+}
+
+// one-dimensional PRIVATE float array I/O
+void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        for (int i = 0; i < size; i++) {
+            std::getline(inputStreams[id - 1], line);
+            tokens = split(line, "=");
+            temp = split(tokens[1], ",", 4);
+            for (int j = 0; j < 4; j++) {
+                if (!is_int(temp[j]))
+                    throw std::runtime_error("Non-integer input provided: " + temp[j]);
+                mpz_set_str(var[i][j], temp[j].c_str(), BASE_10);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float array] stream from party " + std::to_string(id) + ": " + error);
+    }
+}
+
+// one-dimensional PUBLIC float array I/O
 void SecretShare::ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atof(tokens[i].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_float(temp[i]))
+                throw std::runtime_error("Non-float input provided: " + temp[i]);
+            var[i] = atof(temp[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float array] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input randomly generated private int
