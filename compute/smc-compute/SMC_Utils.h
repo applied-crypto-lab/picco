@@ -21,7 +21,7 @@
 #ifndef SMC_UTILS_H_
 #define SMC_UTILS_H_
 
-#include "bit_utils.h"
+#include "bit_utils.hpp"
 #include "openssl/bio.h"
 #include "unistd.h"
 #include <cassert>

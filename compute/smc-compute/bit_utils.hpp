@@ -16,10 +16,12 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+
 #ifndef BIT_UTILS_H_
 #define BIT_UTILS_H_
 
 #include <cstdio>
+#include <string>
 #include <sys/types.h>
 
 // this is a suite of bit-level utilities, primarily used for certain RSS operations, as well as the seed generation algorithm
@@ -34,6 +36,14 @@ inline __attribute__((always_inline)) T GET_BIT(T X, T N) {
 template <typename T>
 inline __attribute__((always_inline)) T SET_BIT(T X, T N, T B) {
     return (X & ~(T(1) << N)) | (B << N);
+}
+
+inline bool is_int(const std::string &str) {
+    return str.find_first_not_of("0123456789") == std::string::npos;
+}
+
+inline bool is_float(const std::string &str) {
+    return str.find_first_not_of(".0123456789") == std::string::npos;
 }
 
 template <typename T>

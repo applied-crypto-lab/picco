@@ -20,10 +20,9 @@
 #ifndef _REPSECRETSHARE_HPP_
 #define _REPSECRETSHARE_HPP_
 
-
+#include "../bit_utils.hpp"
 #include "stdint.h"
 #include <charconv>
-#include <regex>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -43,6 +42,7 @@
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <regex>
 #include <sstream>
 #include <stdint.h> //for int8_t
 #include <stdio.h>
@@ -79,7 +79,7 @@ T mod_n(T a, T n) {
 }
 
 template <typename T>
-class replicatedSecretShare  {
+class replicatedSecretShare {
 
 public:
     replicatedSecretShare(int _id, int _n, int _t, uint ring_size, std::map<std::vector<int>, uint8_t *>);
@@ -96,9 +96,7 @@ public:
 
     std::vector<std::string> splitfunc(const char *str, const char *delim);
 
-    std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size);
-    bool is_int(const std::string &str);
-    bool is_float(const std::string &str);
+    std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size = 0); // =0 used for optional argument passsing of expected_size
 
     // I/O functions
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
@@ -158,16 +156,15 @@ public:
     void modPow2(T *result, int *exponent, int size);
     void modPow2(T *result, T *exponent, int size);
 
-    //temporary functions, need to be dealt with later (just to get smc-utils to compile)
-    // these are undefined in the context of RSS, because the dimensionality doesn't match
-    // in shamir, you can store a public value in an mpz_t (one to one)
-    // however, you can't do the same for RSS. Storing a public int in a T* doesn't work (one to arr)
+    // temporary functions, need to be dealt with later (just to get smc-utils to compile)
+    //  these are undefined in the context of RSS, because the dimensionality doesn't match
+    //  in shamir, you can store a public value in an mpz_t (one to one)
+    //  however, you can't do the same for RSS. Storing a public int in a T* doesn't work (one to arr)
     void modPow2(T *result, T *exponent);
     void modPow2(T *result, int exponent);
     void modPow2(T **result, T **exponent, int size);
     void modPow2(T **result, int *exponent, int size);
     void modMul(T **result, T **x, T **y, int size);
-
 
     void modPow(T result, T base, T exponent);
     void modPow(T *result, T *base, T *exponent, int size);
@@ -186,8 +183,8 @@ public:
     std::vector<T> const_map; // this is used for multiplying a private value by a public constant, OR adding a public constant to a private value
 
 private:
-    int n;              // n
-    int t;              // t
+    int n;               // n
+    int t;               // t
     uint ring_size;      // ring_size
     uint numShares;      // (n-1) choose t
     uint totalNumShares; // n choose t
@@ -538,15 +535,6 @@ std::vector<std::string> replicatedSecretShare<T>::splitfunc(const char *str, co
     return result;
 }
 
-template <typename T>
-bool replicatedSecretShare<T>::is_int(const std::string &str) {
-    return str.find_first_not_of("0123456789") == std::string::npos;
-}
-template <typename T>
-bool replicatedSecretShare<T>::is_float(const std::string &str) {
-    return str.find_first_not_of(".0123456789") == std::string::npos;
-}
-
 // modern, robust C++ version of the above function
 // expected_size is an OPTIONAL ARGUMENT (default 0)
 template <typename T>
@@ -566,29 +554,18 @@ std::vector<std::string> replicatedSecretShare<T>::split(const std::string s, co
         if (delimiter == "=") { // should only be two values in the output, the variable name (result[0]) and a string of shares "s_00;s_01;...;s_0numShares,s_10;s_11;...;s_1numShares" (result[1])
             if (result.size() != 2)
                 throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
-        } else if (delimiter == ",") {
+        } else if ((delimiter == ",") or (delimiter == ";")) {
             for (auto &var : result)
                 var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
-            // should only be `expected_size` number of entries in result.size(): <"s_00;s_01;...;s_0numShares", "s_10;s_11;...;s_1numShares", ...>
+            //(,) should only be `expected_size` number of entries in result.size(): <"s_00;s_01;...;s_0numShares", "s_10;s_11;...;s_1numShares", ...>
+            //(;) should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
             if (expected_size <= 0)
                 throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
             if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
                 int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
                 throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
             }
-        } else if (delimiter == ";") { // delimeter for individual shares
-            for (auto &var : result)
-                var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
-            // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
-            if (expected_size <= 0)
-                throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
-            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
-                int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
-                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
-            }
-        } 
-        
-        else
+        } else
             std::cout << "Delimter other than  \'=\' or \',\' was passed. I'm not checking the expected length!" << std::endl;
         return result;
     } catch (const std::runtime_error &ex) {
@@ -601,11 +578,22 @@ std::vector<std::string> replicatedSecretShare<T>::split(const std::string s, co
 // input public int
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atoi(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
+        if (!is_int(tokens.front()))
+            throw std::runtime_error("Non-integer input provided: " + tokens.front());
+        // cout << "ss_input, public int :" << tokens.front() << endl;
+        *var = stoi(tokens.front()); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private int
@@ -874,15 +862,13 @@ void replicatedSecretShare<T>::modMul(T *result, T *x, T y) {
     }
 }
 
-
-// we 
+// we
 template <typename T>
-void replicatedSecretShare<T>::modMul(T *result, T *x, T* y) {
+void replicatedSecretShare<T>::modMul(T *result, T *x, T *y) {
     for (size_t i = 0; i < numShares; i++) {
         result[i] = x[i] * y[0];
     }
 }
-
 
 template <typename T>
 void replicatedSecretShare<T>::modMul(T **result, T **x, T *y, int size) {
@@ -1063,8 +1049,6 @@ void replicatedSecretShare<T>::modPow2(T &result, T exponent) {
     result = 1 << exponent;
 }
 
-
-
 template <typename T>
 void replicatedSecretShare<T>::modPow2(T *result, T *exponent, int size) {
     for (int i = 0; i < size; ++i) {
@@ -1089,31 +1073,23 @@ template <typename T>
 void replicatedSecretShare<T>::modPow(T *result, T *base, long exponent, int size) {
 }
 
-
 // these are to be dealt with later, problems explained above
 template <typename T>
-void replicatedSecretShare<T>::modPow2(T *result, T *exponent){
-
+void replicatedSecretShare<T>::modPow2(T *result, T *exponent) {
 }
 
 template <typename T>
-void replicatedSecretShare<T>::modPow2(T *result, int exponent){
-
+void replicatedSecretShare<T>::modPow2(T *result, int exponent) {
 }
 template <typename T>
-void replicatedSecretShare<T>::modPow2(T **result, T **exponent, int size){
-
+void replicatedSecretShare<T>::modPow2(T **result, T **exponent, int size) {
 }
 template <typename T>
-void replicatedSecretShare<T>::modPow2(T **result, int *exponent, int size){
-
+void replicatedSecretShare<T>::modPow2(T **result, int *exponent, int size) {
 }
 template <typename T>
-void replicatedSecretShare<T>::modMul(T **result, T **x, T **y, int size){
-
+void replicatedSecretShare<T>::modMul(T **result, T **x, T **y, int size) {
 }
-
-
 
 template <typename T>
 uint replicatedSecretShare<T>::getNumShares() {
@@ -1159,16 +1135,12 @@ replicatedSecretShare<T>::~replicatedSecretShare() {
     delete[] EVEN;
 }
 
-
 template <typename T>
-void ss_batch_free_operator(T ***op, int size){
-
+void ss_batch_free_operator(T ***op, int size) {
 }
 
 template <typename T>
-void ss_batch_free_operator(T ****op, int size){
-
+void ss_batch_free_operator(T ****op, int size) {
 }
-
 
 #endif

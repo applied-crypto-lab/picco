@@ -1430,6 +1430,9 @@ void SecretShare::ss_input(int id, int *var, int size, std::string type, std::if
 }
 
 // one-dimensional PRIVATE float array I/O
+// the difference between this function and the other array inputs is that it can't directly check if there are "size" things to split
+// it just calls getline() size times
+// and if it encounters something that it doesnt expect (array of size 4), it will throw an error
 void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
     try {
         std::string line;

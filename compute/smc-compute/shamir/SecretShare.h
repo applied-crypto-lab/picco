@@ -22,6 +22,7 @@
 #define SECRETSHARE_H_
 
 #include "../../../common/shared.h"
+#include "../bit_utils.hpp"
 #include "ShamirUtil.h"
 #include "stdint.h"
 #include <algorithm>
@@ -30,16 +31,16 @@
 #include <exception>
 #include <fstream>
 #include <functional>
-#include <regex>
 #include <gmp.h>
 #include <iostream>
+#include <map>
 #include <math.h>
 #include <numeric>
 #include <openssl/rand.h>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <map>
 
 // #define KEYSIZE 16
 
@@ -117,7 +118,7 @@ public:
     void modPow(mpz_t *, mpz_t *, mpz_t *, int);
     void modPow(mpz_t, mpz_t, long);
     void modPow(mpz_t *, mpz_t *, long, int);
-    
+
     void modPow2(mpz_t, int);
     void modPow2(mpz_t, mpz_t);
     void modPow2(mpz_t *result, int *exponent, int size);
@@ -158,13 +159,11 @@ public:
 
     int getCoefIndex(int k);
 
-
     std::vector<std::string> splitfunc(const char *str, const char *delim);
     std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size = 0);
 
-bool is_int(const std::string &str);
-bool is_float(const std::string &str);
-
+    bool is_int(const std::string &str);
+    bool is_float(const std::string &str);
 
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams);
@@ -192,8 +191,7 @@ bool is_float(const std::string &str);
     void ss_single_convert_to_private_float(float a, mpz_t **priv_a, int len_sig, int len_exp);
 
     void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size);
-    mpz_t **coef; //public because eqz uses it directly
-
+    mpz_t **coef; // public because eqz uses it directly
 
 private:
     std::map<std::string, std::vector<int>> polynomials; // public for easier access in Random, but polynomials are only accessed inside of generateRandomValue?
