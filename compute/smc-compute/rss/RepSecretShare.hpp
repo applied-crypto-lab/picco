@@ -599,106 +599,180 @@ void replicatedSecretShare<T>::ss_input(int id, int *var, std::string type, std:
 // input private int
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T **var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ";");
-    // for (int i = 0; i < tokens.size(); i++)
-    //     std::from_chars(tokens[i].data(), tokens[i].data() + tokens[i].size(), var[i]);
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", numShares);
+        for (int i = 0; i < numShares; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            std::from_chars(temp[i].data(), temp[i].data() + temp[i].size(), (*var)[i]);
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input public float
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atof(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs (non-array only)
+        if (!is_float(tokens.front()))
+            throw std::runtime_error("Non-float input provided: " + tokens.front());
+        // cout << "ss_input, public float :" << tokens.front() << endl;
+        *var = stof(tokens.front()); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private float
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T ***var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::vector<std::string> temp2;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");     // getting everything after "="
-    temp2 = splitfunc(temp[1].c_str(), ","); // getting the string of shares
-    for (int i = 0; i < 4; i++) {            // temp2.size(), 4 for floats
-        tokens = splitfunc(temp2[i].c_str(), ";");
-        // for (int j = 0; j < tokens.size(); j++) { // numShares
-        //     std::from_chars(tokens[j].data(), tokens[j].data() + tokens[j].size(), var[j][i]);
-        // }
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::vector<std::string> temp2;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", 4);
+        for (int i = 0; i < 4; i++) {
+            temp2 = split(temp[i], ";", numShares);
+            for (int j = 0; j < numShares; j++) {
+                if (!is_int(temp2[i]))
+                    throw std::runtime_error("Non-integer input provided: " + temp2[i]);
+                std::from_chars(temp2[j].data(), temp2[j].data() + temp2[j].size(), (*var)[j][i]);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float] stream from party " + std::to_string(id) + ": " + error);
     }
+
 }
 
-// one-dimensional int array I/O
+// one-dimensional PRIVATE int array I/O
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T **var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::vector<std::string> temp2;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");     // getting everything after "="
-    temp2 = splitfunc(temp[1].c_str(), ","); // getting the string of shares
-    for (int i = 0; i < size; i++) {         // temp2.size(),
-        tokens = splitfunc(temp2[i].c_str(), ";");
-        // for (int j = 0; j < tokens.size(); j++) { // numShares
-        //     std::from_chars(tokens[j].data(), tokens[j].data() + tokens[j].size(), var[j][i]);
-        // }
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::vector<std::string> temp2;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            temp2 = split(temp[i], ";", numShares);
+            for (int j = 0; j < numShares; j++) {
+                if (!is_int(temp2[i]))
+                    throw std::runtime_error("Non-integer input provided: " + temp2[i]);
+                std::from_chars(temp2[j].data(), temp2[j].data() + temp2[j].size(), var[j][i]);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int arr] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
 // 1-D PUBLIC int
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atoi(tokens[i].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            var[i] = atoi(temp[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int array] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
-// one-dimensional float array I/O
+// one-dimensional PRIVATE float array I/O
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T ***var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::vector<std::string> temp2;
-    for (int i = 0; i < size; i++) { // total number of floats
-        std::getline(inputStreams[id - 1], line);
-        temp = splitfunc(line.c_str(), "=");           // getting everything after "="
-        temp2 = splitfunc(temp[1].c_str(), ",");       // getting the string of shares
-        for (int j = 0; j < 4; j++) {                  // always will be 4 PER LINE
-            tokens = splitfunc(temp2[j].c_str(), ";"); // splitting each string into individual shares
-            // for (int k = 0; k < tokens.size(); k++) {  // numShares
-            //     std::from_chars(tokens[k].data(), tokens[k].data() + tokens[k].size(), var[k][i][j]);
-            // }
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::vector<std::string> temp2;
+
+        for (int i = 0; i < size; i++) { // reading size lines
+            std::getline(inputStreams[id - 1], line);
+            tokens = split(line, "=");
+            temp = split(tokens[1], ",", 4); // each line will contain 4 sets of shares
+            for (int j = 0; j < 4; j++) {
+                temp2 = split(temp[j], ";", numShares); 
+                for (int k = 0; k < numShares; k++) { // each set will contain numShares shares
+                    if (!is_int(temp2[k]))
+                        throw std::runtime_error("Non-integer input provided: " + temp[j]);
+                    std::from_chars(temp2[k].data(), temp2[k].data() + temp2[k].size(), var[k][i][j]);
+                }
+            }
         }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float array] stream from party " + std::to_string(id) + ": " + error);
     }
+
 }
 
 // 1-D PUBLIC float
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atof(tokens[i].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_float(temp[i]))
+                throw std::runtime_error("Non-float input provided: " + temp[i]);
+            var[i] = atof(temp[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float array] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input randomly generated private int
