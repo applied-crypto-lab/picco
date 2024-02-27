@@ -44,6 +44,7 @@
 #include <gmp.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 static aststmt ast; /* The AST we use as our original */
 symtab stab;        /* Our symbol table */
@@ -99,8 +100,7 @@ void pathCreater(char *final_list) {
     // Loop through each segment of the path
     while (next_separator != NULL) {
         *next_separator = '\0'; // temporarily truncate the path
-        int result = createDirectory(final_list);
-        if (result != 0) {
+        if (createDirectory(final_list) < 0 && errno != EEXIST) {
             fprintf(stderr, "Failed to create directory: %s\n", final_list);
             exit(EXIT_FAILURE); // or handle error appropriately
         }
