@@ -56,10 +56,13 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     std::cout << "Creating SecretShare\n";
 
 #if __SHAMIR__
+    printf("SHAMIR\n");
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
-    uint ring_size = 64; // temporary, will replace use "bits" constructor argument
+    printf("RSS\n");
+
+    // uint ring_size = 64; // temporary, will replace use "bits" constructor argument
                          // if (bits <= 8) {     // Bits less than or equal to 8
                          //     ss = new replicatedSecretShare<uint8_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
 
@@ -70,7 +73,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     //     ss = new replicatedSecretShare<uint32_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
 
     // } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
-    ss = new replicatedSecretShare<uint64_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
+    ss = new replicatedSecretShare<priv_int_base>(id, numOfPeers, threshold, bits, rss_share_seeds);
     // }
 
 // need an alternate solution since we need to either a) know the bitlength/priv_size at compile-time, or b) make SMC-utils templated, in order to pass the template on to the the rss object (will consequently need to typedef priv_int)
@@ -1886,3 +1889,12 @@ std::vector<int> SMC_Utils::generateCoefficients(std::vector<int> T_set, int thr
     }
     return coefficients;
 }
+
+    std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
+    
+#if __RSS__
+uint SMC_Utils::getNumShares(){
+    return ss->getNumShares();
+
+}
+#endif

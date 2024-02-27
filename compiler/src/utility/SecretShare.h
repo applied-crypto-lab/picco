@@ -209,7 +209,7 @@ RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), thresho
 
     if (!RAND_bytes(key_raw, KEYSIZE) && !RAND_bytes(key_seed, KEYSIZE)) {
         fprintf(stderr, "ERROR (rss_setup): key generation, RAND_bytes()\n");
-        exit(0);
+        exit(1);
     }
 
     key_prg = offline_prg_keyschedule(key_raw);
@@ -257,7 +257,7 @@ RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), thresho
         break;
     default:
         fprintf(stderr, "ERROR (rss_setup): invalid number of parties, only n = {3, 5, 7} is supported for RSS \n");
-        exit(0);
+        exit(1);
     }
 }
 
@@ -277,7 +277,7 @@ template <typename T>
 std::vector<std::string> RSS<T>::getShares(long long input) {
     // if (input.empty()) {
     //     fprintf(stderr, "ERROR (getShares): empty input string, are your inputs formatted correctly?\n");
-    //     exit(0);
+    //     exit(1);
     // }
 
     // storing input into largest type just in case
@@ -320,7 +320,7 @@ std::vector<std::string> RSS<T>::getShares(long long input) {
         }
         if (share_str.empty()) {
             fprintf(stderr, "ERROR (getShares): share_str, something went very wrong in share generation\n");
-            exit(0);
+            exit(1);
         }
 
         // std::string share_str = joined_stream.str();
@@ -437,7 +437,7 @@ template <typename T>
 int RSS<T>::nCk(int n, int k) {
     if (k > n) {
         fprintf(stderr, "ERROR (nCk): n must be >= k\n");
-        exit(0);
+        exit(1);
         return -1;
     } else {
         int res = 1;

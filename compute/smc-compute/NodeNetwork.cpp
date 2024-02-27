@@ -42,6 +42,9 @@
 #include <sys/types.h>
 #include <vector>
 
+#define MAX_BUFFER_SIZE 229376 // in bytes
+// int MAX_BUFFER_SIZE = 4194304; // ?
+
 NodeConfiguration *config;
 EVP_CIPHER_CTX *en, *de;
 

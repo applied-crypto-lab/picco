@@ -43,26 +43,10 @@ typedef mpz_t priv_int;
 #define MPZ_CAST(X) (mpz_t *)(X)
 #endif
 #if __RSS__
+#include "rss/RSS_types.hpp" // header generated dynamically by the compiler according to the ring size
 #include "rss/RSSHeaders.hpp"
 #include "rss/RSSOps.hpp"
-typedef uint64_t *priv_int;         // this will be defined/written based on the ring_size
-#define MPZ_CAST(X) (priv_int *)(X) // check
 #endif
-
-// for rss, can we do
-// typedef uint32_T* priv_int; //? where any mpz_t is converted to at least a 1d array
-// typedef mpz_t priv_int;
-// #define MPZ_CAST(X) (mpz_t *)(X)
-// typedef unsigned long priv_int;
-// typedef unsigned long Lint; // for ring size in [31,62];
-
-// void ss_init_set_si(mpz_t &x, int x_val);
-// void ss_init_set_si(unsigned long &x, int x_val);
-// void ss_clear(unsigned long &x);
-// void ss_clear(mpz_t &x);
-
-// void ss_free_arr(mpz_t *op, int size);
-// void ss_free_arr(unsigned long *op, int size);
 
 class SMC_Utils {
 public:
@@ -581,12 +565,16 @@ public:
     void getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int>> &result);
     std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
+#if __RSS__
+    uint getNumShares();
+#endif
+
 private:
 #if __SHAMIR__
     SecretShare *ss;
 #endif
 #if __RSS__
-    replicatedSecretShare<uint64_t> *ss;
+    replicatedSecretShare<priv_int_base> *ss;
 #endif
 
     FILE *inputFile;
