@@ -24,12 +24,14 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <regex>
 
 NodeConfiguration::NodeConfiguration() {}
 
-NodeConfiguration::NodeConfiguration(int nodeID, std::string configFile, int sizeOfModulus) {
+NodeConfiguration::NodeConfiguration(int nodeID, std::string configFile, int sizeOfModulus, int number_of_peers) {
     bits = sizeOfModulus;
     id = nodeID;
+    peers = number_of_peers;
     loadConfig(configFile);
 }
 int NodeConfiguration::getBits() {
@@ -48,7 +50,7 @@ int NodeConfiguration::getPort() {
 }
 
 int NodeConfiguration::getPeerCount() {
-    return peerIP.size();
+    return peers;
 }
 std::string NodeConfiguration::getPeerIP(int id) {
     // Get the index of the id;
@@ -112,8 +114,16 @@ void NodeConfiguration::loadConfig(std::string configFile) {
     }
     std::string line;
     std::vector<std::string> tokens;
+
+    int currentID = 1; // Variable to track the current ID
+    int numOfLines = 0; // Counter to track the number of lines 
+    std::regex ipPattern(R"(^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$)"); // Expression pattern for IP address validation
+
+    int expectedNumOfPeers = NodeConfiguration::getPeerCount()+1;
+    
     // Read each line of the configuration file
     while (std::getline(configIn, line)) {
+        numOfLines++;
         tokens.clear();
         char *tok = strdup(line.c_str());
         tok = strdup(line.c_str());
@@ -125,6 +135,51 @@ void NodeConfiguration::loadConfig(std::string configFile) {
             tok = strtok(NULL, ",");
         }
         free(tok);
+
+        if (tokens.size() != 4) { // This is the token size, [#of-party, ip, port, key-file]
+            std::cerr << "ERROR: Malformed line in runtime-config file: " << line << " exiting...\n";
+            std::exit(1);
+        }
+
+        // Check for empty tokens
+        for (const auto &t : tokens) {
+            if (t.empty()) {
+                std::cerr << "ERROR: Empty token in runtime-config file: " << line << " exiting...\n";
+                std::exit(1);
+            }
+        }
+
+        // Validate ID (should be an integer)
+        if (!std::regex_match(tokens[0], std::regex(R"(\d+)"))) {
+            std::cerr << "ERROR: Invalid ID in runtime-config file: " << line << " exiting...\n";
+            std::exit(1);
+        }
+
+        // Validate IP address format
+        if (!std::regex_match(tokens[1], ipPattern)) {
+            std::cerr << "ERROR: Invalid IP address in runtime-config file: " << line << " exiting...\n";
+            std::exit(1);
+        }
+
+        // Validate port number (should be an integer)
+        if (!std::regex_match(tokens[2], std::regex(R"(\d+)"))) {
+            std::cerr << "ERROR: Invalid port number in runtime-config file: " << line << " exiting...\n";
+            std::exit(1);
+        }
+
+        // Ensure public key is provided
+        if (tokens[3].empty()) {
+            std::cerr << "ERROR: Missing public key in runtime-config file: " << line << " exiting...\n";
+            std::exit(1);
+        }
+
+        // Validate ID sequence
+        if (atoi(tokens[0].c_str()) != currentID) {
+            std::cerr << "ERROR: ID sequence in runtime-config file is not sequential or does not start from 1, exiting...\n";
+            std::exit(1);
+        }
+        currentID++;
+
         if (id == atoi(tokens[0].c_str())) {
             ip = tokens[1];
             port = atoi(tokens[2].c_str());
@@ -140,6 +195,13 @@ void NodeConfiguration::loadConfig(std::string configFile) {
 #endif
         }
     }
+
+    // Check if the total number of lines processed matches the expected number
+    if (numOfLines != expectedNumOfPeers) {
+        std::cerr << "ERROR: Number of lines in runtime-config file does not match expected number of peers, exiting...\n";
+        std::exit(1);
+    }
+
     configIn.close();
 }
 

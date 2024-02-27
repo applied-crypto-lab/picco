@@ -36,7 +36,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     mpz_set_str(modulus, mod.c_str(), BASE_10);
 #endif
 
-    nodeConfig = new NodeConfiguration(id, runtime_config, bits);
+    nodeConfig = new NodeConfiguration(id, runtime_config, bits, (numOfPeers-1));
 
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
