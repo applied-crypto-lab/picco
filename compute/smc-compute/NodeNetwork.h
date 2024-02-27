@@ -21,13 +21,7 @@
 #ifndef NODENETWORK_H_
 #define NODENETWORK_H_
 
-// key size in bytes; switching to a longer size will require more work than updating this constant as 128-bit encryption function calls are used
 
-
-// #define KEYSIZE 16
-#define MAX_BUFFER_SIZE 229376 // in bytes
-
-// int MAX_BUFFER_SIZE = 4194304; // ?
 #include "../../common/shared.h"
 #include "NodeConfiguration.h"
 #include "stdint.h"
