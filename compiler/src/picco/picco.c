@@ -43,9 +43,7 @@
 // #include "config.h"
 #include <gmp.h>
 #ifdef _WIN32
-    #include <dirent.h>
-#elif defined(__APPLE__)
-    #include <direct.h>
+    #include <direct.h> 
 #else
     #include <sys/stat.h> 
 #endif
@@ -94,8 +92,6 @@ void getPrime(mpz_t, int);
 int createDirectory(const char *path) {
 #ifdef _WIN32
     return _mkdir(path);
-#elif defined(__APPLE__)
-    return mkdir(path);
 #else
     return mkdir(path, 0777);
 #endif

@@ -32,15 +32,11 @@
 #include <cstdlib>
 #include <unordered_set>
 #include <regex>
-
 #ifdef _WIN32
-    #include <direct.h> 
-#elif defined(__APPLE__)
     #include <direct.h> 
 #else
     #include <sys/stat.h> 
 #endif
-
 using namespace std;
 
 // these will be eventually read from the config files;
@@ -988,8 +984,6 @@ void convertFloat(float value, int K, int L, long long **elements) {
 bool createDirectory(const std::string& path) {
 #ifdef _WIN32
     return _mkdir(path.c_str()) == 0;
-#elif defined(__APPLE__)
-    return mkdir(path.c_str()) == 0;
 #else
     return mkdir(path.c_str(), 0777) == 0;
 #endif
