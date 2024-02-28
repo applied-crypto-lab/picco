@@ -3,7 +3,6 @@
 
 #include <cstdint>
 typedef uint64_t *priv_int;         // this will be defined/written based on the ring_size
-typedef uint64_t priv_int_base;     // (needed for RepSecretShare initialization)
 #define MPZ_CAST(X) (priv_int *)(X) // check how to up-cast from 1D to 2D
 
 #endif // _RSS_TYPES_HPP_

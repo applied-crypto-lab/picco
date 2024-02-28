@@ -1566,7 +1566,6 @@ void SecretShare::ss_output(int id, int *var, int size, std::string type, std::o
 void SecretShare::ss_output(int id, mpz_t **var, int size, std::string type, std::ofstream *outputStreams) {
     std::string value;
     for (int i = 0; i < size; i++) {
-        // smc_open(var[i], threadID);
         for (int j = 0; j < 4; j++) {
             value = mpz_get_str(NULL, BASE_10, var[i][j]);
             if (j != 3)
