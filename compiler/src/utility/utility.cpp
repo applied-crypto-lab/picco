@@ -34,9 +34,11 @@
 #include <regex>
 
 #ifdef _WIN32
-    #include <direct.h>
+    #include <direct.h> 
+#elif defined(__APPLE__)
+    #include <direct.h> 
 #else
-    #include <sys/stat.h>
+    #include <sys/stat.h> 
 #endif
 
 using namespace std;
@@ -980,10 +982,14 @@ void convertFloat(float value, int K, int L, long long **elements) {
 
 }
 
-
+// Windows uses _mkdir() to create a directory and returns true if the operation succeeds.
+// macOS uses mkdir() with default permissions and not setting 0777
+// Other Unix-like uses mkdir() with permissions set to 0777, giving full read, write, and execute permissions.
 bool createDirectory(const std::string& path) {
 #ifdef _WIN32
     return _mkdir(path.c_str()) == 0;
+#elif defined(__APPLE__)
+    return mkdir(path.c_str()) == 0;
 #else
     return mkdir(path.c_str(), 0777) == 0;
 #endif
