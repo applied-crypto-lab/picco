@@ -1011,7 +1011,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(portno);
         if ((bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0) {
-            throw std::runtime_error("error on binding to socket, try again with a different port number.");
+            throw std::runtime_error("error on binding to socket, try again with a different port number. Port used: " + std::to_string(portno));
         }
         listen(sockfd, 7);
         // start to accept connections
@@ -1283,7 +1283,7 @@ void NodeNetwork::getRounds(int size, uint *count, uint *rounds, uint ring_size)
         *rounds = size / (*count) - 1;
 }
 
-void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, int **send_recv_map, int threshold) {
+void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
     getRounds_bit(size, &count, &rounds);
     for (size_t i = 0; i < threshold; i++) {
@@ -1294,7 +1294,26 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvDa
     }
 }
 
-void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t **RecvData, int size, uint ring_size, int **send_recv_map, int threshold) {
+
+// specific to 3 parties
+void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t *RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (size_t i = 0; i < threshold; i++) { // will only happen once for 3pc
+        for (int k = 0; k <= rounds; k++) {
+            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
+            if (send_recv_map[0][i] > 0) {
+                sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+            }
+            if (send_recv_map[1][i] > 0) {
+                getDataFromPeer(send_recv_map[1][i], RecvData, k * count, count, size, ring_size);
+            }
+        }
+    }
+}
+
+
+void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
     getRounds(size, &count, &rounds, ring_size);
     for (size_t i = 0; i < threshold; i++) {
@@ -1302,6 +1321,23 @@ void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t **RecvData
             // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
             if (send_recv_map[0][i] > 0) {
                 sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+            }
+            if (send_recv_map[1][i] > 0) {
+                getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
+            }
+        }
+    }
+}
+
+// used for Open (5 and 7 pc)
+void NodeNetwork::SendAndGetDataFromPeer(uint32_t **SendData, uint32_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (size_t i = 0; i < threshold; i++) {
+        for (int k = 0; k <= rounds; k++) {
+            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
+            if (send_recv_map[0][i] > 0) {
+                sendDataToPeer(send_recv_map[0][i], SendData[i], k * count, count, size, ring_size);
             }
             if (send_recv_map[1][i] > 0) {
                 getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
@@ -1401,7 +1437,9 @@ void NodeNetwork::multicastToPeers(uint32_t **data, uint32_t **buffers, int size
     // numBytesSent += size * sizeof(uint32_t) * peers;
 }
 
-void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t **RecvData, int size, uint ring_size, int **send_recv_map, int threshold) {
+
+// specific to 3 parties
+void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t *RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
     getRounds(size, &count, &rounds, ring_size);
     for (size_t i = 0; i < threshold; i++) {
@@ -1409,6 +1447,39 @@ void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t **RecvData
             // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
             if (send_recv_map[0][i] > 0) {
                 sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+            }
+            if (send_recv_map[1][i] > 0) {
+                getDataFromPeer(send_recv_map[1][i], RecvData, k * count, count, size, ring_size);
+            }
+        }
+    }
+}
+
+
+void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (size_t i = 0; i < threshold; i++) {
+        for (int k = 0; k <= rounds; k++) {
+            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
+            if (send_recv_map[0][i] > 0) {
+                sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+            }
+            if (send_recv_map[1][i] > 0) {
+                getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
+            }
+        }
+    }
+}
+
+void NodeNetwork::SendAndGetDataFromPeer(uint64_t **SendData, uint64_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
+    uint count = 0, rounds = 0;
+    getRounds(size, &count, &rounds, ring_size);
+    for (size_t i = 0; i < threshold; i++) {
+        for (int k = 0; k <= rounds; k++) {
+            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
+            if (send_recv_map[0][i] > 0) {
+                sendDataToPeer(send_recv_map[0][i], SendData[i], k * count, count, size, ring_size);
             }
             if (send_recv_map[1][i] > 0) {
                 getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);

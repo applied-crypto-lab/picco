@@ -111,15 +111,18 @@ public:
 
     void getRounds(int size, uint *count, uint *rounds, uint ring_size);
     // 16
-    void SendAndGetDataFromPeer(uint16_t *, uint16_t **, int, uint, int **, int);
-    void sendDataToPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
-    void sendDataToPeer(int id, int size, uint16_t *data, uint ring_size);
-    void getDataFromPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
-    void getDataFromPeer(int id, int size, uint16_t *buffer, uint ring_size);
-    void multicastToPeers(uint16_t **data, uint16_t **buffers, int size, uint ring_size);
+    // void SendAndGetDataFromPeer(uint16_t *, uint16_t *, int, uint, std::vector<std::vector<int>>send_recv_map, int);
+    // void SendAndGetDataFromPeer(uint16_t *, uint16_t **, int, uint, std::vector<std::vector<int>>send_recv_map, int);
+    // void sendDataToPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
+    // void sendDataToPeer(int id, int size, uint16_t *data, uint ring_size);
+    // void getDataFromPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
+    // void getDataFromPeer(int id, int size, uint16_t *buffer, uint ring_size);
+    // void multicastToPeers(uint16_t **data, uint16_t **buffers, int size, uint ring_size);
 
     // 32
-    void SendAndGetDataFromPeer(uint32_t *, uint32_t **, int, uint, int **, int);
+    void SendAndGetDataFromPeer(uint32_t *, uint32_t *, int, uint, std::vector<std::vector<int>>send_recv_map, int);
+    void SendAndGetDataFromPeer(uint32_t *, uint32_t **, int, uint, std::vector<std::vector<int>>send_recv_map, int);
+    void SendAndGetDataFromPeer(uint32_t **, uint32_t **, int, uint, std::vector<std::vector<int>>send_recv_map, int);
     void sendDataToPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size);
     void sendDataToPeer(int id, int size, uint32_t *data, uint ring_size);
     void getDataFromPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size);
@@ -127,7 +130,9 @@ public:
     void multicastToPeers(uint32_t **data, uint32_t **buffers, int size, uint ring_size);
 
     // 64
-    void SendAndGetDataFromPeer(uint64_t *, uint64_t **, int, uint, int **, int);
+    void SendAndGetDataFromPeer(uint64_t *, uint64_t *, int, uint, std::vector<std::vector<int>>send_recv_map, int);
+    void SendAndGetDataFromPeer(uint64_t *, uint64_t **, int, uint, std::vector<std::vector<int>>send_recv_map, int);
+    void SendAndGetDataFromPeer(uint64_t **, uint64_t **, int, uint, std::vector<std::vector<int>>send_recv_map, int);
     void sendDataToPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size);
     void sendDataToPeer(int id, int size, uint64_t *data, uint ring_size);
     void getDataFromPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size);
@@ -135,7 +140,7 @@ public:
     void multicastToPeers(uint64_t **data, uint64_t **buffers, int size, uint ring_size);
 
     // 8
-    void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, int **, int);
+    void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, std::vector<std::vector<int>>send_recv_map, int);
     void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getRounds_bit(int size, uint *count, uint *rounds);
