@@ -73,7 +73,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     //     ss = new replicatedSecretShare<uint32_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
 
     // } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
-    ss = new replicatedSecretShare<priv_int_base>(id, numOfPeers, threshold, bits, rss_share_seeds);
+    ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
     // }
 
 // need an alternate solution since we need to either a) know the bitlength/priv_size at compile-time, or b) make SMC-utils templated, in order to pass the template on to the the rss object (will consequently need to typedef priv_int)
@@ -122,6 +122,11 @@ int SMC_Utils::smc_open(priv_int var, int threadID) {
 float SMC_Utils::smc_open(priv_int *var, int threadID) {
     return Open_float(var, threadID, net, ss);
 }
+
+void SMC_Utils::smc_open(priv_int result, priv_int *var, int size, int threadID) {
+    Open(result, var, size, threadID, net, ss);
+}
+
 
 // for integer variable I/O
 // why is this a pointer?

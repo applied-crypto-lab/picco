@@ -46,6 +46,7 @@ typedef mpz_t priv_int;
 #include "rss/RSS_types.hpp" // header generated dynamically by the compiler according to the ring size
 #include "rss/RSSHeaders.hpp"
 #include "rss/RSSOps.hpp"
+#include <type_traits>
 #endif
 
 class SMC_Utils {
@@ -55,6 +56,8 @@ public:
     // Share a secret between
     int smc_open(priv_int var, int threadID);
     float smc_open(priv_int *var, int threadID);
+    void smc_open(priv_int result, priv_int *var, int size, int threadID);
+
     // Methods for input and output
     // for integer variable;
     void smc_input(int id, int *var, std::string type, int threadID);
@@ -574,7 +577,7 @@ private:
     SecretShare *ss;
 #endif
 #if __RSS__
-    replicatedSecretShare<priv_int_base> *ss;
+    replicatedSecretShare<std::remove_pointer_t<priv_int>> *ss;
 #endif
 
     FILE *inputFile;
