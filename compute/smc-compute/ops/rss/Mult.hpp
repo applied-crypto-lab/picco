@@ -5,14 +5,25 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
-// from here, we defer to the 3-, 5-, or 7-party implementations
-
-
+void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            break;
+        case 5:
+            break;
+        case 7:
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what()); 
+        throw std::runtime_error("[Mult] " + error);
+    }
 }
-
-
-
 
 // ANB, 1/30/2024
 // this is written in such a way that it checks both orderings of T_map.
@@ -31,8 +42,8 @@ inline bool chi_p_prime_in_T_new(int p_prime, std::vector<int> T_map_mpc, int n)
     //     (mod_n(p_prime + 1, n) == T_map_mpc[0]) and
     //     (mod_n(p_prime + 2, n) == T_map_mpc[1]))); // this wont work, would require soring {p_prime+1, p_prime+2}
 
-     return (((mod_n(p_prime + 1, n) == T_map_mpc[0]) and (mod_n(p_prime + 2, n) == T_map_mpc[1])) or
-    ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
+    return (((mod_n(p_prime + 1, n) == T_map_mpc[0]) and (mod_n(p_prime + 2, n) == T_map_mpc[1])) or
+            ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
 }
 
 inline bool p_prime_in_T(int p_prime, int *T_map) {
@@ -671,7 +682,7 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
         }
     }
     nodeNet->SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map, threshold);
-    
+
     // nodeNet->SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] ^ recv_buf[1][i];

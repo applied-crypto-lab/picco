@@ -176,6 +176,7 @@ public:
     T *SHIFT;
     T *ODD;
     T *EVEN;
+    uint ring_size;      // ring_size
 
     std::vector<std::vector<int>> general_map;
     std::vector<std::vector<int>> open_map_mpc;
@@ -186,7 +187,6 @@ public:
 private:
     int n;               // n
     int t;               // t
-    uint ring_size;      // ring_size
     uint numShares;      // (n-1) choose t
     uint totalNumShares; // n choose t
     uint8_t **random_container;

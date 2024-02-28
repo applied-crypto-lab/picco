@@ -4,8 +4,6 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 
-template <typename T>
-void Open(T **shares, T **result, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *s) {}
 
 template <typename T>
 int Open_int(T *var, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *s) {
@@ -17,14 +15,14 @@ float Open_float(T **var, int threadID, NodeNetwork nodeNet, replicatedSecretSha
     return 0.0;
 }
 
-template <typename T>
-void Open_from_all(T **shares, T **result, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *s) {}
+// template <typename T>
+// void Open_from_all(T **shares, T **result, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *s) {}
 
 template <typename T>
-void Rss_Open_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
-    nodeNet->SendAndGetDataFromPeer(a[1], res, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(a[1], res, int(size), ring_size, ss->general_map, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] + a[1][i] + res[i];
         res[i] = res[i] & ss->SHIFT[ring_size];
@@ -35,7 +33,7 @@ template <typename T>
 void Rss_Open_Byte_3pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
-    nodeNet->SendAndGetDataFromPeer_bit(a[1], res, size, ss->general_map, threshold);
+    nodeNet->SendAndGetDataFromPeer_bit(a[1], res, int(size), ss->general_map, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] ^ a[1][i] ^ res[i];
     }
@@ -175,6 +173,29 @@ void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet
     }
     delete[] recvbuf;
     delete[] sendbuf;
+}
+
+
+template <typename T>
+void Open(T *result, T **shares, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Open_3pc(result, shares, size, ss->ring_size, nodeNet, ss);
+            break;
+        case 5:
+            break;
+        case 7:
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what()); 
+        throw std::runtime_error("[Open] " + error);
+    }
+
 }
 
 #endif
