@@ -48,11 +48,11 @@ inline bool is_float(const std::string &str) {
 
 template <typename T>
 void print_binary(T n, uint size) {
-    uint temp = size - 1;
+    T temp = size - 1;
     int i = size - 1;
     uint b;
     while (i != -1) {
-        b = GET_BIT(n, temp);
+        b = (uint)GET_BIT(n, temp);
         printf("%u", b);
         temp--;
         i -= 1;
