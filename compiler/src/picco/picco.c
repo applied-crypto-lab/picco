@@ -206,7 +206,7 @@ void append_new_main(bool mode) {
         str_printf(strA(), "%s(argc, argv);\n", MAIN_RENAME);
     str_printf(strA(),
                "  gettimeofday(&tv2, NULL);\n"
-               "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << std::endl;\n");
+               "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << \" seconds \"<< std::endl;\n");
     if (num_threads > 0)
         str_printf(strA(), "  ort_finalize(_xval);\n");
     str_printf(strA(), "  return (_xval);\n");
