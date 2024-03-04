@@ -43,40 +43,18 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     net = *nodeNet; // dereferencing, net is "copy initialized"
     seedSetup(seed_map, numOfPeers, threshold);
 
-    // only starting the manager if the program we're running is multithreaded
-    // actually doesnt work in the current state, because the way multicast/broadcast is written
-    // even if we're running a single-threaded program, it still sends the mode/threadID/some other BS that interferes
-    // need to launch manager regardless
-    // if (num_threads > 1) {
-    net.launchManager(); // launching thread manager here as to not conflict with seed setup
-    // }
-    // for RSS, launch manager doesn't even need to be called (since theres not multithreading support!)
-    //that way we can use the OG networking funcs from the RSS repo
 
     std::cout << "Creating SecretShare\n";
-
 #if __SHAMIR__
+
+    net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading 
     printf("SHAMIR\n");
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
     printf("RSS\n");
-
-    // uint ring_size = 64; // temporary, will replace use "bits" constructor argument
-                         // if (bits <= 8) {     // Bits less than or equal to 8
-                         //     ss = new replicatedSecretShare<uint8_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
-
-    // } else if (bits >= 9 && bits <= 16) { // Between 9 and 16 inclusive
-    //     ss = new replicatedSecretShare<uint16_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
-
-    // } else if (bits >= 17 && bits <= 32) { // Between 17 and 32 inclusive
-    //     ss = new replicatedSecretShare<uint32_t>(id, numOfPeers, threshold, ring_size, rss_share_seeds);
-
-    // } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
-    // }
 
-// need an alternate solution since we need to either a) know the bitlength/priv_size at compile-time, or b) make SMC-utils templated, in order to pass the template on to the the rss object (will consequently need to typedef priv_int)
 #endif
 
 // initialize input and output streams (deployment mode only)
