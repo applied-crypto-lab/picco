@@ -57,3 +57,4 @@ compute/test_op*
 compute/build*
 compute/notes.txt
 CMakeLists.txt
+compute/steps.sh

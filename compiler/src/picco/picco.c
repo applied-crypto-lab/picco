@@ -42,8 +42,11 @@
 #include <time.h>
 // #include "config.h"
 #include <gmp.h>
-#include <dirent.h>
-#include <sys/stat.h>
+#ifdef _WIN32
+    #include <direct.h> 
+#else
+    #include <sys/stat.h> 
+#endif
 #include <errno.h>
 
 static aststmt ast; /* The AST we use as our original */
@@ -83,7 +86,9 @@ int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
 
-// Create the directory using _mkdir for windows and mkdir for Unix-like systems 
+// Windows uses _mkdir() to create a directory and returns true if the operation succeeds.
+// macOS uses mkdir() with default permissions and not setting 0777
+// Other Unix-like uses mkdir() with permissions set to 0777, giving full read, write, and execute permissions.
 int createDirectory(const char *path) {
 #ifdef _WIN32
     return _mkdir(path);

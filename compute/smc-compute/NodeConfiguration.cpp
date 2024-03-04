@@ -32,7 +32,12 @@ NodeConfiguration::NodeConfiguration(int nodeID, std::string configFile, int siz
     bits = sizeOfModulus;
     id = nodeID;
     peers = number_of_peers;
-    loadConfig(configFile);
+    try {
+        loadConfig(configFile);
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        std::exit(1);
+    }
 }
 int NodeConfiguration::getBits() {
     return bits;
@@ -109,8 +114,7 @@ void NodeConfiguration::loadConfig(std::string configFile) {
     std::ifstream configIn(configFile.c_str(), std::ios::in);
     // Make sure the file exists and can be opened
     if (!configIn) {
-        std::cout << "ERROR: runtime-config could not be opened, exiting...\n";
-        std::exit(1);
+        throw std::runtime_error("runtime-config could not be opened, exiting...");
     }
     std::string line;
     std::vector<std::string> tokens;
@@ -136,47 +140,40 @@ void NodeConfiguration::loadConfig(std::string configFile) {
         }
         free(tok);
 
-        if (tokens.size() != 4) { // This is the token size, [#of-party, ip, port, key-file]
-            std::cerr << "ERROR: Malformed line in runtime-config file: " << line << " exiting...\n";
-            std::exit(1);
+        if (tokens.size() != 4) {
+            throw std::runtime_error("Malformed line in runtime-config file: " + line + " exiting...");
         }
 
         // Check for empty tokens
         for (const auto &t : tokens) {
             if (t.empty()) {
-                std::cerr << "ERROR: Empty token in runtime-config file: " << line << " exiting...\n";
-                std::exit(1);
+                throw std::runtime_error("Empty token in runtime-config file: " + line + " exiting...");
             }
         }
 
         // Validate ID (should be an integer)
         if (!std::regex_match(tokens[0], std::regex(R"(\d+)"))) {
-            std::cerr << "ERROR: Invalid ID in runtime-config file: " << line << " exiting...\n";
-            std::exit(1);
+            throw std::runtime_error("Invalid ID in runtime-config file: " + line + " exiting...");
         }
 
         // Validate IP address format
         if (!std::regex_match(tokens[1], ipPattern)) {
-            std::cerr << "ERROR: Invalid IP address in runtime-config file: " << line << " exiting...\n";
-            std::exit(1);
+            throw std::runtime_error("Invalid IP address in runtime-config file: " + line + " exiting...");
         }
 
         // Validate port number (should be an integer)
         if (!std::regex_match(tokens[2], std::regex(R"(\d+)"))) {
-            std::cerr << "ERROR: Invalid port number in runtime-config file: " << line << " exiting...\n";
-            std::exit(1);
+            throw std::runtime_error("Invalid port number in runtime-config file: " + line + " exiting...");
         }
 
         // Ensure public key is provided
         if (tokens[3].empty()) {
-            std::cerr << "ERROR: Missing public key in runtime-config file: " << line << " exiting...\n";
-            std::exit(1);
+            throw std::runtime_error("Missing public key in runtime-config file: " + line + " exiting...");
         }
 
         // Validate ID sequence
         if (atoi(tokens[0].c_str()) != currentID) {
-            std::cerr << "ERROR: ID sequence in runtime-config file is not sequential or does not start from 1, exiting...\n";
-            std::exit(1);
+            throw std::runtime_error("ID sequence in runtime-config file is not sequential or does not start from 1, exiting...");
         }
         currentID++;
 
@@ -198,8 +195,7 @@ void NodeConfiguration::loadConfig(std::string configFile) {
 
     // Check if the total number of lines processed matches the expected number
     if (numOfLines != expectedNumOfPeers) {
-        std::cerr << "ERROR: Number of lines in runtime-config file does not match expected number of peers, exiting...\n";
-        std::exit(1);
+        throw std::runtime_error("Number of lines in runtime-config file does not match expected number of peers, exiting...");
     }
 
     configIn.close();

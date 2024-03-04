@@ -32,13 +32,11 @@
 #include <cstdlib>
 #include <unordered_set>
 #include <regex>
-
 #ifdef _WIN32
-    #include <direct.h>
+    #include <direct.h> 
 #else
-    #include <sys/stat.h>
+    #include <sys/stat.h> 
 #endif
-
 using namespace std;
 
 // these will be eventually read from the config files;
@@ -980,7 +978,9 @@ void convertFloat(float value, int K, int L, long long **elements) {
 
 }
 
-
+// Windows uses _mkdir() to create a directory and returns true if the operation succeeds.
+// macOS uses mkdir() with default permissions and not setting 0777
+// Other Unix-like uses mkdir() with permissions set to 0777, giving full read, write, and execute permissions.
 bool createDirectory(const std::string& path) {
 #ifdef _WIN32
     return _mkdir(path.c_str()) == 0;
