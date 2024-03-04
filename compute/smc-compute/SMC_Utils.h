@@ -44,6 +44,8 @@ typedef mpz_t priv_int;
 #endif
 #if __RSS__
 #include "rss/RSS_types.hpp" // header generated dynamically by the compiler according to the ring size
+#define MPZ_CAST(X) (priv_int *)(X) // check how to up-cast from 1D to 2D
+
 #include "rss/RSSHeaders.hpp"
 #include "rss/RSSOps.hpp"
 #include <type_traits>

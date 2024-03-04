@@ -20,6 +20,7 @@
 
 #include "NodeNetwork.h"
 #include "NodeConfiguration.h"
+#include "bit_utils.hpp"
 #include "openssl/bio.h"
 #include "time.h"
 #include "unistd.h"
@@ -157,28 +158,50 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
 
-    SHIFT_16 = new uint16_t[sizeof(uint16_t) * 8];
-    SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8];
-    SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8];
-    for (uint16_t i = 0; i <= sizeof(uint16_t) * 8 - 1; i++) {
+    /* 
+    ANB, 3/4/24
+    - there is a VERY strange "bug", where if the array sizes of the shifts below are declared to be of length sizeof(priv_int) * 8, and the subsequent for loops which populate each element with the corresponding mask 
+    - if the for loop is upper bounded by sizeof(priv_int) * 8 + 1 (1 larger than allowed), it DOES NOT CAUSE A SEGFAULT
+    - e.g. if k = 32, and we declare SHIFT_32 to be of length 32
+    - and the for loop is upper bounded by 32 INCLUSIVE, then we are accessing the following:
+        SHIFT_32[32]
+    - which is out of bounds, and should've ended in a segfault
+     */
+    SHIFT_16 = new uint16_t[sizeof(uint16_t) * 8 + 1];
+    SHIFT_32 = new uint32_t[sizeof(uint32_t) * 8 + 1];
+    SHIFT_64 = new uint64_t[sizeof(uint64_t) * 8 + 1];
+
+    // printf("sizeof(uint16_t) * 8 %lu\n", sizeof(uint16_t) * 8);
+    // printf("sizeof(uint32_t) * 8 %lu\n", sizeof(uint32_t) * 8);
+    // printf("sizeof(uint64_t) * 8 %lu\n", sizeof(uint64_t) * 8);
+     
+
+    for (uint16_t i = 0; i <= sizeof(uint16_t) * 8; i++) {
         SHIFT_16[i] = (uint16_t(1) << uint16_t(i)) - uint16_t(1); // mod 2^i
         // this is needed to handle "undefined behavior" of << when we want
         // to shift by more than the size of the type (in bits)
         if (i == sizeof(uint16_t) * 8) {
             SHIFT_16[i] = -1;
         }
+        // printf("SHIFT_16[%u] : ", i);
+        // print_binary(SHIFT_16[i], sizeof(uint16_t) * 8);
     }
-    for (uint32_t i = 0; i <= sizeof(uint32_t) * 8 - 1; i++) {
+
+    for (uint32_t i = 0; i <= sizeof(uint32_t) * 8; i++) {
         SHIFT_32[i] = (uint32_t(1) << uint32_t(i)) - uint32_t(1); // mod 2^i
         if (i == sizeof(uint32_t) * 8) {
             SHIFT_32[i] = -1;
         }
+        // printf("SHIFT_32[%u] : ", i);
+        // print_binary(SHIFT_32[i], sizeof(uint32_t) * 8);
     }
-    for (uint64_t i = 0; i <= sizeof(uint64_t) * 8 - 1; i++) {
+    for (uint64_t i = 0; i <= sizeof(uint64_t) * 8; i++) {
         SHIFT_64[i] = (uint64_t(1) << uint64_t(i)) - uint64_t(1); // mod 2^i
         if (i == sizeof(uint64_t) * 8) {
             SHIFT_64[i] = -1;
         }
+        // printf("SHIFT_64[%lu] : ", i);
+        // print_binary(SHIFT_64[i], sizeof(uint64_t) * 8);
     }
 }
 
@@ -1294,7 +1317,6 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvDa
     }
 }
 
-
 // specific to 3 parties
 void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t *RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
@@ -1311,7 +1333,6 @@ void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t *RecvData,
         }
     }
 }
-
 
 void NodeNetwork::SendAndGetDataFromPeer(uint32_t *SendData, uint32_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
@@ -1437,7 +1458,6 @@ void NodeNetwork::multicastToPeers(uint32_t **data, uint32_t **buffers, int size
     // numBytesSent += size * sizeof(uint32_t) * peers;
 }
 
-
 // specific to 3 parties
 void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t *RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;
@@ -1454,7 +1474,6 @@ void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t *RecvData,
         }
     }
 }
-
 
 void NodeNetwork::SendAndGetDataFromPeer(uint64_t *SendData, uint64_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map, int threshold) {
     uint count = 0, rounds = 0;

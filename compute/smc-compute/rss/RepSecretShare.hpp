@@ -207,12 +207,12 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
     // allocating the const_map dynamically after numShares is calculated
     const_map.resize(numShares, 0);
 
-    SHIFT = new T[sizeof(T) * 8];
+    SHIFT = new T[sizeof(T) * 8+1];
     ODD = new T[ring_size + 2];
     EVEN = new T[ring_size + 2];
 
     // i think this is "21" for the minion nn?
-    for (T i = 0; i <= sizeof(T) * 8 - 1; i++) {
+    for (T i = 0; i <= sizeof(T) * 8 ; i++) {
         SHIFT[i] = (T(1) << T(i)) - T(1); // mod 2^i
 
         // this is needed to handle "undefined behavior" of << when we want
@@ -679,7 +679,6 @@ void replicatedSecretShare<T>::ss_input(int id, T ***var, std::string type, std:
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T **var, int size, std::string type, std::ifstream *inputStreams) {
     try {
-        printf("one-dimensional PRIVATE int array I/O\n");
         std::string line;
         std::vector<std::string> tokens;
         std::vector<std::string> temp;
