@@ -281,7 +281,7 @@ void Rss_truncPr_1_5pc(Lint **res, Lint **x, Lint m, uint size, uint ring_size, 
     Lint *ai = new Lint[numShares];
     memset(ai, 0, sizeof(Lint) * numShares);
 
-    // uint numParties = nodeNet->getNumParties();
+    // uint numParties = nodeNet->getPeers();
     if (pid == 1) {
         ai[0] = 1;
     } else if (pid == 4) {

@@ -3,7 +3,7 @@
 void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *nodeNet) {
 
     // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     // printf("numParties : %u\n",numParties);
     // struct timeval start;
     // struct timeval end;
@@ -40,7 +40,7 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
     uint bytes = (ring_size + 7) >> 3;
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     // printf("numParties : %u \n", numParties);
 
     // Lint temp0, temp1;
@@ -148,7 +148,7 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
 void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork *nodeNet) {
 
     // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     // printf("numParties : %u\n",numParties);
 
     uint i;
@@ -182,7 +182,7 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
     uint bytes = (ring_size + 7) >> 3;
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     // Lint temp0, temp1;
 
     // used since we have effectively double the number of values
@@ -282,7 +282,7 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
 void Rss_edaBit_trunc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ring_size, uint m, NodeNetwork *nodeNet) {
 
     // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
 
     uint i;
 
@@ -337,7 +337,7 @@ void Rss_edaBit_trunc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ri
 void Rss_edaBit_trunc_test(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ring_size, uint m, NodeNetwork *nodeNet) {
 
     // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
 
     uint i;
 
@@ -399,7 +399,7 @@ void Rss_GenerateRandomShares_trunc(Lint **res, Lint **res_prime, Lint **res_bit
     uint bytes = (ring_size + 7) >> 3;
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     // printf("numParties : %u \n", numParties);
 
     // Lint temp0, temp1;
@@ -549,7 +549,7 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
     uint new_size = 2 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint numShares = nodeNet->getNumShares();
     uint threshold = nodeNet->getThreshold();
     // printf("threshold : %u \n", threshold);
@@ -815,7 +815,7 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
     uint new_size = 3 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint numShares = nodeNet->getNumShares();
     uint threshold = nodeNet->getThreshold();
     // printf("threshold : %u \n", threshold);
@@ -1063,7 +1063,7 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
     uint new_size = 2 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint numShares = nodeNet->getNumShares();
     uint threshold = nodeNet->getThreshold();
     // printf("threshold : %u \n", threshold);
