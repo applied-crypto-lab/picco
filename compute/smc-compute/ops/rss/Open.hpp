@@ -30,20 +30,20 @@ void Rss_Open_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet,
 }
 
 template <typename T>
-void Rss_Open_Byte_3pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_Byte_3pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
-    nodeNet->SendAndGetDataFromPeer_bit(a[1], res, int(size), ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer_bit(a[1], res, int(size), ss->general_map, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] ^ a[1][i] ^ res[i];
     }
 }
 
 template <typename T>
-void Rss_Open_Bitwise_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_Bitwise_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
-    nodeNet->SendAndGetDataFromPeer(a[1], res, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(a[1], res, size, ring_size, ss->general_map, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] ^ a[1][i] ^ res[i];
         res[i] = res[i] & ss->SHIFT[ring_size];
@@ -51,7 +51,7 @@ void Rss_Open_Bitwise_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
 }
 
 template <typename T>
-void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
     T **recvbuf = new T *[threshold];
@@ -67,7 +67,7 @@ void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet
         sendbuf[1][i] = a[4][i] + a[5][i];
     }
 
-    nodeNet->SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc, threshold);
+    nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] + a[1][i] + a[2][i] + a[3][i] + a[4][i] + a[5][i] + recvbuf[0][i] + recvbuf[1][i];
         res[i] = res[i] & ss->SHIFT[ring_size];
@@ -81,7 +81,7 @@ void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet
 }
 
 template <typename T>
-void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint threshold = ss->getThreshold();
     int i;
@@ -99,7 +99,7 @@ void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, Nod
         sendbuf[1][i] = a[4][i] ^ a[5][i];
     }
 
-    nodeNet->SendAndGetDataFromPeer_bit(sendbuf, recvbuf, size, ss->open_map_mpc, threshold);
+    nodeNet.SendAndGetDataFromPeer_bit(sendbuf, recvbuf, size, ss->open_map_mpc, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] ^ a[1][i] ^ a[2][i] ^ a[3][i] ^ a[4][i] ^ a[5][i] ^ recvbuf[0][i] ^ recvbuf[1][i];
     }
@@ -112,7 +112,7 @@ void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, uint ring_size, Nod
 }
 
 template <typename T>
-void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
     T **recvbuf = new T *[threshold];
@@ -128,7 +128,7 @@ void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
         sendbuf[1][i] = a[4][i] ^ a[5][i];
     }
 
-    nodeNet->SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc, threshold);
+    nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] ^ a[1][i] ^ a[2][i] ^ a[3][i] ^ a[4][i] ^ a[5][i] ^ recvbuf[0][i] ^ recvbuf[1][i];
         res[i] = res[i] & ss->SHIFT[ring_size];
@@ -142,7 +142,7 @@ void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
 }
 
 template <typename T>
-void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     int i;
     T **recvbuf = new T *[threshold];
@@ -159,7 +159,7 @@ void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork *nodeNet
         sendbuf[2][i] = a[1][i] + a[5][i] + a[16][i] + a[17][i] + a[18][i];
     }
 
-    nodeNet->SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc, threshold);
+    nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc, threshold);
     for (i = 0; i < size; i++) {
         res[i] = a[0][i] + a[1][i] + a[2][i] + a[3][i] + a[4][i] + a[5][i] + a[6][i] + a[7][i] + a[8][i] + a[9][i] + a[10][i] + a[11][i] + a[12][i] + a[13][i] + a[14][i] + a[15][i] + a[16][i] + a[17][i] + a[18][i] + a[19][i];
 
@@ -185,8 +185,10 @@ void Open(T *result, T **shares, int size, int threadID, NodeNetwork nodeNet, re
             Rss_Open_3pc(result, shares, size, ss->ring_size, nodeNet, ss);
             break;
         case 5:
+            Rss_Open_5pc(result, shares, size, ss->ring_size, nodeNet, ss);
             break;
         case 7:
+            Rss_Open_7pc(result, shares, size, ss->ring_size, nodeNet, ss);
             break;
         default:
             throw std::runtime_error("invalid number of parties");
