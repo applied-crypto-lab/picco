@@ -83,7 +83,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     ss->modSub(sign, const1, lt, size);
     ss->modSub(sign, sign, lt, size);
     // make a to be a positive value
-    Mult(c, a, lt, size, threadID, net, id, ss);
+    Mult(c, a, lt, size, threadID, net, ss);
     ss->modSub(temp, a, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, a_tmp, size);
@@ -109,7 +109,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
     ss->modAdd(lt, lt, c, size);
     ss->modSub(result, lt, const1, size);
-    Mult(result, result, sign, size, threadID, net, id, ss);
+    Mult(result, result, sign, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < size; i++) {
@@ -210,7 +210,7 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     ss->modSub(sign, sign, lt, size);
 
     // make a to be a positive value
-    Mult(c, a, lt, size, threadID, net, id, ss);
+    Mult(c, a, lt, size, threadID, net, ss);
     ss->modSub(temp, a, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, a_tmp, size);
@@ -220,41 +220,41 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
         mpz_set(lt[i], temp1[size + i]);
     ss->modSub(temp, const1, lt, size);
     ss->modSub(temp, temp, lt, size);
-    Mult(sign, sign, temp, size, threadID, net, id, ss);
+    Mult(sign, sign, temp, size, threadID, net, ss);
 
     // make b to be a positive value
-    Mult(c, b, lt, size, threadID, net, id, ss);
+    Mult(c, b, lt, size, threadID, net, ss);
     ss->modSub(temp, b, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, b_tmp, size);
 
     /***********************************************/
     doOperation_IntAppRcr(w, temp, k, size, threadID, net, id, ss);
-    Mult(x, b_tmp, w, size, threadID, net, id, ss);
-    Mult(y, a_tmp, w, size, threadID, net, id, ss);
+    Mult(x, b_tmp, w, size, threadID, net, ss);
+    Mult(y, a_tmp, w, size, threadID, net, ss);
     ss->modSub(x, alpha, x, size);
     doOperation_TruncPr(y, y, 2 * k, k - lambda, size, threadID, net, id, ss);
 
     for (int i = 0; i < theta - 1; i++) {
         ss->modAdd(temp, x, alpha, size);
-        Mult(y, y, temp, size, threadID, net, id, ss);
-        Mult(x, x, x, size, threadID, net, id, ss);
+        Mult(y, y, temp, size, threadID, net, ss);
+        Mult(x, x, x, size, threadID, net, ss);
         doOperation_TruncPr(y, y, 2 * k + lambda, k, size, threadID, net, id, ss);
         doOperation_TruncPr(x, x, 2 * k, k, size, threadID, net, id, ss);
     }
     ss->modAdd(x, x, alpha, size);
-    Mult(y, y, x, size, threadID, net, id, ss);
+    Mult(y, y, x, size, threadID, net, ss);
     doOperation_TruncPr(result, y, 2 * k + lambda, k + lambda, size, threadID, net, id, ss);
     /******************** VERSION 1 ***************************/
     /**********************************************************/
     ss->copy(result, c, size);
-    Mult(temp, c, b_tmp, size, threadID, net, id, ss);
+    Mult(temp, c, b_tmp, size, threadID, net, ss);
     ss->modSub(temp, a_tmp, temp, size);
     doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
     ss->modAdd(c, c, temp, size);
-    Mult(temp, c, b_tmp, size, threadID, net, id, ss);
+    Mult(temp, c, b_tmp, size, threadID, net, ss);
     ss->modSub(temp, a_tmp, temp, size);
     doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
     ss->modMul(temp, lt, const2, size);
@@ -263,7 +263,7 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     ss->modMul(temp, temp, inv2, size);
     ss->modSub(c, c, temp, size);
     ss->copy(c, result, size);
-    Mult(result, result, sign, size, threadID, net, id, ss);
+    Mult(result, result, sign, size, threadID, net, ss);
     // free the memory
     mpz_clear(const1);
     mpz_clear(const2);

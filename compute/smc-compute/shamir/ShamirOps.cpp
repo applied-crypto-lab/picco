@@ -351,7 +351,7 @@ void ss_priv_eval(mpz_t a, mpz_t b, mpz_t cond, int threadID, NodeNetwork net, i
     mpz_init(results[0]);
 
     ss->modSub(op1[0], a, b);
-    Mult(results, op1, op2, 1, threadID, net, id, ss);
+    Mult(results, op1, op2, 1, threadID, net, ss);
     ss->modAdd(a, results[0], b);
 
     ss_batch_free_operator(&op1, 1);
@@ -370,7 +370,7 @@ void ss_priv_eval(mpz_t *a, mpz_t *b, mpz_t cond, int threadID, NodeNetwork net,
         mpz_init(results[i]);
     }
 
-    Mult(results, op1, op2, 4, threadID, net, id, ss);
+    Mult(results, op1, op2, 4, threadID, net, ss);
     ss->modAdd(a, results, b, 4);
 
     ss_batch_free_operator(&op1, 4);
@@ -741,12 +741,12 @@ void ss_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz_t out_cond,
         for (int i = 0; i < size; i++)
             mpz_set(tmp[i], out_cond);
         ss->modSub(result, result, result_org, size);
-        Mult(result, result, tmp, size, threadID, net, id, ss);
+        Mult(result, result, tmp, size, threadID, net, ss);
         ss->modAdd(result, result, result_org, size);
         /*
         ss->modSub(tmp3, 1, tmp, size);
-                Mult(tmp1, result, tmp, size,net, id, ss);
-                Mult(tmp2, result_org, tmp3, size,net, id, ss);
+                Mult(tmp1, result, tmp, size,net, ss);
+                Mult(tmp2, result_org, tmp3, size,net, ss);
                 ss->modAdd(result, tmp1, tmp2, size);
         */
     } else if (out_cond == NULL && counter != -1 && priv_cond != NULL) {
@@ -756,12 +756,12 @@ void ss_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz_t out_cond,
             else
                 mpz_set(tmp[i], priv_cond[i]);
         ss->modSub(result, result, result_org, size);
-        Mult(result, result, tmp, size, threadID, net, id, ss);
+        Mult(result, result, tmp, size, threadID, net, ss);
         ss->modAdd(result, result, result_org, size);
         /*
         ss->modSub(tmp3, 1, tmp, size);
-                Mult(tmp1, result, tmp, size,net, id, ss);
-                Mult(tmp2, result_org, tmp3, size,net, id, ss);
+                Mult(tmp1, result, tmp, size,net, ss);
+                Mult(tmp2, result_org, tmp3, size,net, ss);
                 ss->modAdd(result, tmp1, tmp2, size);
         */
     }
@@ -874,7 +874,7 @@ void ss_shl(mpz_t *a, mpz_t *b, int alen, int blen, mpz_t *result, int resultlen
         ss->modMul(result, a, result, size);
     } else {
         doOperation_Pow2(result, b, blen, size, threadID, net, id, ss);
-        Mult(result, result, a, size, threadID, net, id, ss);
+        Mult(result, result, a, size, threadID, net, ss);
     }
 }
 
@@ -887,7 +887,7 @@ void ss_batch_BOP_int(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen, int alen
     for (int i = 0; i < size; i++)
         ss_init_set(result_org[i], result[i]);
     if (op == "*") {
-        Mult(result, a, b, size, threadID, net, id, ss);
+        Mult(result, a, b, size, threadID, net, ss);
         // ss_mult(a, b, alen, blen, result, resultlen, size, type, threadID);
     } else if (op == "-") {
         ss->modSub(result, a, b, size);
@@ -1065,7 +1065,7 @@ void ss_batch(int a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, 
     if (out_cond != NULL) {
         for (int i = 0; i < size; i++)
             mpz_set(out_tmp[i], out_cond);
-        Mult(result, result, out_tmp, size, threadID, net, id, ss);
+        Mult(result, result, out_tmp, size, threadID, net, ss);
     }
 
     ss_batch_free_operator(&a_tmp, size);

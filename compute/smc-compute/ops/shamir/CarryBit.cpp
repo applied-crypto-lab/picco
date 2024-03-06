@@ -23,8 +23,8 @@ void doOperation_CarryBit(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int si
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);
-    Mult(D21, D21, D11, size, threadID, net, id, ss);
-    Mult(temp, D21, D12, size, threadID, net, id, ss);
+    Mult(D21, D21, D11, size, threadID, net, ss);
+    Mult(temp, D21, D12, size, threadID, net, ss);
     ss->modAdd(D22, D22, temp, size);
 
     for (int i = 0; i < size; i++)

@@ -53,7 +53,7 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
     doOperation_LTZ(s, b, k, size, threadID, net, id, ss);
     ss->modMul(s, s, two, size);
     ss->modSub(s, one, s, size);
-    Mult(x, s, b, size, threadID, net, id, ss);
+    Mult(x, s, b, size, threadID, net, ss);
     doOperation_bitDec(xb, x, k, k, size, threadID, net, id, ss);
     for (int i = 0; i < k; ++i)
         for (int j = 0; j < size; ++j)
@@ -77,8 +77,8 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
         }
     }
 
-        Mult(c, x, v, size, threadID, net, id, ss);
-        Mult(vp, s, v, size, threadID, net, id, ss);
+        Mult(c, x, v, size, threadID, net, ss);
+        Mult(vp, s, v, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < size; ++i) {

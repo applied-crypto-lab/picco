@@ -78,8 +78,8 @@ void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
     doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
     // line 3
     ss->modSub(temp1, const1, b, size);
-    Mult(temp1, temp1, Y, size, threadID, net, id, ss);
-    Mult(temp2, b, Y, size, threadID, net, id, ss);
+    Mult(temp1, temp1, Y, size, threadID, net, ss);
+    Mult(temp2, b, Y, size, threadID, net, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
     doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
@@ -89,12 +89,12 @@ void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
     ss->modSub(temp2, temp2, constK, size);
     ss->modAdd(temp2, temp2, const1, size);
     ss->modSub(temp2, temp2, b, size);
-    Mult(temp1, temp1, temp2, size, threadID, net, id, ss);
+    Mult(temp1, temp1, temp2, size, threadID, net, ss);
     // line 5
     ss->copy(temp1, result[1], size);
     ss->copy(A[2], result[2], size);
     // line 6
-    Mult(temp1, A[3], B[3], size, threadID, net, id, ss);
+    Mult(temp1, A[3], B[3], size, threadID, net, ss);
     ss->modMul(temp1, temp1, const2, size);
     ss->modAdd(temp2, A[3], B[3], size);
     ss->modSub(result[3], temp2, temp1, size);
@@ -186,8 +186,8 @@ void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size,
     doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
     // line 3
     ss->modSub(temp1, const1, b, size);
-    Mult(temp1, temp1, Y, size, threadID, net, id, ss);
-    Mult(temp2, b, Y, size, threadID, net, id, ss);
+    Mult(temp1, temp1, Y, size, threadID, net, ss);
+    Mult(temp2, b, Y, size, threadID, net, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
     doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
@@ -197,12 +197,12 @@ void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size,
     ss->modSub(temp2, temp2, constK, size);
     ss->modAdd(temp2, temp2, const1, size);
     ss->modSub(temp2, temp2, b, size);
-    Mult(temp1, temp1, temp2, size, threadID, net, id, ss);
+    Mult(temp1, temp1, temp2, size, threadID, net, ss);
     // line 5
     ss->copy(temp1, result[1], size);
     ss->copy(A[2], result[2], size);
     // line 6
-    Mult(temp1, A[3], B[3], size, threadID, net, id, ss);
+    Mult(temp1, A[3], B[3], size, threadID, net, ss);
     ss->modMul(temp1, temp1, const2, size);
     ss->modAdd(temp2, A[3], B[3], size);
     ss->modSub(result[3], temp2, temp1, size);

@@ -22,7 +22,7 @@
 
 #include "Operation.h"
 
-void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 
 #endif /* MULT_SHAMIR_H_ */

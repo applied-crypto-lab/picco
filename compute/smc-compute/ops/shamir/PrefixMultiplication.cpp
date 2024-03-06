@@ -92,7 +92,7 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
             mpz_set(S_buff[s_idx], S[s_idx]);
         }
     }
-    Mult(V, R_buff, S_buff, (length_k - 1) * size, threadID, net, id, ss);
+    Mult(V, R_buff, S_buff, (length_k - 1) * size, threadID, net, ss);
 
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
     for (int i = 1; i < length_k; i++) {

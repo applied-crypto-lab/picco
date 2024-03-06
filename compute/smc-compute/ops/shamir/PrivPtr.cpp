@@ -140,7 +140,7 @@ void update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size,
         mpz_init_set(op2[i], priv_cond);
         mpz_init(result[i]);
     }
-    Mult(result, op1, op2, size, threadID, net, id, ss);
+    Mult(result, op1, op2, size, threadID, net, ss);
     // store the updated private tags back to the list
     tmp = list->head->next;
     index = 0;
@@ -456,7 +456,7 @@ void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int 
         index++;
         tmp = tmp->next;
     }
-    Mult(product, op1, op2, size, threadID, net, id, ss);
+    Mult(product, op1, op2, size, threadID, net, ss);
     mpz_set_ui(result, 0);
     for (int i = 0; i < size; i++)
         ss->modAdd(result, result, product[i]);
@@ -516,7 +516,7 @@ void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int
         index++;
         tmp = tmp->next;
     }
-    Mult(product, op1, op2, 4 * size, threadID, net, id, ss);
+    Mult(product, op1, op2, 4 * size, threadID, net, ss);
     for (int i = 0; i < 4; i++)
         mpz_set_ui(result[i], 0);
 
@@ -588,13 +588,13 @@ void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threa
         node = node->next;
     }
 
-    Mult(R, op1, op2, num, threadID, net, id, ss);
+    Mult(R, op1, op2, num, threadID, net, ss);
     if (priv_cond != NULL) {
         mpz_t cond;
         mpz_init(cond);
         ss->modSub(cond, 1, priv_cond);
         update_list_attributes(result->list, cond, -1, result->size, threadID, net, id, ss);
-        Mult(R, R, op3, num, threadID, net, id, ss);
+        Mult(R, R, op3, num, threadID, net, ss);
     } else {
         clear_list(&(result->list));
         result->size = 0;
@@ -667,7 +667,7 @@ void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, m
             mpz_init_set(op1[0], priv_cond);
             mpz_init_set(op2[0], node->priv_tag);
             mpz_init(R[0]);
-            Mult(R, op1, op2, 1, threadID, net, id, ss);
+            Mult(R, op1, op2, 1, threadID, net, ss);
             ss->modSub(cond, 1, R[0]);
             update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, id, ss);
             update_list_attributes(ptr2->list, R[0], -1, ptr2->size, threadID, net, id, ss);
@@ -737,9 +737,9 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz
     /* compute (*location) + tag * priv_cond * (value-(*location))*/
     ss->modSub(op4, op4, op1, 4 * size);
     if (priv_cond != NULL)
-        Mult(op4, op4, op3, 4 * size, threadID, net, id, ss);
+        Mult(op4, op4, op3, 4 * size, threadID, net, ss);
     if (size != 1)
-        Mult(op4, op4, op2, 4 * size, threadID, net, id, ss);
+        Mult(op4, op4, op2, 4 * size, threadID, net, ss);
     ss->modAdd(op4, op1, op4, 4 * size);
 
     tmp = tmp_ptr->list->head->next;
@@ -813,9 +813,9 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_
     /* compute (*location) + tag * priv_cond * (value-(*location)) */
     ss->modSub(op4, op4, op1, size);
     if (priv_cond != NULL)
-        Mult(op4, op4, op3, size, threadID, net, id, ss);
+        Mult(op4, op4, op3, size, threadID, net, ss);
     if (size != 1)
-        Mult(op4, op4, op2, size, threadID, net, id, ss);
+        Mult(op4, op4, op2, size, threadID, net, ss);
     ss->modAdd(op4, op1, op4, size);
     /* update the values of nodes in the list (not update the tags) */
     tmp = tmp_ptr->list->head->next;

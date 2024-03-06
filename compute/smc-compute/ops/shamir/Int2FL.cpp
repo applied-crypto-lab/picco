@@ -68,7 +68,7 @@ void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int s
     // line 4
     ss->modMul(temp1, results[3], const2, size);
     ss->modSub(temp1, const1, temp1, size);
-    Mult(A, temp1, A, size, threadID, net, id, ss);
+    Mult(A, temp1, A, size, threadID, net, ss);
     // line 5 and 6
     doOperation_bitDec(S, A, lambda, lambda, size, threadID, net, id, ss);
     for (int i = 0; i < lambda && i <= lambda - i - 1; i++)
@@ -87,13 +87,13 @@ void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int s
         ss->modAdd(P, P, temp2, size);
     }
     ss->modAdd(P, P, const1, size);
-    Mult(A, A, P, size, threadID, net, id, ss);
+    Mult(A, A, P, size, threadID, net, ss);
     // line 8 and 11
     for (int i = 0; i < lambda; i++)
         ss->modAdd(results[1], results[1], S[i], size);
     ss->modSub(results[1], results[1], constK, size);
     ss->modSub(temp1, const1, results[2], size);
-    Mult(results[1], results[1], temp1, size, threadID, net, id, ss);
+    Mult(results[1], results[1], temp1, size, threadID, net, ss);
     // line 9 and 10
     if (lambda > K)
         doOperation_Trunc(results[0], A, lambda, lambda - K, size, threadID, net, id, ss);

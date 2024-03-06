@@ -80,11 +80,11 @@ void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int 
         if (i != 0)
             ss->modMul(pow2K[i], pow2K[i - 1], const2);
         ss->modSub(temp, const1, X[i], size);
-        Mult(temp, temp, R[i], size, threadID, net, id, ss);
+        Mult(temp, temp, R[i], size, threadID, net, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R1, R1, temp, size);
 
-        Mult(temp, X[i], R[i], size, threadID, net, id, ss);
+        Mult(temp, X[i], R[i], size, threadID, net, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R2, R2, temp, size);
     }
@@ -112,11 +112,11 @@ void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int 
     doOperation_LTZ(T1, temp, K, size, threadID, net, id, ss);
     // line 10
     ss->modSub(result, CC, R2, size);
-    Mult(temp, T1, X[K], size, threadID, net, id, ss);
+    Mult(temp, T1, X[K], size, threadID, net, ss);
     ss->modAdd(result, temp, result, size);
     doOperation_Inv(X[K], temp, size, threadID, net, id, ss);
     ss->modSub(result, A, result, size);
-    Mult(result, result, temp, size, threadID, net, id, ss);
+    Mult(result, result, temp, size, threadID, net, ss);
 
     // free the memory
     mpz_clear(const1);

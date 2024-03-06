@@ -52,7 +52,7 @@ void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID
     doOperation_Norm(c, v, b, k, f, size, threadID, net, id, ss);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
-    Mult(c, c, v, size, threadID, net, id, ss);
+    Mult(c, c, v, size, threadID, net,ss);
     doOperation_TruncPr(w, c, 2 * k, 2 * (k - f), size, threadID, net, id, ss);
 
     // free the memory

@@ -29,7 +29,7 @@
 //     // TODO Auto-generated destructor stub
 // }
 
-void compute_private_conditions(mpz_t *private_conditions, mpz_t out_cond, mpz_t *priv_cond, int counter, int size ) {
+void compute_private_conditions(mpz_t *private_conditions, mpz_t out_cond, mpz_t *priv_cond, int counter, int size) {
     if (out_cond != NULL && counter == -1 && priv_cond == NULL) {
         for (int i = 0; i < size; i++)
             mpz_set(private_conditions[i], out_cond);
@@ -337,9 +337,9 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
                     mpz_set(temp3[j * dim + k], U1[j][i]);
             }
         }
-        Mult(temp1, temp1, temp3, size * dim, threadID, net, id, ss);
+        Mult(temp1, temp1, temp3, size * dim, threadID, net, ss);
     }
-    Mult(temp1, temp1, temp2, size * dim, threadID, net, id, ss);
+    Mult(temp1, temp1, temp2, size * dim, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
             for (int k = 0; k < m; k++) {
@@ -348,7 +348,7 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
             }
         }
     }
-    Mult(temp2, temp2, temp3, m * size * dim, threadID, net, id, ss);
+    Mult(temp2, temp2, temp3, m * size * dim, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
             for (int k = 0; k < m; k++) {
@@ -358,7 +358,7 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
         }
     }
     ss->modSub(temp5, const1, temp5, m * dim);
-    Mult(temp5, temp5, array, m * dim, threadID, net, id, ss);
+    Mult(temp5, temp5, array, m * dim, threadID, net, ss);
     ss->modAdd(array, temp4, temp5, m * dim);
 
     // free memory
@@ -476,7 +476,8 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
             }
         }
         ss->modAdd(add_b, u1, v1, oPos);
-        Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // 1 rou, net, id, ssnd
+        // 1 rou, net, id, ssnd
+        Mult(mul_b, u1, v1, oPos, threadID, net, ss);
         ss->modSub(u1, add_b, mul_b, oPos);
 
         int oPos2 = 0;
@@ -527,7 +528,8 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
             }
         }
         ss->modAdd(add_b, u1, v1, oPos);
-        Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // rou, net, id, ssnd
+        // rou, net, id, ssnd
+        Mult(mul_b, u1, v1, oPos, threadID, net, ss);
         // std::cout << "	2Mul->do: " << oPos << std::endl;
         ss->modSub(buff, add_b, mul_b, oPos);
         sizeLen /= 2;

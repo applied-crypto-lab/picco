@@ -50,7 +50,7 @@ void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, No
     doOperation_Norm(c, v, b, k, 0, size, threadID, net, id, ss);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
-    Mult(c, c, v, size, threadID, net, id, ss);
+    Mult(c, c, v, size, threadID, net, ss);
     doOperation_TruncPr(w, c, 2 * k, k, size, threadID, net, id, ss);
     // free the memory
     for (int i = 0; i < size; ++i) {

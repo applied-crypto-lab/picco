@@ -20,7 +20,7 @@
 #include "BitOps.h"
 
 void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
-    Mult(result, A, B, size, threadID, net, id, ss);
+    Mult(result, A, B, size, threadID, net,ss);
 }
 
 void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
@@ -28,7 +28,7 @@ void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwor
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);
     // (a+b) - ab
-    Mult(C, A, B, size, threadID, net, id, ss);
+    Mult(C, A, B, size, threadID, net, ss);
     ss->modAdd(result, A, B, size);
     ss->modSub(result, result, C, size);
     // free the memory
@@ -42,7 +42,7 @@ void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwo
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);
     //(a+b) - 2ab
-    Mult(C, A, B, size, threadID, net, id, ss);
+    Mult(C, A, B, size, threadID, net, ss);
     ss->modMul(C, C, 2, size);
     ss->modAdd(result, A, B, size);
     ss->modSub(result, result, C, size);

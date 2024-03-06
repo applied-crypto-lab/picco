@@ -409,7 +409,7 @@ void SMC_Utils::smc_mult(priv_int a, priv_int b, priv_int result, int alen, int 
     // double check this works (passing reference to essentiall up-cast to priv_int*)
     // cant use & for some reason, wont compile
     // replacing priv_int* with & works on
-    Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net, id, ss);
+    Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net,  ss);
 }
 
 /******************************************************/
@@ -461,7 +461,7 @@ void SMC_Utils::smc_mult(priv_int *a, int *b, int alen, int blen, priv_int *resu
 }
 
 void SMC_Utils::smc_mult(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
-    Mult(result, a, b, size, threadID, net, id, ss);
+    Mult(result, a, b, size, threadID, net, ss);
 }
 
 void SMC_Utils::smc_mult(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
@@ -893,7 +893,7 @@ void SMC_Utils::smc_shl(priv_int a, priv_int b, priv_int result, int alen, int b
         ss->modMul(result, a, result);
     } else {
         doOperation_Pow2(MPZ_CAST(result), MPZ_CAST(b), blen, 1, threadID, net, id, ss);
-        Mult(MPZ_CAST(result), MPZ_CAST(result), MPZ_CAST(a), 1, threadID, net, id, ss);
+        Mult(MPZ_CAST(result), MPZ_CAST(result), MPZ_CAST(a), 1, threadID, net, ss);
     }
 }
 
@@ -909,7 +909,7 @@ void SMC_Utils::smc_shl(priv_int *a, priv_int *b, int alen, int blen, priv_int *
         ss->modMul(result, a, result, size);
     } else {
         doOperation_Pow2(result, b, blen, size, threadID, net, id, ss);
-        Mult(result, result, a, size, threadID, net, id, ss);
+        Mult(result, result, a, size, threadID, net, ss);
     }
 }
 

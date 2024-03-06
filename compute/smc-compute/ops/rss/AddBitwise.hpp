@@ -23,34 +23,41 @@
 #include "../../rss/RepSecretShare.hpp"
 #include "Mult.hpp"
 #include <cmath>
-#include <stdio.h>
-#include <sys/time.h>
-
-void Rss_nBitAdd(Lint **res, Lint **r_bitwise, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_BitAdd(Lint **res, Lint **a, Lint **b, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_BitAdd(Lint **res, Lint *a, Lint **b, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL_Lint(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
-void CarryBuffer2(Lint **buffer, Lint **d, uint **index_array, uint size, uint k, uint numShares){}
-void CarryBuffer_Lint(Lint **a_prime, Lint **b_prime, Lint **d, uint **index_array, uint size, uint k, uint numShares){}
 
 
-void Rss_nBitAdd_5pc(Lint **res, Lint **r_bitwise, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_BitAdd_5pc(Lint **res, Lint **a, Lint **b, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_BitAdd_5pc(Lint **res, Lint *a, Lint **b, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL_5pc(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL_mp_test(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
-void CarryBuffer2_test(Lint **buffer, Lint **d, uint **index_array, uint size, uint k, uint numShares){}
-void Rss_CircleOpL_Lint_5pc(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
+template <typename T>
+void Rss_BitAdd(T **res, T **a, T **b, uint ring_size, uint size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
 
+    uint numShares = ss->getNumShares();
 
+    T **d = new T *[2 * numShares];
+    for (size_t i = 0; i < 2 * numShares; i++) {
+        d[i] = new T[size];
+        memset(d[i], 0, sizeof(T) * size);
+    }
 
-void Rss_nBitAdd_7pc(Lint **res, Lint **r_bitwise, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_BitAdd_7pc(Lint **res, Lint **a, Lint **b, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_BitAdd_7pc(Lint **res, Lint *a, Lint **b, uint ring_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL_7pc(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL_7pc_test(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
-void Rss_CircleOpL_Lint_7pc(Lint **d, uint r_size, uint size, NodeNetwork *nodeNet){}
+    Rss_Mult_Bitwise(res, a, b, size, ring_size, nodeNet, ss);
+
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            d[s][i] = a[s][i] ^ b[s][i];
+            // d[1][i] = a[1][i] ^ b[1][i];
+
+            d[numShares + s][i] = res[s][i];
+            // d[3][i] = res[1][i];
+        }
+    }
+    Rss_CircleOpL(d, ring_size, size, nodeNet); // original
+
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++)
+            res[s][i] = (a[s][i] ^ b[s][i]) ^ (d[numShares + s][i] << T(1));
+    }
+    for (size_t i = 0; i < 2 * numShares; i++) {
+        delete[] d[i];
+    }
+    delete[] d;
+}
 
 
 #endif

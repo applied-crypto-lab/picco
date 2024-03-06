@@ -1,6 +1,7 @@
 #ifndef _RSSHEADERS_HPP_
 #define _RSSHEADERS_HPP_
 
+#include "../ops/rss/AddBitwise.hpp"
 #include "../ops/rss/BitOps.hpp"
 #include "../ops/rss/DotProduct.hpp"
 #include "../ops/rss/EQZ.hpp"

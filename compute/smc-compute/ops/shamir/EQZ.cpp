@@ -289,7 +289,7 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
         mpz_init(temp[i]);
     }
     // computing the expression 2*a*b + 1 - a - b, which is equivalent to EQZ(a-b) for BITS
-    Mult(temp, a, b, size, threadID, net, id, ss);
+    Mult(temp, a, b, size, threadID, net, ss);
     ss->modMul(temp, temp, const2, size); // multiplying every value in temp by 2
     ss->modAdd(temp, temp, const1, size); // adding 1 to every value in temp
     ss->modSub(temp, temp, a, size);      // subtracting a
