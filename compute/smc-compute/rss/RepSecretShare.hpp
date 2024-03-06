@@ -88,6 +88,7 @@ public:
     uint getTotalNumShares();
     int getPeers();
     int getThreshold();
+    int getID();
 
     uint nCk(uint n, uint k);
 
@@ -172,7 +173,6 @@ public:
     void modPow(T result, T base, long exponent);
     void modPow(T *result, T *base, long exponent, int size);
 
-    int id;
     T *SHIFT;
     T *ODD;
     T *EVEN;
@@ -185,6 +185,7 @@ public:
     std::vector<T> const_map; // this is used for multiplying a private value by a public constant, OR adding a public constant to a private value
 
 private:
+    int id;
     int n;               // n
     int t;               // t
     uint numShares;      // (n-1) choose t
@@ -532,6 +533,11 @@ int replicatedSecretShare<T>::getPeers() {
 template <typename T>
 int replicatedSecretShare<T>::getThreshold() {
     return t;
+}
+
+template <typename T>
+int replicatedSecretShare<T>::getID() {
+    return id;
 }
 
 // template <typename T>
