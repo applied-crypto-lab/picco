@@ -24,12 +24,12 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void BitAnd(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {}
+void BitAnd(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
 
 template <typename T>
-void BitOr(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {}
+void BitOr(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
 
 template <typename T>
-void BitXor(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {}
+void BitXor(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
 
 #endif // _BITOPS_HPP_

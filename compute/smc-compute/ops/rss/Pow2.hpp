@@ -23,6 +23,6 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_Pow2(T **result, T **A, int L, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){}
+void doOperation_Pow2(T **result, T **A, int L, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _POW2_HPP_

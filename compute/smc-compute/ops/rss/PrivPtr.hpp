@@ -215,11 +215,11 @@ void shrink_ptr(priv_ptr<T>, int, int, int threadID){
 
 }
 template <typename T>
-void merge_and_shrink_ptr(priv_ptr<T>, priv_ptr<T>, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void merge_and_shrink_ptr(priv_ptr<T>, priv_ptr<T>, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void reduce_dereferences(priv_ptr<T>, int, priv_ptr<T>, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void reduce_dereferences(priv_ptr<T>, int, priv_ptr<T>, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
@@ -227,51 +227,51 @@ void dereference_ptr_read_ptr(priv_ptr<T>, priv_ptr<T>, int, T *, int threadID){
 
 }
 template <typename T>
-void dereference_ptr_read_ptr(priv_ptr<T> ptr, priv_ptr<T> result, int dereferences, T *priv_cond, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_read_ptr(priv_ptr<T> ptr, priv_ptr<T> result, int dereferences, T *priv_cond, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void dereference_ptr_write(priv_ptr<T>, T **, T ***, void *, priv_ptr<T> *, int, T *, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_write(priv_ptr<T>, T **, T ***, void *, priv_ptr<T> *, int, T *, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void update_list_attributes(dlist<T> list, T *priv_cond, int if_index, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void update_list_attributes(dlist<T> list, T *priv_cond, int if_index, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void update_ptr(priv_ptr<T> ptr, T **int_var_loc, T ***float_var_loc, void *struct_var_loc, priv_ptr<T> *ptr_loc, T *private_tag, int index, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void update_ptr(priv_ptr<T> ptr, T **int_var_loc, T ***float_var_loc, void *struct_var_loc, priv_ptr<T> *ptr_loc, T *private_tag, int index, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void update_ptr(priv_ptr<T> assign_ptr, priv_ptr<T> right_ptr, T *private_tag, int index, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void update_ptr(priv_ptr<T> assign_ptr, priv_ptr<T> right_ptr, T *private_tag, int index, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-int is_repeated_listnode(dlist<T> list, listnode<T> node, int level, int type, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+int is_repeated_listnode(dlist<T> list, listnode<T> node, int level, int type, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void dereference_ptr_read_var(priv_ptr<T> ptr, T *result, int dereferences, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_read_var(priv_ptr<T> ptr, T *result, int dereferences, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void dereference_ptr_read_var(priv_ptr<T> ptr, T **result, int dereferences, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_read_var(priv_ptr<T> ptr, T **result, int dereferences, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void read_write_helper(priv_ptr<T> ptr, priv_ptr<T> result, T *priv_cond, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void read_write_helper(priv_ptr<T> ptr, priv_ptr<T> result, T *priv_cond, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void dereference_ptr_write_ptr(priv_ptr<T> ptr, priv_ptr<T> value, int dereferences, T *priv_cond, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_write_ptr(priv_ptr<T> ptr, priv_ptr<T> value, int dereferences, T *priv_cond, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void dereference_ptr_write_var(priv_ptr<T> ptr, T **value, int dereferences, T *priv_cond, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_write_var(priv_ptr<T> ptr, T **value, int dereferences, T *priv_cond, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 template <typename T>
-void dereference_ptr_write_var(priv_ptr<T> ptr, T *value, int dereferences, T *priv_cond, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){
+void dereference_ptr_write_var(priv_ptr<T> ptr, T *value, int dereferences, T *priv_cond, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
 
 }
 #endif // _PRIVPTR_HPP_

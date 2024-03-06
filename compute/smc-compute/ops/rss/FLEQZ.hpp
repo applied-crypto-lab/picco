@@ -23,6 +23,6 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_FLEQZ(T ***A1, T ***B1, T **result, int K, int L, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){}
+void doOperation_FLEQZ(T ***A1, T ***B1, T **result, int K, int L, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _FLEQZ_HPP_

@@ -23,6 +23,6 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_Int2FL(T **values, T ***results1, int gamma, int K, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){}
+void doOperation_Int2FL(T **values, T ***results1, int gamma, int K, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _INT2FL_HPP_

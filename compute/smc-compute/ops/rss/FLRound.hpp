@@ -23,6 +23,6 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_FLRound(T ***A2, T ***result, T **mode, int L, int K, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){}
+void doOperation_FLRound(T ***A2, T ***result, T **mode, int L, int K, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _FLROUND_HPP_

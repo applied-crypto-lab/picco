@@ -24,6 +24,6 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_TruncS(T **result, T **A, int K, T **M, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){}
+void doOperation_TruncS(T **result, T **A, int K, T **M, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _TRUNCS_HPP_

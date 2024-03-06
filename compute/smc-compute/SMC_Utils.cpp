@@ -101,7 +101,7 @@ float SMC_Utils::smc_open(priv_int *var, int threadID) {
     return Open_float(var, threadID, net, ss);
 }
 
-#if _RSS_
+#if __RSS__
 void SMC_Utils::smc_open(priv_int result, priv_int *var, int size, int threadID) {
     Open(result, var, size, threadID, net, ss);
 }

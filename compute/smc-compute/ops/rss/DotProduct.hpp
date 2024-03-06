@@ -25,9 +25,9 @@
 
 template <typename T>
 
-void doOperation_DotProduct(T**a, T**b, T*result, int array_size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {}
+void doOperation_DotProduct(T**a, T**b, T*result, int array_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
 
 template <typename T>
-void doOperation_DotProduct(T* **a, T* **b, T* *result, int batch_size, int array_size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {}
+void doOperation_DotProduct(T* **a, T* **b, T* *result, int batch_size, int array_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
 
 #endif // _DOTPRODUCT_HPP_

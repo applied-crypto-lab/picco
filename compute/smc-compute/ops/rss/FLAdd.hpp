@@ -23,6 +23,6 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_FLAdd(T ***A2, T ***B1, T ***result1, int K, int L, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss){}
+void doOperation_FLAdd(T ***A2, T ***B1, T ***result1, int K, int L, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _FLADD_HPP_
