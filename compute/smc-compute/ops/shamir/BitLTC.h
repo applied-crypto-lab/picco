@@ -24,6 +24,6 @@
 #include "Operation.h"
 #include "PrefixMultiplication.h"
 
-void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* BITLTC_SHAMIR_H_ */

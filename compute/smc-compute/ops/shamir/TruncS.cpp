@@ -22,7 +22,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Trunc, page 4
-void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss){
+void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID, NodeNetwork net,  SecretShare *ss){
     int peers = ss->getPeers();
     mpz_t **X = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 2));
@@ -73,8 +73,8 @@ void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int 
     }
     // do the computation
 
-    doOperation_B2U(M, K, X, size, threadID, net, id, ss);
-    PRandM(K, size, R, threadID, net, id, ss);
+    doOperation_B2U(M, K, X, size, threadID, net, ss);
+    PRandM(K, size, R, threadID, net, ss);
 
     for (int i = 0; i < K; i++) {
         if (i != 0)
@@ -109,12 +109,12 @@ void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int 
     }
     // line 9
     ss->modSub(temp, CC, R2, size);
-    doOperation_LTZ(T1, temp, K, size, threadID, net, id, ss);
+    doOperation_LTZ(T1, temp, K, size, threadID, net, ss);
     // line 10
     ss->modSub(result, CC, R2, size);
     Mult(temp, T1, X[K], size, threadID, net, ss);
     ss->modAdd(result, temp, result, size);
-    doOperation_Inv(X[K], temp, size, threadID, net, id, ss);
+    doOperation_Inv(X[K], temp, size, threadID, net, ss);
     ss->modSub(result, A, result, size);
     Mult(result, result, temp, size, threadID, net, ss);
 

@@ -20,7 +20,7 @@
 
 #include "EQZ.h"
 
-void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     int m = ceil(log2(K));
     int m_idx = ss->getCoefIndex(K);
@@ -93,7 +93,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     //     gmp_printf("input[%i]  = %Zd \n", i, c_test[i]);
     // }
 
-    PRandM(K, size, V, threadID, net, id, ss); // generating r', r'_k-1,...,r'_0
+    PRandM(K, size, V, threadID, net, ss); // generating r', r'_k-1,...,r'_0
     PRandInt(K, K, size, r_pp, threadID, ss);  // generating r''
 
     ss->modAdd(C, shares, V[K], size);     // [r'] + [a]
@@ -121,7 +121,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     // }
 
     /**************** EQZ (PART 2): LINE 1-5 of KOrCL ******************/
-    PRandM(m, size, U, threadID, net, id, ss); // generating r', r'_m-1,...,r'_0
+    PRandM(m, size, U, threadID, net, ss); // generating r', r'_m-1,...,r'_0
     PRandInt(K, m, size, r_pp, threadID, ss);  // generating r'' (NEEDS TO BE DIFFERENT THAN r_pp, WAS GETTING INCORRECT RESULTS WHEN RE-USING r_pp????)
 
     ss->modAdd(C, sum, U[m], size); // reusing C
@@ -158,7 +158,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     }
 
     // works as expected
-    doOperation_PrefixMult(T, T, m, size, threadID, net, id, ss);
+    doOperation_PrefixMult(T, T, m, size, threadID, net, ss);
 
     // the sum of all the bits
     // symmetric function evaluation works: f(1) = 0, f(2,3,...,m) = 1
@@ -244,41 +244,41 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     free(T);
 }
 
-void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
     if (len < 2) {
-        doOperation_EQZ_bit(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
+        doOperation_EQZ_bit(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     } else {
         ss->modSub(sub, a, b, size);
-        doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
+        doOperation_EQZ(sub, result, len, size, threadID, net, ss);
         ss_batch_free_operator(&sub, size);
     }
 }
 
-void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
     if (len < 2) {
-        doOperation_EQZ_bit(result, a, b, alen, blen, resultlen, size, threadID, net, id, ss);
+        doOperation_EQZ_bit(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     } else {
         // this is complicated for signed vs unsigned
         // single bit cannot be signed
         // can impact other things
         // were having problems for comparing bits
         ss->modSub(sub, a, b, size);
-        doOperation_EQZ(sub, result, len, size, threadID, net, id, ss);
+        doOperation_EQZ(sub, result, len, size, threadID, net, ss);
         ss_batch_free_operator(&sub, size);
     }
 }
 
 // these two versions of EQZ are only called if BOTH inputs are single bits
 // Full protocol specifications are unnecessary for shares of bits (alen = blen = 1)
-void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     // printf("ALT EQZ, private-private\n");
     mpz_t const1, const2;
     mpz_init_set_ui(const1, 1);
@@ -306,7 +306,7 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
 
 // version for comparing a private bit a and public bit b
 // requires zero interaction
-void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     // printf("ALT EQZ, private-public\n");
     mpz_t const1;
     mpz_init_set_ui(const1, 1);

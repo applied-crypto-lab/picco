@@ -122,7 +122,7 @@ void append_list(dlist front_list, dlist back_list) {
     return;
 }
 
-void update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     if (size == 0)
         return;
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -257,7 +257,7 @@ void add_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *stru
     return;
 }
 
-void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID, NodeNetwork net,  SecretShare *ss) {
     listnode node;
     if (ptr_loc != NULL)
         node = create_listnode(int_var_loc, float_var_loc, struct_var_loc, *ptr_loc, private_tag, index);
@@ -272,7 +272,7 @@ void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *s
         mpz_t priv_cond;
         mpz_init(priv_cond);
         ss->modSub(priv_cond, 1, private_tag);
-        update_list_attributes(ptr->list, priv_cond, -1, ptr->size, threadID, net, id, ss);
+        update_list_attributes(ptr->list, priv_cond, -1, ptr->size, threadID, net, ss);
         insert_to_rear(ptr->list, node);
         ptr->size++;
         mpz_clear(priv_cond);
@@ -280,10 +280,10 @@ void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *s
     }
 }
 
-void update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID, NodeNetwork net,  SecretShare *ss) {
     if (assign_ptr->size == 0) {
         copy_list(assign_ptr->list, right_ptr->list, right_ptr->level - 1, assign_ptr->type);
-        update_list_attributes(assign_ptr->list, private_tag, index, right_ptr->size, threadID, net, id, ss);
+        update_list_attributes(assign_ptr->list, private_tag, index, right_ptr->size, threadID, net, ss);
         assign_ptr->size = right_ptr->size;
         return;
     } else {
@@ -293,9 +293,9 @@ void update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int 
         mpz_init(priv_cond);
         ss->modSub(priv_cond, 1, private_tag);
         copy_list(ptr->list, right_ptr->list, right_ptr->level - 1, assign_ptr->type);
-        update_list_attributes(ptr->list, private_tag, index, ptr->size, threadID, net, id, ss);
-        update_list_attributes(assign_ptr->list, priv_cond, -1, assign_ptr->size, threadID, net, id, ss);
-        merge_and_shrink_ptr(assign_ptr, ptr, net, id, ss);
+        update_list_attributes(ptr->list, private_tag, index, ptr->size, threadID, net, ss);
+        update_list_attributes(assign_ptr->list, priv_cond, -1, assign_ptr->size, threadID, net, ss);
+        merge_and_shrink_ptr(assign_ptr, ptr, net, ss);
         mpz_clear(priv_cond);
         destroy_ptr(&ptr);
         return;
@@ -352,7 +352,7 @@ void append_ptr_list(priv_ptr assign_ptr, priv_ptr right_ptr) {
     return;
 }
 
-int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNetwork net, int id, SecretShare *ss) {
+int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNetwork net,  SecretShare *ss) {
     listnode tmp = list->head->next;
     while (tmp != list->tail) {
         if (level == 0) {
@@ -371,11 +371,11 @@ int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNet
     return 0;
 }
 
-void merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr,NodeNetwork net, int id, SecretShare *ss) {
+void merge_and_shrink_ptr(priv_ptr assign_ptr, priv_ptr right_ptr,NodeNetwork net,  SecretShare *ss) {
     dlist list = right_ptr->list;
     listnode node = list->head->next;
     while (node != list->tail) {
-        if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1, assign_ptr->type, net, id, ss)) {
+        if (!is_repeated_listnode(assign_ptr->list, node, assign_ptr->level - 1, assign_ptr->type, net, ss)) {
             listnode tmp = create_listnode();
             copy_listnode(tmp, node, assign_ptr->level - 1, assign_ptr->type);
             insert_to_rear(assign_ptr->list, tmp);
@@ -406,11 +406,11 @@ void copy_nested_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t *R) {
     }
 }
 
-void reduce_dereferences(priv_ptr ptr, int dereferences, priv_ptr result_ptr, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void reduce_dereferences(priv_ptr ptr, int dereferences, priv_ptr result_ptr, int threadID, NodeNetwork net,  SecretShare *ss) {
     priv_ptr runner = create_ptr(0, ptr->type);
     set_ptr(runner, ptr, threadID);
     while (dereferences > 1) {
-        read_write_helper(runner, result_ptr, NULL, threadID, net, id, ss);
+        read_write_helper(runner, result_ptr, NULL, threadID, net, ss);
         set_ptr(runner, result_ptr, threadID);
         dereferences--;
     }
@@ -419,7 +419,7 @@ void reduce_dereferences(priv_ptr ptr, int dereferences, priv_ptr result_ptr, in
     return;
 }
 // dereference read for pointer to integer
-void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int threadID, NodeNetwork net,  SecretShare *ss) {
     if (ptr->type != 0) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -429,7 +429,7 @@ void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int 
     priv_ptr tmp_ptr;
     set_ptr(copy_ptr, ptr, threadID);
     if (dereferences > 1) {
-        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, id, ss);
+        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, ss);
         tmp_ptr = ptr1;
     } else
         tmp_ptr = ptr;
@@ -473,7 +473,7 @@ void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int 
 }
 
 // dereference read of pointer to float
-void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int threadID, NodeNetwork net,  SecretShare *ss) {
     if (ptr->type != 1) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -484,7 +484,7 @@ void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int
     priv_ptr tmp_ptr;
     set_ptr(copy_ptr, ptr, threadID);
     if (dereferences > 1) {
-        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, id, ss);
+        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, ss);
         tmp_ptr = ptr1;
     } else
         tmp_ptr = ptr;
@@ -535,22 +535,22 @@ void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int
     destroy_ptr(&ptr1);
 }
 
-void dereference_ptr_read_ptr(priv_ptr ptr, priv_ptr result, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_read_ptr(priv_ptr ptr, priv_ptr result, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss) {
     priv_ptr copy_ptr = create_ptr(ptr->level, ptr->type);
     priv_ptr ptr1 = create_ptr(ptr->level, ptr->type);
     set_ptr(ptr1, ptr, threadID);
     priv_ptr tmp_ptr;
     if (dereferences > 1) {
-        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, id, ss);
+        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, ss);
         tmp_ptr = copy_ptr;
     } else
         tmp_ptr = ptr;
-    read_write_helper(tmp_ptr, result, priv_cond, threadID, net, id, ss);
+    read_write_helper(tmp_ptr, result, priv_cond, threadID, net, ss);
     destroy_ptr(&copy_ptr);
     destroy_ptr(&ptr1);
 }
 
-void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss) {
     // compute the number of elements in the second layer of list of ptr
     int num = 0;
     dlist list = ptr->list;
@@ -593,7 +593,7 @@ void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threa
         mpz_t cond;
         mpz_init(cond);
         ss->modSub(cond, 1, priv_cond);
-        update_list_attributes(result->list, cond, -1, result->size, threadID, net, id, ss);
+        update_list_attributes(result->list, cond, -1, result->size, threadID, net, ss);
         Mult(R, R, op3, num, threadID, net, ss);
     } else {
         clear_list(&(result->list));
@@ -603,7 +603,7 @@ void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threa
     result->level = ptr->level - 1;
     priv_ptr tmp_ptr = create_ptr(ptr->level - 1, ptr->type);
     copy_nested_ptr(tmp_ptr, ptr, R);
-    merge_and_shrink_ptr(result, tmp_ptr, net, id, ss);
+    merge_and_shrink_ptr(result, tmp_ptr, net, ss);
     destroy_ptr(&tmp_ptr);
 
     for (int i = 0; i < num; i++) {
@@ -628,21 +628,21 @@ int list_size(dlist list) {
     return index;
 }
 
-void dereference_ptr_write(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_write(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss) {
     priv_ptr tmp_ptr = create_ptr(0, ptr->type);
     set_ptr(tmp_ptr, int_var_loc, float_var_loc, struct_var_loc, ptr_loc, threadID);
-    dereference_ptr_write_ptr(ptr, tmp_ptr, dereferences, priv_cond, threadID, net, id, ss);
+    dereference_ptr_write_ptr(ptr, tmp_ptr, dereferences, priv_cond, threadID, net, ss);
     destroy_ptr(&tmp_ptr);
 }
 
-void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss) {
     priv_ptr copy_ptr = create_ptr(0, ptr->type);
     priv_ptr ptr1 = create_ptr(0, ptr->type);
     set_ptr(copy_ptr, ptr, threadID);
     priv_ptr tmp_ptr;
 
     if (dereferences > 1) {
-        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, id, ss);
+        reduce_dereferences(copy_ptr, dereferences, ptr1, threadID, net, ss);
         tmp_ptr = ptr1;
     } else
         tmp_ptr = ptr;
@@ -658,8 +658,8 @@ void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, m
         mpz_init(cond);
         if (priv_cond == NULL) {
             ss->modSub(cond, 1, node->priv_tag);
-            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, id, ss);
-            update_list_attributes(ptr2->list, node->priv_tag, -1, ptr2->size, threadID, net, id, ss);
+            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, ss);
+            update_list_attributes(ptr2->list, node->priv_tag, -1, ptr2->size, threadID, net, ss);
         } else {
             mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
             mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -669,8 +669,8 @@ void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, m
             mpz_init(R[0]);
             Mult(R, op1, op2, 1, threadID, net, ss);
             ss->modSub(cond, 1, R[0]);
-            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, id, ss);
-            update_list_attributes(ptr2->list, R[0], -1, ptr2->size, threadID, net, id, ss);
+            update_list_attributes(assign_ptr->list, cond, -1, assign_ptr->size, threadID, net, ss);
+            update_list_attributes(ptr2->list, R[0], -1, ptr2->size, threadID, net, ss);
 
             mpz_clear(op1[0]);
             mpz_clear(op2[0]);
@@ -680,7 +680,7 @@ void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, m
             free(op2);
             free(R);
         }
-        merge_and_shrink_ptr(assign_ptr, ptr2, net, id, ss);
+        merge_and_shrink_ptr(assign_ptr, ptr2, net, ss);
         destroy_ptr(&ptr2);
         node = node->next;
     }
@@ -690,7 +690,7 @@ void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, m
 }
 
 // dereference write for pointer to float
-void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss) {
     if (ptr->type != 1) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -702,7 +702,7 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz
     set_ptr(ptr1, ptr, threadID);
 
     if (dereferences > 1) {
-        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, id, ss);
+        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, ss);
         tmp_ptr = copy_ptr;
     } else
         tmp_ptr = ptr;
@@ -769,7 +769,7 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz
 }
 
 // dereference write to a pointer to int
-void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss) {
     if (ptr->type != 0) {
         printf("WRONG TYPE on the left operator...\n");
         exit(1);
@@ -780,7 +780,7 @@ void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_
     set_ptr(ptr1, ptr, threadID);
 
     if (dereferences > 1) {
-        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, id, ss);
+        reduce_dereferences(ptr1, dereferences, copy_ptr, threadID, net, ss);
         tmp_ptr = copy_ptr;
     } else
         tmp_ptr = ptr;

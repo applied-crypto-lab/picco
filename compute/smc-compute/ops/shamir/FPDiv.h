@@ -24,6 +24,6 @@
 #include "Mult.h"
 #include "Operation.h"
 #include "TruncPr.h"
-void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* FPDIV_SHAMIR_H_ */

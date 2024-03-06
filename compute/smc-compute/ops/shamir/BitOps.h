@@ -25,9 +25,9 @@
 
 
 
-void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 
 #endif /* BITOPS_SHAMIR_H_ */

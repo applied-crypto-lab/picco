@@ -23,7 +23,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol B2U, page 4
-void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t *pow2A = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -66,8 +66,8 @@ void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, No
     ss->modPow(pow2L, const2, constL);
 
     // start computation.
-    doOperation_Pow2(pow2A, A, L, size, threadID, net, id, ss);
-    PRandM(L, size, R, threadID, net, id, ss);
+    doOperation_Pow2(pow2A, A, L, size, threadID, net, ss);
+    PRandM(L, size, R, threadID, net, ss);
     PRandInt(L, L, size, C, threadID, ss);
     ss->modMul(C, C, pow2L, size);
     ss->modAdd(C, C, pow2A, size);
@@ -89,7 +89,7 @@ void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, No
         ss->modSub(temp1, temp1, temp, size);
         ss->copy(temp1, R[i], size);
     }
-    doOperation_PreOr(R, R, L, size, threadID, net, id, ss);
+    doOperation_PreOr(R, R, L, size, threadID, net, ss);
     for (int i = 0; i < L; i++)
         ss->modSub(result[i], const1, R[i], size);
     ss->copy(pow2A, result[L], size);

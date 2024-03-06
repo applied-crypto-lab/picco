@@ -1268,6 +1268,7 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 // NEW RSS NETWORKING FUNCTIONALITIES ////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
+#if __RSS__
 
 void NodeNetwork::getRounds_RSS(int size, uint *count, uint *rounds, uint ring_size) {
     int peers = config->getPeerCount();
@@ -1531,3 +1532,5 @@ void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
     else
         *rounds = size / (*count) - 1;
 }
+
+#endif

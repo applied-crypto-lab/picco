@@ -22,7 +22,7 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.4 page 7
-void doOperation_Mod2(mpz_t *A, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Mod2(mpz_t *A, mpz_t *result, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * 2);
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -54,7 +54,7 @@ void doOperation_Mod2(mpz_t *A, mpz_t *result, int K, int size, int threadID, No
     ss->modPow(const2K1, const2, constK1);
 
     mpz_init(Bit[0]);
-    PRandM(1, size, R, threadID, net, id, ss);
+    PRandM(1, size, R, threadID, net, ss);
     PRandInt(K, 1, size, S, threadID, ss);
     ss->modAdd(C, A, R[0], size);
     ss->modMul(S, S, const2, size);

@@ -58,8 +58,9 @@ public:
     // Share a secret between
     int smc_open(priv_int var, int threadID);
     float smc_open(priv_int *var, int threadID);
+   #if _RSS_ 
     void smc_open(priv_int result, priv_int *var, int size, int threadID);
-
+#endif
     // Methods for input and output
     // for integer variable;
     void smc_input(int id, int *var, std::string type, int threadID);

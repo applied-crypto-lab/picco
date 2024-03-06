@@ -19,20 +19,9 @@
 */
 #include "FLEQZ.h"
 
-// FLEQZ::FLEQZ(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-//     // Mul = new Mult(nodeNet, s);
-//     net = nodeNet;
-//     id = nodeID;
-//     ss = s;
-// }
-
-// FLEQZ::~FLEQZ() {
-//     // TODO Auto-generated destructor stub
-// }
-
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Based on Protocol FLLT, page 9
-void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -70,10 +59,10 @@ void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int 
     }
     // compute b1 = v_a == v_b
     ss->modSub(temp1, A[0], B[0], size);
-    doOperation_EQZ(temp1, b1, K, size, threadID, net, id, ss);
+    doOperation_EQZ(temp1, b1, K, size, threadID, net, ss);
     // compute b2 = p_a == p_b
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, b2, L, size, threadID, net, id, ss);
+    doOperation_EQZ(temp1, b2, L, size, threadID, net, ss);
 
     // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
     ss->modAdd(temp1, A[3], B[3], size);

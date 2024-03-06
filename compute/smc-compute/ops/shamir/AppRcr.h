@@ -25,6 +25,6 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* APPRCR_SHAMIR_H_ */

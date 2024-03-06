@@ -26,6 +26,6 @@
 
 
 
-void AddBitwise(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void AddBitwise(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* ADDBITWISE_SHAMIR_H_ */

@@ -21,7 +21,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Based on Protocol FLLT, page 9
-void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -69,10 +69,10 @@ void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int 
     // K = 32;
     //  line 1
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_LTZ(a, temp1, L, size, threadID, net, id, ss);
+    doOperation_LTZ(a, temp1, L, size, threadID, net, ss);
     // line 2
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, c, L, size, threadID, net, id, ss);
+    doOperation_EQZ(temp1, c, L, size, threadID, net, ss);
     // line 3
     ss->modMul(temp1, A[3], const2, size);
     ss->modSub(temp2, const1, temp1, size);
@@ -83,7 +83,7 @@ void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int 
     Mult(temp1, temp2, B[0], size, threadID, net, ss);
 
     ss->modSub(temp1, temp3, temp1, size);
-    doOperation_LTZ(d, temp1, K + 1, size, threadID, net, id, ss);
+    doOperation_LTZ(d, temp1, K + 1, size, threadID, net, ss);
 
     // line 4
     Mult(temp1, c, d, size, threadID, net, ss);

@@ -21,7 +21,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLDiv with public divisor, page 6
-void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -72,17 +72,17 @@ void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
         mpz_div(temp1[i], const2K, temp1[i]);
         ss->modMul(Y[i], Y[i], temp1[i]);
     }
-    doOperation_Trunc(Y, Y, 2 * K, K, size, threadID, net, id, ss);
+    doOperation_Trunc(Y, Y, 2 * K, K, size, threadID, net, ss);
     // line 2
     ss->modSub(temp1, Y, beta, size);
-    doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
+    doOperation_LTZ(b, temp1, K + 1, size, threadID, net, ss);
     // line 3
     ss->modSub(temp1, const1, b, size);
     Mult(temp1, temp1, Y, size, threadID, net, ss);
     Mult(temp2, b, Y, size, threadID, net, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
-    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
+    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, ss);
     // line 4
     ss->modSub(temp1, const1, A[2], size);
     ss->modSub(temp2, A[1], B[1], size);
@@ -140,7 +140,7 @@ void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int s
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLDiv, page 6
-void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     // int peers = ss->getPeers();
     mpz_t beta, const1, const2, constK;
     /***********************************************************************/
@@ -180,17 +180,17 @@ void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size,
 
     ss->modAdd(temp1, B[0], B[2], size);
     ss->copy(A[0], Y, size);
-    doOperation_SDiv(Y, Y, temp1, K, size, threadID, net, id, ss);
+    doOperation_SDiv(Y, Y, temp1, K, size, threadID, net, ss);
     // line 2
     ss->modSub(temp1, Y, beta, size);
-    doOperation_LTZ(b, temp1, K + 1, size, threadID, net, id, ss);
+    doOperation_LTZ(b, temp1, K + 1, size, threadID, net, ss);
     // line 3
     ss->modSub(temp1, const1, b, size);
     Mult(temp1, temp1, Y, size, threadID, net, ss);
     Mult(temp2, b, Y, size, threadID, net, ss);
     ss->modMul(temp2, temp2, const2, size);
     ss->modAdd(temp1, temp2, temp1, size);
-    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
+    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, ss);
     // line 4
     ss->modSub(temp1, const1, A[2], size);
     ss->modSub(temp2, A[1], B[1], size);

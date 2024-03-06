@@ -19,11 +19,11 @@
 */
 #include "BitOps.h"
 
-void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     Mult(result, A, B, size, threadID, net,ss);
 }
 
-void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);
@@ -37,7 +37,7 @@ void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwor
     free(C);
 }
 
-void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; ++i)
         mpz_init(C[i]);

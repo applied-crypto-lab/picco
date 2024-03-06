@@ -25,6 +25,6 @@
 #include "Operation.h"
 #include "Trunc.h"
 
-void doOperation_FLMult(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_FLMult(mpz_t **A, mpz_t **B, mpz_t **result, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* FLMULT_SHAMIR_H_ */

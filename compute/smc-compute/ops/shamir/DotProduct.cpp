@@ -19,7 +19,7 @@
 */
 #include "DotProduct.h"
 
-void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -65,7 +65,7 @@ void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, in
     mpz_clear(data[0]);
     free(data);
 }
-void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     int peers = ss->getPeers();
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -107,7 +107,7 @@ void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size,
     mpz_clear(tmp);
 }
 
-void doOperation_DotProduct_new(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_DotProduct_new(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     int peers = ss->getPeers();
     uint threshold = ss->getThreshold();

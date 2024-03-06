@@ -21,7 +21,7 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.2 page 11
-void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     int peers = ss->getPeers();
     mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);

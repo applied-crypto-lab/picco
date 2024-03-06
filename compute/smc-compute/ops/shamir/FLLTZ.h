@@ -25,6 +25,6 @@
 #include "Mult.h"
 #include "Operation.h"
 
-void doOperation_FLLTZ(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net, int id, SecretShare *ss);
+void doOperation_FLLTZ(mpz_t **A, mpz_t **B, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net,  SecretShare *ss);
 
 #endif /* FLOATLTZ_SHAMIR_H_ */

@@ -24,6 +24,6 @@
 #ifndef POW2_SHAMIR_H_
 #define POW2_SHAMIR_H_
 
-void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* POW2_SHAMIR_H_ */

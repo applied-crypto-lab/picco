@@ -29,7 +29,7 @@
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/
 /*A[3](B[3]) contains a sign bit S*/
-void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -132,15 +132,15 @@ void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, in
     // start computation
     // long X = LTZ(ss->modSub(A[1], B[1]), 31);
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_LTZ(X, temp1, L, size, threadID, net, id, ss);
+    doOperation_LTZ(X, temp1, L, size, threadID, net, ss);
 
     // long E = EQZ(ss->modSub(A[1], B[1]), 31);
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, E, L, size, threadID, net, id, ss);
+    doOperation_EQZ(temp1, E, L, size, threadID, net, ss);
 
     // long AA = LTZ(ss->modSub(A[0], B[0]), 31);
     ss->modSub(temp1, A[0], B[0], size);
-    doOperation_LTZ(AA, temp1, K, size, threadID, net, id, ss);
+    doOperation_LTZ(AA, temp1, K, size, threadID, net, ss);
 
     /*compute the higher and smaller power out of two*/
     Mult(temp3, X, B[1], size, threadID, net, ss);
@@ -192,13 +192,13 @@ void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, in
     // line 9
     ss->modSub(temp1, Pmax, Pmin, size);
     ss->modSub(temp2, constK, temp1, size);
-    doOperation_LTZ(Y, temp2, L, size, threadID, net, id, ss);
+    doOperation_LTZ(Y, temp2, L, size, threadID, net, ss);
 
     // line 10
     ss->modSub(temp1, const1, Y, size);
     ss->modSub(temp2, Pmax, Pmin, size);
     Mult(temp3, temp1, temp2, size, threadID, net, ss);
-    doOperation_Pow2(pow2, temp3, K + 1, size, threadID, net, id, ss);
+    doOperation_Pow2(pow2, temp3, K + 1, size, threadID, net, ss);
 
     // line 11
     ss->modSub(temp1, Vmax, S3, size);
@@ -218,12 +218,12 @@ void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, in
     Mult(temp3, temp2, temp3, size, threadID, net, ss);
     ss->modAdd(temp3, temp1, temp3, size);
     ss->modMul(temp3, temp3, constP2K, size);
-    doOperation_Inv(pow2, temp1, size, threadID, net, id, ss); // 2/13/2024, ANB: fixed problem with Open in Inversion
+    doOperation_Inv(pow2, temp1, size, threadID, net, ss); // 2/13/2024, ANB: fixed problem with Open in Inversion
     Mult(temp2, temp3, temp1, size, threadID, net, ss);
-    doOperation_Trunc(V, temp2, 2 * K + 1, K - 1, size, threadID, net, id, ss);
+    doOperation_Trunc(V, temp2, 2 * K + 1, K - 1, size, threadID, net, ss);
 
     // line 15 and 16
-    doOperation_bitDec(H, V, K + 2, K + 2, size, threadID, net, id, ss);
+    doOperation_bitDec(H, V, K + 2, K + 2, size, threadID, net, ss);
     mpz_t tmp;
     mpz_init(tmp);
 
@@ -235,7 +235,7 @@ void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, in
             // ss->copy(U[i], H[K+1-i], size);
         }
 
-    doOperation_PreOr(H, H, K + 2, size, threadID, net, id, ss);
+    doOperation_PreOr(H, H, K + 2, size, threadID, net, ss);
 
     // line 17
     for (int i = 0; i < size; i++)
@@ -258,7 +258,7 @@ void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, in
 
     // line 19
     Mult(temp1, P1, V, size, threadID, net, ss);
-    doOperation_Trunc(V, temp1, K + 2, 2, size, threadID, net, id, ss);
+    doOperation_Trunc(V, temp1, K + 2, 2, size, threadID, net, ss);
 
     // line 20
     ss->modSub(temp1, Pmax, P0, size);
@@ -274,7 +274,7 @@ void doOperation_FLAdd(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int L, in
     Mult(temp2, temp2, temp3, size, threadID, net, ss);
     Mult(temp2, temp2, V, size, threadID, net, ss);
     ss->modAdd(V, temp2, temp1, size);
-    doOperation_EQZ(V, Z, K, size, threadID, net, id, ss);
+    doOperation_EQZ(V, Z, K, size, threadID, net, ss);
     // line 23
 
     ss->modSub(temp1, const1, B[2], size);

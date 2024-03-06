@@ -20,7 +20,7 @@
 #include "SDiv.h"
 
 
-void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t const2, constK1, const2K1;
     mpz_t *X1 = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
     mpz_t *XY = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
@@ -56,7 +56,7 @@ void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadI
     for (int i = 1; i <= sita - 1; i++) {
         ss->modSub(temp, const2K1, X1, 2 * size);
         Mult(temp, XY, temp, 2 * size, threadID, net, ss);
-        doOperation_TruncPr(XY, temp, 2 * K + 1, K, 2 * size, threadID, net, id, ss);
+        doOperation_TruncPr(XY, temp, 2 * K + 1, K, 2 * size, threadID, net, ss);
         for (int j = 0; j < size; j++) {
             mpz_set(X1[j], XY[size + j]);
             mpz_set(X1[size + j], XY[size + j]);
@@ -70,7 +70,7 @@ void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadI
 
     ss->modSub(temp1, const2K1, temp1, size);
     Mult(temp1, Y, temp1, size, threadID, net, ss);
-    doOperation_TruncPr(Y, temp1, 2 * K + 1, K, size, threadID, net, id, ss);
+    doOperation_TruncPr(Y, temp1, 2 * K + 1, K, size, threadID, net, ss);
 
     // free the memory
     mpz_clear(const2);
@@ -93,7 +93,7 @@ void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadI
 }
 
 // from the SDiv2 file, unsure what the fundamental difference with the above implementation beyond the multithreading argument
-void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t const2, constK1;
     mpz_t *X = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -143,14 +143,14 @@ void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwo
             gmp_printf("temp2 : %Zd\n", temp[i]); */
         /********/
         Mult(temp3, Y, temp2, size,-1, net, ss);
-        doOperation_TruncPr(Y, temp3, 2 * K + 1, K, size, -1, net, id, ss);
+        doOperation_TruncPr(Y, temp3, 2 * K + 1, K, size, -1, net, ss);
         ss->modSub(temp2, const2K1, X, size);
         Mult(temp3, X, temp2, size,-1, net, ss);
-        doOperation_TruncPr(X, temp3, 2 * K + 1, K, size, -1, net, id, ss);
+        doOperation_TruncPr(X, temp3, 2 * K + 1, K, size, -1, net, ss);
     }
     ss->modSub(temp2, const2K1, X, size);
     Mult(temp3, Y, temp2, size,-1, net, ss);
-    doOperation_TruncPr(Y, temp3, 2 * K + 1, K, size, -1, net, id, ss);
+    doOperation_TruncPr(Y, temp3, 2 * K + 1, K, size, -1, net, ss);
     // free the memory
     mpz_clear(const2);
     mpz_clear(constK1);

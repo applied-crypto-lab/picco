@@ -22,7 +22,7 @@
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 5.14 page 57
-void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     int threshold = ss->getThreshold();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
@@ -79,7 +79,7 @@ void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadI
 
     // start computation
     PRandInt(K, M, size, R1, threadID, ss);    // generating r''
-    PRandM(M, size, R, threadID, net, id, ss); // generating r', r'_M-1,...,r'_0
+    PRandM(M, size, R, threadID, net, ss); // generating r', r'_M-1,...,r'_0
     ss->modMul(R1, R1, pow2M, size);           // computing [r'']*2^m
     // 2/13/2024, ANB: this implementation did not add the "nu" part, which is required to guarantee values do not wraparound.
     // Catrina and Saxen state the modulus q >  2^{k + kappa + nu + 1}
@@ -106,7 +106,7 @@ void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadI
     free(B);
     /*******************************************/
 
-    AddBitwise(S, BB, R, M, size, threadID, net, id, ss);
+    AddBitwise(S, BB, R, M, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < M + 2; i++) {

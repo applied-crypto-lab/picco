@@ -29,7 +29,7 @@
 #include "Pow2.h"
 
 
-void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 
 #endif /* INT2FL_H */

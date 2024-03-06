@@ -24,6 +24,6 @@
 #include "Operation.h"
 #include "Random.h"
 
-void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* TRUNCPR_SHAMIR_H_ */

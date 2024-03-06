@@ -28,6 +28,6 @@
 #ifndef B2U_SHAMIR_H_
 #define B2U_SHAMIR_H_
 
-void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_B2U(mpz_t *A, int L, mpz_t **result, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* B2U_SHAMIR_H_ */

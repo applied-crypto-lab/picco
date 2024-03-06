@@ -21,7 +21,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Pow2, page 4
-void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int M = ceil(log2(L));
     mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -39,7 +39,7 @@ void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, No
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);
     // start computation
-    doOperation_bitDec(S, A, M, M, size, threadID, net, id, ss);
+    doOperation_bitDec(S, A, M, M, size, threadID, net, ss);
     for (int i = 0; i < M; i++) {
         mpz_set_ui(constI, pow(2, i));
         ss->modPow(pow2M, const2, constI);
@@ -47,7 +47,7 @@ void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, No
         ss->modSub(S[i], temp, S[i], size);
         ss->modAdd(S[i], S[i], const1, size);
     }
-    doOperation_PrefixMult(S, S, M, size, threadID, net, id, ss);
+    doOperation_PrefixMult(S, S, M, size, threadID, net, ss);
     ss->copy(S[M - 1], result, size);
     // free the memory
     for (int i = 0; i < M + 1; i++) {

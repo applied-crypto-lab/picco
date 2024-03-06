@@ -19,7 +19,7 @@
 */
 #include "CarryBit.h"
 
-void doOperation_CarryBit(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_CarryBit(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);

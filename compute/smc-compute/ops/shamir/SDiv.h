@@ -25,9 +25,9 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_SDiv(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
-void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_SDiv_2(mpz_t *Y, mpz_t *A, mpz_t *B, int K, int size, NodeNetwork net,  SecretShare *ss) ;
 
 
 

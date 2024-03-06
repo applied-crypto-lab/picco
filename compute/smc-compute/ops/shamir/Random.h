@@ -25,8 +25,8 @@
 
 
 void PRandInt(int K, int M, int size, mpz_t *result, int threadID, SecretShare *ss) ;
-void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net,  SecretShare *ss);
 
-void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* OPERATION_SHAMIR_H_ */

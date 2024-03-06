@@ -19,7 +19,7 @@
 */
 #include "Trunc.h"
 
-void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t const2, power, const2M, constInv2M;
     // initialization
@@ -33,7 +33,7 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     for (int i = 0; i < size; i++)
         mpz_init_set(shares[i], shares1[i]);
     // start computation
-    doOperation_Mod2M(result, shares, K, M, size, threadID, net, id, ss);
+    doOperation_Mod2M(result, shares, K, M, size, threadID, net, ss);
     ss->modSub(result, shares, result, size);
     ss->modMul(result, result, constInv2M, size);
 
@@ -48,7 +48,7 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     mpz_clear(constInv2M);
 }
 
-void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int same = 1;
     for (int i = 1; i < size; i++)
         if (M[i] != M[0])
@@ -59,7 +59,7 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, i
                 mpz_set_ui(result[i], 0); // set to zero when the number of bits we are shifting by is greater than K (the bitlength of K)
             }
         } else {
-            doOperation_Trunc(result, shares1, K, M[0], size, threadID, net, id, ss);
+            doOperation_Trunc(result, shares1, K, M[0], size, threadID, net, ss);
         }
 
     } else {
@@ -82,7 +82,7 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, i
                 // initialization
                 mpz_init_set(shares[i], shares1[i]);
                 // start computation
-                doOperation_Mod2M((mpz_t *)&result[i], (mpz_t *)&shares[i], K, M[i], size, threadID, net, id, ss);
+                doOperation_Mod2M((mpz_t *)&result[i], (mpz_t *)&shares[i], K, M[i], size, threadID, net, ss);
                 ss->modSub(result[i], shares[i], result[i]);
                 ss->modMul(result[i], result[i], constInv2M);
             }

@@ -27,13 +27,13 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 
 #endif /* INTDIV_SHAMIR_H_ */

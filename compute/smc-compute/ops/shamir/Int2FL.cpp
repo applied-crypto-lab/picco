@@ -22,7 +22,7 @@
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Int2FL, page 9
 
-void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     for (int i = 0; i < 4; i++) {
@@ -62,22 +62,22 @@ void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int s
     }
     int lambda = gamma - 1;
     // line 2
-    doOperation_LTZ(results[3], A, gamma, size, threadID, net, id, ss);
+    doOperation_LTZ(results[3], A, gamma, size, threadID, net, ss);
     // line 3
-    doOperation_EQZ(A, results[2], gamma, size, threadID, net, id, ss);
+    doOperation_EQZ(A, results[2], gamma, size, threadID, net, ss);
     // line 4
     ss->modMul(temp1, results[3], const2, size);
     ss->modSub(temp1, const1, temp1, size);
     Mult(A, temp1, A, size, threadID, net, ss);
     // line 5 and 6
-    doOperation_bitDec(S, A, lambda, lambda, size, threadID, net, id, ss);
+    doOperation_bitDec(S, A, lambda, lambda, size, threadID, net, ss);
     for (int i = 0; i < lambda && i <= lambda - i - 1; i++)
         for (int j = 0; j < size; j++) {
             mpz_set(tmp, S[i][j]);
             mpz_set(S[i][j], S[lambda - i - 1][j]);
             mpz_set(S[lambda - i - 1][j], tmp);
         }
-    doOperation_PreOr(S, S, lambda, size, threadID, net, id, ss);
+    doOperation_PreOr(S, S, lambda, size, threadID, net, ss);
     // line 7
     for (int i = 0; i < lambda; i++) {
         for (int j = 0; j < size; j++)
@@ -96,7 +96,7 @@ void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int s
     Mult(results[1], results[1], temp1, size, threadID, net, ss);
     // line 9 and 10
     if (lambda > K)
-        doOperation_Trunc(results[0], A, lambda, lambda - K, size, threadID, net, id, ss);
+        doOperation_Trunc(results[0], A, lambda, lambda - K, size, threadID, net, ss);
     else {
         ss->modPow(temp1[0], const2, K - lambda);
         for (int i = 1; i < size; i++)
