@@ -46,7 +46,6 @@ inline bool p_prime_in_T_7(int p_prime, std::vector<int> T_map) {
 
 template <typename T>
 void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    uint threshold = ss->getThreshold();
 
     // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
@@ -60,7 +59,7 @@ void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
         memcpy(c[0] + i, buffer + i * bytes, bytes);
         v[i] = ((a[0][i] & b[0][i]) ^ (a[0][i] & b[1][i]) ^ (a[1][i] & b[0][i])) ^ c[0][i];
     }
-    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
@@ -78,8 +77,6 @@ void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
 template <typename T>
 void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    uint threshold = ss->getThreshold();
-
     // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
     int i;
@@ -94,7 +91,7 @@ void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
         v[i] = a[0][i] * b[0][i] + a[0][i] * b[1][i] + a[1][i] * b[0][i] - c[0][i];
     }
 
-    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
@@ -113,7 +110,6 @@ void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
 template <typename T>
 void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    uint threshold = ss->getThreshold();
     // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
     int i;
@@ -135,7 +131,7 @@ void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
         v[i] = a[0][i] * b[0][b_index] + a[0][i] * b[1][b_index] + a[1][i] * b[0][b_index] - c_placeholder[0][i];
     }
     // communication
-    nodeNet.SendAndGetDataFromPeer(v, c_placeholder[1], size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, c_placeholder[1], size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
@@ -156,8 +152,6 @@ void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
 
 template <typename T>
 void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    uint threshold = ss->getThreshold();
-
     // size == how many bytes we're multiplying
     // uint bytes = (size+8-1)>>3;  //number of bytes need to be send/recv
     // uint bytes = size;  //number of bytes need to be send/recv
@@ -175,7 +169,7 @@ void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     }
 
     // communication
-    nodeNet.SendAndGetDataFromPeer_bit(v, c[1], size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer_bit(v, c[1], size, ss->general_map);
     for (i = 0; i < size; i++) {
         c[1][i] = c[1][i] ^ c[0][i];
     }
@@ -416,7 +410,7 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     // printf("-- sending v\n");
 
     // communication
-    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
 
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     // ss->prg_getrandom(0, bytes, size, buffer);
@@ -499,7 +493,7 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     // printf("sending now\n");
 
     // communication
-    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
@@ -583,7 +577,7 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     // printf("sending now\n");
 
     // communication
-    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
@@ -661,7 +655,7 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
             }
         }
     }
-    nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map);
 
     // nodeNet.SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
@@ -926,7 +920,7 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     }
     // communication
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
 
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
@@ -1389,7 +1383,7 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
         }
     }
     // communication
-    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
 
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     // ss->prg_getrandom(0, bytes, size, buffer);
@@ -1441,7 +1435,7 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
         // printf("case )\n");
         memset(c[i], 0, sizeof(uint8_t) * size);
     }
-    uint tracker;
+    uint tracker = 0;
     uint trackers[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     for (i = 0; i < size; i++) {
@@ -1486,7 +1480,7 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
         }
     }
     // communication
-    nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map, threshold);
+    nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map);
 
     // nodeNet.SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
