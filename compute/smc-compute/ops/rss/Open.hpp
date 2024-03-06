@@ -1,9 +1,27 @@
+/*
+   PICCO: A General Purpose Compiler for Private Distributed Computation
+   ** Copyright (C) from 2024 PICCO Team
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
+
+   PICCO is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   PICCO is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef OPEN_H_
 #define OPEN_H_
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
-
 
 template <typename T>
 int Open_int(T *var, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *s) {
@@ -169,7 +187,6 @@ void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet,
     delete[] sendbuf;
 }
 
-
 template <typename T>
 void Rss_Open_Bitwise_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
@@ -202,7 +219,6 @@ void Rss_Open_Bitwise_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
     delete[] sendbuf;
 }
 
-
 template <typename T>
 void Rss_Open_Byte_7pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
@@ -234,7 +250,6 @@ void Rss_Open_Byte_7pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet
     delete[] sendbuf;
 }
 
-
 template <typename T>
 void Open(T *result, T **shares, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     try {
@@ -253,10 +268,9 @@ void Open(T *result, T **shares, int size, int threadID, NodeNetwork nodeNet, re
             throw std::runtime_error("invalid number of parties");
         }
     } catch (const std::runtime_error &ex) {
-        std::string error(ex.what()); 
+        std::string error(ex.what());
         throw std::runtime_error("[Open] " + error);
     }
-
 }
 
 #endif

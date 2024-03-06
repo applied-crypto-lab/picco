@@ -1,9 +1,27 @@
+/*
+   PICCO: A General Purpose Compiler for Private Distributed Computation
+   ** Copyright (C) from 2024 PICCO Team
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
+
+   PICCO is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   PICCO is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef RSS_MULT_H_
 #define RSS_MULT_H_
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
-
 
 // ANB, 1/30/2024
 // this is written in such a way that it checks both orderings of T_map.
@@ -535,14 +553,10 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
         recv_buf[i] = new T[size];
         memset(recv_buf[i], 0, sizeof(T) * size);
     }
-    // printf("prg start\n");
-
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
         ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
-
-        // sanitizing destination (just in case)
         memset(c[i], 0, sizeof(T) * size);
     }
     T z = 0;
@@ -554,10 +568,7 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
                a[3][i] * (b[0][b_index] + b[2][b_index]) +
                a[4][i] * (b[0][b_index] + b[1][b_index]) +
                a[5][i] * (b[0][b_index] + b[4][b_index]);
-        // printf("finished calculating v\n");
-
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
@@ -574,12 +585,9 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
             }
         }
     }
-    // printf("sending now\n");
 
     // communication
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
-    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] + recv_buf[1][i];
         c[5][i] = c[5][i] + recv_buf[0][i];
@@ -944,6 +952,108 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     delete[] buffer;
     delete[] recv_buf;
 }
+
+
+template <typename T>
+void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    uint bytes = (ring_size + 7) >> 3;
+    uint i, p_prime, T_index;
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
+
+    T *v = new T[size];
+    uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
+
+    T **recv_buf = new T *[threshold];
+    for (i = 0; i < threshold; i++) {
+        recv_buf[i] = new T[size];
+        memset(recv_buf[i], 0, sizeof(T) * size);
+    }
+
+    uint8_t **buffer = new uint8_t *[numShares];
+    for (i = 0; i < numShares; i++) {
+        buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+
+        // sanitizing destination (just in case)
+        // printf("case )\n");
+        memset(c[i], 0, sizeof(T) * size);
+    }
+    T z = T(0);
+    uint tracker;
+    for (i = 0; i < size; i++) {
+        v[i] =
+            a[0][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[1][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[2][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[3][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[4][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[15][b_index]) +
+            a[5][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[6][i] * (b[2][b_index] + b[5][b_index] + b[7][b_index] + b[9][b_index] + b[11][b_index] + b[13][b_index]) +
+            a[7][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index]) +
+            a[8][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[10][b_index] + b[11][b_index] + b[16][b_index]) +
+            a[9][i] * (b[1][b_index] + b[4][b_index] + b[7][b_index] + b[8][b_index] + b[10][b_index] + b[13][b_index]) +
+            a[10][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[9][b_index]) +
+            a[11][i] * (b[0][b_index] + b[1][b_index] + b[4][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index]) +
+            a[12][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[4][b_index] + b[5][b_index] + b[7][b_index]) +
+            a[13][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index]) +
+            a[14][i] * (b[2][b_index] + b[4][b_index] + b[5][b_index]) +
+            a[15][i] * (b[1][b_index] + b[4][b_index]) +
+            a[16][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[15][b_index]) +
+            a[17][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index]) +
+            a[18][i] * (b[1][b_index] + b[8][b_index]) +
+            a[19][i] * (b[0][b_index] + b[5][b_index] + b[6][b_index]);
+
+        // printf("finished calculating v\n");
+        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+            // printf("\n");
+            for (T_index = 0; T_index < numShares; T_index++) {
+                tracker = 0;
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                    c[T_index][i] += z;
+                    tracker++;
+                } else if (
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
+                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                    c[T_index][i] += z;
+                    v[i] -= z;
+
+                    tracker++;
+                }
+            }
+        }
+    }
+    // communication
+    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+
+    // ss->prg_getrandom(0, bytes, size, buffer);
+    for (i = 0; i < size; i++) {
+        c[19][i] = c[19][i] + recv_buf[0][i];
+        c[16][i] = c[16][i] + recv_buf[1][i];
+        c[10][i] = c[10][i] + recv_buf[2][i];
+
+        c[0][i] = c[0][i] + v[i];
+    }
+
+    for (i = 0; i < threshold; i++) {
+        delete[] recv_buf[i];
+    }
+
+    for (i = 0; i < numShares; i++) {
+        delete[] buffer[i];
+    }
+
+    // free
+    delete[] v;
+    delete[] buffer;
+    delete[] recv_buf;
+}
+
 
 template <typename T>
 void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -1524,10 +1634,57 @@ void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, int id, 
             throw std::runtime_error("invalid number of parties");
         }
     } catch (const std::runtime_error &ex) {
-        std::string error(ex.what()); 
+        std::string error(ex.what());
         throw std::runtime_error("[Mult] " + error);
     }
 }
 
+template <typename T>
+void Mult_Bitwise(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_Bitwise_3pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_Bitwise_5pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_Bitwise_7pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
+
+template <typename T>
+void Mult_Byte(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, int id, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_Byte_3pc(C, A, B, size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_Byte_5pc(C, A, B, size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_Byte_7pc(C, A, B, size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
 
 #endif
