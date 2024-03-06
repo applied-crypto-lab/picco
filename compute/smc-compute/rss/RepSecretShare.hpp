@@ -24,40 +24,13 @@
 #include "stdint.h"
 #include <charconv>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <errno.h>
-#include <fcntl.h>
 #include <fstream>
-#include <inttypes.h>
 #include <iostream>
 #include <map>
-#include <math.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <openssl/aes.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
 #include <regex>
-#include <sstream>
-#include <stdint.h> //for int8_t
-#include <stdio.h>
-#include <string.h> //for memcmp
 #include <string>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <time.h>
-#include <tmmintrin.h>
-#include <unistd.h>
 #include <vector>
 #include <wmmintrin.h> // for intrinsics for AES-NI
-#include <x86intrin.h>
 
 #define CONTAINER_SIZE 16
 #define KEYSIZE 16
@@ -173,10 +146,12 @@ public:
     void modPow(T result, T base, long exponent);
     void modPow(T *result, T *base, long exponent, int size);
 
+    void generateMap(T *result, int value);
+
     T *SHIFT;
     T *ODD;
     T *EVEN;
-    uint ring_size;      // ring_size
+    uint ring_size; // ring_size
 
     std::vector<std::vector<int>> general_map;
     std::vector<std::vector<int>> open_map_mpc;
@@ -185,7 +160,7 @@ public:
     std::vector<T> const_map; // this is used for multiplying a private value by a public constant, OR adding a public constant to a private value
 
 private:
-    int id;
+    int id;              // node ID
     int n;               // n
     int t;               // t
     uint numShares;      // (n-1) choose t
@@ -208,12 +183,12 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
     // allocating the const_map dynamically after numShares is calculated
     const_map.resize(numShares, 0);
 
-    SHIFT = new T[sizeof(T) * 8+1];
+    SHIFT = new T[sizeof(T) * 8 + 1];
     ODD = new T[ring_size + 2];
     EVEN = new T[ring_size + 2];
 
     // i think this is "21" for the minion nn?
-    for (T i = 0; i <= sizeof(T) * 8 ; i++) {
+    for (T i = 0; i <= sizeof(T) * 8; i++) {
         SHIFT[i] = (T(1) << T(i)) - T(1); // mod 2^i
 
         // this is needed to handle "undefined behavior" of << when we want
@@ -1180,6 +1155,59 @@ uint replicatedSecretShare<T>::getNumShares() {
 template <typename T>
 uint replicatedSecretShare<T>::getTotalNumShares() {
     return totalNumShares;
+}
+
+template <typename T>
+void replicatedSecretShare<T>::generateMap(T *result, int value) {
+    switch (n) {
+    case 3:
+        switch (id) {
+        case 1:
+            result[0] = T(value); // party 1's share 1
+            break;
+        case 3:
+            result[1] = T(value); // party 1's share 1
+            break;
+        default:
+            break;
+        }
+        break;
+    case 5:
+        switch (id) {
+        case 1:
+            result[0] = T(value); // party 1's share 1
+            break;
+        case 4:
+            result[5] = T(value); // party 1's share 1
+            break;
+        case 5:
+            result[3] = T(value); // party 1's share 1
+            break;
+        default:
+            break;
+        }
+        break;
+    case 7:
+        switch (id) {
+        case 1:
+            result[0] = T(value); // party 1's share 1
+            break;
+        case 5:
+            result[19] = T(value); // party 1's share 1
+            break;
+        case 6:
+            result[16] = T(value); // party 1's share 1
+            break;
+        case 7:
+            result[10] = T(value); // party 1's share 1
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 template <typename T>
