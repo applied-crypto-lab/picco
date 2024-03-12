@@ -24,10 +24,12 @@
 #include "stdint.h"
 #include <charconv>
 #include <cmath>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <wmmintrin.h> // for intrinsics for AES-NI
@@ -147,6 +149,8 @@ public:
     void modPow(T *result, T *base, long exponent, int size);
 
     void generateMap(T *result, int value);
+    std::vector<int> generateT_star(int p_star);
+    int generateT_star_index(int p_star);
 
     T *SHIFT;
     T *ODD;
@@ -244,7 +248,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         };
 
         T_map_mpc = {
-            {mod_n(id + 1, n), mod_n(id + 2, n)},
+            {mod_n(id + 1, n), mod_n(id + 2, n)}, // becomes T_star in Input()
             {mod_n(id + 1, n), mod_n(id + 3, n)},
             {mod_n(id + 1, n), mod_n(id + 4, n)},
             {mod_n(id + 2, n), mod_n(id + 3, n)},
@@ -1158,7 +1162,76 @@ uint replicatedSecretShare<T>::getTotalNumShares() {
 }
 
 template <typename T>
+std::vector<int> replicatedSecretShare<T>::generateT_star(int p_star) {
+    switch (n) {
+    case 3:
+        return {mod_n(p_star + 1, n)};
+    case 5:
+        return {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
+    case 7:
+        return {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
+    default:
+        break;
+    }
+}
+
+template <typename T>
+int replicatedSecretShare<T>::generateT_star_index(int p_star) {
+    try {
+
+        std::vector<int> tmp;
+        switch (n) {
+        case 3:
+            tmp = {mod_n(p_star + 1, n)}; // no sorting necessary
+            break;
+        case 5:
+            tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
+            // sorting for consistency
+            sort(tmp.begin(), tmp.end());
+            break;
+        case 7:
+            tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
+            sort(tmp.begin(), tmp.end());
+            break;
+        default:
+            break;
+        }
+        for (size_t i = 0; i < T_map_mpc.size(); i++) {
+            if (tmp == T_map_mpc.at(i)) {
+                return i;
+            }
+        }
+        throw std::runtime_error("index not found, there's a logic error somewhere");
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[generateT_star_index] " << ex.what() << "\n";
+        exit(1);
+    }
+
+    
+    // should never get here
+    // return -1;
+}
+/*
+* this function is used to generate a mapping used when adding a public value to secret shares
+* e.g. for 3 parties, if [a] is secret shared and b is public, and we want to compute [a] + b, each party performs the following:
+
+in: value = 1
+p1:
+a_2 + result[0]*b (result[0] = 1)
+a_3 + result[1]*b (result[1] = 0)
+p2:
+a_3 + result[0]*b (result[0] = 0)
+a_1 + result[1]*b (result[1] = 0)
+p3:
+a_1 + result[0]*b (result[0] = 0)
+a_2 + result[1]*b (result[1] = 1)
+
+ */
+template <typename T>
 void replicatedSecretShare<T>::generateMap(T *result, int value) {
+    // ensuring destination is sanitized
+    memset(result, 0, sizeof(T) * numShares);
+
     switch (n) {
     case 3:
         switch (id) {

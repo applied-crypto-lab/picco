@@ -20,4 +20,12 @@
 #ifndef _RANDBIT_HPP_
 #define _RANDBIT_HPP_
 
+#include "../../NodeNetwork.h"
+#include "../../rss/RepSecretShare.hpp"
+
+template <ty]re<T> *ss) {
+
+
+}
+
 #endif // _RANDBIT_HPP_

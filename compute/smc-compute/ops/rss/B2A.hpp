@@ -20,4 +20,15 @@
 #ifndef _B2A_HPP_
 #define _B2A_HPP_
 
+#include "../../NodeNetwork.h"
+#include "../../rss/RepSecretShare.hpp"
+#include <cmath>
+
+
+
+template<typename T>
+void Rss_b2a(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+}
+
 #endif // _B2A_HPP_

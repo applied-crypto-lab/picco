@@ -953,7 +953,6 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     delete[] recv_buf;
 }
 
-
 template <typename T>
 void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -1053,7 +1052,6 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     delete[] buffer;
     delete[] recv_buf;
 }
-
 
 template <typename T>
 void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -1615,8 +1613,34 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     delete[] recv_buf;
 }
 
+// only need one version that has threadID parameter, since thats the only version that gets called inside SMC_utils
 template <typename T>
-void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net,  replicatedSecretShare<T> *ss) {
+void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_3pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_5pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_7pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
+
+// non-threaded versions (since RSS is single threaded )
+template <typename T>
+void Mult(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // from here, we defer to the 3-, 5-, or 7-party implementations
     try {
         int peers = ss->getPeers();
@@ -1640,7 +1664,7 @@ void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net,  replica
 }
 
 template <typename T>
-void Mult_Bitwise(T **C, T **A, T **B, int size, int threadID, NodeNetwork net,  replicatedSecretShare<T> *ss) {
+void Mult_Bitwise(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // from here, we defer to the 3-, 5-, or 7-party implementations
     try {
         int peers = ss->getPeers();
@@ -1664,7 +1688,7 @@ void Mult_Bitwise(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, 
 }
 
 template <typename T>
-void Mult_Byte(T **C, T **A, T **B, int size, int threadID, NodeNetwork net,  replicatedSecretShare<T> *ss) {
+void Mult_Byte(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // from here, we defer to the 3-, 5-, or 7-party implementations
     try {
         int peers = ss->getPeers();
