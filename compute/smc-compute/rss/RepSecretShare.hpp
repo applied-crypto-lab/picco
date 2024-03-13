@@ -1207,7 +1207,6 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
         exit(1);
     }
 
-    
     // should never get here
     // return -1;
 }
