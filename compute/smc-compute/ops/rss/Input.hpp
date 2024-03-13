@@ -4,18 +4,20 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 
-// version of Input where t parties are inputting values into the computation
-// this implementation is **independent** of the number of parties in the computation
-// if pid is NOT an input party, then input is (void/null/whatever)
-// numInputParties = input_parties.size()
-// input dimensiopns : [size]
-// result dimensions : [numShares][numInputParties][size] (this matches the convention used in RSS_GenerateRandomShares_*pc)
-// we, buy default, set T* to be the canonnically "first" share that the input party possesses (and is thus the "computed" share)
-// which is dictated by T_map (defined in RepSecretShare)
-// example input_parties  = {1, 2, 3} (for 7pc B2A)
-// we assume input_parties is in increasing order
-// we also assume that the mapping that is (now) an argument is defined inside whatever protocol is calling Input^*, and is *well-formed*
-// meaning no *race conditions*, where two parties are sending to the same destination party in the same round (and similarly for receiving)
+/*
+* version of Input where t parties are inputting values into the computation
+* this implementation is **independent** of the number of parties in the computation
+* if pid is NOT an input party, then input is (void/null/whatever)
+* numInputParties = input_parties.size()
+* input dimensiopns : [size]
+* result dimensions : [numShares][numInputParties][size] (this matches the convention used in RSS_GenerateRandomShares_*pc)
+* we, buy default, set T* to be the canonnically "first" share that the input party possesses (and is thus the "computed" share)
+* which is dictated by T_map (defined in RepSecretShare)
+* example input_parties  = {1, 2, 3} (for 7pc B2A)
+* we assume input_parties is in increasing order
+* we also assume that the mapping that is (now) an argument is defined inside whatever protocol is calling Input^*, and is *well-formed*
+* meaning no *race conditions*, where two parties are sending to the same destination party in the same round (and similarly for receiving)
+ */
 template <typename T>
 void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, std::vector<std::vector<int>> send_recv_map, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numInputParties = input_parties.size();
@@ -23,16 +25,18 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
     uint bytes = (ring_size + 7) >> 3;
     int pid = ss->getID();
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < numInputParties; i++) {
-            // sanitizing destination
-            // potentially not needed?, given the context of which this is called (inside B2A, where we created the destination variables themselves)
-            memset(result[s][i], 0, sizeof(T) * size);
-        }
-    }
+    // not needed since we already do this in B2A
+    // for (size_t s = 0; s < numShares; s++) {
+    //     for (size_t i = 0; i < numInputParties; i++) {
+    //         // sanitizing destination
+    //         // potentially not needed?, given the context of which this is called (inside B2A, where we created the destination variables themselves)
+    //         memset(result[s][i], 0, sizeof(T) * size);
+    //     }
+    // }
 
     // receiving from at most numInputParties
     // though some of these buffers may be unused
+    // this could *theoretically* could be allocated based on the number of nonnegative entries in send_recv_map
     T **recvbuf = new T *[numInputParties];
     for (size_t i = 0; i < numInputParties; i++) {
         recvbuf[i] = new T[size];
@@ -61,7 +65,6 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
                 for (size_t i = 0; i < size; i++) {
                     memcpy(result[s][p_star_index] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[s][p_star][i]
                 }
-                // at this point we can figure out the send/recv mapping? no?
             }
         }
 
