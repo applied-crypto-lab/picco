@@ -1425,7 +1425,6 @@ void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int 
             getDataFromPeer(j, buffers[j - 1], k * count, count, size, ring_size);
         }
     }
-    // numBytesSent += size * sizeof(priv_int_base) * peers;
 }
 
 // specific to 3 parties (open and mult)
