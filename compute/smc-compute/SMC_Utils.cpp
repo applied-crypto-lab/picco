@@ -1969,10 +1969,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("\n");
     // }
 
-    // smc_open(result, C, size, -1);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("(open) C [%lu]: %u\n", i, result[i]);
-    // }
+    smc_open(result, C, size, -1);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) C [%lu]: %u\n", i, result[i]);
+    }
 
     for (size_t _picco_i = 0; _picco_i < numShares; _picco_i++) {
         delete[] C[_picco_i];
