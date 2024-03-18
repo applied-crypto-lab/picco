@@ -554,6 +554,7 @@ public:
     void smc_process_results(priv_int **result, int resultlen_sig, int resultlen_exp, int len_sig, int len_exp, int size, int threadID);
 
     // void test_type(int);
+    void smc_test_rss();
 
     void smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, int threadID);
 
@@ -589,5 +590,21 @@ private:
     std::ifstream *inputStreams;
     std::ofstream *outputStreams;
 };
+
+using std::ostream;
+using std::vector;
+
+template<typename T>
+ostream& operator<< (ostream& out, const vector<T>& v) {
+    out << "[";
+    size_t last = v.size() - 1;
+    for (size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last)
+            out << ", ";
+    }
+    out << "]";
+    return out;
+}
 
 #endif /* SMC_UTILS_H_ */

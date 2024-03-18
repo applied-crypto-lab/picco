@@ -22,13 +22,50 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
+#include "Input.hpp"
 #include <cmath>
+#include <numeric>
 
+// [a] is bitwise-shared
+template <typename T>
+void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
+    //  int n = ss->getPeers();
+    int threshold = ss->getThreshold();
+    int id = ss->getID();
+    uint numShares = ss->getNumShares();
+    std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
 
-template<typename T>
-void Rss_b2a(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
+    std::vector<std::vector<int>> xi_map = ss->generateB2A_map();
 
+    // first t parties are the "input parties"
+    // (3,1): p1
+    // (5,2): p1, p2
+    // (7,3): p1, p2, p3
+    std::vector<int> input_parties(threshold);
+    std::iota(input_parties.begin(), input_parties.end(), 1);
+
+    T ***result = new T **[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        result[s] = new T *[threshold];
+        for (size_t i = 0; i < threshold; i++) {
+            result[s][i] = new T[size];
+            memset(result[s][i], 0, sizeof(T) * size); // sanitizing destination
+        }
+    }
+
+    // only t participants need to decreaseViewWidthcompute the XOR of a subset of their shares of [a]
+    // mapping \xi will also be predefined
+    if (id < threshold + 1) {
+
+    } else {
+
+        // Rss_Input_p_star(result, NULL, input_parties, send_recv_map, size, ring_size, nodeNet, ss);
+    }
+
+    // these maps need to be revised (taken originally from edabit, where we needed t+1 input parties)
+    // for B2A, only need t input parties
 }
 
 #endif // _B2A_HPP_

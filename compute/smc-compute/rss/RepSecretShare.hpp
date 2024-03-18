@@ -148,9 +148,15 @@ public:
     void modPow(T result, T base, long exponent);
     void modPow(T *result, T *base, long exponent, int size);
 
-    void generateMap(T *result, int value);
+    void generatePublicCoef(T *result, int value);
+
     std::vector<int> generateT_star(int p_star);
     int generateT_star_index(int p_star);
+
+    std::vector<std::vector<int>> generateB2A_map();
+    std::vector<std::vector<int>> generateXi_map();
+
+    std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
 
     T *SHIFT;
     T *ODD;
@@ -1227,7 +1233,7 @@ a_2 + result[1]*b (result[1] = 1)
 
  */
 template <typename T>
-void replicatedSecretShare<T>::generateMap(T *result, int value) {
+void replicatedSecretShare<T>::generatePublicCoef(T *result, int value) {
     // ensuring destination is sanitized
     memset(result, 0, sizeof(T) * numShares);
 
@@ -1279,6 +1285,111 @@ void replicatedSecretShare<T>::generateMap(T *result, int value) {
         break;
     default:
         break;
+    }
+}
+
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateB2A_map() {
+    switch (n) {
+    case 3:
+        return {
+            {((id < 4) ? mod_n(id - 1, n) : -1)},
+            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1)}};
+    case 5:
+        return {
+            // if my id < 4, compute as normal, otherwise set to -1
+            {((id < 4) ? mod_n(id - 1, n) : -1),
+             ((id < 4) ? mod_n(id - 2, n) : -1)},
+            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1),
+             (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
+        };
+
+    case 7:
+        return {
+            // if my id < 5, compute as normal, otherwise set to -1
+            {((id < 5) ? mod_n(id - 1, n) : -1),
+             ((id < 5) ? mod_n(id - 2, n) : -1),
+             ((id < 5) ? mod_n(id - 3, n) : -1)},
+            // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
+            {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
+             (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
+             (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
+        };
+    default:
+        break;
+    }
+}
+
+// this map is used in the updated B2A protocol
+// only parties < t+1 use this
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateXi_map() {
+    switch (n) {
+    case 3:
+        switch (id) {
+        case 1:
+
+        default:
+            break;
+        }
+    case 5:
+        switch (id) {
+        case 1:
+        case 2:
+
+        default:
+            break;
+        }
+    case 7:
+        switch (id) {
+        case 1:
+        case 2:
+        case 3:
+
+        default:
+            break;
+        }
+    default:
+        break;
+    }
+}
+
+// this mapping must match whatever share is determined to be "special" (the nonzero share of \hat{b} in MultSparse)
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generate_MultSparse_map(int _n, int _id) {
+    switch (_n) {
+    case 3:
+        return {
+            // if my id > 1, compute as normal, otherwise set to -1
+            {((_id > 1) ? mod_n(_id - 1, _n) : -1)},
+            //  ((id < 4) ? mod_n(id - 2, n) : -1)},
+            // if the COMPUTED VALUE is > 1 , compute as normal, otherwise set to -1
+            {(mod_n(_id + 1, _n) > 1 ? mod_n(_id + 1, _n) : -1)},
+        };
+
+    case 5:
+        return {
+            // if my id > 2, compute as normal, otherwise set to -1
+            {((_id > 2) ? mod_n(_id - 1, _n) : -1),
+             ((_id > 2) ? mod_n(_id - 2, _n) : -1)},
+            // if the COMPUTED VALUE is > 2 , compute as normal, otherwise set to -1
+            {(mod_n(_id + 1, _n) > 2 ? mod_n(_id + 1, _n) : -1),
+             (mod_n(_id + 2, _n) > 2 ? mod_n(_id + 2, _n) : -1)},
+        };
+
+    case 7:
+        return {
+            // if my id < 4, compute as normal, otherwise set to -1
+            {((_id < 4) ? mod_n(_id - 1, _n) : -1),
+             ((_id < 4) ? mod_n(_id - 2, _n) : -1)},
+            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+            {(mod_n(_id + 1, _n) < 4 ? mod_n(_id + 1, _n) : -1),
+             (mod_n(_id + 2, _n) < 4 ? mod_n(_id + 2, _n) : -1)},
+        };
+
+    default:
+        return {}; // should throw an error
     }
 }
 

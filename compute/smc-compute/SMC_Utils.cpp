@@ -36,18 +36,17 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     mpz_set_str(modulus, mod.c_str(), BASE_10);
 #endif
 
-    nodeConfig = new NodeConfiguration(id, runtime_config, bits, (numOfPeers-1));
+    nodeConfig = new NodeConfiguration(id, runtime_config, bits, (numOfPeers - 1));
 
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
     net = *nodeNet; // dereferencing, net is "copy initialized"
     seedSetup(seed_map, numOfPeers, threshold);
 
-
     std::cout << "Creating SecretShare\n";
 #if __SHAMIR__
 
-    net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading 
+    net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
     printf("SHAMIR\n");
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
@@ -161,8 +160,8 @@ void SMC_Utils::smc_input(int id, priv_int **var, std::string type, int threadID
 void SMC_Utils::smc_input(int id, priv_int *var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
     try {
-    ss->ss_input(id, var, size, type, inputStreams);
-        } catch (const std::runtime_error &ex) {
+        ss->ss_input(id, var, size, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
         std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
@@ -173,8 +172,8 @@ void SMC_Utils::smc_input(int id, priv_int *var, int size, std::string type, int
 
 void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int threadID) {
     try {
-    ss->ss_input(id, var, size, type, inputStreams);
-        } catch (const std::runtime_error &ex) {
+        ss->ss_input(id, var, size, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
         std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
@@ -184,8 +183,8 @@ void SMC_Utils::smc_input(int id, int *var, int size, std::string type, int thre
 void SMC_Utils::smc_input(int id, priv_int **var, int size, std::string type, int threadID) {
 #if __DEPLOYMENT__
     try {
-    ss->ss_input(id, var, size, type, inputStreams);
-        } catch (const std::runtime_error &ex) {
+        ss->ss_input(id, var, size, type, inputStreams);
+    } catch (const std::runtime_error &ex) {
         std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
     }
@@ -195,8 +194,8 @@ void SMC_Utils::smc_input(int id, priv_int **var, int size, std::string type, in
 }
 
 void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
-        try {
-    ss->ss_input(id, var, size, type, inputStreams);
+    try {
+        ss->ss_input(id, var, size, type, inputStreams);
     } catch (const std::runtime_error &ex) {
         std::cerr << "[smc_input] " << ex.what() << "\nExiting...\n";
         exit(1);
@@ -410,7 +409,7 @@ void SMC_Utils::smc_mult(priv_int a, priv_int b, priv_int result, int alen, int 
     // double check this works (passing reference to essentiall up-cast to priv_int*)
     // cant use & for some reason, wont compile
     // replacing priv_int* with & works on
-    Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net,  ss);
+    Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net, ss);
 }
 
 /******************************************************/
@@ -1874,11 +1873,21 @@ std::vector<int> SMC_Utils::generateCoefficients(std::vector<int> T_set, int thr
     return coefficients;
 }
 
-    std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
-    
-#if __RSS__
-uint SMC_Utils::getNumShares(){
-    return ss->getNumShares();
+std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
+#if __RSS__
+uint SMC_Utils::getNumShares() {
+    return ss->getNumShares();
 }
 #endif
+using std::cout;
+using std::endl;
+using std::vector;
+
+void SMC_Utils::smc_test_rss() {
+    int n = 5;
+    for (int i = 1; i < n + 1; i++) {
+        vector<vector<int>> mul_map = ss->generate_MultSparse_map(n, i);
+        cout << "mul_map(" << i << ") : " << mul_map << endl;
+    }
+}
