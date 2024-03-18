@@ -246,8 +246,8 @@ RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), thresho
     if (ring_size == sizeof(T) * 8) {
         SHIFT = -1;
     }
-    printf("SHIFT: \t");
-    print_binary(SHIFT, ring_size);
+    // printf("SHIFT: \t");
+    // print_binary(SHIFT, ring_size);
 
 
     // static share mappings, MUST be consistent with RSS protocols in smc-compute
