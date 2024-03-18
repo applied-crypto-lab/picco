@@ -25,7 +25,7 @@
 /*A[1](B[1]) contains a power P*/
 /*A[2](B[2]) contains a zero bit Z*/
 /*A[3](B[3]) contains a sign bit S*/
-void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -83,7 +83,7 @@ void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size
         }
     }
 
-    Mult(temp5, temp4, temp5, size * 3, threadID, net, id, ss);
+    Mult(temp5, temp4, temp5, size * 3, threadID, net, ss);
     for (int i = 0; i < 3 * size; i++)
         mpz_clear(temp4[i]);
     free(temp4);
@@ -104,23 +104,23 @@ void doOperation_FLMult(mpz_t **A2, mpz_t **B1, mpz_t **result1, int K, int size
     /*compute v1 * v2*/
     for (int i = 0; i < size; i++)
         mpz_set(V[i], temp5[i]);
-    doOperation_Trunc(V, V, 2 * K, K - 1, size, threadID, net, id, ss);
+    doOperation_Trunc(V, V, 2 * K, K - 1, size, threadID, net, ss);
     ss->modSub(temp1, V, constP2L, size);
-    doOperation_LTZ(A1, temp1, K + 1, size, threadID, net, id, ss);
+    doOperation_LTZ(A1, temp1, K + 1, size, threadID, net, ss);
 
-    Mult(temp1, V, A1, size, threadID, net, id, ss);
+    Mult(temp1, V, A1, size, threadID, net, ss);
     ss->modMul(temp2, temp1, const2, size);
 
     ss->modSub(temp1, V, temp1, size);
     ss->modAdd(temp1, temp1, temp2, size);
-    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, id, ss);
+    doOperation_Trunc(result[0], temp1, K + 1, 1, size, threadID, net, ss);
 
     /*computes the power*/
     ss->modSub(temp1, const1, result[2], size);
     ss->modSub(temp2, constL, A1, size);
     ss->modAdd(temp2, temp2, B[1], size);
     ss->modAdd(temp2, temp2, A[1], size);
-    Mult(result[1], temp2, temp1, size, threadID, net, id, ss);
+    Mult(result[1], temp2, temp1, size, threadID, net, ss);
 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < size; j++)

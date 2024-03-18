@@ -26,7 +26,7 @@
 
 
 
-void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 
 #endif /* INV_SHAMIR_H_ */

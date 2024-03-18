@@ -24,6 +24,6 @@
 #include "Trunc.h"
 
 
-void doOperation_FPMult(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_FPMult(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size, NodeNetwork net,  SecretShare *ss);
 
 #endif /* FPMULT_SHAMIR_H_ */

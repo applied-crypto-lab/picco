@@ -17,6 +17,13 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+
+/* 
+ANB, 2/19/2024
+- only leaving this file in the repository, since IntPtr.cpp is still a class (not a function like the rest of picco)
+- IntPtr.cpp isn't integrated into the compiler though,
+- has never been included, dating back to commit be80ec07209d0ba7fead0fd614435bd0648555b7
+ */
 #ifndef OPERATION_SHAMIR_H_
 #define OPERATION_SHAMIR_H_
 

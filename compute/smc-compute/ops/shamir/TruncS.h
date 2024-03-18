@@ -30,6 +30,6 @@
 #include "Open.h"
 #include "Random.h"
 
-void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_TruncS(mpz_t *result, mpz_t *A, int K, mpz_t *M, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* TRUNCS_SHAMIR_H_ */

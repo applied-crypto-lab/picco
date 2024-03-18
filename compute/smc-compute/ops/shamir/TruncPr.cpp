@@ -22,7 +22,7 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.1, page 6
-void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));
@@ -61,7 +61,7 @@ void doOperation_TruncPr(mpz_t *result, mpz_t *shares, int K, int M, int size, i
     // start comutation.
     /**************/
     PRandInt(K, M, size, temp, threadID, ss);
-    PRandM(M, size, R, threadID, net, id, ss);
+    PRandM(M, size, R, threadID, net, ss);
 
     ss->modMul(temp, temp, pow2M, size);
     ss->modAdd(C, C, temp, size);

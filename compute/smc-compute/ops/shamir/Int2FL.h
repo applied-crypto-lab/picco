@@ -29,6 +29,6 @@
 #include "Trunc.h"
 
 
-void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_Int2FL(mpz_t *values, mpz_t **results1, int gamma, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* INT2FL_H */

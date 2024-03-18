@@ -220,7 +220,7 @@ In the current implementation, not all features of C are supported in user progr
  
 - Our current implementation does not allow code that uses private variables to be located in multiple files, e.g., in header files. Thus, all code to be translated needs to be placed in a single file.
 - Our current implementation does not allow for global private variable declaration. 
-- During program translation, the PICCO compiler places a number of temporary variables in the translated user program. Thus, if the user program contains variables with the same names, they might result in conflicts. Therefore, it is  best to avoid declaring variables with the same names in the user program. The variables created by the compiler are: 
+<!-- - During program translation, the PICCO compiler places a number of temporary variables in the translated user program. Thus, if the user program contains variables with the same names, they might result in conflicts. Therefore, it is  best to avoid declaring variables with the same names in the user program. The variables created by the compiler are: 
 
   - `tmp`
   - `ftmp`
@@ -228,8 +228,7 @@ In the current implementation, not all features of C are supported in user progr
   - `priv_tmp`
   - `priv_ftmp`
 
-  The last three variables on the list are used only if the user program contains at least one access to an array with a private index.
-
+  The last three variables on the list are used only if the user program contains at least one access to an array with a private index. -->
 - Due to the implementation specifics of the `mpz_t` data type used for all private variables in translated programs, functions cannot return variables of type `mpz_t`. For that reason, all user-declared functions with private return values should be modified to include an extra argument passed by reference which corresponds to the return value of the function and the return type of the function should be set to void.
 
 

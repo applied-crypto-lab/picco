@@ -28,5 +28,5 @@
 #ifndef MOD2MS_SHAMIR_H_
 #define MOD2MS_SHAMIR_H_
 
-void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 #endif /* MOD2M1_SHAMIR_H_ */

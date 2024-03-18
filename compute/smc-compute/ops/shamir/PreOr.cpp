@@ -26,7 +26,7 @@
 // C[K][size]
 // K = Number of things in a single prefix operations
 // size = Number of prefix operations to do in parallel
-void doOperation_PreOr(mpz_t **result, mpz_t **C, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PreOr(mpz_t **result, mpz_t **C, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t **b = (mpz_t **)malloc(sizeof(mpz_t *) * K);
     mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * K * size);
     // initialization
@@ -42,7 +42,7 @@ void doOperation_PreOr(mpz_t **result, mpz_t **C, int K, int size, int threadID,
             ss->modAdd(b[i][j], C[i][j], 1);
         }
     }
-    doOperation_PrefixMult(b, b, K, size, threadID, net, id, ss);
+    doOperation_PrefixMult(b, b, K, size, threadID, net, ss);
     for (int i = 0; i < size; ++i) {
         mpz_set(result[0][i], C[0][i]);
     }
@@ -51,7 +51,7 @@ void doOperation_PreOr(mpz_t **result, mpz_t **C, int K, int size, int threadID,
             mpz_set(c[i * size + j], b[i][j]);
         }
     }
-    doOperation_Mod2(c, c, K, K * size, threadID, net, id, ss);
+    doOperation_Mod2(c, c, K, K * size, threadID, net, ss);
     for (int i = 1; i < K; i++)
         for (int j = 0; j < size; ++j)
             ss->modSub(result[i][j], 1, c[i * size + j]);

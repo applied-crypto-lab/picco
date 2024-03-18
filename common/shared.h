@@ -1,6 +1,6 @@
 /*
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) from 2013 PICCO Team
+   ** Copyright (C) from 2023 PICCO Team
    ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
    PICCO is free software: you can redistribute it and/or modify
@@ -23,8 +23,8 @@
 // this header houses constants that are common for picco, and picco-util 
 
 // Technique constants aren't used in the compute/ directory, since the techniques are handled directly by CMake, which is responsible for defining/setting the variables
-#define SHAMIR_SS 2 
 #define REPLICATED_SS 1
+#define SHAMIR_SS 2 
 
 #define SECURITY_PARAMETER 48 // the security parameter kappa
 

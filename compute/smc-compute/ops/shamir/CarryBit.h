@@ -25,7 +25,7 @@
 #include "Operation.h"
 
 
-void doOperation_CarryBit(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_CarryBit(mpz_t *D11, mpz_t *D12, mpz_t *D21, mpz_t *D22, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 
 #endif /* CARRYBIT_SHAMIR_H_ */

@@ -42,8 +42,12 @@
 #include <time.h>
 // #include "config.h"
 #include <gmp.h>
-#include <dirent.h>
-#include <sys/stat.h>
+#ifdef _WIN32
+    #include <direct.h> 
+#else
+    #include <sys/stat.h> 
+#endif
+#include <errno.h>
 
 static aststmt ast; /* The AST we use as our original */
 symtab stab;        /* Our symbol table */
@@ -82,47 +86,33 @@ int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
 
-// Code added to check for the path of the file name given
-int directoryExists(const char *path) {
-  DIR *dir = opendir(path);
-  if (dir != NULL) {
-     closedir(dir);
-     return 1; // Directory exists
-  } else {
-     return 0; // Directory doesn't exist or there was an error
-  }
-}
-
-// Create the directory using _mkdir for windows and makdir for UNix-like systems 
+// Windows uses _mkdir() to create a directory and returns true if the operation succeeds.
+// macOS uses mkdir() with default permissions and not setting 0777
+// Other Unix-like uses mkdir() with permissions set to 0777, giving full read, write, and execute permissions.
 int createDirectory(const char *path) {
-  #ifdef _WIN32
-     return _mkdir(path);
-  #else
-     return mkdir(path, 0777);
-  #endif
+#ifdef _WIN32
+    return _mkdir(path);
+#else
+    return mkdir(path, 0777);
+#endif
 }
 
 // Function that creates the path and directory needed for files needed 
-void pathCreater(char *final_list){
+void pathCreater(char *final_list) {
+    char *path_separator = final_list;
+    char *next_separator = strchr(path_separator, '/');
     
-   // Check if the file name contains a path separator /
-   char *path_separator = strchr(final_list, '/');
-
-   // IF there is a path_separator
-   if (path_separator != NULL || strchr(final_list, '\\') != NULL) {
-
-      // File name contains a path, extract the directory path
-      char directory[256]; // array to store the path - I used the max possible 
-      strncpy(directory, final_list, path_separator - final_list);
-      directory[path_separator - final_list] = '\0';
-
-      // Check if the directory exists, create it if not
-      if (!directoryExists(directory)) {
-         if (createDirectory(directory) != 0) {
-            perror("Error creating directory");
-         }
-      }
-   }
+    // Loop through each segment of the path
+    while (next_separator != NULL) {
+        *next_separator = '\0'; // temporarily truncate the path
+        if (createDirectory(final_list) < 0 && errno != EEXIST) {
+            fprintf(stderr, "Failed to create directory: %s\n", final_list);
+            exit(EXIT_FAILURE); // or handle error appropriately
+        }
+        *next_separator = '/'; // restore the path separator
+        path_separator = next_separator + 1; // move to the next segment
+        next_separator = strchr(path_separator, '/');
+    }
 }
 
 // will have new argument for flag
@@ -216,7 +206,7 @@ void append_new_main(bool mode) {
         str_printf(strA(), "%s(argc, argv);\n", MAIN_RENAME);
     str_printf(strA(),
                "  gettimeofday(&tv2, NULL);\n"
-               "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << std::endl;\n");
+               "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << \" seconds \"<< std::endl;\n");
     if (num_threads > 0)
         str_printf(strA(), "  ort_finalize(_xval);\n");
     str_printf(strA(), "  return (_xval);\n");
@@ -253,20 +243,23 @@ int getopts(int argc, char *argv[]) {
 /*Helper Functions for laodConfig() used to check if a value
 is a number and remove any extra digits from the input.
 
-removeNonDigit(value)
+removeSpaces(value)
 This function takes a string (value) and removes any non-digit characters, replacing them with a space.
 
 isNumeric(value)
 This function checks if a given string (value) contains only numeric characters.
 */
 
-char *removeNonDigit(char *value) {
-    for (char *c = value; *c; ++c) {
-        if (!isdigit(*c)) {
-            *c = ' ';
+void removeSpaces(char *str) {
+    int i = 0, j = 0; // i is used to iterate over the original string, j for placing non-space characters
+
+    while (str[i]) {       // iterate until the end of the string
+        if (str[i] != ' ') { // if the current character is not a space
+            str[j++] = str[i]; // copy it to the jth position, then increment j
         }
+        i++; // always increment i
     }
-    return value;
+    str[j] = '\0'; // null-terminate the modified string
 }
 
 int isNumeric(const char *value) {
@@ -294,6 +287,11 @@ void loadConfig(char *config) {
 
     FILE *fp;
     fp = fopen(config, "r");
+
+    if (fp == NULL) {
+        printf("Error: Configuration file '%s' does not exist. Please make sure it is created and the path is correct.\n", config);
+        exit(EXIT_FAILURE); // Exit the program gracefully
+    }
 
     char line[100];                // Buffer to store each line of the file.
     char encounteredKeys[6][100]; // Array to store encountered keys to check for duplicates.
@@ -323,20 +321,42 @@ void loadConfig(char *config) {
             }
 
             // Updates the configuration values based on the encountered keys.
+            removeSpaces(value);
             if (strcmp(key, "bits") == 0) {
-                bits = atoi(removeNonDigit(value));
+                removeSpaces(value);
+                bits = atoi((value));
                 if (bits == 0) {
-                    fprintf(stderr, "Error: 'bits' must be either empty or a non-zero integer.\n");
-                    exit(1);
+                fprintf(
+                    stderr,
+                    "Error: 'bits' must be either empty or a non-zero integer.\n");
+                exit(1);
                 }
             } else if (strcmp(key, "peers") == 0) {
-                peers = atoi(removeNonDigit(value));
+                if (strcmp(key, "peers") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                peers = atoi((value));
             } else if (strcmp(key, "threshold") == 0) {
-                threshold = atoi(removeNonDigit(value));
+                if (strcmp(key, "threshold") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                threshold = atoi((value));
             } else if (strcmp(key, "inputs") == 0) {
-                inputs = atoi(removeNonDigit(value));
+                if (strcmp(key, "inputs") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                inputs = atoi((value));
+
             } else if (strcmp(key, "outputs") == 0) {
-                outputs = atoi(removeNonDigit(value));
+                if (strcmp(key, "outputs") == 0 && !isNumeric(value)) {
+                    fprintf(stderr, "Error: %s must be a single integer.\n", key);
+                    exit(1);
+                }
+                outputs = atoi((value));
+
             } else if (strcmp(key, "technique") == 0) {
                 strncpy(technique, value, sizeof(technique) - 1);
                 technique[sizeof(technique) - 1] = '\0';
@@ -357,14 +377,6 @@ void loadConfig(char *config) {
                 }
             }
 
-            // Validate numeric fields and terminate with an error if anything else is given.
-            if ((strcmp(key, "bits") == 0 || strcmp(key, "peers") == 0 ||
-                 strcmp(key, "threshold") == 0 || strcmp(key, "inputs") == 0 ||
-                 strcmp(key, "outputs") == 0) &&
-                !isNumeric(value)) {
-                fprintf(stderr, "Error: %s must be a single integer.\n", key);
-                exit(1);
-            }
         } else {
             // Check for = only if the line is not a key=value meaning if user inputs key:value or key_value or key-value
             if (strstr(line, "bits=") == NULL &&
@@ -536,8 +548,17 @@ int main(int argc, char *argv[]) {
     // Open the file using the provided path
     pathCreater(final_list);
     FILE *fp = fopen(final_list, "w+");
+    if (fp == NULL) {
+        fprintf(stderr, "Error opening file: %s\n", final_list);
+        exit(1);
+    }
     FILE *vfp = fopen(var_list, "r");
     char *line = (char *)malloc(sizeof(char) * 256);
+    if (line == NULL) {
+        fprintf(stderr, "Memory allocation failed for line buffer\n");
+        exit(1);
+    }
+
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
     char *res = "";

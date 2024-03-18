@@ -21,8 +21,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Based on Protocol FLLT, page 9
-void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net, int id, SecretShare *ss){
-
+void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     /***********************************************************************/
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -70,64 +69,64 @@ void doOperation_FLLTZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int 
     // K = 32;
     //  line 1
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_LTZ(a, temp1, L, size, threadID, net, id, ss);
+    doOperation_LTZ(a, temp1, L, size, threadID, net, ss);
     // line 2
     ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, c, L, size, threadID, net, id, ss);
+    doOperation_EQZ(temp1, c, L, size, threadID, net, ss);
     // line 3
     ss->modMul(temp1, A[3], const2, size);
     ss->modSub(temp2, const1, temp1, size);
-    Mult(temp3, temp2, A[0], size, threadID, net, id, ss);
+    Mult(temp3, temp2, A[0], size, threadID, net, ss);
 
     ss->modMul(temp1, B[3], const2, size);
     ss->modSub(temp2, const1, temp1, size);
-    Mult(temp1, temp2, B[0], size, threadID, net, id, ss);
+    Mult(temp1, temp2, B[0], size, threadID, net, ss);
 
     ss->modSub(temp1, temp3, temp1, size);
-    doOperation_LTZ(d, temp1, K + 1, size, threadID, net, id, ss);
+    doOperation_LTZ(d, temp1, K + 1, size, threadID, net, ss);
 
     // line 4
-    Mult(temp1, c, d, size, threadID, net, id, ss);
+    Mult(temp1, c, d, size, threadID, net, ss);
     ss->modSub(temp2, const1, c, size);
-    Mult(temp3, temp2, a, size, threadID, net, id, ss);
+    Mult(temp3, temp2, a, size, threadID, net, ss);
     ss->modAdd(b1, temp1, temp3, size);
     // line 5
-    Mult(temp1, c, d, size, threadID, net, id, ss);
+    Mult(temp1, c, d, size, threadID, net, ss);
     ss->modSub(temp2, const1, c, size);
     ss->modSub(temp3, const1, a, size);
-    Mult(b2, temp2, temp3, size, threadID, net, id, ss);
+    Mult(b2, temp2, temp3, size, threadID, net, ss);
     ss->modAdd(b2, b2, temp1, size);
     // line 6
     // b_p1
     ss->modSub(temp1, const1, B[2], size);
     ss->modSub(temp2, const1, B[3], size);
-    Mult(temp3, temp1, temp2, size, threadID, net, id, ss);
-    Mult(temp3, temp3, A[2], size, threadID, net, id, ss);
+    Mult(temp3, temp1, temp2, size, threadID, net, ss);
+    Mult(temp3, temp3, A[2], size, threadID, net, ss);
     ss->modAdd(b, b, temp3, size);
     // b_p2
     ss->modSub(temp1, const1, A[2], size);
-    Mult(temp2, temp1, B[2], size, threadID, net, id, ss);
-    Mult(temp2, temp2, A[3], size, threadID, net, id, ss);
+    Mult(temp2, temp1, B[2], size, threadID, net, ss);
+    Mult(temp2, temp2, A[3], size, threadID, net, ss);
     ss->modAdd(b, b, temp2, size);
     // b_p
     /* compute (1-[z1]) * (1-[z2]) */
     ss->modSub(temp1, const1, B[2], size);
     ss->modSub(temp3, const1, A[2], size);
-    Mult(b_p, temp1, temp3, size, threadID, net, id, ss);
+    Mult(b_p, temp1, temp3, size, threadID, net, ss);
     /* compute [s1] * (1 - [s2])  */
     ss->modSub(temp1, const1, B[3], size);
-    Mult(temp2, temp1, A[3], size, threadID, net, id, ss);
+    Mult(temp2, temp1, A[3], size, threadID, net, ss);
     /* compute (1-[s1]) *(1-[s2]) * b+ */
     ss->modSub(temp1, const1, A[3], size);
     ss->modSub(temp3, const1, B[3], size);
-    Mult(temp1, temp1, temp3, size, threadID, net, id, ss);
-    Mult(temp3, temp1, b1, size, threadID, net, id, ss);
+    Mult(temp1, temp1, temp3, size, threadID, net, ss);
+    Mult(temp3, temp1, b1, size, threadID, net, ss);
     /*  compute [s1] * [s2] * b2 */
-    Mult(temp1, A[3], B[3], size, threadID, net, id, ss);
-    Mult(temp1, temp1, b2, size, threadID, net, id, ss);
+    Mult(temp1, A[3], B[3], size, threadID, net, ss);
+    Mult(temp1, temp1, b2, size, threadID, net, ss);
     ss->modAdd(temp1, temp1, temp2, size);
     ss->modAdd(temp1, temp1, temp3, size);
-    Mult(temp3, temp1, b_p, size, threadID, net, id, ss);
+    Mult(temp3, temp1, b_p, size, threadID, net, ss);
     // add b_p1, b_p2, and b_p
     ss->modAdd(b, b, temp3, size);
 

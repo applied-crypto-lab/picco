@@ -22,7 +22,7 @@
 
 // where is this protocol from??????
 // referenced as a building block in Aliasgari et al., 2013
-void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Inv(mpz_t *shares, mpz_t *results, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
 
     mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * size);

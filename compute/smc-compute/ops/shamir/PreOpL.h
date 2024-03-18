@@ -24,6 +24,6 @@
 #include "Mult.h"
 #include "Operation.h"
 
-void PreOpL(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID ,NodeNetwork nNet, int id, SecretShare *ss) ;
+void PreOpL(mpz_t **C, mpz_t **D1, mpz_t **D2, int K, int size, int threadID ,NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* PREOPL_SHAMIR_H_ */

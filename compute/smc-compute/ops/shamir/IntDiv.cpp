@@ -20,7 +20,7 @@
 #include "IntDiv.h"
 #include <math.h>
 
-void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -30,7 +30,7 @@ void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, N
     mpz_init_set_si(op2[0], b);
     mpz_init(results[0]);
 
-    doOperation_IntDiv_Pub(results, op1, op2, k, 1, threadID, net, id, ss);
+    doOperation_IntDiv_Pub(results, op1, op2, k, 1, threadID, net, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -41,16 +41,16 @@ void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, N
 }
 
 
-void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(btmp[i], b[i]);
-    doOperation_IntDiv_Pub(result, a, btmp, k, size, threadID, net, id, ss);
+    doOperation_IntDiv_Pub(result, a, btmp, k, size, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
 
-void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int lambda = 8;
     mpz_t const0, const1, const2, constk;
     mpz_init_set_ui(const0, 0);
@@ -79,11 +79,11 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
 
     /***************************************************/
     // compute the sign of a
-    doOperation_LTZ(lt, a, k, size, threadID, net, id, ss);
+    doOperation_LTZ(lt, a, k, size, threadID, net, ss);
     ss->modSub(sign, const1, lt, size);
     ss->modSub(sign, sign, lt, size);
     // make a to be a positive value
-    Mult(c, a, lt, size, threadID, net, id, ss);
+    Mult(c, a, lt, size, threadID, net, ss);
     ss->modSub(temp, a, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, a_tmp, size);
@@ -100,16 +100,16 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     }
 
     ss->modMul(temp, temp, a_tmp, size);
-    doOperation_TruncPr(result, temp, 2 * k + lambda, k + lambda, size, threadID, net, id, ss);
+    doOperation_TruncPr(result, temp, 2 * k + lambda, k + lambda, size, threadID, net, ss);
 
     ss->copy(result, c, size);
     ss->modMul(temp, c, denom, size);
     ss->modSub(temp, temp, a_tmp, size);
     ss->modSub(temp, temp, const1, size);
-    doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
+    doOperation_LTZ(lt, temp, k, size, threadID, net, ss);
     ss->modAdd(lt, lt, c, size);
     ss->modSub(result, lt, const1, size);
-    Mult(result, result, sign, size, threadID, net, id, ss);
+    Mult(result, result, sign, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < size; i++) {
@@ -135,7 +135,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     mpz_clear(constk);
 }
 
-void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -145,7 +145,7 @@ void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, Nod
     mpz_init(results[0]);
 
     // alen and blen could be negative when a and b are coverted from public values
-    doOperation_IntDiv(results, op1, op2, k, 1, threadID, net, id, ss);
+    doOperation_IntDiv(results, op1, op2, k, 1, threadID, net, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -154,7 +154,7 @@ void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, Nod
     ss_batch_free_operator(&results, 1);
 }
 
-void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     // Set theta
     double t = k / 3.5;
     int theta = ceil(log2(t));
@@ -201,7 +201,7 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
         mpz_set(temp1[size + i], b[i]);
     }
 
-    doOperation_LTZ(temp1, temp1, k, 2 * size, threadID, net, id, ss);
+    doOperation_LTZ(temp1, temp1, k, 2 * size, threadID, net, ss);
 
     // compute the sign of a
     for (int i = 0; i < size; i++)
@@ -210,7 +210,7 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     ss->modSub(sign, sign, lt, size);
 
     // make a to be a positive value
-    Mult(c, a, lt, size, threadID, net, id, ss);
+    Mult(c, a, lt, size, threadID, net, ss);
     ss->modSub(temp, a, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, a_tmp, size);
@@ -220,50 +220,50 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
         mpz_set(lt[i], temp1[size + i]);
     ss->modSub(temp, const1, lt, size);
     ss->modSub(temp, temp, lt, size);
-    Mult(sign, sign, temp, size, threadID, net, id, ss);
+    Mult(sign, sign, temp, size, threadID, net, ss);
 
     // make b to be a positive value
-    Mult(c, b, lt, size, threadID, net, id, ss);
+    Mult(c, b, lt, size, threadID, net, ss);
     ss->modSub(temp, b, c, size);
     ss->modSub(temp, temp, c, size);
     ss->copy(temp, b_tmp, size);
 
     /***********************************************/
-    doOperation_IntAppRcr(w, temp, k, size, threadID, net, id, ss);
-    Mult(x, b_tmp, w, size, threadID, net, id, ss);
-    Mult(y, a_tmp, w, size, threadID, net, id, ss);
+    doOperation_IntAppRcr(w, temp, k, size, threadID, net, ss);
+    Mult(x, b_tmp, w, size, threadID, net, ss);
+    Mult(y, a_tmp, w, size, threadID, net, ss);
     ss->modSub(x, alpha, x, size);
-    doOperation_TruncPr(y, y, 2 * k, k - lambda, size, threadID, net, id, ss);
+    doOperation_TruncPr(y, y, 2 * k, k - lambda, size, threadID, net, ss);
 
     for (int i = 0; i < theta - 1; i++) {
         ss->modAdd(temp, x, alpha, size);
-        Mult(y, y, temp, size, threadID, net, id, ss);
-        Mult(x, x, x, size, threadID, net, id, ss);
-        doOperation_TruncPr(y, y, 2 * k + lambda, k, size, threadID, net, id, ss);
-        doOperation_TruncPr(x, x, 2 * k, k, size, threadID, net, id, ss);
+        Mult(y, y, temp, size, threadID, net, ss);
+        Mult(x, x, x, size, threadID, net, ss);
+        doOperation_TruncPr(y, y, 2 * k + lambda, k, size, threadID, net, ss);
+        doOperation_TruncPr(x, x, 2 * k, k, size, threadID, net, ss);
     }
     ss->modAdd(x, x, alpha, size);
-    Mult(y, y, x, size, threadID, net, id, ss);
-    doOperation_TruncPr(result, y, 2 * k + lambda, k + lambda, size, threadID, net, id, ss);
+    Mult(y, y, x, size, threadID, net, ss);
+    doOperation_TruncPr(result, y, 2 * k + lambda, k + lambda, size, threadID, net, ss);
     /******************** VERSION 1 ***************************/
     /**********************************************************/
     ss->copy(result, c, size);
-    Mult(temp, c, b_tmp, size, threadID, net, id, ss);
+    Mult(temp, c, b_tmp, size, threadID, net, ss);
     ss->modSub(temp, a_tmp, temp, size);
-    doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
+    doOperation_LTZ(lt, temp, k, size, threadID, net, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
     ss->modAdd(c, c, temp, size);
-    Mult(temp, c, b_tmp, size, threadID, net, id, ss);
+    Mult(temp, c, b_tmp, size, threadID, net, ss);
     ss->modSub(temp, a_tmp, temp, size);
-    doOperation_LTZ(lt, temp, k, size, threadID, net, id, ss);
+    doOperation_LTZ(lt, temp, k, size, threadID, net, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
     ss->modSub(temp, const1, temp, size);
     ss->modMul(temp, temp, inv2, size);
     ss->modSub(c, c, temp, size);
     ss->copy(c, result, size);
-    Mult(result, result, sign, size, threadID, net, id, ss);
+    Mult(result, result, sign, size, threadID, net, ss);
     // free the memory
     mpz_clear(const1);
     mpz_clear(const2);
@@ -294,7 +294,7 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     free(b_tmp);
 }
 
-void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net,  SecretShare *ss) {
  
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -305,7 +305,7 @@ void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeN
     mpz_init(results[0]);
 
     // alen and blen could be negative when a and b are coverted from public values
-    doOperation_IntDiv(results, op1, op2, k, 1, threadID, net, id, ss);
+    doOperation_IntDiv(results, op1, op2, k, 1, threadID, net, ss);
     mpz_set(result, results[0]);
 
     // free the memory
@@ -315,10 +315,10 @@ void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeN
 
 }
 
-void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(atmp[i], a[i]);
-    doOperation_IntDiv(result, atmp, b, k, size, threadID, net, id, ss);
+    doOperation_IntDiv(result, atmp, b, k, size, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }

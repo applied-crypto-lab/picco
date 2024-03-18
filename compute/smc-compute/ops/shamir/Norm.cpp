@@ -22,7 +22,7 @@
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.5, page 14
-void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t one, two, temp;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);
@@ -50,15 +50,15 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
         }
     }
     // start computation
-    doOperation_LTZ(s, b, k, size, threadID, net, id, ss);
+    doOperation_LTZ(s, b, k, size, threadID, net, ss);
     ss->modMul(s, s, two, size);
     ss->modSub(s, one, s, size);
-    Mult(x, s, b, size, threadID, net, id, ss);
-    doOperation_bitDec(xb, x, k, k, size, threadID, net, id, ss);
+    Mult(x, s, b, size, threadID, net, ss);
+    doOperation_bitDec(xb, x, k, k, size, threadID, net, ss);
     for (int i = 0; i < k; ++i)
         for (int j = 0; j < size; ++j)
             mpz_set(xb1[k - i - 1][j], xb[i][j]);
-    doOperation_PreOr(xb1, xb1, k, size, threadID, net, id, ss);
+    doOperation_PreOr(xb1, xb1, k, size, threadID, net, ss);
     for (int i = 0; i < k; i++)
         for (int j = 0; j < size; j++)
             mpz_set(xb[i][j], xb1[k - i - 1][j]);
@@ -77,8 +77,8 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
         }
     }
 
-        Mult(c, x, v, size, threadID, net, id, ss);
-        Mult(vp, s, v, size, threadID, net, id, ss);
+        Mult(c, x, v, size, threadID, net, ss);
+        Mult(vp, s, v, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < size; ++i) {

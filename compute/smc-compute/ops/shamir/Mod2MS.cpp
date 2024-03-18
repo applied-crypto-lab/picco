@@ -19,23 +19,9 @@
 */
 #include "Mod2MS.h"
 
-// Mod2MS::Mod2MS(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-//     // B2u = new B2U(nodeNet, poly, nodeID, s);
-//     // Iv = new Inv(nodeNet, poly, nodeID, s);
-//     // Mul = new Mult(nodeNet, nodeID, s);
-//     // Ltz = new LTZ(nodeNet, poly, nodeID, s);
-//      // Rand = new Random(nodeNet, poly, nodeID, s);
-
-//     net = nodeNet;
-//     id = nodeID;
-//     ss = s;
-// }
-
-// Mod2MS::~Mod2MS() {}
-
 // Source: ???
 // Protocol XX page Y
-void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **X = (mpz_t **)malloc(sizeof(mpz_t *) * (L + 1));
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (L + 2));
@@ -84,18 +70,18 @@ void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, i
     mpz_init_set_ui(const2, 2);
     mpz_init_set_ui(constL, L);
     ss->modPow(pow2L, const2, constL);
-    doOperation_B2U(M, L, X, size, threadID, net, id, ss);
-    PRandM(L, size, R, threadID, net, id, ss);
+    doOperation_B2U(M, L, X, size, threadID, net, ss);
+    PRandM(L, size, R, threadID, net, ss);
 
     for (int i = 0; i < L; i++) {
         if (i != 0)
             ss->modMul(pow2K[i], pow2K[i - 1], 2);
         ss->modSub(temp, 1, X[i], size);
-        Mult(temp, temp, R[i], size, threadID, net, id, ss);
+        Mult(temp, temp, R[i], size, threadID, net, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R1, R1, temp, size);
 
-        Mult(temp, X[i], R[i], size, threadID, net, id, ss);
+        Mult(temp, X[i], R[i], size, threadID, net, ss);
         ss->modMul(temp, temp, pow2K[i], size);
         ss->modAdd(R2, R2, temp, size);
     }
@@ -120,10 +106,10 @@ void doOperation_Mod2MS(mpz_t *result, mpz_t *A, mpz_t *M, mpz_t *powM, int L, i
     }
     // line 9
     ss->modSub(temp, CC, R2, size);
-    doOperation_LTZ(T1, temp, L, size, threadID, net, id, ss);
+    doOperation_LTZ(T1, temp, L, size, threadID, net, ss);
     // line 10
     ss->modSub(result, CC, R2, size);
-    Mult(temp, T1, X[L], size, threadID, net, id, ss);
+    Mult(temp, T1, X[L], size, threadID, net, ss);
     ss->modAdd(result, temp, result, size);
     ss->copy(X[L], powM, size);
 

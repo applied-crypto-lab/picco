@@ -25,6 +25,6 @@
 #include "Operation.h"
 #include "TruncPr.h"
 
-void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* INTAPPRCR_SHAMIR_H_ */

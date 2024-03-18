@@ -20,6 +20,9 @@
 
 #include "SecretShare.h"
 
+using std::cout;
+using std::endl;
+
 /*
  * the constructor receives:
  * p - the number of computational parties or peers,
@@ -1231,6 +1234,14 @@ void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
     mpz_clear(temp2);
 }
 
+// to do:
+// convert inputs from const char* to std::strings, no reason to use C functions here.
+// check correctness
+// different expected size based on delim "=" or ","
+// if "=", check if result.size != 2
+// if ",", check if result.size != expected_size
+// throw error, catch in calling function, throw again and pass up the call stack (prepending function name in the process to know exactly where )
+// depracated, to be removed
 std::vector<std::string> SecretShare::splitfunc(const char *str, const char *delim) {
     char *saveptr;
     char *token = strtok_r((char *)str, delim, &saveptr);
@@ -1242,92 +1253,230 @@ std::vector<std::string> SecretShare::splitfunc(const char *str, const char *del
     return result;
 }
 
+bool SecretShare::is_int(const std::string &str) {
+    return str.find_first_not_of("0123456789") == std::string::npos;
+}
+bool SecretShare::is_float(const std::string &str) {
+    return str.find_first_not_of(".0123456789") == std::string::npos;
+}
+
+// modern, robust C++ version of the above function
+// expected_size is an OPTIONAL ARGUMENT (default 0)
+std::vector<std::string> SecretShare::split(const std::string s, const std::string delimiter, int expected_size) {
+    try {
+        if (s.empty())
+            throw std::runtime_error("Empty string passed to split.");
+        size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+        std::string token;
+        std::vector<std::string> result;
+        while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+            token = s.substr(pos_start, pos_end - pos_start);
+            pos_start = pos_end + delim_len;
+            result.push_back(token);
+        }
+        result.push_back(s.substr(pos_start));
+        if (delimiter == "=") { // should only be two values in the output, the variable name (result[0]) and a string of shares "s_0,s_1,...,s_n" (result[1])
+            if (result.size() != 2)
+                throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
+        } else if (delimiter == ",") {
+            for (auto &var : result)
+                var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
+
+            // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
+            if (expected_size <= 0)
+                throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
+            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
+                int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
+                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
+            }
+        } else
+            std::cout << "Delimter other than  \'=\' or \',\' was passed. I'm not checking the expected length!" << std::endl;
+        return result;
+    } catch (const std::runtime_error &ex) {
+        //  can throw from interior function, as long as we catch elsewhere
+        std::string error(ex.what()); // capturing the message from the exception to concatenate below
+        throw std::runtime_error("[splitfunc] " + error);
+    }
+}
+
 // input public int
 void SecretShare::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line); // add error checking here
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atoi(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
+        if (!is_int(tokens.front()))
+            throw std::runtime_error("Non-integer input provided: " + tokens.front());
+        // cout << "ss_input, public int :" << tokens.front() << endl;
+        *var = stoi(tokens.front()); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private int
 void SecretShare::ss_input(int id, mpz_t *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    mpz_set_str(*var, tokens[1].c_str(), BASE_10);
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
+        if (!is_int(tokens.front()))
+            throw std::runtime_error("Non-integer input provided: " + tokens.front());
+        // cout << "ss_input, private int :" << tokens.front() << endl;
+        mpz_set_str(*var, tokens.front().c_str(), BASE_10);
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input public float
 void SecretShare::ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atof(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs (non-array only)
+        if (!is_float(tokens.front()))
+            throw std::runtime_error("Non-float input provided: " + tokens.front());
+        // cout << "ss_input, public float :" << tokens.front() << endl;
+        *var = stof(tokens.front()); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private float
 void SecretShare::ss_input(int id, mpz_t **var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> temp;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < 4; i++)
-        mpz_set_str((*var)[i], tokens[i].c_str(), BASE_10);
-}
-
-// one-dimensional int array I/O
-void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++) {
-        mpz_set_str(var[i], tokens[i].c_str(), BASE_10);
-    }
-}
-
-void SecretShare::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atoi(tokens[i].c_str());
-}
-
-// one-dimensional float array I/O
-void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    for (int i = 0; i < size; i++) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
         std::getline(inputStreams[id - 1], line);
-        temp = splitfunc(line.c_str(), "=");
-        tokens = splitfunc(temp[1].c_str(), ",");
-        for (int j = 0; j < 4; j++)
-            mpz_set_str(var[i][j], tokens[j].c_str(), BASE_10);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", 4);
+        // for (auto v : temp)
+        //     cout << "ss_input, private float :" << v << endl;
+        for (int i = 0; i < 4; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            mpz_set_str((*var)[i], temp[i].c_str(), BASE_10);
+        }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
+// one-dimensional PRIVATE int array I/O
+void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            mpz_set_str(var[i], temp[i].c_str(), BASE_10);
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int array] stream from party " + std::to_string(id) + ": " + error);
+    }
+}
+
+// one-dimensional PUBLIC int array I/O
+void SecretShare::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_int(temp[i]))
+                throw std::runtime_error("Non-integer input provided: " + temp[i]);
+            var[i] = atoi(temp[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int array] stream from party " + std::to_string(id) + ": " + error);
+    }
+}
+
+// one-dimensional PRIVATE float array I/O
+// the difference between this function and the other array inputs is that it can't directly check if there are "size" things to split
+// it just calls getline() size times
+// and if it encounters something that it doesnt expect (array of size 4), it will throw an error
+void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        for (int i = 0; i < size; i++) {
+            std::getline(inputStreams[id - 1], line);
+            tokens = split(line, "=");
+            temp = split(tokens[1], ",", 4);
+            for (int j = 0; j < 4; j++) {
+                if (!is_int(temp[j]))
+                    throw std::runtime_error("Non-integer input provided: " + temp[j]);
+                mpz_set_str(var[i][j], temp[j].c_str(), BASE_10);
+            }
+        }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float array] stream from party " + std::to_string(id) + ": " + error);
+    }
+}
+
+// one-dimensional PUBLIC float array I/O
 void SecretShare::ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atof(tokens[i].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        temp = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_float(temp[i]))
+                throw std::runtime_error("Non-float input provided: " + temp[i]);
+            var[i] = atof(temp[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float array] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input randomly generated private int
@@ -1417,7 +1566,6 @@ void SecretShare::ss_output(int id, int *var, int size, std::string type, std::o
 void SecretShare::ss_output(int id, mpz_t **var, int size, std::string type, std::ofstream *outputStreams) {
     std::string value;
     for (int i = 0; i < size; i++) {
-        // smc_open(var[i], threadID);
         for (int j = 0; j < 4; j++) {
             value = mpz_get_str(NULL, BASE_10, var[i][j]);
             if (j != 3)

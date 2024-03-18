@@ -28,6 +28,6 @@
 #include "Mult.h"
 #include "Operation.h"
 
-void doOperation_FLRound(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_FLRound(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /* FLROUND_SHAMIR_H_ */

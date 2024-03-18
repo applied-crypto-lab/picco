@@ -399,7 +399,7 @@ void Rss_MatMultArray_batch_5pc(Lint **c, Lint **a, Lint **b, uint m, uint n, ui
 
     uint p_prime, T_index;
     uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint threshold = nodeNet->getThreshold();
     int pid = nodeNet->getID();
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -533,7 +533,7 @@ void Rss_dw_matrixmul_5pc(Lint **res, Lint **x, Lint **W, uint width, uint heigh
 
     uint p_prime, T_index;
     uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint threshold = nodeNet->getThreshold();
     int pid = nodeNet->getID();
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -655,7 +655,7 @@ void Rss_pw_matrixmul_5pc(Lint **res, Lint **x, Lint **W, uint width, uint heigh
 
     uint p_prime, T_index;
     uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint threshold = nodeNet->getThreshold();
     int pid = nodeNet->getID();
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -770,7 +770,7 @@ void Rss_MatMultArray_batch_7pc(Lint **c, Lint **a, Lint **b, uint m, uint n, ui
 
     uint p_prime, T_index;
     uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     uint threshold = nodeNet->getThreshold();
 
     int pid = nodeNet->getID();

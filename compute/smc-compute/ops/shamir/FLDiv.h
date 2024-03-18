@@ -27,7 +27,7 @@
 #include "Trunc.h"
 #include "TruncPr.h"
 
-void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_FLDiv_Pub(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss);
+void doOperation_FLDiv(mpz_t **A1, mpz_t **B1, mpz_t **result1, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* FLDIV_SHAMIR_H_ */

@@ -20,7 +20,7 @@
 #include "FPDiv.h"
 
 
-void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     // Set theta
     double t = k / 3.5;
@@ -45,33 +45,33 @@ void doOperation_FPDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int f, int size
         mpz_init(temp[i]);
     }
 
-    doOperation_AppRcr(w, b, k, f, size, threadID, net, id, ss);
+    doOperation_AppRcr(w, b, k, f, size, threadID, net, ss);
   
-    Mult(x, b, w, size, threadID, net, id, ss);
-    Mult(y, a, w, size, threadID, net, id, ss);
+    Mult(x, b, w, size, threadID, net, ss);
+    Mult(y, a, w, size, threadID, net, ss);
 
     for (int i = 0; i < size; i++)
         ss->modSub(x[i], alpha, x[i]);
 
-    doOperation_TruncPr(y, y, 2 * k, f, size, threadID, net, id, ss);
+    doOperation_TruncPr(y, y, 2 * k, f, size, threadID, net, ss);
 
 
     for (int i = 0; i < theta - 1; i++) {
         // printf("round %d: \n", i);
         for (int j = 0; j < size; j++)
             ss->modAdd(temp[j], alpha, x[j]);
-        Mult(y, y, temp, size, threadID, net, id, ss);
-        Mult(x, x, x, size, threadID, net, id, ss);
-        doOperation_TruncPr(y, y, 2 * k, 2 * f, size, threadID, net, id, ss);
-        doOperation_TruncPr(x, x, 2 * k, 2 * f, size, threadID, net, id, ss);
+        Mult(y, y, temp, size, threadID, net, ss);
+        Mult(x, x, x, size, threadID, net, ss);
+        doOperation_TruncPr(y, y, 2 * k, 2 * f, size, threadID, net, ss);
+        doOperation_TruncPr(x, x, 2 * k, 2 * f, size, threadID, net, ss);
 
     }
 
     for (int i = 0; i < size; i++)
         ss->modAdd(x[i], alpha, x[i]);
 
-    Mult(y, y, x, size, threadID, net, id, ss);
-    doOperation_TruncPr(result, y, 2 * k, 2 * f, size, threadID, net, id, ss);
+    Mult(y, y, x, size, threadID, net, ss);
+    doOperation_TruncPr(result, y, 2 * k, 2 * f, size, threadID, net, ss);
     mpz_clear(const2);
     mpz_clear(alpha);
     for (int i = 0; i < size; ++i) {

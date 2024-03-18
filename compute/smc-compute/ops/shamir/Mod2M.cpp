@@ -22,7 +22,7 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.2 page 7
-void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
@@ -61,7 +61,7 @@ void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     // start comutation.
     PRandInt(K, M, size, C, threadID, ss);
     ss->modMul(C, C, pow2M, size);
-    PRandM(M, size, R, threadID, net, id, ss);
+    PRandM(M, size, R, threadID, net, ss);
     ss->modAdd(C, C, shares, size);
     ss->modAdd(C, C, R[M], size);
     ss->modAdd(C, C, pow2K1, size);
@@ -70,7 +70,7 @@ void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     Open(C, C, size, threadID, net, ss);
 
     ss->mod(C, C, pow2M, size);
-    doOperation_BitLTC(C, R, U, M, size, threadID, net, id, ss);
+    doOperation_BitLTC(C, R, U, M, size, threadID, net, ss);
     ss->modMul(U, U, pow2M, size);
     ss->modAdd(result, C, U, size);
     ss->modSub(result, result, R[M], size);

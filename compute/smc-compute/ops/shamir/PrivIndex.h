@@ -30,15 +30,15 @@
 
 
 void compute_private_conditions(mpz_t *private_conditions, mpz_t out_cond, mpz_t *priv_cond, int counter, int size);
-void doOperation_PrivIndex_int(mpz_t index, mpz_t *array, mpz_t result, int dim, int type, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t * result, int dim, int type, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t * result, int dim1, int dim2, int type, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss);
-void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss);
-void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_PrivIndex_int(mpz_t index, mpz_t *array, mpz_t result, int dim, int type, int threadID, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t * result, int dim, int type, int threadID, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t * result, int dim1, int dim2, int type, int threadID, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss);
+void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss);
+void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss);
 
 #endif /* PRIVINDEX_SHAMIR_H_ */

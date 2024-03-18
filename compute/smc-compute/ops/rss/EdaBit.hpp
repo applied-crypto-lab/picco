@@ -1,9 +1,34 @@
-#include "edaBit.h"
+/*
+   PICCO: A General Purpose Compiler for Private Distributed Computation
+   ** Copyright (C) from 2024 PICCO Team
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
-void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *nodeNet) {
+   PICCO is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+   PICCO is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef _EDABIT_HPP_
+#define _EDABIT_HPP_
+
+#include "../../NodeNetwork.h"
+#include "../../rss/RepSecretShare.hpp"
+
+
+template <typename T>
+void Rss_edaBit(T **r, T **b_2, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    // int pid = ss->getID();
+    uint numParties = ss->getPeers();
     // printf("numParties : %u\n",numParties);
     // struct timeval start;
     // struct timeval end;
@@ -13,14 +38,14 @@ void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *no
     // need to multiply by the number of parties in the computation
     uint new_size = numParties * size;
 
-    Lint **r_bitwise = new Lint *[2];
+    T **r_bitwise = new T *[2];
     for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(b_2[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares(r, r_bitwise, ring_size, size, nodeNet);
@@ -33,17 +58,18 @@ void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *no
     delete[] r_bitwise;
 }
 
-void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, uint size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_GenerateRandomShares(T **res, T **res_bitwise, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     // printf("start\n");
-    int pid = nodeNet->getID();
+    int pid = ss->getID();
     uint i, j;
     uint bytes = (ring_size + 7) >> 3;
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = ss->getPeers();
     // printf("numParties : %u \n", numParties);
 
-    // Lint temp0, temp1;
+    // T temp0, temp1;
 
     // used since we have effectively double the number of values
     // since we need to represent both arithmetic and binary shares
@@ -51,12 +77,12 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
 
     // generate a single random value, which happens to already be the sum of random bits *2^j
     // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    Lint ***r_values = new Lint **[2];
+    T ***r_values = new T **[2];
     for (i = 0; i < 2; i++) {
-        r_values[i] = new Lint *[numParties];
+        r_values[i] = new T *[numParties];
         for (j = 0; j < numParties; j++) {
-            r_values[i][j] = new Lint[new_size];
-            memset(r_values[i][j], 0, sizeof(Lint) * new_size);
+            r_values[i][j] = new T[new_size];
+            memset(r_values[i][j], 0, sizeof(T) * new_size);
         }
     }
 
@@ -76,21 +102,21 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
         break;
     }
 
-    Lint *r_bits = new Lint[size];
-    memset(r_bits, 0, sizeof(Lint) * size);
+    T *r_bits = new T[size];
+    memset(r_bits, 0, sizeof(T) * size);
 
     uint8_t *buffer = new uint8_t[bytes * new_size];
     // memset(buffer, 0, sizeof(uint8_t) * bytes * new_size);
 
     // each party generating a unique random value
     // printf("prg1\n");
-    nodeNet->prg_getrandom(bytes, size, buffer);
+    ss->prg_getrandom(bytes, size, buffer);
     // printf("mc1\n");
     memcpy(r_bits, buffer, size * bytes);
 
     // printf("prg2\n");
     // SEGFAULT HERE FOR VERY LARGE VALUES
-    nodeNet->prg_getrandom(1, bytes, new_size, buffer);
+    ss->prg_getrandom(1, bytes, new_size, buffer);
 
     // store arithmetic and bitwise representation sequentially
     // calculating p_i's own individual shares
@@ -104,25 +130,25 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
         r_values[0][p_index][size + i] = r_bits[i] ^ r_values[1][p_index][size + i];
 
 
-        // r_values[0][p_index][1 * i] = Lint(5) - r_values[1][p_index][1 * i];
-        // r_values[0][p_index][size + i] = Lint(5) ^ r_values[1][p_index][size + i];
+        // r_values[0][p_index][1 * i] = T(5) - r_values[1][p_index][1 * i];
+        // r_values[0][p_index][size + i] = T(5) ^ r_values[1][p_index][size + i];
 
 
 
     }
 
     // need to generate more random shares so that binary and arithmetic representations are different
-    nodeNet->prg_getrandom(0, bytes, new_size, buffer);
+    ss->prg_getrandom(0, bytes, new_size, buffer);
     memcpy(r_values[0][gamma[1]], buffer, size * bytes);
     memcpy(r_values[0][gamma[1]] + size, buffer + size * bytes, size * bytes);
 
     //  sending r_values[0][p_index], receiving r_values[1][gamma[0]],
-    nodeNet->SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
 
     for (i = 0; i < numParties - 1; i++) {
         // for (i = 0; i < numParties; i++) {
-        memcpy(res_bitwise[0] + i * size, r_values[0][i] + (size), size * sizeof(Lint));
-        memcpy(res_bitwise[1] + i * size, r_values[1][i] + (size), size * sizeof(Lint));
+        memcpy(res_bitwise[0] + i * size, r_values[0][i] + (size), size * sizeof(T));
+        memcpy(res_bitwise[1] + i * size, r_values[1][i] + (size), size * sizeof(T));
     }
 
     for (i = 0; i < size; i++) {
@@ -145,24 +171,25 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
     delete[] r_bits;
 }
 
-void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_edaBit(T **r, T **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    // int pid = ss->getID();
+    uint numParties = ss->getPeers();
     // printf("numParties : %u\n",numParties);
 
     uint i;
     // need to multiply by the number of parties in the computation
     uint new_size = numParties * size;
 
-    Lint **r_bitwise = new Lint *[2];
+    T **r_bitwise = new T *[2];
     for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(b_2[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares(r, r_bitwise, ring_size, bit_length, size, nodeNet);
@@ -175,15 +202,16 @@ void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, uint bit_length
     delete[] r_bitwise;
 }
 
-void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, uint bit_length, uint size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_GenerateRandomShares(T **res, T **res_bitwise, uint ring_size, uint bit_length, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    int pid = nodeNet->getID();
+    int pid = ss->getID();
     uint i, j;
     uint bytes = (ring_size + 7) >> 3;
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
-    // Lint temp0, temp1;
+    uint numParties = ss->getPeers();
+    // T temp0, temp1;
 
     // used since we have effectively double the number of values
     // since we need to represent both arithmetic and binary shares
@@ -191,12 +219,12 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
 
     // generate a single random value, which happens to already be the sum of random bits *2^j
     // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    Lint ***r_values = new Lint **[2];
+    T ***r_values = new T **[2];
     for (i = 0; i < 2; i++) {
-        r_values[i] = new Lint *[numParties];
+        r_values[i] = new T *[numParties];
         for (j = 0; j < numParties; j++) {
-            r_values[i][j] = new Lint[new_size];
-            memset(r_values[i][j], 0, sizeof(Lint) * new_size);
+            r_values[i][j] = new T[new_size];
+            memset(r_values[i][j], 0, sizeof(T) * new_size);
         }
     }
 
@@ -216,22 +244,22 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
         break;
     }
 
-    Lint *r_bits = new Lint[size];
-    memset(r_bits, 0, sizeof(Lint) * size);
+    T *r_bits = new T[size];
+    memset(r_bits, 0, sizeof(T) * size);
 
     uint8_t *buffer = new uint8_t[bytes * new_size];
     // each party generating a unique random value
-    nodeNet->prg_getrandom(bytes, size, buffer);
+    ss->prg_getrandom(bytes, size, buffer);
     for (i = 0; i < size; i++) {
         memcpy(r_bits + i, buffer + i * bytes, bytes);
         // is this what we need to do to ensure we have a shorter value?
         // or do we need to do something at the end of the computation
 
         // r_bits[i] = -1; // USED FOR TESTING
-        r_bits[i] = r_bits[i] & nodeNet->SHIFT[bit_length];
+        r_bits[i] = r_bits[i] & ss->SHIFT[bit_length];
     }
 
-    nodeNet->prg_getrandom(1, bytes, new_size, buffer);
+    ss->prg_getrandom(1, bytes, new_size, buffer);
 
     // store arithmetic and bitwise representation sequentially
     // calculating p_i's own individual shares
@@ -245,25 +273,25 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
     }
 
     // need to generate more random shares so that binary and arithmetic representations are different
-    nodeNet->prg_getrandom(0, bytes, new_size, buffer);
+    ss->prg_getrandom(0, bytes, new_size, buffer);
     for (i = 0; i < size; i++) {
         memcpy(r_values[0][gamma[1]] + (2 * i), buffer + (2 * i) * bytes, bytes);
         memcpy(r_values[0][gamma[1]] + (2 * i + 1), buffer + (2 * i + 1) * bytes, bytes);
     }
 
     //  sending r_values[0][p_index], receiving r_values[1][gamma[0]],
-    nodeNet->SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
 
     for (i = 0; i < size; i++) {
         for (j = 0; j < numParties; j++) {
             // adding all the parties arithmetic shares together
-            // memcpy(res[0] + (3 * i + j), r_values[0][j] + (2 * i), sizeof(Lint));
-            // memcpy(res[1] + (3 * i + j), r_values[1][j] + (2 * i), sizeof(Lint));
+            // memcpy(res[0] + (3 * i + j), r_values[0][j] + (2 * i), sizeof(T));
+            // memcpy(res[1] + (3 * i + j), r_values[1][j] + (2 * i), sizeof(T));
             res[0][i] += r_values[0][j][2 * i];
             res[1][i] += r_values[1][j][2 * i];
 
-            memcpy(res_bitwise[0] + (numParties * i + j), r_values[0][j] + (2 * i + 1), sizeof(Lint));
-            memcpy(res_bitwise[1] + (numParties * i + j), r_values[1][j] + (2 * i + 1), sizeof(Lint));
+            memcpy(res_bitwise[0] + (numParties * i + j), r_values[0][j] + (2 * i + 1), sizeof(T));
+            memcpy(res_bitwise[1] + (numParties * i + j), r_values[1][j] + (2 * i + 1), sizeof(T));
         }
     }
 
@@ -278,34 +306,34 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
     delete[] r_bits;
 }
 
-// void Rss_edaBit_trunc(Lint **r, Lint **r_prime, Lint **b_2, uint size, uint ring_size, uint m, NodeNetwork *nodeNet) {
-void Rss_edaBit_trunc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ring_size, uint m, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_edaBit_trunc(T **r, T **r_prime, T **r_km1, uint size, uint ring_size, uint m, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    // int pid = ss->getID();
+    uint numParties = ss->getPeers();
 
     uint i;
 
-    Lint **r_bitwise = new Lint *[2];
-    Lint **carry = new Lint *[2];
-    Lint **b_2 = new Lint *[2];
+    T **r_bitwise = new T *[2];
+    T **carry = new T *[2];
+    T **b_2 = new T *[2];
     uint new_size = numParties * size;
     uint b2a_size = 3 * size;
 
     for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
         // carry will hold both kth and m-1th bits, in succession
-        carry[i] = new Lint[b2a_size];
-        memset(carry[i], 0, sizeof(Lint) * b2a_size);
+        carry[i] = new T[b2a_size];
+        memset(carry[i], 0, sizeof(T) * b2a_size);
 
-        b_2[i] = new Lint[size];
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        b_2[i] = new T[size];
+        memset(b_2[i], 0, sizeof(T) * size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(r_prime[i], 0, sizeof(Lint) * size);
-        memset(r_km1[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(r_prime[i], 0, sizeof(T) * size);
+        memset(r_km1[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares_trunc(r, r_prime, r_bitwise, ring_size, m, size, nodeNet);
@@ -314,14 +342,14 @@ void Rss_edaBit_trunc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ri
 
     Rss_b2a(carry, carry, ring_size, b2a_size, nodeNet);
 
-    memcpy(r_km1[0], carry[0] + 2 * (size), size * sizeof(Lint));
-    memcpy(r_km1[1], carry[1] + 2 * (size), size * sizeof(Lint));
+    memcpy(r_km1[0], carry[0] + 2 * (size), size * sizeof(T));
+    memcpy(r_km1[1], carry[1] + 2 * (size), size * sizeof(T));
 
     // adding m-1 and subtracting k carries
     for (size_t i = 0; i < size; i++) {
 
-        r_prime[0][i] = r_prime[0][i] + carry[0][i] - ((carry[0][size + i]) << Lint(ring_size - m));
-        r_prime[1][i] = r_prime[1][i] + carry[1][i] - ((carry[1][size + i]) << Lint(ring_size - m));
+        r_prime[0][i] = r_prime[0][i] + carry[0][i] - ((carry[0][size + i]) << T(ring_size - m));
+        r_prime[1][i] = r_prime[1][i] + carry[1][i] - ((carry[1][size + i]) << T(ring_size - m));
     }
 
     for (i = 0; i < 2; i++) {
@@ -334,33 +362,34 @@ void Rss_edaBit_trunc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ri
     delete[] b_2;
 }
 
-void Rss_edaBit_trunc_test(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ring_size, uint m, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_edaBit_trunc_test(T **r, T **r_prime, T **r_km1, uint size, uint ring_size, uint m, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = nodeNet->getID();
-    uint numParties = nodeNet->getNumParties();
+    // int pid = ss->getID();
+    uint numParties = ss->getPeers();
 
     uint i;
 
-    Lint **r_bitwise = new Lint *[2];
-    Lint **carry = new Lint *[2];
-    Lint **b_2 = new Lint *[2];
+    T **r_bitwise = new T *[2];
+    T **carry = new T *[2];
+    T **b_2 = new T *[2];
     uint new_size = numParties * size;
     uint b2a_size = 3 * size;
 
     for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
         // carry will hold both kth and m-1th bits, in succession
-        carry[i] = new Lint[b2a_size];
-        memset(carry[i], 0, sizeof(Lint) * b2a_size);
+        carry[i] = new T[b2a_size];
+        memset(carry[i], 0, sizeof(T) * b2a_size);
 
-        b_2[i] = new Lint[size];
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        b_2[i] = new T[size];
+        memset(b_2[i], 0, sizeof(T) * size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(r_prime[i], 0, sizeof(Lint) * size);
-        memset(r_km1[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(r_prime[i], 0, sizeof(T) * size);
+        memset(r_km1[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares_trunc(r, r_prime, r_bitwise, ring_size, m, size, nodeNet);
@@ -369,14 +398,14 @@ void Rss_edaBit_trunc_test(Lint **r, Lint **r_prime, Lint **r_km1, uint size, ui
 
     Rss_b2a(carry, carry, ring_size, b2a_size, nodeNet);
 
-    memcpy(r_km1[0], carry[0] + 2 * (size), size * sizeof(Lint));
-    memcpy(r_km1[1], carry[1] + 2 * (size), size * sizeof(Lint));
+    memcpy(r_km1[0], carry[0] + 2 * (size), size * sizeof(T));
+    memcpy(r_km1[1], carry[1] + 2 * (size), size * sizeof(T));
 
     // adding m-1 and subtracting k carries
     for (size_t i = 0; i < size; i++) {
 
-        // r_prime[0][i] = r_prime[0][i] + carry[0][i] - ((carry[0][size + i]) << Lint(ring_size - m));
-        // r_prime[1][i] = r_prime[1][i] + carry[1][i] - ((carry[1][size + i]) << Lint(ring_size - m));
+        // r_prime[0][i] = r_prime[0][i] + carry[0][i] - ((carry[0][size + i]) << T(ring_size - m));
+        // r_prime[1][i] = r_prime[1][i] + carry[1][i] - ((carry[1][size + i]) << T(ring_size - m));
 
         r_prime[0][i] = r_prime[0][i] + carry[0][i];
         r_prime[1][i] = r_prime[1][i] + carry[1][i];
@@ -392,17 +421,18 @@ void Rss_edaBit_trunc_test(Lint **r, Lint **r_prime, Lint **r_km1, uint size, ui
     delete[] b_2;
 }
 
-void Rss_GenerateRandomShares_trunc(Lint **res, Lint **res_prime, Lint **res_bitwise, uint ring_size, uint m, uint size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_GenerateRandomShares_trunc(T **res, T **res_prime, T **res_bitwise, uint ring_size, uint m, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    int pid = nodeNet->getID();
+    int pid = ss->getID();
     uint i, j;
     uint bytes = (ring_size + 7) >> 3;
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = ss->getPeers();
     // printf("numParties : %u \n", numParties);
 
-    // Lint temp0, temp1;
+    // T temp0, temp1;
 
     // used since we have effectively double the number of values
     // since we need to represent both arithmetic and binary shares
@@ -410,12 +440,12 @@ void Rss_GenerateRandomShares_trunc(Lint **res, Lint **res_prime, Lint **res_bit
 
     // generate a single random value, which happens to already be the sum of random bits *2^j
     // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    Lint ***r_values = new Lint **[2];
+    T ***r_values = new T **[2];
     for (i = 0; i < 2; i++) {
-        r_values[i] = new Lint *[numParties];
+        r_values[i] = new T *[numParties];
         for (j = 0; j < numParties; j++) {
-            r_values[i][j] = new Lint[new_size];
-            memset(r_values[i][j], 0, sizeof(Lint) * new_size);
+            r_values[i][j] = new T[new_size];
+            memset(r_values[i][j], 0, sizeof(T) * new_size);
         }
     }
 
@@ -435,23 +465,23 @@ void Rss_GenerateRandomShares_trunc(Lint **res, Lint **res_prime, Lint **res_bit
         break;
     }
 
-    Lint *r_bits = new Lint[size];
-    memset(r_bits, 0, sizeof(Lint) * size);
-    Lint *r_prime = new Lint[size];
-    memset(r_prime, 0, sizeof(Lint) * size);
+    T *r_bits = new T[size];
+    memset(r_bits, 0, sizeof(T) * size);
+    T *r_prime = new T[size];
+    memset(r_prime, 0, sizeof(T) * size);
 
     uint8_t *buffer = new uint8_t[bytes * new_size];
     // each party generating a unique random value
-    nodeNet->prg_getrandom(bytes, size, buffer);
+    ss->prg_getrandom(bytes, size, buffer);
 
     memcpy(r_bits, buffer, size * bytes);
 
     for (i = 0; i < size; i++) {
-        r_bits[i] = r_bits[i] & nodeNet->SHIFT[ring_size];
-        r_prime[i] = (r_bits[i] >> Lint(m));
+        r_bits[i] = r_bits[i] & ss->SHIFT[ring_size];
+        r_prime[i] = (r_bits[i] >> T(m));
     }
 
-    nodeNet->prg_getrandom(1, bytes, new_size, buffer);
+    ss->prg_getrandom(1, bytes, new_size, buffer);
 
     // store arithmetic and bitwise representation sequentially
     // calculating p_i's own individual shares
@@ -468,17 +498,17 @@ void Rss_GenerateRandomShares_trunc(Lint **res, Lint **res_prime, Lint **res_bit
     }
 
     // need to generate more random shares so that binary and arithmetic representations are different
-    nodeNet->prg_getrandom(0, bytes, new_size, buffer);
+    ss->prg_getrandom(0, bytes, new_size, buffer);
     memcpy(r_values[0][gamma[1]], buffer, size * bytes);
     memcpy(r_values[0][gamma[1]] + size, buffer + size * bytes, size * bytes);
     memcpy(r_values[0][gamma[1]] + 2 * size, buffer + 2 * size * bytes, size * bytes);
 
     //  sending r_values[0][p_index], receiving r_values[1][gamma[0]],
-    nodeNet->SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
 
     for (i = 0; i < numParties - 1; i++) {
-        memcpy(res_bitwise[0] + i * size, r_values[0][i] + (size), size * sizeof(Lint));
-        memcpy(res_bitwise[1] + i * size, r_values[1][i] + (size), size * sizeof(Lint));
+        memcpy(res_bitwise[0] + i * size, r_values[0][i] + (size), size * sizeof(T));
+        memcpy(res_bitwise[1] + i * size, r_values[1][i] + (size), size * sizeof(T));
     }
 
     for (i = 0; i < size; i++) {
@@ -507,11 +537,12 @@ void Rss_GenerateRandomShares_trunc(Lint **res, Lint **res_prime, Lint **res_bit
 }
 
 
-void Rss_edaBit_5pc(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_edaBit_5pc(T **r, T **b_2, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = nodeNet->getID();
-    uint numShares = nodeNet->getNumShares();
-    uint threshold = nodeNet->getThreshold();
+    // int pid = ss->getID();
+    uint numShares = ss->getNumShares();
+    uint threshold = ss->getThreshold();
     // struct timeval start;
     // struct timeval end;
     // unsigned long timer;
@@ -521,14 +552,14 @@ void Rss_edaBit_5pc(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork
     uint new_size = (threshold + 1) * size;
     // printf("new_size: %llu\n", new_size);
 
-    Lint **r_bitwise = new Lint *[numShares];
+    T **r_bitwise = new T *[numShares];
     for (i = 0; i < numShares; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(b_2[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares_5pc(r, r_bitwise, ring_size, size, nodeNet);
@@ -541,24 +572,25 @@ void Rss_edaBit_5pc(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork
     delete[] r_bitwise;
 }
 
-void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size, uint size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_GenerateRandomShares_5pc(T **res, T **res_bitwise, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     // printf("start\n");
-    int pid = nodeNet->getID();
+    int pid = ss->getID();
     uint i, j;
     uint bytes = (ring_size + 7) >> 3;
     uint new_size = 2 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
-    uint numShares = nodeNet->getNumShares();
-    uint threshold = nodeNet->getThreshold();
+    uint numParties = ss->getPeers();
+    uint numShares = ss->getNumShares();
+    uint threshold = ss->getThreshold();
     // printf("threshold : %u \n", threshold);
     // printf("numParties : %u \n", numParties);
 
-    Lint **recvbuf = new Lint *[threshold];
+    T **recvbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
-        recvbuf[i] = new Lint[new_size];
-        memset(recvbuf[i], 0, sizeof(Lint) * new_size);
+        recvbuf[i] = new T[new_size];
+        memset(recvbuf[i], 0, sizeof(T) * new_size);
     }
 
     // used since we have effectively double the number of values
@@ -567,24 +599,24 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
 
     // generate a single random value, which happens to already be the sum of random bits *2^j
     // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    Lint ***r_values = new Lint **[numShares];
+    T ***r_values = new T **[numShares];
     for (i = 0; i < numShares; i++) {
-        r_values[i] = new Lint *[(threshold + 1)];
+        r_values[i] = new T *[(threshold + 1)];
         for (j = 0; j < (threshold + 1); j++) {
-            r_values[i][j] = new Lint[new_size];
-            memset(r_values[i][j], 0, sizeof(Lint) * new_size); // NECESSARY FOR n>3
+            r_values[i][j] = new T[new_size];
+            memset(r_values[i][j], 0, sizeof(T) * new_size); // NECESSARY FOR n>3
         }
     }
 
-    Lint *r_bits = new Lint[size];
-    memset(r_bits, 0, sizeof(Lint) * size);
+    T *r_bits = new T[size];
+    memset(r_bits, 0, sizeof(T) * size);
 
     uint8_t *r_buffer = new uint8_t[bytes * size];
 
     uint8_t **buffer = new uint8_t *[numShares];
     for (uint s = 0; s < numShares; s++) {
         buffer[s] = new uint8_t[(threshold + 1) * bytes * new_size]; // we may not use all of these random bytes, but
-        nodeNet->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
+        ss->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
     }
 
     int *index_map = new int[threshold+1];
@@ -633,7 +665,7 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
     if (pid < threshold + 2) {
         // p1, p2, p3, choosing random values
 
-        nodeNet->prg_getrandom(bytes, size, r_buffer);
+        ss->prg_getrandom(bytes, size, r_buffer);
         // memcpy(r_bits, r_buffer, size * bytes);
 
         for (i = 0; i < size; i++) {
@@ -646,8 +678,8 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
                 memcpy(r_values[s][p_index] + 2 * i + 1, buffer[s] + (2 * i + 1) * bytes, bytes);
             }
 
-            // r_values[0][p_index][2 * i] = Lint(5 + i);
-            // r_values[0][p_index][2 * i + 1] = Lint(5 + i);
+            // r_values[0][p_index][2 * i] = T(5 + i);
+            // r_values[0][p_index][2 * i + 1] = T(5 + i);
             r_values[0][p_index][2 * i] = r_bits[i];
             r_values[0][p_index][2 * i + 1] = r_bits[i];
 
@@ -687,7 +719,7 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
         }
     }
 
-    nodeNet->SendAndGetDataFromPeer_Eda(r_values[0][p_index], recvbuf, new_size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc );
 
     // extracting from buffer
     for (size_t i = 0; i < size; i++) {
@@ -697,8 +729,8 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
             if (index_map[t] > 0) {
                 // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i], j, index_map[t]);
                 // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i + 1], j, index_map[t]);
-                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(Lint));
-                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(Lint));
+                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(T));
+                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(T));
                 j++;
             }
         }
@@ -745,11 +777,12 @@ void Rss_GenerateRandomShares_5pc(Lint **res, Lint **res_bitwise, uint ring_size
     delete[] r_bits;
 }
 
-void Rss_edaBit_trunc_5pc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uint ring_size, uint m, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_edaBit_trunc_5pc(T **r, T **r_prime, T **r_km1, uint size, uint ring_size, uint m, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = nodeNet->getID();
-    uint numShares = nodeNet->getNumShares();
-    uint threshold = nodeNet->getThreshold();
+    // int pid = ss->getID();
+    uint numShares = ss->getNumShares();
+    uint threshold = ss->getThreshold();
     // struct timeval start;
     // struct timeval end;
     // unsigned long timer;
@@ -761,23 +794,23 @@ void Rss_edaBit_trunc_5pc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uin
 
     uint b2a_size = 3 * size;
 
-    Lint **carry = new Lint *[numShares];
-    Lint **b_2 = new Lint *[numShares];
-    Lint **r_bitwise = new Lint *[numShares];
+    T **carry = new T *[numShares];
+    T **b_2 = new T *[numShares];
+    T **r_bitwise = new T *[numShares];
     for (i = 0; i < numShares; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
         // carry will hold both kth and m-1th bits, in succession
-        carry[i] = new Lint[b2a_size];
-        memset(carry[i], 0, sizeof(Lint) * b2a_size);
+        carry[i] = new T[b2a_size];
+        memset(carry[i], 0, sizeof(T) * b2a_size);
 
-        b_2[i] = new Lint[size];
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        b_2[i] = new T[size];
+        memset(b_2[i], 0, sizeof(T) * size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(r_prime[i], 0, sizeof(Lint) * size);
-        memset(r_km1[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(r_prime[i], 0, sizeof(T) * size);
+        memset(r_km1[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares_trunc_5pc(r, r_prime, r_bitwise, ring_size, m, size, nodeNet);
@@ -786,14 +819,14 @@ void Rss_edaBit_trunc_5pc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uin
 
     Rss_b2a_5pc(carry, carry, ring_size, b2a_size, nodeNet);
     for (size_t s = 0; s < numShares; s++) {
-        memcpy(r_km1[s], carry[s] + 2 * (size), size * sizeof(Lint));
+        memcpy(r_km1[s], carry[s] + 2 * (size), size * sizeof(T));
     }
 
     // adding m-1 and subtracting k carries
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
 
-            r_prime[s][i] = r_prime[s][i] + carry[s][i] - ((carry[s][size + i]) << Lint(ring_size - m));
+            r_prime[s][i] = r_prime[s][i] + carry[s][i] - ((carry[s][size + i]) << T(ring_size - m));
         }
     }
 
@@ -807,17 +840,18 @@ void Rss_edaBit_trunc_5pc(Lint **r, Lint **r_prime, Lint **r_km1, uint size, uin
     delete[] b_2;
 }
 
-void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res_bitwise, uint ring_size, uint m, uint size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_GenerateRandomShares_trunc_5pc(T **res, T **res_prime, T **res_bitwise, uint ring_size, uint m, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     // printf("start\n");
-    int pid = nodeNet->getID();
+    int pid = ss->getID();
     uint i, j;
     uint bytes = (ring_size + 7) >> 3;
     uint new_size = 3 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
-    uint numShares = nodeNet->getNumShares();
-    uint threshold = nodeNet->getThreshold();
+    uint numParties = ss->getPeers();
+    uint numShares = ss->getNumShares();
+    uint threshold = ss->getThreshold();
     // printf("threshold : %u \n", threshold);
     // printf("numParties : %u \n", numParties);
 
@@ -864,10 +898,10 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
         {0, 0, 0, 0, 1, 1},
     };
 
-    Lint **recvbuf = new Lint *[threshold];
+    T **recvbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
-        recvbuf[i] = new Lint[new_size];
-        memset(recvbuf[i], 0, sizeof(Lint) * new_size);
+        recvbuf[i] = new T[new_size];
+        memset(recvbuf[i], 0, sizeof(T) * new_size);
     }
 
     // used since we have effectively double the number of values
@@ -876,39 +910,39 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
 
     // generate a single random value, which happens to already be the sum of random bits *2^j
     // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    Lint ***r_values = new Lint **[numShares];
+    T ***r_values = new T **[numShares];
     for (i = 0; i < numShares; i++) {
-        r_values[i] = new Lint *[(threshold + 1)];
+        r_values[i] = new T *[(threshold + 1)];
         for (j = 0; j < (threshold + 1); j++) {
-            r_values[i][j] = new Lint[new_size];
-            memset(r_values[i][j], 0, sizeof(Lint) * new_size); // NECESSARY FOR n>3
+            r_values[i][j] = new T[new_size];
+            memset(r_values[i][j], 0, sizeof(T) * new_size); // NECESSARY FOR n>3
         }
     }
 
-    Lint *r_bits = new Lint[size];
-    memset(r_bits, 0, sizeof(Lint) * size);
-    Lint *r_prime = new Lint[size];
-    memset(r_prime, 0, sizeof(Lint) * size);
+    T *r_bits = new T[size];
+    memset(r_bits, 0, sizeof(T) * size);
+    T *r_prime = new T[size];
+    memset(r_prime, 0, sizeof(T) * size);
 
     uint8_t *r_buffer = new uint8_t[bytes * size];
 
     uint8_t **buffer = new uint8_t *[numShares];
     for (uint s = 0; s < numShares; s++) {
         buffer[s] = new uint8_t[(threshold + 1) * bytes * new_size]; // we may not use all of these random bytes, but
-        nodeNet->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
+        ss->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
     }
 
     if (pid < 4) {
         // p1, p2, p3, choosing random values
 
-        nodeNet->prg_getrandom(bytes, size, r_buffer);
+        ss->prg_getrandom(bytes, size, r_buffer);
         // memcpy(r_bits, r_buffer, size * bytes);
 
         for (i = 0; i < size; i++) {
             memcpy(r_bits + i, r_buffer + i * bytes, bytes);
 
-            r_bits[i] = r_bits[i] & nodeNet->SHIFT[ring_size];
-            r_prime[i] = (r_bits[i] >> Lint(m));
+            r_bits[i] = r_bits[i] & ss->SHIFT[ring_size];
+            r_prime[i] = (r_bits[i] >> T(m));
 
             // printf("hi1\n");
             for (size_t s = 1; s < numShares; s++) {
@@ -918,8 +952,8 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
                 memcpy(r_values[s][p_index] + 2 * i + 2, buffer[s] + (2 * i + 2) * bytes, bytes);
             }
 
-            // r_values[0][p_index][2 * i] = Lint(5 + i);
-            // r_values[0][p_index][2 * i + 1] = Lint(5 + i);
+            // r_values[0][p_index][2 * i] = T(5 + i);
+            // r_values[0][p_index][2 * i + 1] = T(5 + i);
             r_values[0][p_index][2 * i] = r_bits[i];
             r_values[0][p_index][2 * i + 1] = r_bits[i];
             r_values[0][p_index][2 * i + 2] = r_bits[i];
@@ -958,7 +992,7 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
         }
     }
 
-    nodeNet->SendAndGetDataFromPeer_Eda(r_values[0][p_index], recvbuf, new_size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc );
 
     // extracting from buffer
     for (size_t i = 0; i < size; i++) {
@@ -968,9 +1002,9 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
             if (index_map[t] > 0) {
                 // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i], j, index_map[t]);
                 // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i + 1], j, index_map[t]);
-                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(Lint));
-                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(Lint));
-                memcpy(r_values[index_map[t]][t] + 2 * i + 2, recvbuf[j] + 2 * i + 2, sizeof(Lint));
+                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(T));
+                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(T));
+                memcpy(r_values[index_map[t]][t] + 2 * i + 2, recvbuf[j] + 2 * i + 2, sizeof(T));
                 j++;
             }
         }
@@ -1021,11 +1055,12 @@ void Rss_GenerateRandomShares_trunc_5pc(Lint **res, Lint **res_prime, Lint **res
 }
 
 
-void Rss_edaBit_7pc(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_edaBit_7pc(T **r, T **b_2, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = nodeNet->getID();
-    uint numShares = nodeNet->getNumShares();
-    uint threshold = nodeNet->getThreshold();
+    // int pid = ss->getID();
+    uint numShares = ss->getNumShares();
+    uint threshold = ss->getThreshold();
     // struct timeval start;
     // struct timeval end;
     // unsigned long timer;
@@ -1035,14 +1070,14 @@ void Rss_edaBit_7pc(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork
     uint new_size = (threshold + 1) * size;
     // printf("new_size: %llu\n", new_size);
 
-    Lint **r_bitwise = new Lint *[numShares];
+    T **r_bitwise = new T *[numShares];
     for (i = 0; i < numShares; i++) {
-        r_bitwise[i] = new Lint[new_size];
-        memset(r_bitwise[i], 0, sizeof(Lint) * new_size);
+        r_bitwise[i] = new T[new_size];
+        memset(r_bitwise[i], 0, sizeof(T) * new_size);
 
         // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(Lint) * size);
-        memset(b_2[i], 0, sizeof(Lint) * size);
+        memset(r[i], 0, sizeof(T) * size);
+        memset(b_2[i], 0, sizeof(T) * size);
     }
 
     Rss_GenerateRandomShares_7pc(r, r_bitwise, ring_size, size, nodeNet);
@@ -1055,24 +1090,25 @@ void Rss_edaBit_7pc(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork
     delete[] r_bitwise;
 }
 
-void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size, uint size, NodeNetwork *nodeNet) {
+template <typename T>
+void Rss_GenerateRandomShares_7pc(T **res, T **res_bitwise, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     // printf("start\n");
-    int pid = nodeNet->getID();
+    int pid = ss->getID();
     uint i, j;
     uint bytes = (ring_size + 7) >> 3;
     uint new_size = 2 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
     // printf("bytes : %u \n", bytes);
     uint p_index = pid - 1;
-    uint numParties = nodeNet->getNumParties();
-    uint numShares = nodeNet->getNumShares();
-    uint threshold = nodeNet->getThreshold();
+    uint numParties = ss->getPeers();
+    uint numShares = ss->getNumShares();
+    uint threshold = ss->getThreshold();
     // printf("threshold : %u \n", threshold);
     // printf("numParties : %u \n", numParties);
 
-    Lint **recvbuf = new Lint *[threshold];
+    T **recvbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
-        recvbuf[i] = new Lint[new_size];
-        memset(recvbuf[i], 0, sizeof(Lint) * new_size);
+        recvbuf[i] = new T[new_size];
+        memset(recvbuf[i], 0, sizeof(T) * new_size);
     }
 
     // used since we have effectively double the number of values
@@ -1081,24 +1117,24 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
 
     // generate a single random value, which happens to already be the sum of random bits *2^j
     // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    Lint ***r_values = new Lint **[numShares];
+    T ***r_values = new T **[numShares];
     for (i = 0; i < numShares; i++) {
-        r_values[i] = new Lint *[(threshold + 1)];
+        r_values[i] = new T *[(threshold + 1)];
         for (j = 0; j < (threshold + 1); j++) {
-            r_values[i][j] = new Lint[new_size];
-            memset(r_values[i][j], 0, sizeof(Lint) * new_size); // NECESSARY FOR n>3
+            r_values[i][j] = new T[new_size];
+            memset(r_values[i][j], 0, sizeof(T) * new_size); // NECESSARY FOR n>3
         }
     }
 
-    Lint *r_bits = new Lint[size];
-    memset(r_bits, 0, sizeof(Lint) * size);
+    T *r_bits = new T[size];
+    memset(r_bits, 0, sizeof(T) * size);
 
     uint8_t *r_buffer = new uint8_t[bytes * size];
 
     uint8_t **buffer = new uint8_t *[numShares];
     for (uint s = 0; s < numShares; s++) {
         buffer[s] = new uint8_t[(threshold + 1) * bytes * new_size]; // we may not use all of these random bytes, but
-        nodeNet->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
+        ss->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
     }
 
     int *index_map = new int[threshold + 1];
@@ -1167,7 +1203,7 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
     if (pid < threshold + 2) {
         // p1, p2, p3, p4, choosing random values
 
-        nodeNet->prg_getrandom(bytes, size, r_buffer);
+        ss->prg_getrandom(bytes, size, r_buffer);
         // memcpy(r_bits, r_buffer, size * bytes);
 
         for (i = 0; i < size; i++) {
@@ -1180,8 +1216,8 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
                 memcpy(r_values[s][p_index] + 2 * i + 1, buffer[s] + (2 * i + 1) * bytes, bytes);
             }
 
-            // r_values[0][p_index][2 * i] = Lint(5 + i);
-            // r_values[0][p_index][2 * i + 1] = Lint(5 + i);
+            // r_values[0][p_index][2 * i] = T(5 + i);
+            // r_values[0][p_index][2 * i + 1] = T(5 + i);
             r_values[0][p_index][2 * i] = r_bits[i];
             r_values[0][p_index][2 * i + 1] = r_bits[i];
 
@@ -1215,7 +1251,7 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
         }
     }
 
-    nodeNet->SendAndGetDataFromPeer_Eda(r_values[0][p_index], recvbuf, new_size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc );
 
     // extracting from buffer
     for (size_t i = 0; i < size; i++) {
@@ -1225,8 +1261,8 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
             if (index_map[t] > 0) {
                 // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i], j, index_map[t]);
                 // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i + 1], j, index_map[t]);
-                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(Lint));
-                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(Lint));
+                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(T));
+                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(T));
                 j++;
             }
         }
@@ -1272,3 +1308,6 @@ void Rss_GenerateRandomShares_7pc(Lint **res, Lint **res_bitwise, uint ring_size
     delete[] r_buffer;
     delete[] r_bits;
 }
+
+
+#endif // _EDABIT_HPP_

@@ -19,17 +19,7 @@
 */
 #include "PrivIndex.h"
 
-// PrivIndex(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-//     net = nodeNet;
-//     id = nodeID;
-//     ss = s;
-// }
-
-// ~PrivIndex() {
-//     // TODO Auto-generated destructor stub
-// }
-
-void compute_private_conditions(mpz_t *private_conditions, mpz_t out_cond, mpz_t *priv_cond, int counter, int size ) {
+void compute_private_conditions(mpz_t *private_conditions, mpz_t out_cond, mpz_t *priv_cond, int counter, int size) {
     if (out_cond != NULL && counter == -1 && priv_cond == NULL) {
         for (int i = 0; i < size; i++)
             mpz_set(private_conditions[i], out_cond);
@@ -45,13 +35,13 @@ void compute_private_conditions(mpz_t *private_conditions, mpz_t out_cond, mpz_t
     }
 }
 // integer
-void doOperation_PrivIndex_int(mpz_t index, mpz_t *array, mpz_t result, int dim, int type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_int(mpz_t index, mpz_t *array, mpz_t result, int dim, int type, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_init_set(index_tmp[0], index);
     mpz_init(result_tmp[0]);
 
-    doOperation_PrivIndex_Read(index_tmp, array, result_tmp, dim, 1, threadID, 0, net, id, ss);
+    doOperation_PrivIndex_Read(index_tmp, array, result_tmp, dim, 1, threadID, 0, net, ss);
     mpz_set(result, result_tmp[0]);
 
     ss_batch_free_operator(&index_tmp, 1);
@@ -59,7 +49,7 @@ void doOperation_PrivIndex_int(mpz_t index, mpz_t *array, mpz_t result, int dim,
 }
 
 // float
-void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t *result, int dim, int type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t *result, int dim, int type, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * 4 * dim);
@@ -68,7 +58,7 @@ void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t *result, int 
         for (int j = 0; j < 4; j++)
             mpz_init_set(array_tmp[4 * i + j], array[i][j]);
 
-    doOperation_PrivIndex_Read(index_tmp, array_tmp, result, dim, 1, threadID, 1, net, id, ss);
+    doOperation_PrivIndex_Read(index_tmp, array_tmp, result, dim, 1, threadID, 1, net, ss);
 
     ss_batch_free_operator(&index_tmp, 1);
     ss_batch_free_operator(&array_tmp, 4 * dim);
@@ -85,7 +75,7 @@ void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t *result, int 
     // ss_batch_free_operator(&result_tmp, 1);
 }
 
-void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * dim1 * dim2);
@@ -97,7 +87,7 @@ void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int
         for (int j = 0; j < dim2; j++)
             mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
 
-    doOperation_PrivIndex_Read(index_tmp, array_tmp, result_tmp, dim1 * dim2, 1, threadID, 0, net, id, ss);
+    doOperation_PrivIndex_Read(index_tmp, array_tmp, result_tmp, dim1 * dim2, 1, threadID, 0, net, ss);
     mpz_set(result, result_tmp[0]);
 
     ss_batch_free_operator(&index_tmp, 1);
@@ -105,7 +95,7 @@ void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int
     ss_batch_free_operator(&array_tmp, dim1 * dim2);
 }
 
-void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result, int dim1, int dim2, int type, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result, int dim1, int dim2, int type, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * 4 * dim1 * dim2);
     mpz_init_set(index_tmp[0], index);
@@ -114,13 +104,13 @@ void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result,
             for (int k = 0; k < 4; k++)
                 mpz_init_set(array_tmp[4 * (i * dim2 + j) + k], array[i][j][k]);
 
-    doOperation_PrivIndex_Read(index_tmp, array_tmp, result, dim1 * dim2, 1, threadID, 1, net, id, ss);
+    doOperation_PrivIndex_Read(index_tmp, array_tmp, result, dim1 * dim2, 1, threadID, 1, net, ss);
 
     ss_batch_free_operator(&index_tmp, 1);
     ss_batch_free_operator(&array_tmp, 4 * dim1 * dim2);
 }
 
-void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type, NodeNetwork net,  SecretShare *ss) {
     int K = ceil(log2(dim));
     int m = (type == 0) ? 1 : 4;
     //	printf("dim %d, size %d, threadID %d, K %d, m %d \n", dim, size, threadID, K, m);
@@ -180,7 +170,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     gettimeofday(&tv1, NULL);
     // start computation
     /*** Lookup: LINE 1: PRandM(log_n, log_n) ***/
-    PRandM(K, size, U, threadID, net, id, ss);
+    PRandM(K, size, U, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < K + 1; j++)
             mpz_set(U1[i][j], U[j][i]);
@@ -191,7 +181,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
 
     /*** Lookup: LINE 2: 1 - AllOr ***/
     // printf("AllOr(0, %d)\n", K);
-    AllOr(U1, 0, K, B, size, threadID, net, id, ss);
+    AllOr(U1, 0, K, B, size, threadID, net, ss);
     // printf("end\n");
     gettimeofday(&tv3, NULL);
     // std::cout << "Time AllOr: " << time_diff(&tv2,&tv3) << std::endl;
@@ -277,7 +267,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     free(U);
 }
 
-void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss) {
     int K = ceil(log2(dim));
     int m = (type == 0) ? 1 : 4;
     mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
@@ -318,7 +308,7 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
     compute_private_conditions(temp3, out_cond, priv_cond, counter, size);
     for (int i = 0; i < dim; i++)
         binarySplit(i, bitArray[i], K);
-    doOperation_bitDec(U, index, K, K, size, threadID, net, id, ss);
+    doOperation_bitDec(U, index, K, K, size, threadID, net, ss);
     for (int i = 0; i < size; i++)
         for (int j = 0; j < K + 1; j++)
             mpz_set(U1[i][j], U[j][i]);
@@ -337,9 +327,9 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
                     mpz_set(temp3[j * dim + k], U1[j][i]);
             }
         }
-        Mult(temp1, temp1, temp3, size * dim, threadID, net, id, ss);
+        Mult(temp1, temp1, temp3, size * dim, threadID, net, ss);
     }
-    Mult(temp1, temp1, temp2, size * dim, threadID, net, id, ss);
+    Mult(temp1, temp1, temp2, size * dim, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
             for (int k = 0; k < m; k++) {
@@ -348,7 +338,7 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
             }
         }
     }
-    Mult(temp2, temp2, temp3, m * size * dim, threadID, net, id, ss);
+    Mult(temp2, temp2, temp3, m * size * dim, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
             for (int k = 0; k < m; k++) {
@@ -358,7 +348,7 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
         }
     }
     ss->modSub(temp5, const1, temp5, m * dim);
-    Mult(temp5, temp5, array, m * dim, threadID, net, id, ss);
+    Mult(temp5, temp5, array, m * dim, threadID, net, ss);
     ss->modAdd(array, temp4, temp5, m * dim);
 
     // free memory
@@ -395,7 +385,7 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
     mpz_clear(const1);
 }
 
-void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID, NodeNetwork net,  SecretShare *ss) {
     // AllOr: LINE 1
     mpz_t const1;
     mpz_init_set_ui(const1, 1);
@@ -476,7 +466,8 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
             }
         }
         ss->modAdd(add_b, u1, v1, oPos);
-        Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // 1 rou, net, id, ssnd
+        // 1 rou, net, ssnd
+        Mult(mul_b, u1, v1, oPos, threadID, net, ss);
         ss->modSub(u1, add_b, mul_b, oPos);
 
         int oPos2 = 0;
@@ -527,7 +518,8 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
             }
         }
         ss->modAdd(add_b, u1, v1, oPos);
-        Mult(mul_b, u1, v1, oPos, threadID, net, id, ss); // rou, net, id, ssnd
+        // rou, net, ssnd
+        Mult(mul_b, u1, v1, oPos, threadID, net, ss);
         // std::cout << "	2Mul->do: " << oPos << std::endl;
         ss->modSub(buff, add_b, mul_b, oPos);
         sizeLen /= 2;
@@ -567,27 +559,27 @@ double time_diff(struct timeval *t1, struct timeval *t2) {
 }
 
 // needed to convert integer inputs to mpz_t
-void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(val[i], values[i]);
     // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
-    doOperation_PrivIndex_Write(index, array, val, dim, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
+    doOperation_PrivIndex_Write(index, array, val, dim, size, out_cond, priv_cond, counter, threadID, 0, net, ss);
     ss_batch_free_operator(&val, size);
 }
 
-void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, int *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(val[i], values[i]);
     // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
-    doOperation_PrivIndex_Write_2d(index, array, val, dim1, dim2, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
+    doOperation_PrivIndex_Write_2d(index, array, val, dim1, dim2, size, out_cond, priv_cond, counter, threadID, 0, net, ss);
     ss_batch_free_operator(&val, size);
 }
 
-void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, mpz_t *values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss) {
     mpz_t *array_tmp = (mpz_t *)malloc(sizeof(mpz_t) * dim1 * dim2);
     for (int i = 0; i < dim1; i++)
         for (int j = 0; j < dim2; j++)
@@ -597,13 +589,13 @@ void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, mpz_t *values, 
     // for (int i = 0; i < size; i++)
     //     mpz_init_set_si(val[i], values[i]);
     // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
-    doOperation_PrivIndex_Write(index, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0, net, id, ss);
+    doOperation_PrivIndex_Write(index, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0, net, ss);
     // ss_batch_free_operator(&val, size);
 
     ss_batch_free_operator(&array_tmp, dim1 * dim2);
 }
 
-// void doOperation_PrivIndex_Write_int_mpz(mpz_t *index, mpz_t *array, mpz_t value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, int id, SecretShare *ss){
+// void doOperation_PrivIndex_Write_int_mpz(mpz_t *index, mpz_t *array, mpz_t value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss){
 //     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
 //     mpz_t *value_tmp = (mpz_t *)malloc(sizeof(mpz_t));
 //     mpz_init_set(index_tmp[0], index);

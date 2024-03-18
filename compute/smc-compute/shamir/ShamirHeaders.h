@@ -18,8 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HEADERS_H_
-#define HEADERS_H_
+#ifndef _SHAMIR_HEADERS_H_
+#define _SHAMIR_HEADERS_H_
 #include "NodeConfiguration.h"
 #include "NodeNetwork.h"
 #include "shamir/SecretShare.h"
@@ -30,7 +30,6 @@
 #include "ops/shamir/BitDec.h"
 #include "ops/shamir/BitLTC.h"
 #include "ops/shamir/BitOps.h"
-#include "ops/shamir/CarryBit.h"
 #include "ops/shamir/DotProduct.h"
 #include "ops/shamir/EQZ.h"
 #include "ops/shamir/FL2Int.h"
@@ -44,18 +43,10 @@
 #include "ops/shamir/FPMult.h"
 #include "ops/shamir/Int2FL.h"
 #include "ops/shamir/IntDiv.h"
-#include "ops/shamir/Inv.h"
 #include "ops/shamir/LTZ.h"
-#include "ops/shamir/Mod2.h"
-#include "ops/shamir/Mod2M.h"
-#include "ops/shamir/Mod2MS.h"
 #include "ops/shamir/Mult.h"
-#include "ops/shamir/Norm.h"
-#include "ops/shamir/Operation.h"
+// #include "ops/shamir/Operation.h"
 #include "ops/shamir/Pow2.h"
-#include "ops/shamir/PreOpL.h"
-#include "ops/shamir/PreOr.h"
-#include "ops/shamir/PrefixMultiplication.h"
 #include "ops/shamir/PrivIndex.h"
 #include "ops/shamir/PrivPtr.h"
 #include "ops/shamir/Random.h"
@@ -63,13 +54,13 @@
 #include "ops/shamir/Trunc.h"
 #include "ops/shamir/TruncPr.h"
 #include "ops/shamir/TruncS.h"
-#include <cstdlib>
-#include <gmp.h>
-#include <iostream>
-#include <map>
-#include <pthread.h>
-#include <stdlib.h>
-#include <string>
-#include <sys/time.h>
+// #include <cstdlib>
+// #include <gmp.h>
+// #include <iostream>
+// #include <map>
+// #include <pthread.h>
+// #include <stdlib.h>
+// #include <string>
+// #include <sys/time.h>
 
 #endif /* HEADERS_H_ */

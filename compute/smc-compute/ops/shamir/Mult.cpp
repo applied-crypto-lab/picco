@@ -20,7 +20,7 @@
 #include "Mult.h"
 
 // This protocol performs the optimized multiplication proposed by Blanton, Kang, and Yuan (ACNS 2020)
-void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     int peers = ss->getPeers();
     uint threshold = ss->getThreshold();

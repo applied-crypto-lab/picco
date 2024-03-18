@@ -810,7 +810,7 @@ shift_expression:
         decrease_index($1); 
 	$$ = BinaryOperator(BOP_shl, $1, $4);
 	$$->ftype = $1->ftype; 
-        set_security_flag_expr($$, $1, $4, LEFT_OP);
+        set_security_flag_expr($$, $1, $4, BOP_shl);
         set_bitlength_expr($$, $1, $4); 
     }
     | shift_expression RIGHT_OP 
@@ -822,7 +822,7 @@ shift_expression:
 	decrease_index($1); 
         $$ = BinaryOperator(BOP_shr, $1, $4);
 	$$->ftype = $1->ftype; 
-        set_security_flag_expr($$, $1, $4, RIGHT_OP);
+        set_security_flag_expr($$, $1, $4, BOP_shr);
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -4439,7 +4439,13 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 				modulus = fmax(modulus, len+kappa_nu); 
 			else if(opid == BOP_div)
 				modulus = fmax(modulus, 2*len+kappa_nu+8);
-			else if((opid == RIGHT_OP || opid == LEFT_OP) && e2->flag == PRI) // checking for left/right shifts
+			else if(opid == BOP_shr){ // checking for right shifts, 
+                // if shifting bu public amount --> truncation (Catrina and de Hoogh, 2010)
+                // if shifting by a private amount, the security of the first argument doesnt matter, and we call truncation by a private value in floating point paper (Aliasgari et al., 2013)
+				modulus = fmax(modulus, e1->size+kappa_nu);
+            }
+			else if(opid == BOP_shl && e2->flag == PRI) // checking for private left shift
+                // left shifting by a private number of bits, call pow2 (Aliasgari et al., 2013)
 				modulus = fmax(modulus, e2->size+kappa_nu);
 
 		}		

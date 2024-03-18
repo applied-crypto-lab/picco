@@ -21,13 +21,10 @@
 #ifndef NODENETWORK_H_
 #define NODENETWORK_H_
 
-// key size in bytes; switching to a longer size will require more work than updating this constant as 128-bit encryption function calls are used
+#if __RSS__
+#include "rss/RSS_types.hpp"
+#endif
 
-
-// #define KEYSIZE 16
-#define MAX_BUFFER_SIZE 229376 // in bytes
-
-// int MAX_BUFFER_SIZE = 4194304; // ?
 #include "../../common/shared.h"
 #include "NodeConfiguration.h"
 #include "stdint.h"
@@ -112,39 +109,29 @@ public:
     void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID);
     void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size);
 
-    // getter function for retreiving PRG seeds
+    // getter function for retreiving PRG seeds, used for Multiplication in SHAMIR
     unsigned char **getPRGseeds();
 
-    void getRounds(int size, uint *count, uint *rounds, uint ring_size);
-    // 16
-    void SendAndGetDataFromPeer(uint16_t *, uint16_t **, int, uint, int **, int);
-    void sendDataToPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
-    void sendDataToPeer(int id, int size, uint16_t *data, uint ring_size);
-    void getDataFromPeer(int id, uint16_t *data, int start, int amount, int size, uint ring_size);
-    void getDataFromPeer(int id, int size, uint16_t *buffer, uint ring_size);
-    void multicastToPeers(uint16_t **data, uint16_t **buffers, int size, uint ring_size);
+#if __RSS__
+    void getRounds_RSS(int size, uint *count, uint *rounds, uint ring_size);
+    void SendAndGetDataFromPeer(priv_int_t *, priv_int_t *, int, uint, std::vector<std::vector<int>> send_recv_map);
+    void SendAndGetDataFromPeer(priv_int_t *, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
+    void SendAndGetDataFromPeer(priv_int_t **, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
+    void sendDataToPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size);
+    void sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size);
+    void getDataFromPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size);
+    void getDataFromPeer(int id, int size, priv_int_t *buffer, uint ring_size);
+    void multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size);
 
-    // 32
-    void SendAndGetDataFromPeer(uint32_t *, uint32_t **, int, uint, int **, int);
-    void sendDataToPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size);
-    void sendDataToPeer(int id, int size, uint32_t *data, uint ring_size);
-    void getDataFromPeer(int id, uint32_t *data, int start, int amount, int size, uint ring_size);
-    void getDataFromPeer(int id, int size, uint32_t *buffer, uint ring_size);
-    void multicastToPeers(uint32_t **data, uint32_t **buffers, int size, uint ring_size);
+    void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, std::vector<std::vector<int>> send_recv_map);
+    void SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map);
+    void SendAndGetDataFromPeer_bit(uint8_t **SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map);
 
-    // 64
-    void SendAndGetDataFromPeer(uint64_t *, uint64_t **, int, uint, int **, int);
-    void sendDataToPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size);
-    void sendDataToPeer(int id, int size, uint64_t *data, uint ring_size);
-    void getDataFromPeer(int id, uint64_t *data, int start, int amount, int size, uint ring_size);
-    void getDataFromPeer(int id, int size, uint64_t *buffer, uint ring_size);
-    void multicastToPeers(uint64_t **data, uint64_t **buffers, int size, uint ring_size);
-
-    // 8
-    void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, int **, int);
     void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getRounds_bit(int size, uint *count, uint *rounds);
+
+#endif
 
 private:
     // static members need to be dealt with if want to make NodeNetwork templated
@@ -182,10 +169,12 @@ private:
     // PRG seeds used in multiplication
     unsigned char **prgSeeds; // getter function works properly in SecretShare constructor
 
-    // used to mask data prior to sending (maintains security)
-    uint16_t *SHIFT_16;
-    uint32_t *SHIFT_32;
-    uint64_t *SHIFT_64;
+// used to mask data prior to sending (maintains security)
+// uint16_t *SHIFT_16;
+#if __RSS__
+    priv_int_t *SHIFT_RSS;
+#endif
+    // uint64_t *SHIFT_64;
 };
 
 // used for debugging

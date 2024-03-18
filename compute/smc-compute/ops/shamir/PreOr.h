@@ -24,6 +24,6 @@
 #include "Operation.h"
 #include "PrefixMultiplication.h"
 
-void doOperation_PreOr(mpz_t **result, mpz_t **A, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_PreOr(mpz_t **result, mpz_t **A, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 #endif /* PREOR_SHAMIR_H_ */

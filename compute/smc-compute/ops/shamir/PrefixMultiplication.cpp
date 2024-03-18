@@ -21,7 +21,7 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.2 page 11
-void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     int peers = ss->getPeers();
     mpz_t *R = (mpz_t *)malloc(sizeof(mpz_t) * length_k * size);
@@ -92,7 +92,7 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
             mpz_set(S_buff[s_idx], S[s_idx]);
         }
     }
-    Mult(V, R_buff, S_buff, (length_k - 1) * size, threadID, net, id, ss);
+    Mult(V, R_buff, S_buff, (length_k - 1) * size, threadID, net, ss);
 
     // mpz_set(W[0], R[0]); // not needed since we are using R in place of U
     for (int i = 1; i < length_k; i++) {

@@ -22,7 +22,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FL2Int, page 9
-void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t **values = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **valuesP = (mpz_t **)malloc(sizeof(mpz_t) * 4);
@@ -54,73 +54,73 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
         mpz_init(pow2[i]);
     }
 
-    doOperation_FLRound(values, valuesP, modes, L, K, size, threadID, net, id, ss);
+    doOperation_FLRound(values, valuesP, modes, L, K, size, threadID, net, ss);
     // line 2
     ss->modSub(temp1, valuesP[1], gamma - 1, size);
-    doOperation_LTZ(a, temp1, K, size, threadID, net, id, ss);
+    doOperation_LTZ(a, temp1, K, size, threadID, net, ss);
     // line 3
     ss->modSub(temp1, gamma - L - 1, valuesP[1], size);
-    doOperation_LTZ(b, temp1, K, size, threadID, net, id, ss);
+    doOperation_LTZ(b, temp1, K, size, threadID, net, ss);
 
     // line 4
-    doOperation_LTZ(c, valuesP[1], K, size, threadID, net, id, ss);
+    doOperation_LTZ(c, valuesP[1], K, size, threadID, net, ss);
 
     // line 5
     ss->modSub(temp1, gamma - 1, valuesP[1], size);
     ss->modSub(temp2, 1, c, size);
-    Mult(temp1, temp1, temp2, size, threadID, net, id, ss);
-    Mult(temp1, temp1, b, size, threadID, net, id, ss);
-    Mult(temp2, temp1, a, size, threadID, net, id, ss);
+    Mult(temp1, temp1, temp2, size, threadID, net, ss);
+    Mult(temp1, temp1, b, size, threadID, net, ss);
+    Mult(temp2, temp1, a, size, threadID, net, ss);
 
     // line 6
-    doOperation_Mod2MS(u, valuesP[0], temp2, temp1, L, size, threadID, net, id, ss);
+    doOperation_Mod2MS(u, valuesP[0], temp2, temp1, L, size, threadID, net, ss);
     // line 7
-    Mult(temp1, b, c, size, threadID, net, id, ss);
+    Mult(temp1, b, c, size, threadID, net, ss);
     ss->modAdd(temp1, temp1, 1, size);
     ss->modSub(temp1, temp1, b, size);
-    Mult(temp1, temp1, valuesP[0], size, threadID, net, id, ss);
+    Mult(temp1, temp1, valuesP[0], size, threadID, net, ss);
 
     ss->modSub(temp2, 1, c, size);
-    Mult(temp2, temp2, u, size, threadID, net, id, ss);
-    Mult(temp2, temp2, b, size, threadID, net, id, ss);
+    Mult(temp2, temp2, u, size, threadID, net, ss);
+    Mult(temp2, temp2, b, size, threadID, net, ss);
     ss->modAdd(valuesP[0], temp1, temp2, size);
     // line 8
-    Mult(temp1, c, valuesP[1], size, threadID, net, id, ss);
+    Mult(temp1, c, valuesP[1], size, threadID, net, ss);
     ss->modSub(temp1, (long)0, temp1, size);
-    doOperation_Pow2(pow2, temp1, L, size, threadID, net, id, ss);
+    doOperation_Pow2(pow2, temp1, L, size, threadID, net, ss);
 
     // line 9
-    doOperation_Inv(pow2, pow2, size, threadID, net, id, ss);
+    doOperation_Inv(pow2, pow2, size, threadID, net, ss);
 
     // line 10
-    Mult(temp1, c, pow2, size, threadID, net, id, ss);
+    Mult(temp1, c, pow2, size, threadID, net, ss);
     ss->modAdd(temp1, temp1, 1, size);
     ss->modSub(temp1, temp1, c, size);
-    Mult(valuesP[0], valuesP[0], temp1, size, threadID, net, id, ss);
+    Mult(valuesP[0], valuesP[0], temp1, size, threadID, net, ss);
     // line 11
-    Mult(temp1, b, c, size, threadID, net, id, ss);
+    Mult(temp1, b, c, size, threadID, net, ss);
     ss->modMul(temp1, temp1, gamma - 1, size);
-    doOperation_Mod2MS(u, valuesP[0], temp1, temp2, L, size, threadID, net, id, ss);
+    doOperation_Mod2MS(u, valuesP[0], temp1, temp2, L, size, threadID, net, ss);
     // line 12
-    Mult(temp1, b, c, size, threadID, net, id, ss);
-    Mult(temp1, temp1, u, size, threadID, net, id, ss);
-    Mult(temp2, b, c, size, threadID, net, id, ss);
+    Mult(temp1, b, c, size, threadID, net, ss);
+    Mult(temp1, temp1, u, size, threadID, net, ss);
+    Mult(temp2, b, c, size, threadID, net, ss);
     ss->modSub(temp2, 1, temp2, size);
-    Mult(temp2, temp2, valuesP[0], size, threadID, net, id, ss);
+    Mult(temp2, temp2, valuesP[0], size, threadID, net, ss);
     ss->modAdd(valuesP[0], temp2, temp1, size);
     // line 13
     ss->modSub(temp1, 1, c, size);
-    Mult(temp1, temp1, a, size, threadID, net, id, ss);
-    Mult(temp1, temp1, valuesP[1], size, threadID, net, id, ss);
-    doOperation_Pow2(pow2, temp1, gamma - 1, size, threadID, net, id, ss);
+    Mult(temp1, temp1, a, size, threadID, net, ss);
+    Mult(temp1, temp1, valuesP[1], size, threadID, net, ss);
+    doOperation_Pow2(pow2, temp1, gamma - 1, size, threadID, net, ss);
     // line 14
     ss->modSub(temp1, 1, valuesP[2], size);
     ss->modMul(temp2, valuesP[3], 2, size);
     ss->modSub(temp2, 1, temp2, size);
-    Mult(temp1, temp1, temp2, size, threadID, net, id, ss);
-    Mult(results, temp1, pow2, size, threadID, net, id, ss);
-    Mult(results, results, a, size, threadID, net, id, ss);
-    Mult(results, results, valuesP[0], size, threadID, net, id, ss);
+    Mult(temp1, temp1, temp2, size, threadID, net, ss);
+    Mult(results, temp1, pow2, size, threadID, net, ss);
+    Mult(results, results, a, size, threadID, net, ss);
+    Mult(results, results, valuesP[0], size, threadID, net, ss);
     // free memory
     for (int i = 0; i < size; i++) {
         mpz_clear(modes[i]);

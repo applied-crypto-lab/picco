@@ -23,7 +23,7 @@
 #include "Mult.h"
 #include "Operation.h"
 
-void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
-void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, int threadID, NodeNetwork net,  SecretShare *ss) ;
+void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size, int array_size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 
 #endif /*DOTPRODUCT_H*/

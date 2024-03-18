@@ -17,45 +17,22 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef REPLICATED_SECRETSHARE_H
-#define REPLICATED_SECRETSHARE_H
+#ifndef _REPSECRETSHARE_HPP_
+#define _REPSECRETSHARE_HPP_
 
+#include "../bit_utils.hpp"
 #include "stdint.h"
 #include <charconv>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <errno.h>
-#include <fcntl.h>
+#include <exception>
 #include <fstream>
-#include <inttypes.h>
 #include <iostream>
 #include <map>
-#include <math.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <openssl/aes.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
-#include <sstream>
-#include <stdint.h> //for int8_t
-#include <stdio.h>
-#include <string.h> //for memcmp
+#include <regex>
+#include <stdexcept>
 #include <string>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <time.h>
-#include <tmmintrin.h>
-#include <unistd.h>
 #include <vector>
 #include <wmmintrin.h> // for intrinsics for AES-NI
-#include <x86intrin.h>
 
 #define CONTAINER_SIZE 16
 #define KEYSIZE 16
@@ -80,10 +57,14 @@ template <typename T>
 class replicatedSecretShare {
 
 public:
-    replicatedSecretShare(uint _id, uint _n, uint _t, uint ring_size, std::map<std::vector<int>, uint8_t *>);
+    replicatedSecretShare(int _id, int _n, int _t, uint ring_size, std::map<std::vector<int>, uint8_t *>);
     ~replicatedSecretShare();
     uint getNumShares();
     uint getTotalNumShares();
+    int getPeers();
+    int getThreshold();
+    int getID();
+
     uint nCk(uint n, uint k);
 
     __m128i *prg_keyschedule(uint8_t *src);
@@ -92,13 +73,14 @@ public:
     void prg_getrandom(int keyID, uint size, uint length, uint8_t *dest);
     void prg_getrandom(uint size, uint length, uint8_t *dest);
 
-    std::vector<std::string> splitfunc(const char *str, const char *delim);
+    std::vector<std::string> split(const std::string s, const std::string delimiter, int expected_size = 0); // =0 used for optional argument passsing of expected_size
 
     // I/O functions
     void ss_input(int id, int *var, std::string type, std::ifstream *inputStreams);
-    void ss_input(int id, T *var, std::string type, std::ifstream *inputStreams);
-    void ss_input(int id, float *var, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, T **var, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, float *var, std::string type, std::ifstream *inputStreams);
+    void ss_input(int id, T ***var, std::string type, std::ifstream *inputStreams);
+
     void ss_input(int id, T **var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(int id, T ***var, int size, std::string type, std::ifstream *inputStreams);
@@ -109,15 +91,18 @@ public:
     void ss_input(T ***var, int size, std::string type);
 
     void ss_output(int id, int *var, std::string type, std::ofstream *outputStreams);
-    void ss_output(int id, T *var, std::string type, std::ofstream *outputStreams);
-    void ss_output(int id, float *var, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, T **var, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, float *var, std::string type, std::ofstream *outputStreams);
+    void ss_output(int id, T ***var, std::string type, std::ofstream *outputStreams);
+
     void ss_output(int id, T **var, int size, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, int *var, int size, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, T ***var, int size, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams);
 
     void modMul(T *result, T *x, T y);
+    void modMul(T *result, T *x, T *y);
+    void modMul(T *result, T *x, int y);
     void modMul(T **result, T **x, T *y, int size);
     void modMul(T *result, T *x, long y);
     void modMul(T **result, T **x, long y, int size);
@@ -148,16 +133,35 @@ public:
     void modPow2(T *result, int *exponent, int size);
     void modPow2(T *result, T *exponent, int size);
 
+    // temporary functions, need to be dealt with later (just to get smc-utils to compile)
+    //  these are undefined in the context of RSS, because the dimensionality doesn't match
+    //  in shamir, you can store a public value in an mpz_t (one to one)
+    //  however, you can't do the same for RSS. Storing a public int in a T* doesn't work (one to arr)
+    void modPow2(T *result, T *exponent);
+    void modPow2(T *result, int exponent);
+    void modPow2(T **result, T **exponent, int size);
+    void modPow2(T **result, int *exponent, int size);
+    void modMul(T **result, T **x, T **y, int size);
+
     void modPow(T result, T base, T exponent);
     void modPow(T *result, T *base, T *exponent, int size);
     void modPow(T result, T base, long exponent);
     void modPow(T *result, T *base, long exponent, int size);
 
-    uint id;
+    void generatePublicCoef(T *result, int value);
+
+    std::vector<int> generateT_star(int p_star);
+    int generateT_star_index(int p_star);
+
+    std::vector<std::vector<int>> generateB2A_map();
+    std::vector<std::vector<int>> generateXi_map();
+
+    std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
+
     T *SHIFT;
     T *ODD;
     T *EVEN;
-    uint RING;
+    uint ring_size; // ring_size
 
     std::vector<std::vector<int>> general_map;
     std::vector<std::vector<int>> open_map_mpc;
@@ -166,20 +170,19 @@ public:
     std::vector<T> const_map; // this is used for multiplying a private value by a public constant, OR adding a public constant to a private value
 
 private:
-    uint n;              // n
-    uint t;              // t
-    uint ring_size;      // ring_size
+    int id;              // node ID
+    int n;               // n
+    int t;               // t
     uint numShares;      // (n-1) choose t
     uint totalNumShares; // n choose t
     uint8_t **random_container;
-    int container_size;
     int *P_container;
     __m128i **prg_key;
 };
 
 /* method definitions */
 template <typename T>
-replicatedSecretShare<T>::replicatedSecretShare(uint _id, uint _n, uint _t, uint _ring_size, std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
+replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _ring_size, std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
     id = _id;
     n = _n;
     t = _t;
@@ -190,12 +193,12 @@ replicatedSecretShare<T>::replicatedSecretShare(uint _id, uint _n, uint _t, uint
     // allocating the const_map dynamically after numShares is calculated
     const_map.resize(numShares, 0);
 
-    SHIFT = new T[sizeof(T) * 8];
+    SHIFT = new T[sizeof(T) * 8 + 1];
     ODD = new T[ring_size + 2];
     EVEN = new T[ring_size + 2];
 
     // i think this is "21" for the minion nn?
-    for (T i = 0; i <= sizeof(T) * 8 - 1; i++) {
+    for (T i = 0; i <= sizeof(T) * 8; i++) {
         SHIFT[i] = (T(1) << T(i)) - T(1); // mod 2^i
 
         // this is needed to handle "undefined behavior" of << when we want
@@ -219,8 +222,8 @@ replicatedSecretShare<T>::replicatedSecretShare(uint _id, uint _n, uint _t, uint
     case 3:
 
         general_map = {
-            {mod_n(id + 2, n), NULL},
-            {mod_n(id + 1, n), NULL},
+            {mod_n(id + 2, n)},
+            {mod_n(id + 1, n)},
         };
         // p1: s2, s3
         // p2: s3, s1
@@ -251,7 +254,7 @@ replicatedSecretShare<T>::replicatedSecretShare(uint _id, uint _n, uint _t, uint
         };
 
         T_map_mpc = {
-            {mod_n(id + 1, n), mod_n(id + 2, n)},
+            {mod_n(id + 1, n), mod_n(id + 2, n)}, // becomes T_star in Input()
             {mod_n(id + 1, n), mod_n(id + 3, n)},
             {mod_n(id + 1, n), mod_n(id + 4, n)},
             {mod_n(id + 2, n), mod_n(id + 3, n)},
@@ -449,31 +452,31 @@ void replicatedSecretShare<T>::prg_aes(uint8_t *dest, uint8_t *src, __m128i *ri)
 
 template <typename T>
 void replicatedSecretShare<T>::prg_getrandom(int keyID, uint size, uint length, uint8_t *dest) {
-    // we assume container_size is 16, so all *container_size are replaced as <<4
+    // we assume CONTAINER_SIZE is 16, so all *CONTAINER_SIZE are replaced as <<4
     // this size means how many random bytes we need
     // uint8_t *buffer = new uint8_t [size];
     // its always size * length
     // printf("curent P is %d \n",P_container[keyID]);
-    uint rounds = ((size * length - container_size + P_container[keyID]) + 15) >> 4;
+    uint rounds = ((size * length - CONTAINER_SIZE + P_container[keyID]) + 15) >> 4;
     if (rounds == 0) {
         memcpy(dest, random_container[keyID] + P_container[keyID], size * length);
         P_container[keyID] = P_container[keyID] + size * length;
     } else {
-        memcpy(dest, random_container[keyID] + P_container[keyID], container_size - P_container[keyID]);
+        memcpy(dest, random_container[keyID] + P_container[keyID], CONTAINER_SIZE - P_container[keyID]);
         if (rounds >= 2) {
-            prg_aes(dest + (container_size - P_container[keyID]), random_container[keyID], prg_key[keyID]);
+            prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]), random_container[keyID], prg_key[keyID]);
             for (int i = 1; i < rounds - 1; i++) {
                 // segfault in this loop for "large" size
                 // printf("i : %u\n", i);
-                prg_aes(dest + (container_size - P_container[keyID]) + (i << 4), dest + (container_size - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
+                prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]) + (i << 4), dest + (CONTAINER_SIZE - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
             }
-            prg_aes(random_container[keyID], dest + (container_size - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - ((rounds - 1) << 4) - container_size + P_container[keyID];
+            prg_aes(random_container[keyID], dest + (CONTAINER_SIZE - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID];
         } else {
             prg_aes(random_container[keyID], random_container[keyID], prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID], random_container[keyID], size * length - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - container_size + P_container[keyID];
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID], random_container[keyID], size * length - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - CONTAINER_SIZE + P_container[keyID];
         }
     }
 }
@@ -481,157 +484,287 @@ void replicatedSecretShare<T>::prg_getrandom(int keyID, uint size, uint length, 
 template <typename T>
 void replicatedSecretShare<T>::prg_getrandom(uint size, uint length, uint8_t *dest) {
     // uses party's OWN KEY not shared with others to locally generate shares
-    // we assume container_size is 16, so all *container_size are replaced as <<4
+    // we assume CONTAINER_SIZE is 16, so all *CONTAINER_SIZE are replaced as <<4
     // this size means how many random bytes we need
     // when this functions is called we use the party's private key stored in the LAST position [numKeys - 1] (or just numShares since numShares = numKeys + 1)
     uint keyID = numShares;
-    uint rounds = ((size * length - container_size + P_container[keyID]) + 15) >> 4;
+    uint rounds = ((size * length - CONTAINER_SIZE + P_container[keyID]) + 15) >> 4;
     if (rounds == 0) {
         memcpy(dest, random_container[keyID] + P_container[keyID], size * length);
         P_container[keyID] = P_container[keyID] + size * length;
     } else {
-        memcpy(dest, random_container[keyID] + P_container[keyID], container_size - P_container[keyID]);
+        memcpy(dest, random_container[keyID] + P_container[keyID], CONTAINER_SIZE - P_container[keyID]);
         if (rounds >= 2) {
-            prg_aes(dest + (container_size - P_container[keyID]), random_container[keyID], prg_key[keyID]);
+            prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]), random_container[keyID], prg_key[keyID]);
             for (int i = 1; i < rounds - 1; i++) {
-                prg_aes(dest + (container_size - P_container[keyID]) + (i << 4), dest + (container_size - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
+                prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]) + (i << 4), dest + (CONTAINER_SIZE - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
             }
-            prg_aes(random_container[keyID], dest + (container_size - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - ((rounds - 1) << 4) - container_size + P_container[keyID];
+            prg_aes(random_container[keyID], dest + (CONTAINER_SIZE - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID] + ((rounds - 1) << 4), random_container[keyID], size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - ((rounds - 1) << 4) - CONTAINER_SIZE + P_container[keyID];
         } else {
             prg_aes(random_container[keyID], random_container[keyID], prg_key[keyID]);
-            memcpy(dest + container_size - P_container[keyID], random_container[keyID], size * length - container_size + P_container[keyID]);
-            P_container[keyID] = size * length - container_size + P_container[keyID];
+            memcpy(dest + CONTAINER_SIZE - P_container[keyID], random_container[keyID], size * length - CONTAINER_SIZE + P_container[keyID]);
+            P_container[keyID] = size * length - CONTAINER_SIZE + P_container[keyID];
         }
     }
 }
 
 template <typename T>
-std::vector<std::string> replicatedSecretShare<T>::splitfunc(const char *str, const char *delim) {
-    char *saveptr;
-    char *token = strtok_r((char *)str, delim, &saveptr);
-    std::vector<std::string> result;
-    while (token != NULL) {
-        result.push_back(token);
-        token = strtok_r(NULL, delim, &saveptr);
+int replicatedSecretShare<T>::getPeers() {
+    return n;
+}
+
+template <typename T>
+int replicatedSecretShare<T>::getThreshold() {
+    return t;
+}
+
+template <typename T>
+int replicatedSecretShare<T>::getID() {
+    return id;
+}
+
+// template <typename T>
+// uint replicatedSecretShare<T>::getNumShares() {
+//     return numShares;
+// }
+
+// template <typename T>
+// uint replicatedSecretShare<T>::getTotalNumShares() {
+//     return totalNumShares;
+// }
+
+// modern, robust C++ version of the above function
+// expected_size is an OPTIONAL ARGUMENT (default 0)
+template <typename T>
+std::vector<std::string> replicatedSecretShare<T>::split(const std::string s, const std::string delimiter, int expected_size) {
+    try {
+        if (s.empty())
+            throw std::runtime_error("Empty string passed to split.");
+        size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+        std::string token;
+        std::vector<std::string> result;
+        while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+            token = s.substr(pos_start, pos_end - pos_start);
+            pos_start = pos_end + delim_len;
+            result.push_back(token);
+        }
+        result.push_back(s.substr(pos_start));
+        if (delimiter == "=") { // should only be two values in the output, the variable name (result[0]) and a string of shares "s_00;s_01;...;s_0numShares,s_10;s_11;...;s_1numShares" (result[1])
+            if (result.size() != 2)
+                throw std::runtime_error("Encountered an unexpected number of entries than expected, or string is not well-formed.\nInput provided:\n" + s);
+        } else if ((delimiter == ",") or (delimiter == ";")) {
+            for (auto &var : result)
+                var = std::regex_replace(var, std::regex("^ +| +$|( ) +"), "$1"); // stripping leading/trailing whitespace from string
+            //(,) should only be `expected_size` number of entries in result.size(): <"s_00;s_01;...;s_0numShares", "s_10;s_11;...;s_1numShares", ...>
+            //(;) should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
+            if (expected_size <= 0)
+                throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
+            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
+                int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
+                throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
+            }
+        } else
+            std::cout << "Delimter other than  \'=\' or \',\' was passed. I'm not checking the expected length!" << std::endl;
+        return result;
+    } catch (const std::runtime_error &ex) {
+        //  can throw from interior function, as long as we catch elsewhere
+        std::string error(ex.what()); // capturing the message from the exception to concatenate below
+        throw std::runtime_error("[splitfunc] " + error);
     }
-    return result;
 }
 
 // input public int
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, int *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atoi(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs  (non-array only)
+        if (!is_int(tokens.front()))
+            throw std::runtime_error("Non-integer input provided: " + tokens.front());
+        // cout << "ss_input, public int :" << tokens.front() << endl;
+        *var = stoi(tokens.front()); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private int
 template <typename T>
-void replicatedSecretShare<T>::ss_input(int id, T *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ";");
-    for (int i = 0; i < tokens.size(); i++)
-        std::from_chars(tokens[i].data(), tokens[i].data() + tokens[i].size(), var[i]);
+void replicatedSecretShare<T>::ss_input(int id, T **var, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", numShares);
+        for (int i = 0; i < numShares; i++) {
+            if (!is_int(tokens[i]))
+                throw std::runtime_error("Non-integer input provided: " + tokens[i]);
+            std::from_chars(tokens[i].data(), tokens[i].data() + tokens[i].size(), (*var)[i]);
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input public float
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, float *var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::getline(inputStreams[id - 1], line);
-    tokens = splitfunc(line.c_str(), "=");
-    *var = atof(tokens[1].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 1); // done for correctness testing for single inputs (non-array only)
+        if (!is_float(tokens.front()))
+            throw std::runtime_error("Non-float input provided: " + tokens.front());
+        // cout << "ss_input, public float :" << tokens.front() << endl;
+        *var = stof(tokens.front()); // discards any whitespace, non-numerical characters automatically
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input private float
 template <typename T>
-void replicatedSecretShare<T>::ss_input(int id, T **var, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::vector<std::string> temp2;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");     // getting everything after "="
-    temp2 = splitfunc(temp[1].c_str(), ","); // getting the string of shares
-    for (int i = 0; i < 4; i++) {            // temp2.size(), 4 for floats
-        tokens = splitfunc(temp2[i].c_str(), ";");
-        for (int j = 0; j < tokens.size(); j++) { // numShares
-            std::from_chars(tokens[j].data(), tokens[j].data() + tokens[j].size(), var[j][i]);
+void replicatedSecretShare<T>::ss_input(int id, T ***var, std::string type, std::ifstream *inputStreams) {
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", 4); // reusing tokens
+        for (int i = 0; i < 4; i++) {
+            temp = split(tokens[i], ";", numShares);
+            for (int j = 0; j < numShares; j++) {
+                if (!is_int(temp[j]))
+                    throw std::runtime_error("Non-integer input provided: " + temp[j]);
+                std::from_chars(temp[j].data(), temp[j].data() + temp[j].size(), (*var)[j][i]);
+            }
         }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
-// one-dimensional int array I/O
+// one-dimensional PRIVATE int array I/O
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T **var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::vector<std::string> temp2;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");     // getting everything after "="
-    temp2 = splitfunc(temp[1].c_str(), ","); // getting the string of shares
-    for (int i = 0; i < size; i++) {         // temp2.size(),
-        tokens = splitfunc(temp2[i].c_str(), ";");
-        for (int j = 0; j < tokens.size(); j++) { // numShares
-            std::from_chars(tokens[j].data(), tokens[j].data() + tokens[j].size(), var[j][i]);
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", size); // reusing tokens
+        for (int i = 0; i < size; i++) {
+            temp = split(tokens[i], ";", numShares);
+            for (int j = 0; j < numShares; j++) {
+                if (!is_int(temp[j]))
+                    throw std::runtime_error("Non-integer input provided: " + temp[j]);
+                std::from_chars(temp[j].data(), temp[j].data() + temp[j].size(), var[j][i]);
+            }
         }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private int arr] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
 // 1-D PUBLIC int
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, int *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atoi(tokens[i].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_int(tokens[i]))
+                throw std::runtime_error("Non-integer input provided: " + tokens[i]);
+            var[i] = atoi(tokens[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public int array] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
-// one-dimensional float array I/O
+// one-dimensional PRIVATE float array I/O
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T ***var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::vector<std::string> temp2;
-    for (int i = 0; i < size; i++) { // total number of floats
-        std::getline(inputStreams[id - 1], line);
-        temp = splitfunc(line.c_str(), "=");           // getting everything after "="
-        temp2 = splitfunc(temp[1].c_str(), ",");       // getting the string of shares
-        for (int j = 0; j < 4; j++) {                  // always will be 4 PER LINE
-            tokens = splitfunc(temp2[j].c_str(), ";"); // splitting each string into individual shares
-            for (int k = 0; k < tokens.size(); k++) {  // numShares
-                std::from_chars(tokens[k].data(), tokens[k].data() + tokens[k].size(), var[k][i][j]);
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::vector<std::string> temp;
+
+        for (int i = 0; i < size; i++) { // reading size lines
+            std::getline(inputStreams[id - 1], line);
+            tokens = split(line, "=");
+            tokens = split(tokens[1], ",", 4); // reusing tokens, each line will contain 4 sets of shares
+            for (int j = 0; j < 4; j++) {
+                temp = split(tokens[j], ";", numShares);
+                for (int k = 0; k < numShares; k++) { // each set will contain numShares shares
+                    if (!is_int(temp[k]))
+                        throw std::runtime_error("Non-integer input provided: " + temp[k]);
+                    std::from_chars(temp[k].data(), temp[k].data() + temp[k].size(), var[k][i][j]);
+                }
             }
         }
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, private float array] stream from party " + std::to_string(id) + ": " + error);
     }
 }
 
 // 1-D PUBLIC float
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams) {
-    std::string line;
-    std::vector<std::string> tokens;
-    std::vector<std::string> temp;
-    std::getline(inputStreams[id - 1], line);
-    temp = splitfunc(line.c_str(), "=");
-    tokens = splitfunc(temp[1].c_str(), ",");
-    for (int i = 0; i < size; i++)
-        var[i] = atof(tokens[i].c_str());
+    try {
+        std::string line;
+        std::vector<std::string> tokens;
+        std::getline(inputStreams[id - 1], line);
+        tokens = split(line, "=");
+        tokens = split(tokens[1], ",", size);
+        for (int i = 0; i < size; i++) {
+            if (!is_float(tokens[i]))
+                throw std::runtime_error("Non-float input provided: " + tokens[i]);
+            var[i] = atof(tokens[i].c_str());
+        }
+
+    } catch (const std::runtime_error &ex) {
+        // capturing error message from original throw
+        std::string error(ex.what());
+        // appending to new throw, then re-throwing
+        throw std::runtime_error("[ss_input, public float array] stream from party " + std::to_string(id) + ": " + error);
+    }
 }
 
 // input randomly generated private int
@@ -688,14 +821,14 @@ void replicatedSecretShare<T>::ss_output(int id, int *var, std::string type, std
 }
 
 template <typename T>
-void replicatedSecretShare<T>::ss_output(int id, T *var, std::string type, std::ofstream *outputStreams) {
-    for (int i = 0; i < numShares; i++) {
-        if (i != (numShares - 1))
-            outputStreams[id - 1] << std::to_string(var[i]) + ";";
-        else
-            outputStreams[id - 1] << std::to_string(var[i]) + "\n";
-        outputStreams[id - 1].flush();
-    }
+void replicatedSecretShare<T>::ss_output(int id, T **var, std::string type, std::ofstream *outputStreams) {
+    // for (int i = 0; i < numShares; i++) {
+    //     if (i != (numShares - 1))
+    //         outputStreams[id - 1] << std::to_string(var[i]) + ";";
+    //     else
+    //         outputStreams[id - 1] << std::to_string(var[i]) + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 template <typename T>
@@ -707,84 +840,84 @@ void replicatedSecretShare<T>::ss_output(int id, float *var, std::string type, s
 }
 
 template <typename T>
-void replicatedSecretShare<T>::ss_output(int id, T **var, std::string type, std::ofstream *outputStreams) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < numShares; j++) {
-            if (j != (numShares - 1))
-                outputStreams[id - 1] << std::to_string(var[j][i]) + ";";
-            else {
-                if (i != 3)
-                    outputStreams[id - 1] << std::to_string(var[j][i]) + ",";
-                else
-                    outputStreams[id - 1] << std::to_string(var[j][i]) + "\n";
-            }
-            outputStreams[id - 1].flush();
-        }
-    }
+void replicatedSecretShare<T>::ss_output(int id, T ***var, std::string type, std::ofstream *outputStreams) {
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < numShares; j++) {
+    //         if (j != (numShares - 1))
+    //             outputStreams[id - 1] << std::to_string(var[j][i]) + ";";
+    //         else {
+    //             if (i != 3)
+    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + ",";
+    //             else
+    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + "\n";
+    //         }
+    //         outputStreams[id - 1].flush();
+    //     }
+    // }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, T **var, int size, std::string type, std::ofstream *outputStreams) {
-    for (int j = 0; j < numShares; j++) {
-        for (int i = 0; i < size; i++) {
-            if (j != (numShares - 1))
-                outputStreams[id - 1] << std::to_string(var[j][i]) + ";";
-            else {
-                if (i != (size - 1))
-                    outputStreams[id - 1] << std::to_string(var[j][i]) + ",";
-                else
-                    outputStreams[id - 1] << std::to_string(var[j][i]) + "\n";
-            }
-            outputStreams[id - 1].flush();
-        }
-    }
+    // for (int j = 0; j < numShares; j++) {
+    //     for (int i = 0; i < size; i++) {
+    //         if (j != (numShares - 1))
+    //             outputStreams[id - 1] << std::to_string(var[j][i]) + ";";
+    //         else {
+    //             if (i != (size - 1))
+    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + ",";
+    //             else
+    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + "\n";
+    //         }
+    //         outputStreams[id - 1].flush();
+    //     }
+    // }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, int *var, int size, std::string type, std::ofstream *outputStreams) {
-    std::string value;
-    for (int i = 0; i < size; i++) {
-        std::stringstream s;
-        s << var[i];
-        if (i != (size - 1))
-            outputStreams[id - 1] << s.str() + ",";
-        else
-            outputStreams[id - 1] << s.str() + "\n";
-        outputStreams[id - 1].flush();
-    }
+    // std::string value;
+    // for (int i = 0; i < size; i++) {
+    //     std::stringstream s;
+    //     s << var[i];
+    //     if (i != (size - 1))
+    //         outputStreams[id - 1] << s.str() + ",";
+    //     else
+    //         outputStreams[id - 1] << s.str() + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, T ***var, int size, std::string type, std::ofstream *outputStreams) {
-    for (int i = 0; i < size; i++) {              // total number of floats
-        for (int j = 0; j < 4; j++) {             // always will be 4 PER LINE
-            for (int k = 0; k < numShares; k++) { // numShares
-                if (k != (numShares - 1))
-                    outputStreams[id - 1] << std::to_string(var[k][i][j]) + ";";
-                else {
-                    if (j != 3)
-                        outputStreams[id - 1] << std::to_string(var[k][i][j]) + ",";
-                    else
-                        outputStreams[id - 1] << std::to_string(var[k][i][j]) + "\n";
-                }
-                outputStreams[id - 1].flush();
-            }
-        }
-    }
+    // for (int i = 0; i < size; i++) {              // total number of floats
+    //     for (int j = 0; j < 4; j++) {             // always will be 4 PER LINE
+    //         for (int k = 0; k < numShares; k++) { // numShares
+    //             if (k != (numShares - 1))
+    //                 outputStreams[id - 1] << std::to_string(var[k][i][j]) + ";";
+    //             else {
+    //                 if (j != 3)
+    //                     outputStreams[id - 1] << std::to_string(var[k][i][j]) + ",";
+    //                 else
+    //                     outputStreams[id - 1] << std::to_string(var[k][i][j]) + "\n";
+    //             }
+    //             outputStreams[id - 1].flush();
+    //         }
+    //     }
+    // }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams) {
-    std::string value;
-    for (int i = 0; i < size; i++) {
-        std::stringstream s;
-        s << var[i];
-        if (i != (size - 1))
-            outputStreams[id - 1] << s.str() + ",";
-        else
-            outputStreams[id - 1] << s.str() + "\n";
-        outputStreams[id - 1].flush();
-    }
+    // std::string value;
+    // for (int i = 0; i < size; i++) {
+    //     std::stringstream s;
+    //     s << var[i];
+    //     if (i != (size - 1))
+    //         outputStreams[id - 1] << s.str() + ",";
+    //     else
+    //         outputStreams[id - 1] << s.str() + "\n";
+    //     outputStreams[id - 1].flush();
+    // }
 }
 
 // x is private, but y is PUBLIC constant (but stored in T)?
@@ -792,6 +925,14 @@ template <typename T>
 void replicatedSecretShare<T>::modMul(T *result, T *x, T y) {
     for (size_t i = 0; i < numShares; i++) {
         result[i] = x[i] * y;
+    }
+}
+
+// we
+template <typename T>
+void replicatedSecretShare<T>::modMul(T *result, T *x, T *y) {
+    for (size_t i = 0; i < numShares; i++) {
+        result[i] = x[i] * y[0];
     }
 }
 
@@ -805,6 +946,13 @@ void replicatedSecretShare<T>::modMul(T **result, T **x, T *y, int size) {
 
 template <typename T>
 void replicatedSecretShare<T>::modMul(T *result, T *x, long y) {
+    for (size_t i = 0; i < numShares; i++) {
+        result[i] = x[i] * (T)y;
+    }
+}
+
+template <typename T>
+void replicatedSecretShare<T>::modMul(T *result, T *x, int y) {
     for (size_t i = 0; i < numShares; i++) {
         result[i] = x[i] * (T)y;
     }
@@ -968,13 +1116,6 @@ void replicatedSecretShare<T>::modPow2(T &result, T exponent) {
 }
 
 template <typename T>
-void replicatedSecretShare<T>::modPow2(T *result, int *exponent, int size) {
-    for (int i = 0; i < size; ++i) {
-        result[i] = T(1) << (T)exponent[i];
-    }
-}
-
-template <typename T>
 void replicatedSecretShare<T>::modPow2(T *result, T *exponent, int size) {
     for (int i = 0; i < size; ++i) {
         result[i] = T(1) << exponent[i];
@@ -998,6 +1139,24 @@ template <typename T>
 void replicatedSecretShare<T>::modPow(T *result, T *base, long exponent, int size) {
 }
 
+// these are to be dealt with later, problems explained above
+template <typename T>
+void replicatedSecretShare<T>::modPow2(T *result, T *exponent) {
+}
+
+template <typename T>
+void replicatedSecretShare<T>::modPow2(T *result, int exponent) {
+}
+template <typename T>
+void replicatedSecretShare<T>::modPow2(T **result, T **exponent, int size) {
+}
+template <typename T>
+void replicatedSecretShare<T>::modPow2(T **result, int *exponent, int size) {
+}
+template <typename T>
+void replicatedSecretShare<T>::modMul(T **result, T **x, T **y, int size) {
+}
+
 template <typename T>
 uint replicatedSecretShare<T>::getNumShares() {
     return numShares;
@@ -1006,6 +1165,232 @@ uint replicatedSecretShare<T>::getNumShares() {
 template <typename T>
 uint replicatedSecretShare<T>::getTotalNumShares() {
     return totalNumShares;
+}
+
+template <typename T>
+std::vector<int> replicatedSecretShare<T>::generateT_star(int p_star) {
+    switch (n) {
+    case 3:
+        return {mod_n(p_star + 1, n)};
+    case 5:
+        return {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
+    case 7:
+        return {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
+    default:
+        break;
+    }
+}
+
+template <typename T>
+int replicatedSecretShare<T>::generateT_star_index(int p_star) {
+    try {
+
+        std::vector<int> tmp;
+        switch (n) {
+        case 3:
+            tmp = {mod_n(p_star + 1, n)}; // no sorting necessary
+            break;
+        case 5:
+            tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
+            // sorting for consistency
+            sort(tmp.begin(), tmp.end());
+            break;
+        case 7:
+            tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
+            sort(tmp.begin(), tmp.end());
+            break;
+        default:
+            break;
+        }
+        for (size_t i = 0; i < T_map_mpc.size(); i++) {
+            if (tmp == T_map_mpc.at(i)) {
+                return i;
+            }
+        }
+        throw std::runtime_error("index not found, there's a logic error somewhere");
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[generateT_star_index] " << ex.what() << "\n";
+        exit(1);
+    }
+
+    // should never get here
+    // return -1;
+}
+/*
+* this function is used to generate a mapping used when adding a public value to secret shares
+* e.g. for 3 parties, if [a] is secret shared and b is public, and we want to compute [a] + b, each party performs the following:
+
+in: value = 1
+p1:
+a_2 + result[0]*b (result[0] = 1)
+a_3 + result[1]*b (result[1] = 0)
+p2:
+a_3 + result[0]*b (result[0] = 0)
+a_1 + result[1]*b (result[1] = 0)
+p3:
+a_1 + result[0]*b (result[0] = 0)
+a_2 + result[1]*b (result[1] = 1)
+
+ */
+template <typename T>
+void replicatedSecretShare<T>::generatePublicCoef(T *result, int value) {
+    // ensuring destination is sanitized
+    memset(result, 0, sizeof(T) * numShares);
+
+    switch (n) {
+    case 3:
+        switch (id) {
+        case 1:
+            result[0] = T(value); // party 1's share 1
+            break;
+        case 3:
+            result[1] = T(value); // party 1's share 1
+            break;
+        default:
+            break;
+        }
+        break;
+    case 5:
+        switch (id) {
+        case 1:
+            result[0] = T(value); // party 1's share 1
+            break;
+        case 4:
+            result[5] = T(value); // party 1's share 1
+            break;
+        case 5:
+            result[3] = T(value); // party 1's share 1
+            break;
+        default:
+            break;
+        }
+        break;
+    case 7:
+        switch (id) {
+        case 1:
+            result[0] = T(value); // party 1's share 1
+            break;
+        case 5:
+            result[19] = T(value); // party 1's share 1
+            break;
+        case 6:
+            result[16] = T(value); // party 1's share 1
+            break;
+        case 7:
+            result[10] = T(value); // party 1's share 1
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateB2A_map() {
+    switch (n) {
+    case 3:
+        return {
+            {((id < 4) ? mod_n(id - 1, n) : -1)},
+            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1)}};
+    case 5:
+        return {
+            // if my id < 4, compute as normal, otherwise set to -1
+            {((id < 4) ? mod_n(id - 1, n) : -1),
+             ((id < 4) ? mod_n(id - 2, n) : -1)},
+            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1),
+             (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
+        };
+
+    case 7:
+        return {
+            // if my id < 5, compute as normal, otherwise set to -1
+            {((id < 5) ? mod_n(id - 1, n) : -1),
+             ((id < 5) ? mod_n(id - 2, n) : -1),
+             ((id < 5) ? mod_n(id - 3, n) : -1)},
+            // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
+            {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
+             (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
+             (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
+        };
+    default:
+        break;
+    }
+}
+
+// this map is used in the updated B2A protocol
+// only parties < t+1 use this
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateXi_map() {
+    switch (n) {
+    case 3:
+        switch (id) {
+        case 1:
+
+        default:
+            break;
+        }
+    case 5:
+        switch (id) {
+        case 1:
+        case 2:
+
+        default:
+            break;
+        }
+    case 7:
+        switch (id) {
+        case 1:
+        case 2:
+        case 3:
+
+        default:
+            break;
+        }
+    default:
+        break;
+    }
+}
+
+// this mapping must match whatever share is determined to be "special" (the nonzero share of \hat{b} in MultSparse)
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generate_MultSparse_map(int _n, int _id) {
+    switch (_n) {
+    case 3:
+        return {
+            // if my id > 1, compute as normal, otherwise set to -1
+            {((_id > 1) ? mod_n(_id - 1, _n) : -1)},
+            //  ((id < 4) ? mod_n(id - 2, n) : -1)},
+            // if the COMPUTED VALUE is > 1 , compute as normal, otherwise set to -1
+            {(mod_n(_id + 1, _n) > 1 ? mod_n(_id + 1, _n) : -1)},
+        };
+
+    case 5:
+        return {
+            // if my id > 2, compute as normal, otherwise set to -1
+            {((_id > 2) ? mod_n(_id - 1, _n) : -1),
+             ((_id > 2) ? mod_n(_id - 2, _n) : -1)},
+            // if the COMPUTED VALUE is > 2 , compute as normal, otherwise set to -1
+            {(mod_n(_id + 1, _n) > 2 ? mod_n(_id + 1, _n) : -1),
+             (mod_n(_id + 2, _n) > 2 ? mod_n(_id + 2, _n) : -1)},
+        };
+
+    case 7:
+        return {
+            // if my id < 4, compute as normal, otherwise set to -1
+            {((_id < 4) ? mod_n(_id - 1, _n) : -1),
+             ((_id < 4) ? mod_n(_id - 2, _n) : -1)},
+            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+            {(mod_n(_id + 1, _n) < 4 ? mod_n(_id + 1, _n) : -1),
+             (mod_n(_id + 2, _n) < 4 ? mod_n(_id + 2, _n) : -1)},
+        };
+
+    default:
+        return {}; // should throw an error
+    }
 }
 
 template <typename T>
@@ -1040,6 +1425,14 @@ replicatedSecretShare<T>::~replicatedSecretShare() {
     delete[] SHIFT;
     delete[] ODD;
     delete[] EVEN;
+}
+
+template <typename T>
+void ss_batch_free_operator(T ***op, int size) {
+}
+
+template <typename T>
+void ss_batch_free_operator(T ****op, int size) {
 }
 
 #endif

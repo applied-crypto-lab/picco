@@ -51,10 +51,6 @@ struct priv_ptr_ {
     int type; // type = 0 - int, = 1 - float, = 2 - struct
 };
 
-// class PrivPtr : public Operation {
-// public:
-// PrivPtr(NodeNetwork nodeNet, int nodeID, SecretShare *s);
-// virtual ~PrivPtr();
 /******************************/
 listnode create_listnode(mpz_t *, mpz_t **, void *, priv_ptr, mpz_t, int);
 listnode create_listnode();
@@ -81,22 +77,22 @@ void set_ptr(priv_ptr, mpz_t *, mpz_t **, void *, priv_ptr *, int threadID);
 void set_ptr(priv_ptr, priv_ptr, int threadID);
 void add_ptr(priv_ptr, mpz_t *, mpz_t **, void *, priv_ptr *, mpz_t, int threadID);
 void shrink_ptr(priv_ptr, int, int, int threadID);
-void merge_and_shrink_ptr(priv_ptr, priv_ptr, NodeNetwork net, int id, SecretShare *ss);
-void reduce_dereferences(priv_ptr, int, priv_ptr, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void merge_and_shrink_ptr(priv_ptr, priv_ptr, NodeNetwork net,  SecretShare *ss);
+void reduce_dereferences(priv_ptr, int, priv_ptr, int threadID, NodeNetwork net,  SecretShare *ss);
 void dereference_ptr_read_ptr(priv_ptr, priv_ptr, int, mpz_t, int threadID);
-void dereference_ptr_read_ptr(priv_ptr ptr, priv_ptr result, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void dereference_ptr_read_ptr(priv_ptr ptr, priv_ptr result, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss);
 
-void dereference_ptr_write(priv_ptr, mpz_t *, mpz_t **, void *, priv_ptr *, int, mpz_t, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID, NodeNetwork net, int id, SecretShare *ss);
-int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNetwork net, int id, SecretShare *ss);
-void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss);
-void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void dereference_ptr_write(priv_ptr, mpz_t *, mpz_t **, void *, priv_ptr *, int, mpz_t, int threadID, NodeNetwork net,  SecretShare *ss);
+void update_list_attributes(dlist list, mpz_t priv_cond, int if_index, int size, int threadID, NodeNetwork net,  SecretShare *ss);
+void update_ptr(priv_ptr ptr, mpz_t *int_var_loc, mpz_t **float_var_loc, void *struct_var_loc, priv_ptr *ptr_loc, mpz_t private_tag, int index, int threadID, NodeNetwork net,  SecretShare *ss);
+void update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, mpz_t private_tag, int index, int threadID, NodeNetwork net,  SecretShare *ss);
+int is_repeated_listnode(dlist list, listnode node, int level, int type, NodeNetwork net,  SecretShare *ss);
+void dereference_ptr_read_var(priv_ptr ptr, mpz_t result, int dereferences, int threadID, NodeNetwork net,  SecretShare *ss);
+void dereference_ptr_read_var(priv_ptr ptr, mpz_t *result, int dereferences, int threadID, NodeNetwork net,  SecretShare *ss);
+void read_write_helper(priv_ptr ptr, priv_ptr result, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss);
+void dereference_ptr_write_ptr(priv_ptr ptr, priv_ptr value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss);
+void dereference_ptr_write_var(priv_ptr ptr, mpz_t *value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss);
+void dereference_ptr_write_var(priv_ptr ptr, mpz_t value, int dereferences, mpz_t priv_cond, int threadID, NodeNetwork net,  SecretShare *ss);
 
 // };
 

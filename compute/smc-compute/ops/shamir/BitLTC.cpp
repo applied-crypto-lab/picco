@@ -22,7 +22,7 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 4.5 page 13 (BitLTC1)
-void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t **d = (mpz_t **)malloc(sizeof(mpz_t *) * K);
     mpz_t **a = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -66,7 +66,7 @@ void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int
             mpz_set(d[K - 1 - i][j], temp[j]);
     }
 
-    doOperation_PrefixMult(d, d, K, size, threadID, net, id, ss);
+    doOperation_PrefixMult(d, d, K, size, threadID, net, ss);
 
     for (int m = 0; m < size; m++) {
         mpz_set_ui(temp[m], 0);
@@ -83,7 +83,7 @@ void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int
         }
     }
 
-    doOperation_Mod2(temp, result, K, size, threadID, net, id, ss);
+    doOperation_Mod2(temp, result, K, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < K; i++) {

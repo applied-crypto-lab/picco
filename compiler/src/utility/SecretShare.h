@@ -50,6 +50,33 @@
 // #include "aes_ni.h"
 // }
 
+template <typename T>
+inline __attribute__((always_inline)) T GET_BIT(T X, T N) {
+    return (((X) >> (N)) & T(1));
+}
+
+// sets the Nth bit of X (from right to left) to B
+template <typename T>
+inline __attribute__((always_inline)) T SET_BIT(T X, T N, T B) {
+    return (X & ~(T(1) << N)) | (B << N);
+}
+
+
+template <typename T>
+void print_binary(T n, uint size) {
+    T temp = size - 1;
+    int i = size - 1;
+    uint b;
+    while (i != -1) {
+        b = (uint)GET_BIT(n, temp);
+        printf("%u", b);
+        temp--;
+        i -= 1;
+    }
+    printf("\n");
+}
+
+
 std::vector<std::string> splitfunc(const char *str, const char *delim);
 
 class SecretShare {
@@ -209,22 +236,19 @@ RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), thresho
 
     if (!RAND_bytes(key_raw, KEYSIZE) && !RAND_bytes(key_seed, KEYSIZE)) {
         fprintf(stderr, "ERROR (rss_setup): key generation, RAND_bytes()\n");
-        exit(0);
+        exit(1);
     }
 
     key_prg = offline_prg_keyschedule(key_raw);
-    // for (size_t i = 0; i < 100; i++)
-    // {
-    //      T test_input;
-    // prg_aes_ni(&test_input, key_seed, key_prg);
-    // std::cout<<i<<": "<<test_input<<std::endl;
-    // }
 
     SHIFT = (T(1) << T(ring_size)) - T(1);
     // accomadates for undefined behavior where we left shift more than sizeof(T)
     if (ring_size == sizeof(T) * 8) {
         SHIFT = -1;
     }
+    // printf("SHIFT: \t");
+    // print_binary(SHIFT, ring_size);
+
 
     // static share mappings, MUST be consistent with RSS protocols in smc-compute
     switch (peers) {
@@ -257,7 +281,7 @@ RSS<T>::RSS(int _peers, int _threshold, int _ring_size) : peers(_peers), thresho
         break;
     default:
         fprintf(stderr, "ERROR (rss_setup): invalid number of parties, only n = {3, 5, 7} is supported for RSS \n");
-        exit(0);
+        exit(1);
     }
 }
 
@@ -277,7 +301,7 @@ template <typename T>
 std::vector<std::string> RSS<T>::getShares(long long input) {
     // if (input.empty()) {
     //     fprintf(stderr, "ERROR (getShares): empty input string, are your inputs formatted correctly?\n");
-    //     exit(0);
+    //     exit(1);
     // }
 
     // storing input into largest type just in case
@@ -294,7 +318,7 @@ std::vector<std::string> RSS<T>::getShares(long long input) {
         prg_aes_ni(&splitInput[i], key_seed, key_prg);
         splitInput[i] = splitInput[i] & SHIFT; // making sure any bits beyond k are zeroed
     }
-    splitInput[totalNumShares - 1] = (input & ((T(1) << T(ring_size)) - T(1)));
+    splitInput[totalNumShares - 1] = input & SHIFT;
 
     // total = nCt
     // computing x_total = x - x_1 - x_2 - ... - x_{total-1}
@@ -320,7 +344,7 @@ std::vector<std::string> RSS<T>::getShares(long long input) {
         }
         if (share_str.empty()) {
             fprintf(stderr, "ERROR (getShares): share_str, something went very wrong in share generation\n");
-            exit(0);
+            exit(1);
         }
 
         // std::string share_str = joined_stream.str();
@@ -437,7 +461,7 @@ template <typename T>
 int RSS<T>::nCk(int n, int k) {
     if (k > n) {
         fprintf(stderr, "ERROR (nCk): n must be >= k\n");
-        exit(0);
+        exit(1);
         return -1;
     } else {
         int res = 1;

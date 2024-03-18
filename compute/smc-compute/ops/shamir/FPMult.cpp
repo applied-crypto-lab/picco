@@ -19,12 +19,12 @@
 */
 #include "FPMult.h"
 
-void doOperation_FPMult(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size, NodeNetwork net, int id, SecretShare *ss) {
+void doOperation_FPMult(mpz_t *C, mpz_t *A, mpz_t *B, int K, int F, int size, NodeNetwork net,  SecretShare *ss) {
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init(temp[i]);
     ss->modMul(temp, A, B, size);
-    doOperation_Trunc(C, temp, 2 * K, F, size, -1, net, id, ss);
+    doOperation_Trunc(C, temp, 2 * K, F, size, -1, net, ss);
     for (int i = 0; i < size; i++)
         mpz_clear(temp[i]);
     free(temp);

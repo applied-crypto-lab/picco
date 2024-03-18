@@ -24,7 +24,7 @@
 #include "Random.h"
 #include "Mult.h"
 
-void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net, int id, SecretShare *ss);
+void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 
 
 #endif /* PREFIXMULTIPLICATION_SHAMIR_H_ */

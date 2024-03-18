@@ -27,5 +27,5 @@
 #include "Operation.h"
 #include "PreOr.h"
 
-void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) ;
+void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) ;
 #endif /* NORM_SHAMIR_H_ */

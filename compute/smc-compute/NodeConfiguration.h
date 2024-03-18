@@ -30,7 +30,7 @@ class NodeConfiguration {
 
 public:
 	NodeConfiguration();
-	NodeConfiguration(int nodeID, std::string configFile, int bits);
+	NodeConfiguration(int nodeID, std::string configFile, int bits, int number_of_peers);
 	int getID();
 	std::string getIP();
 	int getPort();
@@ -47,6 +47,7 @@ private:
 	int bits; 
 	std::string ip;
 	int port;
+	int peers;
 	std::vector<std::string> peerIP;
 	std::vector<int> peerPort;
 	std::vector<int> peerID;

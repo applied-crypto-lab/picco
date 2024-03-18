@@ -20,19 +20,10 @@
 
 #include "AddBitwise.h"
 
-// AddBitwise::AddBitwise(NodeNetwork nodeNet, std::map<std::string, std::vector<int>> poly, int nodeID, SecretShare *s) {
-//     // Pre = new PreOpL(nodeNet, poly, nodeID, s);
-//     ss = s;
-// }
-
-// AddBitwise::~AddBitwise() {
-//     // TODO Auto-generated destructor stub
-// }
-
 // Source: SecureSCM, "Deliverable D9.2, EU FP7 Project Secure Supply Chain Management (SecureSCM)," 2009
 // Protocol 4.4 page 45
 // Notice that S has a format [K+1][size] while A and B has formats [K][size].
-void AddBitwise(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID, NodeNetwork net, int id, SecretShare *ss) {
+void AddBitwise(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t **C = (mpz_t **)malloc(sizeof(mpz_t *) * K);
@@ -67,7 +58,7 @@ void AddBitwise(mpz_t **S, mpz_t **A, mpz_t **B, int K, int size, int threadID, 
         ss->modSub(D1[i], temp1, temp2, size);
     }
 
-    PreOpL(C, D1, D2, K, size, threadID, net, id, ss);
+    PreOpL(C, D1, D2, K, size, threadID, net, ss);
     ss->modAdd(temp1, A[0], B[0], size);
     ss->modMul(temp2, C[0], const2, size);
     ss->modSub(S[0], temp1, temp2, size);

@@ -357,7 +357,7 @@ void test_new_Rss_MSB(Lint **res, Lint **a, uint size, uint ring_size, NodeNetwo
     // } else if (pid == numShares) {
     //     ai[numShares - 1] = 1;
     // }
-    uint numParties = nodeNet->getNumParties();
+    uint numParties = nodeNet->getPeers();
     if (numParties == 3) {
         if (pid == 1) {
             ai[0] = 1; // party 1's share 1

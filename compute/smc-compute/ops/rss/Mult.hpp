@@ -1,44 +1,71 @@
+/*
+   PICCO: A General Purpose Compiler for Private Distributed Computation
+   ** Copyright (C) from 2024 PICCO Team
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
+
+   PICCO is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   PICCO is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef RSS_MULT_H_
 #define RSS_MULT_H_
 
-#include "../../RSS_SecretShare.h"
 #include "../../NodeNetwork.h"
+#include "../../rss/RepSecretShare.hpp"
 
 // ANB, 1/30/2024
 // this is written in such a way that it checks both orderings of T_map.
 // we are now sorting the T_map in the SecertShare constructor
 // so we no longer really need to do this, provided we sort calculate what T_map[i] is compared against
-inline bool chi_p_prime_in_T(int p_prime, int *T_map, int n) {
+inline bool chi_p_prime_in_T(int p_prime, std::vector<int> T_map, int n) {
     return (((((p_prime + 1 - 1) % n + 1) == T_map[0]) and (((p_prime + 2 - 1) % n + 1) == T_map[1])) or
             ((((p_prime + 1 - 1) % n + 1) == T_map[1]) and (((p_prime + 2 - 1) % n + 1) == T_map[0])));
 }
 
-inline bool p_prime_in_T(int p_prime, int *T_map) {
+// CHECK
+// does the mapping {p_prime+1, p_prime+2} need to be sorted?
+// i think so, so we're better off just checking the combinations directly
+inline bool chi_p_prime_in_T_new(int p_prime, std::vector<int> T_map_mpc, int n) {
+    // return ((
+    //     (mod_n(p_prime + 1, n) == T_map_mpc[0]) and
+    //     (mod_n(p_prime + 2, n) == T_map_mpc[1]))); // this wont work, would require soring {p_prime+1, p_prime+2}
+
+    return (((mod_n(p_prime + 1, n) == T_map_mpc[0]) and (mod_n(p_prime + 2, n) == T_map_mpc[1])) or
+            ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
+}
+
+inline bool p_prime_in_T(int p_prime, std::vector<int> T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1]);
 }
 
-
-inline bool chi_p_prime_in_T_7(int p_prime, int *T_map, uint n) {
+inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> T_map, uint n) {
 
     int chi_0 = (p_prime + 1 - 1) % n + 1;
     int chi_1 = (p_prime + 2 - 1) % n + 1;
     int chi_2 = (p_prime + 3 - 1) % n + 1;
 
-    return ((chi_0 == T_map[0] or chi_0 == T_map[1] or chi_0 == T_map[2])
-     and (chi_1 == T_map[0] or chi_1 == T_map[1] or chi_1 == T_map[2]) and 
-     (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
-
+    return ((chi_0 == T_map[0] or chi_0 == T_map[1] or chi_0 == T_map[2]) and (chi_1 == T_map[0] or chi_1 == T_map[1] or chi_1 == T_map[2]) and
+            (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
 }
 
-inline bool p_prime_in_T_7(int p_prime, int *T_map) {
+inline bool p_prime_in_T_7(int p_prime, std::vector<int> T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1] or p_prime == T_map[2]);
 }
 
-
-
 template <typename T>
-void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet,RSS_SecretShare<T> *ss) {
-    // uint bytes = (nodeNet->RING[ring_size] + 7) >> 3;
+void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
     int i;
     T *v = new T[size];
@@ -50,7 +77,7 @@ void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
         memcpy(c[0] + i, buffer + i * bytes, bytes);
         v[i] = ((a[0][i] & b[0][i]) ^ (a[0][i] & b[1][i]) ^ (a[1][i] & b[0][i])) ^ c[0][i];
     }
-    nodeNet->SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map, ss->getThreshold());
+    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
@@ -63,13 +90,12 @@ void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     delete[] buffer;
 }
 
-
 //  For party 1, a[0,1]=a_2,3; b[0,1]=b_2,3;  c[0,1] = c_2,3;
 //  For party 2, a[0,1]=a_3,1; b[0,1]=b_3,1;  c[0,1] = c_3,1;
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
 template <typename T>
-void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet,RSS_SecretShare<T> *ss) {
-    // uint bytes = (nodeNet->RING[ring_size] + 7) >> 3;
+void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
     int i;
 
@@ -83,7 +109,7 @@ void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
         v[i] = a[0][i] * b[0][i] + a[0][i] * b[1][i] + a[1][i] * b[0][i] - c[0][i];
     }
 
-    nodeNet->SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map, ss->getThreshold());
+    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
@@ -101,9 +127,8 @@ void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
 //  For party 2, a[0,1]=a_3,1; b[0,1]=b_3,1;  c[0,1] = c_3,1;
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
 template <typename T>
-void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork *nodeNet,RSS_SecretShare<T> *ss) {
-
-    // uint bytes = (nodeNet->RING[ring_size] + 7) >> 3;
+void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
     int i;
 
@@ -124,7 +149,7 @@ void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
         v[i] = a[0][i] * b[0][b_index] + a[0][i] * b[1][b_index] + a[1][i] * b[0][b_index] - c_placeholder[0][i];
     }
     // communication
-    nodeNet->SendAndGetDataFromPeer(v, c_placeholder[1], size, ring_size, ss->general_map, ss->getThreshold());
+    nodeNet.SendAndGetDataFromPeer(v, c_placeholder[1], size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
@@ -144,7 +169,7 @@ void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
 }
 
 template <typename T>
-void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork *nodeNet,RSS_SecretShare<T> *ss) {
+void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     // size == how many bytes we're multiplying
     // uint bytes = (size+8-1)>>3;  //number of bytes need to be send/recv
     // uint bytes = size;  //number of bytes need to be send/recv
@@ -162,7 +187,7 @@ void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     }
 
     // communication
-    nodeNet->SendAndGetDataFromPeer_bit(v, c[1], size, ss->general_map, ss->getThreshold());
+    nodeNet.SendAndGetDataFromPeer_bit(v, c[1], size, ss->general_map);
     for (i = 0; i < size; i++) {
         c[1][i] = c[1][i] ^ c[0][i];
     }
@@ -179,13 +204,11 @@ void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 //  For party 2, a[0,1]=a_3,1; b[0,1]=b_3,1;  c[0,1] = c_3,1;
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
 template <typename T>
-void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet,RSS_SecretShare<T> *ss) {
+void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     int i; // used for loops
 
-    // uint bytes = (nodeNet->RING[ring_size] +7) >> 3;
+    // uint bytes = (nodeNet.RING[ring_size] +7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
-
-
 
     T **sendbuf = new T *[3];
     T **recvbuf = new T *[3];
@@ -196,7 +219,7 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
         memset(recvbuf[i], 0, sizeof(T) * size);
     }
 
-    int pid = nodeNet->getID();
+    int pid = nodeNet.getID();
     T *v = new T[size];
     T *v_a = new T[size];
 
@@ -240,10 +263,10 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
         memcpy(sendbuf[i - 1], c, sizeof(T) * size);
     }
 
-    nodeNet->multicastToPeers(sendbuf, recvbuf, size, ring_size);
+    nodeNet.multicastToPeers(sendbuf, recvbuf, size, ring_size);
 
-    memcpy(v_a, recvbuf[(((nodeNet->getID()) + 2 - 1) % 3 + 1)   - 1], sizeof(T) * size);
-    memcpy(v, recvbuf[(((nodeNet->getID()) + 1 - 1) % 3 + 1)     - 1], sizeof(T) * size);
+    memcpy(v_a, recvbuf[(((nodeNet.getID()) + 2 - 1) % 3 + 1) - 1], sizeof(T) * size);
+    memcpy(v, recvbuf[(((nodeNet.getID()) + 1 - 1) % 3 + 1) - 1], sizeof(T) * size);
 
     for (i = 0; i < size; i++) {
         // mask here
@@ -264,13 +287,11 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
 }
 
 template <typename T>
-void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitlength, NodeNetwork *nodeNet,RSS_SecretShare<T> *ss) {
+void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitlength, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     int i; // used for loops
 
-    // uint bytes = (nodeNet->RING[ring_size] +7) >> 3;
+    // uint bytes = (nodeNet.RING[ring_size] +7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
-
-
 
     T **sendbuf = new T *[3];
     T **recvbuf = new T *[3];
@@ -281,7 +302,7 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitleng
         memset(recvbuf[i], 0, sizeof(T) * size);
     }
 
-    int pid = nodeNet->getID();
+    int pid = nodeNet.getID();
     T *v = new T[size];
     T *v_a = new T[size];
 
@@ -325,10 +346,10 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitleng
         memcpy(sendbuf[i - 1], c, sizeof(T) * size);
     }
 
-    nodeNet->multicastToPeers(sendbuf, recvbuf, size, bitlength);
+    nodeNet.multicastToPeers(sendbuf, recvbuf, size, bitlength);
 
-    memcpy(v_a, recvbuf[(((nodeNet->getID()) + 2 - 1) % 3 + 1)   - 1], sizeof(T) * size);
-    memcpy(v, recvbuf[(((nodeNet->getID()) + 1 - 1) % 3 + 1)     - 1], sizeof(T) * size);
+    memcpy(v_a, recvbuf[(((nodeNet.getID()) + 2 - 1) % 3 + 1) - 1], sizeof(T) * size);
+    memcpy(v, recvbuf[(((nodeNet.getID()) + 1 - 1) % 3 + 1) - 1], sizeof(T) * size);
 
     for (i = 0; i < size; i++) {
         // mask here
@@ -348,16 +369,15 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitleng
     delete[] recvbuf;
 }
 
-
 template <typename T>
-void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     T *v = new T[size];
     memset(v, 0, sizeof(T) * size);
@@ -374,7 +394,7 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        nodeNet->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
         memset(c[i], 0, sizeof(T) * size);
     }
     T z = 0;
@@ -383,7 +403,7 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     // uint tracker;
     for (i = 0; i < size; i++) {
         v[i] = (a[0][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^ (a[1][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^ (a[2][i] & (b[1][i] ^ b[3][i])) ^ (a[3][i] & (b[0][i] ^ b[2][i])) ^ (a[4][i] & (b[0][i] ^ b[1][i])) ^ (a[5][i] & (b[0][i] ^ b[4][i]));
-        // printf("\n------------v[i]: %llu\t", v[i]  & nodeNet->SHIFT[ring_size] );
+        // printf("\n------------v[i]: %llu\t", v[i]  & ss->SHIFT[ring_size] );
 
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
@@ -392,11 +412,11 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
                 // tracker = 0;
                 z = T(0);
 
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                     c[T_index][i] = c[T_index][i] ^ z;
                     trackers[T_index] += 1;
-                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
                     c[T_index][i] = c[T_index][i] ^ z;
                     v[i] = v[i] ^ z;
@@ -408,8 +428,10 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     // printf("-- sending v\n");
 
     // communication
-    nodeNet->SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // nodeNet->prg_getrandom(0, bytes, size, buffer);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+
+    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
+    // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] ^ recv_buf[1][i];
         c[5][i] = c[5][i] ^ recv_buf[0][i];
@@ -431,14 +453,14 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
 }
 
 template <typename T>
-void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -452,7 +474,7 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        nodeNet->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
 
         // sanitizing destination (just in case)
         memset(c[i], 0, sizeof(T) * size);
@@ -471,17 +493,17 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker++;
+                    tracker+=1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
 
-                    tracker++;
+                    tracker+=1;
                 }
             }
         }
@@ -489,8 +511,9 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
     // printf("sending now\n");
 
     // communication
-    nodeNet->SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // nodeNet->prg_getrandom(0, bytes, size, buffer);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
+    // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] + recv_buf[1][i];
         c[5][i] = c[5][i] + recv_buf[0][i];
@@ -513,14 +536,14 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
 }
 
 template <typename T>
-void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -530,14 +553,10 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
         recv_buf[i] = new T[size];
         memset(recv_buf[i], 0, sizeof(T) * size);
     }
-    // printf("prg start\n");
-
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        nodeNet->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
-
-        // sanitizing destination (just in case)
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
         memset(c[i], 0, sizeof(T) * size);
     }
     T z = 0;
@@ -549,31 +568,26 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
                a[3][i] * (b[0][b_index] + b[2][b_index]) +
                a[4][i] * (b[0][b_index] + b[1][b_index]) +
                a[5][i] * (b[0][b_index] + b[4][b_index]);
-        // printf("finished calculating v\n");
-
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker++;
+                    tracker+=1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
-                    tracker++;
+                    tracker+=1;
                 }
             }
         }
     }
-    // printf("sending now\n");
 
     // communication
-    nodeNet->SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // nodeNet->prg_getrandom(0, bytes, size, buffer);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] + recv_buf[1][i];
         c[5][i] = c[5][i] + recv_buf[0][i];
@@ -596,13 +610,13 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
 }
 
 template <typename T>
-void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork *nodeNet) {
+void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint i = 0, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     // printf("size: %u\n", size);
 
@@ -621,7 +635,7 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * size];
-        nodeNet->prg_getrandom(i, 1, prg_ctrs[i] * size, buffer[i]);
+        ss->prg_getrandom(i, 1, prg_ctrs[i] * size, buffer[i]);
         memset(c[i], 0, sizeof(uint8_t) * size);
     }
     // uint tracker;
@@ -638,10 +652,10 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             for (T_index = 0; T_index < numShares; T_index++) {
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
                     trackers[T_index] += 1;
-                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
                     v[i] = v[i] ^ buffer[T_index][trackers[T_index]];
                     trackers[T_index] += 1;
@@ -649,7 +663,9 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
             }
         }
     }
-    nodeNet->SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
+    nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map);
+
+    // nodeNet.SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] ^ recv_buf[1][i];
         c[5][i] = c[5][i] ^ recv_buf[0][i];
@@ -672,14 +688,14 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 }
 
 template <typename T>
-void Rss_MultPub_5pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_MultPub_5pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, j;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    // uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    // uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     T **send_buf = new T *[numParties];
     T **recv_buf = new T *[numParties];
@@ -774,7 +790,7 @@ void Rss_MultPub_5pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[bytes * size];
         v_a[i] = new T[size];
-        nodeNet->prg_getrandom(i, bytes, size, buffer[i]);
+        ss->prg_getrandom(i, bytes, size, buffer[i]);
         memcpy(v_a[i], buffer[i], bytes * size);
     }
 
@@ -807,13 +823,13 @@ void Rss_MultPub_5pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
         memcpy(send_buf[i - 1], c, sizeof(T) * size);
     }
 
-    nodeNet->multicastToPeers(send_buf, recv_buf, size, ring_size);
+    nodeNet.multicastToPeers(send_buf, recv_buf, size, ring_size);
 
     for (i = 0; i < size; i++) {
         for (j = 0; j < numParties; j++) {
             c[i] = c[i] + recv_buf[j][i]; // we can just add up all received messages, including the one from itself (which is zero from earlier)
         }
-        c[i] = c[i] & nodeNet->SHIFT[ring_size];
+        c[i] = c[i] & ss->SHIFT[ring_size];
     }
 
     for (i = 0; i < numParties; i++) {
@@ -837,58 +853,15 @@ void Rss_MultPub_5pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
     // delete[] recv_buf
 }
 
-// we pass T[ind] to this function
-// since the order of T may be ordered differerntly, we need to
-// we negate the output when we call this function
-
-
 template <typename T>
-void test_prg(uint size, uint ring_size, NodeNetwork *nodeNet) {
-
-    uint bytes = (ring_size + 7) >> 3;
-    // printf("bytes %u\n", bytes);
-    // int i;
-    uint numShares = nodeNet->getNumShares();
-    // uint numParties = nodeNet->getNumParties();
-    // uint threshold = nodeNet->getThreshold();
-    // int pid = nodeNet->getID();
-
-    uint8_t **buffer = new uint8_t *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        buffer[i] = new uint8_t[bytes * size];
-        nodeNet->prg_getrandom(i, bytes, size, buffer[i]);
-        // memset(buffer[i], 0, sizeof(uint8_t) * prg_ctrs[numShares] * bytes * size);
-    }
-    // T z = 0;
-
-    T *prg_test = new T[numShares];
-    memset(prg_test, 0, sizeof(T) * numShares);
-    // testing prg keys
-    for (size_t j = 0; j < size; j++) {
-
-        for (size_t i = 0; i < numShares; i++) {
-            memcpy(prg_test + i, buffer[i] + j * bytes, bytes);
-            // printf("prg_test[%u] -- %llu\n", i, prg_test[i]);
-        }
-    }
-
-    for (size_t i = 0; i < numShares; i++) {
-        delete[] buffer[i];
-    }
-
-    delete[] buffer;
-    delete[] prg_test;
-}
-
-template <typename T>
-void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -902,60 +875,62 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        nodeNet->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
 
         // sanitizing destination (just in case)
-            // printf("case )\n");
+        // printf("case )\n");
         memset(c[i], 0, sizeof(T) * size);
     }
     T z = T(0);
     uint tracker;
     for (i = 0; i < size; i++) {
-        v[i] = 
-        a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) + 
-        a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) + 
-        a[2][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) + 
-        a[3][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) + 
-        a[4][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[15][i]) + 
-        a[5][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) + 
-        a[6][i] * (b[2][i] + b[5][i] + b[7][i] + b[9][i] + b[11][i] + b[13][i]) + 
-        a[7][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i] + b[10][i] + b[11][i] + b[12][i]) + 
-        a[8][i] * (b[0][i] + b[4][i] + b[5][i] + b[10][i] + b[11][i] + b[16][i]) + 
-        a[9][i] * (b[1][i] + b[4][i] + b[7][i] + b[8][i] + b[10][i] + b[13][i]) + 
-        a[10][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[9][i]) + 
-        a[11][i] * (b[0][i] + b[1][i] + b[4][i] + b[6][i] + b[7][i] + b[8][i]) + 
-        a[12][i] * (b[0][i] + b[1][i] + b[2][i] + b[4][i] + b[5][i] + b[7][i]) + 
-        a[13][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i]) + 
-        a[14][i] * (b[2][i] + b[4][i] + b[5][i]) + 
-        a[15][i] * (b[1][i] + b[4][i]) + 
-        a[16][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[15][i]) + 
-        a[17][i] * (b[0][i] + b[1][i] + b[2][i]) + 
-        a[18][i] * (b[1][i] + b[8][i]) + 
-        a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
+        v[i] =
+            a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+            a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+            a[2][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+            a[3][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+            a[4][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[15][i]) +
+            a[5][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+            a[6][i] * (b[2][i] + b[5][i] + b[7][i] + b[9][i] + b[11][i] + b[13][i]) +
+            a[7][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i] + b[10][i] + b[11][i] + b[12][i]) +
+            a[8][i] * (b[0][i] + b[4][i] + b[5][i] + b[10][i] + b[11][i] + b[16][i]) +
+            a[9][i] * (b[1][i] + b[4][i] + b[7][i] + b[8][i] + b[10][i] + b[13][i]) +
+            a[10][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[9][i]) +
+            a[11][i] * (b[0][i] + b[1][i] + b[4][i] + b[6][i] + b[7][i] + b[8][i]) +
+            a[12][i] * (b[0][i] + b[1][i] + b[2][i] + b[4][i] + b[5][i] + b[7][i]) +
+            a[13][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i]) +
+            a[14][i] * (b[2][i] + b[4][i] + b[5][i]) +
+            a[15][i] * (b[1][i] + b[4][i]) +
+            a[16][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[15][i]) +
+            a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
+            a[18][i] * (b[1][i] + b[8][i]) +
+            a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
 
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker++;
+                    tracker+=1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
 
-                    tracker++;
+                    tracker+=1;
                 }
             }
         }
     }
     // communication
-    nodeNet->SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // nodeNet->prg_getrandom(0, bytes, size, buffer);
+    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+
+    // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[19][i] = c[19][i] + recv_buf[0][i];
         c[16][i] = c[16][i] + recv_buf[1][i];
@@ -978,16 +953,115 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *n
     delete[] recv_buf;
 }
 
+template <typename T>
+void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    uint bytes = (ring_size + 7) >> 3;
+    uint i, p_prime, T_index;
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
+
+    T *v = new T[size];
+    uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
+
+    T **recv_buf = new T *[threshold];
+    for (i = 0; i < threshold; i++) {
+        recv_buf[i] = new T[size];
+        memset(recv_buf[i], 0, sizeof(T) * size);
+    }
+
+    uint8_t **buffer = new uint8_t *[numShares];
+    for (i = 0; i < numShares; i++) {
+        buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+
+        // sanitizing destination (just in case)
+        // printf("case )\n");
+        memset(c[i], 0, sizeof(T) * size);
+    }
+    T z = T(0);
+    uint tracker;
+    for (i = 0; i < size; i++) {
+        v[i] =
+            a[0][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[1][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[2][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[3][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[4][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[15][b_index]) +
+            a[5][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
+            a[6][i] * (b[2][b_index] + b[5][b_index] + b[7][b_index] + b[9][b_index] + b[11][b_index] + b[13][b_index]) +
+            a[7][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index]) +
+            a[8][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[10][b_index] + b[11][b_index] + b[16][b_index]) +
+            a[9][i] * (b[1][b_index] + b[4][b_index] + b[7][b_index] + b[8][b_index] + b[10][b_index] + b[13][b_index]) +
+            a[10][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[9][b_index]) +
+            a[11][i] * (b[0][b_index] + b[1][b_index] + b[4][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index]) +
+            a[12][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[4][b_index] + b[5][b_index] + b[7][b_index]) +
+            a[13][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index]) +
+            a[14][i] * (b[2][b_index] + b[4][b_index] + b[5][b_index]) +
+            a[15][i] * (b[1][b_index] + b[4][b_index]) +
+            a[16][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[15][b_index]) +
+            a[17][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index]) +
+            a[18][i] * (b[1][b_index] + b[8][b_index]) +
+            a[19][i] * (b[0][b_index] + b[5][b_index] + b[6][b_index]);
+
+        // printf("finished calculating v\n");
+        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+            // printf("\n");
+            for (T_index = 0; T_index < numShares; T_index++) {
+                tracker = 0;
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                    c[T_index][i] += z;
+                    tracker+=1;
+                } else if (
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
+                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                    c[T_index][i] += z;
+                    v[i] -= z;
+
+                    tracker+=1;
+                }
+            }
+        }
+    }
+    // communication
+    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+
+    // ss->prg_getrandom(0, bytes, size, buffer);
+    for (i = 0; i < size; i++) {
+        c[19][i] = c[19][i] + recv_buf[0][i];
+        c[16][i] = c[16][i] + recv_buf[1][i];
+        c[10][i] = c[10][i] + recv_buf[2][i];
+
+        c[0][i] = c[0][i] + v[i];
+    }
+
+    for (i = 0; i < threshold; i++) {
+        delete[] recv_buf[i];
+    }
+
+    for (i = 0; i < numShares; i++) {
+        delete[] buffer[i];
+    }
+
+    // free
+    delete[] v;
+    delete[] buffer;
+    delete[] recv_buf;
+}
 
 template <typename T>
-void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, j;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    // uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    // uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     // printf("numShares = %u\n",numShares);
     // printf("bytes = %u\n",bytes);
@@ -1008,7 +1082,7 @@ void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
     int num_ops = 0;
     // printf("switch\n");
     switch (pid) {
-        
+
     case 1:
         // printf("case 1\n");
         num_ops = 20;
@@ -1273,13 +1347,12 @@ void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
     }
     // printf("switch end\n");
 
-
     uint8_t **buffer = new uint8_t *[numShares];
     T **v_a = new T *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[bytes * size];
         v_a[i] = new T[size];
-        nodeNet->prg_getrandom(i, bytes, size, buffer[i]);
+        ss->prg_getrandom(i, bytes, size, buffer[i]);
         memcpy(v_a[i], buffer[i], bytes * size);
     }
 
@@ -1313,14 +1386,14 @@ void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
     }
 
     // printf("multicasting\n");
-    nodeNet->multicastToPeers(send_buf, recv_buf, size, ring_size);
+    nodeNet.multicastToPeers(send_buf, recv_buf, size, ring_size);
     // printf("moving data out buff\n");
 
     for (i = 0; i < size; i++) {
         for (j = 0; j < numParties; j++) {
             c[i] = c[i] + recv_buf[j][i]; // we can just add up all received messages, including the one from itself (which is zero from earlier)
         }
-        c[i] = c[i] & nodeNet->SHIFT[ring_size];
+        c[i] = c[i] & ss->SHIFT[ring_size];
     }
     // printf("end\n");
 
@@ -1345,14 +1418,14 @@ void Rss_MultPub_7pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork 
 }
 
 template <typename T>
-void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -1366,10 +1439,10 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        nodeNet->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
 
         // sanitizing destination (just in case)
-            // printf("case )\n");
+        // printf("case )\n");
         memset(c[i], 0, sizeof(T) * size);
     }
     T z = T(0);
@@ -1402,24 +1475,26 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] ^= z;
-                    tracker++;
+                    tracker+=1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] ^= z;
                     v[i] ^= z;
 
-                    tracker++;
+                    tracker+=1;
                 }
             }
         }
     }
     // communication
-    nodeNet->SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // nodeNet->prg_getrandom(0, bytes, size, buffer);
+    nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+
+    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
+    // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[19][i] = c[19][i] ^ recv_buf[0][i];
         c[16][i] = c[16][i] ^ recv_buf[1][i];
@@ -1443,13 +1518,13 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
 }
 
 template <typename T>
-void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork *nodeNet) {
+void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint i, p_prime, T_index;
-    uint numShares = nodeNet->getNumShares();
-    uint numParties = nodeNet->getNumParties();
-    uint threshold = nodeNet->getThreshold();
-    int pid = nodeNet->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    int pid = nodeNet.getID();
 
     uint8_t *v = new uint8_t[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -1463,12 +1538,12 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * size];
-        nodeNet->prg_getrandom(i, 1, prg_ctrs[i] * size, buffer[i]);
+        ss->prg_getrandom(i, 1, prg_ctrs[i] * size, buffer[i]);
         // sanitizing destination (just in case)
-            // printf("case )\n");
+        // printf("case )\n");
         memset(c[i], 0, sizeof(uint8_t) * size);
     }
-    uint tracker;
+    uint tracker = 0;
     uint trackers[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     for (i = 0; i < size; i++) {
@@ -1498,22 +1573,24 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, nodeNet->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] ^= buffer[T_index][trackers[T_index]];
-                    tracker++;
+                    tracker+=1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, nodeNet->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
 
                     v[i] ^= buffer[T_index][trackers[T_index]];
 
-                    tracker++;
+                    tracker+=1;
                 }
             }
         }
     }
     // communication
-    nodeNet->SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
+    nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map);
+
+    // nodeNet.SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
         c[19][i] = c[19][i] ^ recv_buf[0][i];
         c[16][i] = c[16][i] ^ recv_buf[1][i];
@@ -1534,6 +1611,104 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     delete[] v;
     delete[] buffer;
     delete[] recv_buf;
+}
+
+// only need one version that has threadID parameter, since thats the only version that gets called inside SMC_utils
+template <typename T>
+void Mult(T **C, T **A, T **B, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_3pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_5pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_7pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
+
+// non-threaded versions (since RSS is single threaded )
+template <typename T>
+void Mult(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_3pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_5pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_7pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
+
+template <typename T>
+void Mult_Bitwise(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_Bitwise_3pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_Bitwise_5pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_Bitwise_7pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
+
+template <typename T>
+void Mult_Byte(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_Byte_3pc(C, A, B, size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_Byte_5pc(C, A, B, size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_Byte_7pc(C, A, B, size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
 }
 
 #endif

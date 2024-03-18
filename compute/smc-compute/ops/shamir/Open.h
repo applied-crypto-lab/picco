@@ -18,16 +18,16 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPEN_SHAMIR_SHAMIR_H_
-#define OPEN_SHAMIR_SHAMIR_H_
+#ifndef OPEN_SHAMIR_H_
+#define OPEN_SHAMIR_H_
 
 #include "Operation.h"
 
-void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s);
-int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *s);
+void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *ss);
+int Open_int(mpz_t var, int threadID, NodeNetwork nodeNet, SecretShare *ss);
 float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss);
-void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *s);
+void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork nodeNet, SecretShare *ss);
 
-void Open_print(mpz_t *shares, std::string name, int size, int threadID, NodeNetwork nodeNet, SecretShare *s);
+void Open_print(mpz_t *shares, std::string name, int size, int threadID, NodeNetwork nodeNet, SecretShare *ss);
 
 #endif
