@@ -37,6 +37,10 @@
 #define CONTAINER_SIZE 16
 #define KEYSIZE 16
 
+using std::cout;
+using std::endl;
+using std::vector;
+
 #define KE2(NK, OK, RND)                           \
     NK = OK;                                       \
     NK = _mm_xor_si128(NK, _mm_slli_si128(NK, 4)); \
@@ -51,6 +55,25 @@
 template <typename T>
 T mod_n(T a, T n) {
     return ((a - T(1)) % n + n) % n + T(1);
+}
+
+inline void print_hexa_2(uint8_t *message, int message_length) {
+    for (int i = 0; i < message_length; i++) {
+        printf("%02x", message[i]);
+    }
+    printf(";\n");
+}
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+    out << "[";
+    size_t last = v.size() - 1;
+    for (size_t i = 0; i < v.size(); ++i) {
+        out << v[i];
+        if (i != last)
+            out << ", ";
+    }
+    out << "]";
+    return out;
 }
 
 template <typename T>
@@ -152,6 +175,7 @@ public:
 
     std::vector<int> generateT_star(int p_star);
     int generateT_star_index(int p_star);
+    void sparsify(T **result, int *x, int size);
 
     std::vector<std::vector<int>> generateB2A_map();
     std::vector<std::vector<int>> generateXi_map();
@@ -365,15 +389,12 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> r
     // need to create numShares+1 keys, random containers, etc
     uint numKeys = numShares + 1;
     random_container = new uint8_t *[numKeys];
-    // uint8_t **tempKey = new uint8_t *[numKeys];
     // this doesn't need to be created with "new"
     // since we call new inside prg_keyschedule, and return the memory created inside it to prg_key
     prg_key = new __m128i *[numKeys];
     for (int i = 0; i < numKeys; i++) {
         random_container[i] = new uint8_t[KEYSIZE];
         memset(random_container[i], 0, sizeof(uint8_t) * KEYSIZE);
-        // tempKey[i] = new uint8_t[KEYSIZE];
-        // memset(tempKey[i], 0, sizeof(uint8_t) * KEYSIZE);
     }
     // initalizing P_container
     P_container = new int[numKeys];
@@ -398,7 +419,6 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> r
 
     for (size_t i = 0; i < T_map_mpc.size(); i++) {
         memcpy(random_container[i], rss_share_seeds[T_map_mpc.at(i)], KEYSIZE);
-        // memcpy(tempKey[i], rss_share_seeds[T_map_mpc.at(i)] + KEYSIZE, KEYSIZE);
         prg_key[i] = prg_keyschedule(rss_share_seeds[T_map_mpc.at(i)] + KEYSIZE); // should be able to do this
     }
     uint8_t res[KEYSIZE] = {};
@@ -436,6 +456,7 @@ void replicatedSecretShare<T>::prg_aes(uint8_t *dest, uint8_t *src, __m128i *ri)
     mr = rr;
 
     mr = _mm_xor_si128(mr, r[0]);
+
     mr = _mm_aesenc_si128(mr, r[1]);
     mr = _mm_aesenc_si128(mr, r[2]);
     mr = _mm_aesenc_si128(mr, r[3]);
@@ -447,6 +468,7 @@ void replicatedSecretShare<T>::prg_aes(uint8_t *dest, uint8_t *src, __m128i *ri)
     mr = _mm_aesenc_si128(mr, r[9]);
     mr = _mm_aesenclast_si128(mr, r[10]);
     mr = _mm_xor_si128(mr, rr);
+
     _mm_storeu_si128((__m128i *)dest, mr);
 }
 
@@ -1202,12 +1224,15 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
         default:
             break;
         }
+        cout << "tmp : " << tmp << endl;
         for (size_t i = 0; i < T_map_mpc.size(); i++) {
             if (tmp == T_map_mpc.at(i)) {
                 return i;
             }
         }
-        throw std::runtime_error("index not found, there's a logic error somewhere");
+        cout << "index not found, returning -1" << endl;
+        return -1;
+        // throw std::runtime_error("index not found, there's a logic error somewhere");
     } catch (const std::runtime_error &ex) {
         std::cerr << "[generateT_star_index] " << ex.what() << "\n";
         exit(1);
@@ -1380,12 +1405,12 @@ std::vector<std::vector<int>> replicatedSecretShare<T>::generate_MultSparse_map(
 
     case 7:
         return {
-            // if my id < 4, compute as normal, otherwise set to -1
-            {((_id < 4) ? mod_n(_id - 1, _n) : -1),
-             ((_id < 4) ? mod_n(_id - 2, _n) : -1)},
-            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
-            {(mod_n(_id + 1, _n) < 4 ? mod_n(_id + 1, _n) : -1),
-             (mod_n(_id + 2, _n) < 4 ? mod_n(_id + 2, _n) : -1)},
+            {((_id > 3) ? mod_n(_id - 1, _n) : -1),
+             ((_id > 3) ? mod_n(_id - 2, _n) : -1),
+             ((_id > 3) ? mod_n(_id - 3, _n) : -1)},
+            {(mod_n(_id + 1, _n) > 3 ? mod_n(_id + 1, _n) : -1),
+             (mod_n(_id + 2, _n) > 3 ? mod_n(_id + 2, _n) : -1),
+             (mod_n(_id + 3, _n) > 3 ? mod_n(_id + 3, _n) : -1)},
         };
 
     default:
@@ -1433,6 +1458,19 @@ void ss_batch_free_operator(T ***op, int size) {
 
 template <typename T>
 void ss_batch_free_operator(T ****op, int size) {
+}
+
+template <typename T>
+void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
+    int idx = generateT_star_index(3);
+    cout << "idx : " << idx << endl;
+    if (idx >= 0) {
+
+        // for (size_t i = 0; i < numShares; i++) {
+        for (size_t j = 0; j < size; j++)
+            result[idx][j] += T(x[j]);
+        // }
+    }
 }
 
 #endif
