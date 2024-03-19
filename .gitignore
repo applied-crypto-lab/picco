@@ -58,3 +58,6 @@ compute/build*
 compute/notes.txt
 CMakeLists.txt
 compute/steps.sh
+compute/sample-programs/non-thread/global-tester-data
+compute/sample-programs/non-thread/global-tester-data2
+compute/sample-programs/non-thread/global-tester.c

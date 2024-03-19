@@ -136,7 +136,7 @@ void append_new_main(bool mode) {
         getPrime(modulus2, bits);
         res = mpz_get_str(NULL, 10, modulus2);
     } 
-    
+
     
     // Check the input parameters
     // this will be different based on flag
@@ -196,6 +196,9 @@ void append_new_main(bool mode) {
                "\n struct timeval tv2;"
                "\n int _xval = 0;\n\n"
                " gettimeofday(&tv1,NULL);\n");
+               
+    // Private-global_variables will be printed after this line
+
     if (num_threads > 0)
         str_printf(strA(), "  ort_initialize(&argc, &argv);\n"
                            "  omp_set_num_threads(%d);\n",
