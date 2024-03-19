@@ -5324,75 +5324,6 @@ char *readFileToString() {
     return fileContent;
 }
 
-/**
- * Insert a string into a file after a specified search string.
- *
- * This function opens the file specified by 'filename' for reading and writing. 
- * It searches for the 'searchString' within the file. If found, it inserts the 'newString'
- * immediately after the line containing the 'searchString', without removing any content
- * that follows. If 'searchString' is not found, the function returns without making any changes. If
- * there are no private global variables, the function returns without making any changes. 
- *
- * @param filename The name of the file to modify.
- * @param searchString The string to search for within the file.
- * @param newString The string to insert into the file.
- */
-void insertString(const char *filename, const char *searchString, const char *newString) {
-    // Open the file for reading and writing
-    FILE *file = fopen(filename, "r+"); // "r+" mode for reading and writing
-
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
-
-    // Search for the position of searchString in the file
-    char line[256];
-    long position = -1; // Initialize position to -1 indicating not found
-
-    while (fgets(line, sizeof(line), file) != NULL) {
-        if (strstr(line, searchString) != NULL) {
-            position = ftell(file) - strlen(line) + strlen(searchString) + 1; // Move past the search string
-            break;
-        }
-    }
-
-    // Check if searchString was found
-    if (position == -1) {
-        printf("Error: '%s' not found in file.\n", searchString);
-        fclose(file);
-        return;
-    }
-
-    // Move the file pointer to the position found
-    fseek(file, position, SEEK_SET);
-
-    // Store the content after the insertion point
-    char *tempContent = NULL;
-    long fileSize;
-    fseek(file, 0, SEEK_END);
-    fileSize = ftell(file);
-    tempContent = (char *)malloc(fileSize - position + 1);
-    fseek(file, position, SEEK_SET);
-    fread(tempContent, fileSize - position, 1, file);
-    tempContent[fileSize - position] = '\0';
-
-    // Move back to the insertion point
-    fseek(file, position, SEEK_SET);
-
-    // Print the new string at the desired location
-    fprintf(file, "\n\n%s\n", newString);
-
-    // Restore the content after the insertion point
-    fprintf(file, "%s", tempContent);
-
-    // Free allocated memory
-    free(tempContent);
-
-    // Close the file
-    fclose(file);
-}
-
 
 /**
  * Display an abstract syntax tree and handle output streams.
@@ -5406,7 +5337,7 @@ void insertString(const char *filename, const char *searchString, const char *ne
  * @param tree The abstract syntax tree to display.
  * @param output_filename The name of the output file where the generated code will be displayed.
  */
-void ast_show(aststmt tree, char *output_filename) {
+char *ast_show(aststmt tree, char *output_filename) {
     // This is where the output stream gets set 
     output = fopen(output_filename, "w+");
     // This is where the global variables stream get set 
@@ -5425,12 +5356,13 @@ void ast_show(aststmt tree, char *output_filename) {
     sns = struct_node_stack_new();
     ast_stmt_show(tree, if_tree);
     fclose(global_stream);
-    // Printing the global_variables inside new main
-    const char *fileContent = readFileToString();
     fclose(output);
-    // Print the new priv global stuff after this line. 
-    insertString(output_filename, "gettimeofday(&tv1,NULL);", fileContent);
+
+    // Read the global_stream as a string 
+    char *fileContent = readFileToString();
     if_branchtree_free(if_tree);
+    // Return the global_stream to picco.c
+    return fileContent;
 }
 
 void ast_expr_show_stderr(astexpr tree) {

@@ -40,7 +40,7 @@ extern void ast_ompcon_show(ompcon tree, branchnode current);
 extern void ast_ompdir_show(ompdir t);
 extern void ast_ompclause_show(ompclause t);
 
-extern void ast_show(aststmt tree, char *output_filename);
+extern char *ast_show(aststmt tree, char *output_filename);
 extern void ast_show_stderr(aststmt tree);
 extern void ast_spec_show_stderr(astspec tree);
 extern void ast_decl_show_stderr(astdecl tree);

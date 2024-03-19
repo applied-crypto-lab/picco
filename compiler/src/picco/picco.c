@@ -118,15 +118,13 @@ void pathCreater(char *final_list) {
 // will have new argument for flag
 // If mode is true -> -m
 // If mode is false -> -d
-void append_new_main(bool mode) {
+void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
-    A_str_truncate();
-    str_printf(strA(),
-               "/* smc-compiler generated main() */\n"
-               "int %s(int argc, char **argv) {\n",
-               MAIN_NEWNAME);
+    fprintf(output_filename, "\n\n/* smc-compiler generated main() */\n"
+                    "int %s(int argc, char **argv) {\n",
+                    MAIN_NEWNAME);
 
     // Conditionally include the lines based on the technique_var variable (shamir-2)
     char *res = "";
@@ -141,31 +139,25 @@ void append_new_main(bool mode) {
     // Check the input parameters
     // this will be different based on flag
     if (mode) {            // -m - measurement mode
-        str_printf(strA(), // There should be EXACTLY 3 arguments passed for measurement mode
-                   "\n\tif(argc != 3){\n"
-                   " \tfprintf(stderr,\"Incorrect input parameters\\n\");\n"
-                   "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
-                   "  exit(1);\n}\n");
-        str_printf(strA(),
-                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
-                   peers, threshold, bits, res, total_threads);
-
+        fprintf(output_filename, "\n\tif(argc != 3){\n"
+                        " \tfprintf(stderr,\"Incorrect input parameters\\n\");\n"
+                        "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
+                        "  exit(1);\n}\n");
+        fprintf(output_filename, "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
+                        peers, threshold, bits, res, total_threads);
     } else {               // -d - deployment mode
-        str_printf(strA(), // There should be AT LEAST 7 arguments passed
-                   "\nif(argc < 8){\n"
-                   "  fprintf(stderr,\"Incorrect input parameters\\n\");\n"
-                   "  fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
-                   "  exit(1);\n}\n");
-
-        str_printf(strA(),
-                   "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
-                   "for(int i = 0; i < argc-6; i++)\n"
-                   "   IO_files[i] = argv[6+i];\n"
-                   "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
-                   peers, threshold, bits, res, total_threads);
+        fprintf(output_filename, "\nif(argc < 8){\n"
+                        "  fprintf(stderr,\"Incorrect input parameters\\n\");\n"
+                        "  fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
+                        "  exit(1);\n}\n");
+        fprintf(output_filename, "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
+                        "for(int i = 0; i < argc-6; i++)\n"
+                        "   IO_files[i] = argv[6+i];\n"
+                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
+                        peers, threshold, bits, res, total_threads);
     }
 
-    // The SMC_Utils gets the following:
+        // The SMC_Utils gets the following:
     /* id */                  // A number,           index: 1
     /* runtime_config */      //"runtime-config",   index: 2
     /* privatekey_filename */ //"private_03.pem",   index: 3
@@ -191,33 +183,30 @@ void append_new_main(bool mode) {
     /* bits */        // Not specified in the command line arguments.
     /* mod */         // Not specified in the command line arguments.
     /* num_threads */ // Not specified in the command line arguments.
-    str_printf(strA(),
-               "\n struct timeval tv1;"
-               "\n struct timeval tv2;"
-               "\n int _xval = 0;\n\n"
-               " gettimeofday(&tv1,NULL);\n");
-               
+    fprintf(output_filename, 
+                    "\n struct timeval tv1;"
+                    "\n struct timeval tv2;"
+                    "\n int _xval = 0;\n\n"
+                    " gettimeofday(&tv1,NULL);\n");
+    
     // Private-global_variables will be printed after this line
+    fprintf(output_filename, "\n\n%s\n\n", global_priv_var);
 
     if (num_threads > 0)
-        str_printf(strA(), "  ort_initialize(&argc, &argv);\n"
-                           "  omp_set_num_threads(%d);\n",
-                   total_threads);
+        fprintf(output_filename, "  ort_initialize(&argc, &argv);\n"
+                        "  omp_set_num_threads(%d);\n",
+                        total_threads);
     if (mainfuncRettype == 0)
-        str_printf(strA(), "  _xval = (int) %s(argc, argv);\n", MAIN_RENAME);
+        fprintf(output_filename, "  _xval = (int) %s(argc, argv);\n", MAIN_RENAME);
     else
-        str_printf(strA(), "%s(argc, argv);\n", MAIN_RENAME);
-    str_printf(strA(),
-               "  gettimeofday(&tv2, NULL);\n"
-               "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << \" seconds \"<< std::endl;\n");
+        fprintf(output_filename, "%s(argc, argv);\n", MAIN_RENAME);
+    fprintf(output_filename, "  gettimeofday(&tv2, NULL);\n"
+                    "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << \" seconds \"<< std::endl;\n");
     if (num_threads > 0)
-        str_printf(strA(), "  ort_finalize(_xval);\n");
-    str_printf(strA(), "  return (_xval);\n");
-    str_printf(strA(), "}\n");
+        fprintf(output_filename, "  ort_finalize(_xval);\n");
+    fprintf(output_filename, "  return (_xval);\n");
+    fprintf(output_filename, "}\n\n");
 
-    ast = BlockList(ast, Verbatim(strdup(A_str_string())));
-    ast->u.next->parent = ast;
-    ast->body->parent = ast;
 }
 
 int getopts(int argc, char *argv[]) {
@@ -656,8 +645,17 @@ int main(int argc, char *argv[]) {
     // Update the Main function
     // If mode is true -> -m
     // If mode is false -> -d
-    append_new_main(mode); // pass flag from earlier into here // mode is set from the argumet we parse
-    ast_show(ast, output_filename);
+
+    // Open the file that will include the generated code inside ast_show
+    // Get the global_priv_variables declaration and call ast_show to print the original main
+    char *global_priv_var = ast_show(ast, output_filename);
+    
+    // Open the file that will include the generated code to append the new main
+    FILE *output_filename_FILE = fopen(output_filename, "a");
+
+    // Print the new main and global_priv_var inside the output_filename_FILE 
+    append_new_main(mode, global_priv_var, output_filename_FILE); // pass flag from earlier into here // mode is set from the argumet we parse
+
     if (testingmode) { /* Clean up (not needed actually; we do it only when testing)  */
         ast_free(ast);
         symtab_drain(stab);
