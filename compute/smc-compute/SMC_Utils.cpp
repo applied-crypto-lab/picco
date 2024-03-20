@@ -18,7 +18,6 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
-#include "MultSparse.hpp"
 #include <string>
 
 // Constructors
@@ -1902,7 +1901,6 @@ std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 uint SMC_Utils::getNumShares() {
     return ss->getNumShares();
 }
-#endif
 using std::cout;
 using std::endl;
 using std::vector;
@@ -1984,3 +1982,4 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     delete[] result;
 }
+#endif
