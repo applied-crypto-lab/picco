@@ -43,6 +43,11 @@ control_sequence_stack batch_stack = NULL;
 control_sequence_stack private_selection_stack = NULL;
 struct_node_stack sns = NULL;
 FILE *output = NULL;
+FILE *global_stream = NULL; /* The stream that will hold global private variables*/
+int gf = 0; /* A global flag that will be updated based on the tree->gflag. 1-Global, 0-Regular*/
+int is_priv = 0; /* A global flag that will be updated based on the varible. 1-Private, 0-Public*/
+is_smc_io = 0; /* Used to print the name and values of variables to two streams 1-print for smc_input/O, 0-Not*/
+is_smc_set = 0; /* Used to print the name and values of variables to two streams 1-print for smc_set, 0-Not*/
 int global_batch_flag = 0;
 int declared = 0;
 int enterfunc = 0;
@@ -51,10 +56,16 @@ str arg_str;
 
 static void indent() {
     int i;
-
     if (indlev > 0)
         for (i = 2 * indlev; i > 0; i--)
             putc(' ', output);
+}
+
+static void indent_global_stream() { 
+    int i;
+    if (indlev > 0)
+        for (i = 2 * indlev; i > 0; i--)
+            putc(' ', global_stream);
 }
 
 void ast_clear_all_tmp_variables(branchnode current) {
@@ -1843,6 +1854,7 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
 
 // used for one-dimensional array for smc_input and smc_output
 void ast_print_smc_low_dim_show(aststmt tree) {
+    is_smc_io = 1;
     ast_expr_show(tree->u.smcops.party);
     fprintf(output, ", ");
     if (tree->u.smcops.size1 == NULL) {
@@ -2323,6 +2335,18 @@ void ast_free_memory_for_local_variables(ltablelist tablelist) {
     ltable_free(table);
 }
 
+/**
+ * Display/Traverses abstract syntax tree statements and handle output streams.
+ * - Processes each statement node in the tree based on its type.
+ * - Handles expression statements, including private variables and batch loops.
+ * - Prints compound statements (blocks enclosed in braces).
+ * - Manages memory cleanup after compound statements.
+ * - Handles declaration statements and temporary variable declaration.
+ *
+ * @param tree The AST representing statements to display.
+ * @param output_filename The output file where statements will be displayed.
+ **/
+
 void ast_stmt_show(aststmt tree, branchnode current) {
     if (tree->file != NULL && tree->file != _curfile)
         if (tree->type != FUNCDEF && tree->type != STATEMENTLIST) {
@@ -2350,7 +2374,7 @@ void ast_stmt_show(aststmt tree, branchnode current) {
             // expr is within private-if but outside the batch loop
             if (global_batch_flag != 1 && if_branchnode_height(current) != 0) {
                 if (tree->u.expr->type == ASS || tree->u.expr->type == POSTOP || tree->u.expr->type == PREOP)
-                    ast_priv_expr_show(tree->u.expr, current);
+                    ast_priv_expr_show(tree->u.expr, current, tree->gflag); // send the gflag to this function
             } else {
                 ast_expr_show(tree->u.expr);
                 fprintf(output, ";\n");
@@ -2956,7 +2980,7 @@ void ast_expr_pmalloc_show(astexpr tree) {
     }
 }
 
-void ast_priv_expr_show(astexpr tree, branchnode current) {
+void ast_priv_expr_show(astexpr tree, branchnode current, int gflag) {
     // implement privtmp = x;
     char *type = NULL;
     char *inttype = "int";
@@ -3045,10 +3069,11 @@ void ast_priv_expr_show(astexpr tree, branchnode current) {
 
         /*privtmp = x*/
         indent();
-        if (tree->left->ftype == 0)
+        if (tree->left->ftype == 0) {
             fprintf(output, "__s->smc_set(%s, %s, %d, %d, \"%s\", %d);\n", left, op, tree->left->size, tree->left->size, type, tree->left->thread_id);
-        else if (tree->left->ftype == 1)
+        } else if (tree->left->ftype == 1) {
             fprintf(output, "__s->smc_set(%s, %s, %d, %d, %d, %d, \"%s\", %d);\n", left, op, tree->left->size, tree->left->sizeexp, tree->left->size, tree->left->sizeexp, type, tree->left->thread_id);
+        }
         /*evaluate expr*/
         indent();
         ast_expr_show(tree);
@@ -3077,15 +3102,46 @@ void ast_priv_expr_show(astexpr tree, branchnode current) {
     }
 }
 
+/**
+ * This function recursively traverses the abstract syntax tree (AST) 
+ * representing expressions and prints them out according to certain conditions.
+ * It handles various types of expressions including identifiers, constant values,
+ * function calls, array indexing, struct fields, pointer fields, casts, operators,
+ * assignments, designated initializers, and more.
+ * 
+ * Note: this function is responsible for printing the name and the value of the variables
+ * all over the generated code. Hence, there are different flags used to separate private global 
+ * init from the rest. 
+ * 
+ * - Processes each expression in the AST 'tree' based on its type.
+ * - Manages printing of identifiers, constant values, strings, function calls, array indices, etc.
+ * - Handles special cases like typecasting, struct fields, pointer fields, and function calls.
+ * - Determines whether to print expressions into the global stream or the regular output stream.
+ * - Handles initialization of private variables and special SMC function calls.
+ * - Manages the indentation and formatting of the output.
+ * - Supports typecasting between different data types including int and float.
+ *
+ * @param tree The AST representing expression statements to display.
+ **/
 void ast_expr_show(astexpr tree) {
     switch (tree->type) {
     case IDENT:
-        fprintf(output, "%s", tree->u.sym->name);
+        if (is_smc_set == 1 && is_smc_io == 0 && is_priv == 1) {
+            fprintf(global_stream, "%s", tree->u.sym->name);
+            // printf("\nName: %s\n", tree->u.sym->name); // the private name gets printed here
+        } else {
+            fprintf(output, "%s", tree->u.sym->name);
+        }
         break;
     case CONSTVAL:
-        fprintf(output, "%s", tree->u.str);
+        if (is_smc_set == 1 && is_smc_io == 0 && is_priv == 1) {
+            fprintf(global_stream, "%s", tree->u.str);
+            // printf("\nValue: %s\n", tree->u.str); // the const value for both private and public gets printed here
+        } else {
+            fprintf(output, "%s", tree->u.str);
+        }
         break;
-    case STRING:
+    case STRING: 
         fprintf(output, "%s", tree->u.str);
         break;
     case FUNCCALL:
@@ -3153,7 +3209,7 @@ void ast_expr_show(astexpr tree) {
         if (tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_int || (tree->u.dtype->spec->subtype == SPEC_Rlist && tree->u.dtype->spec->body->subtype == SPEC_private)) {
             /* conversion to float */
             if (tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_Rlist &&
-                                                                  tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float) {
+                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float) {
                 /* Int2FL */
                 if (tree->left->ftype == 0) {
                     ast_priv_single_expr_show(tree->left);
@@ -3424,16 +3480,36 @@ void ast_expr_show(astexpr tree) {
                 ast_priv_assignment_show(tree, -1);
                 break;
             }
-            fprintf(output, "__s->smc_set(");
-            ast_expr_show(tree->right);
-            fprintf(output, ", ");
-            ast_expr_show(tree->left);
+            if (is_priv == 1 && gf == 1) {
+                fprintf(global_stream, "__s->smc_set(");
+                is_smc_set = 1;
+            } else {
+                fprintf(output, "__s->smc_set("); // This is where the smc gets printed for private global variables 
+            }
+            ast_expr_show(tree->right); // this is where the name and value gets printed after smc_set()
+            if (is_priv == 1 && gf == 1) {
+                fprintf(global_stream, ", ");
+            } else {
+                fprintf(output, ", ");
+            }
+            ast_expr_show(tree->left); // this is where the name and value gets printed after smc_set() for op and values I think!
 
             /* print the bitlength of parameter */
-            if (tree->left->ftype == 1)
-                fprintf(output, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id);
-            else if (tree->left->ftype == 0)
-                fprintf(output, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id);
+            if (tree->left->ftype == 1) {
+                if (is_priv == 1 && gf == 1) {
+                    fprintf(global_stream, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print it to the global_stream 
+                    // printf("%d, %d, %d, %d, \"float\", %d\n", tree->left->size, tree->left->size, tree->left->thread_id); // Print it to the terminal 
+                } else {
+                    fprintf(output, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print to output stream
+                }
+            } else if (tree->left->ftype == 0) {
+                if (is_priv == 1 && gf == 1) {
+                    fprintf(global_stream, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print it to the global_stream 
+                    // printf("%d, %d, \"int\", %d\n", tree->left->size, tree->left->size, tree->left->thread_id); // Print it to the terminal 
+                } else {
+                    fprintf(output, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print to output stream
+                }
+            }
             break;
         } else {
             if (tree->right->type == EPMALLOC) {
@@ -3528,6 +3604,7 @@ void ast_priv_cast_helper_show(astexpr tree) {
     }
 }
 
+// Print specification of tree representing a type or a declaration
 void ast_spec_show(astspec tree) {
     switch (tree->type) {
     case SPEC:
@@ -3945,17 +4022,31 @@ void ast_decl_sng_stmt_show(aststmt tree) {
     return;
 }
 
+/**
+ * Display of declaration statements in the abstract syntax tree and handle output streams.
+ * - Determines if the declaration specifies a global flag.
+ * - Handles declarations of int and float types, including private variables.
+ * - Processes explicit "private" declarations and updates private variable status.
+ * - Handles struct variable and struct declaration cases separately.
+ * - Processes explicit "public" and other types of declarations.
+ *
+ * @param tree The AST representing declaration statements to display.
+ * @param current The current branch node in the AST.
+ */
 void ast_decl_stmt_show(aststmt tree, branchnode current) {
-
+    if (tree->gflag == 1){
+        gf = tree->gflag;
+    }
     if (tree->u.declaration.spec->subtype == SPEC_int || tree->u.declaration.spec->subtype == SPEC_float)
-        ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current);
+        ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag);
     /* for explicit "private" */
-    else if (tree->u.declaration.spec->subtype == SPEC_Rlist && tree->u.declaration.spec->body->subtype == SPEC_private)
-        ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current);
-    else if (tree->u.declaration.spec->subtype == SPEC_struct || tree->u.declaration.spec->subtype == SPEC_union) {
+    else if (tree->u.declaration.spec->subtype == SPEC_Rlist && tree->u.declaration.spec->body->subtype == SPEC_private) {
+        is_priv = 1; // This is where private varibles are known
+        ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag);
+    } else if (tree->u.declaration.spec->subtype == SPEC_struct || tree->u.declaration.spec->subtype == SPEC_union) {
         // struct variable declaration
         if (tree->u.declaration.decl) {
-            ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current);
+            ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag); // gives error in here 
         }
         // struct declaration
         else {
@@ -3966,11 +4057,13 @@ void ast_decl_stmt_show(aststmt tree, branchnode current) {
             ast_print_struct_helper_function(tree->u.declaration.spec);
         }
     }
-    /* for explicit "public" and others */
+    /* for explicit "public" and others */ 
     else {
         ast_spec_show(tree->u.declaration.spec);
+        is_priv = 0;
         if (tree->u.declaration.decl) {
             fprintf(output, " ");
+            gf = tree->gflag;
             ast_decl_show(tree->u.declaration.decl);
         }
         fprintf(output, ";\n");
@@ -4164,12 +4257,32 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
     }
 }
 
-void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
+/**
+ * Display/Traverse private declaration statements in the abstract syntax tree and handle output streams.
+ * - Processes each declaration in the AST 'tree' based on its type.
+ * - Manages the printing of global private declarations into a string.
+ * - Handles various types of declarations including int, float, struct, and union.
+ * - Manages memory allocation and initialization for private variables.
+ * - Supports private arrays with up to two dimensions.
+ * - Manages the setup for global flags and private variable status.
+ * - Determines whether to print declarations as global or local based on the global flag.
+ * - Handles initialization of private variables, including pointers and structs.
+ *
+ * @param tree The AST representing declaration statements to display.
+ * @param spec The AST representing declaration specifications.
+ * @param current The current branch node in the AST.
+ * @param gflag The global flag indicating whether the declaration is global. (1-means global)
+ */
+/* Handles private declarations*/
+void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gflag) {
+    /* printing global private declaration into a string */
     switch (tree->type) {
     case DECLARATOR:
-        ltable_push(spec, tree, current->tablelist->head);
+        if(gflag != 1) {
+            ltable_push(spec, tree, current->tablelist->head);
+        }
         if (tree->decl->type == DARRAY) {
-            ast_priv_decl_show(tree->decl, spec, current);
+            ast_priv_decl_show(tree->decl, spec, current, gflag);
             break;
         }
         if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
@@ -4180,9 +4293,13 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
             }
             // private int
             else {
-                fprintf(output, "priv_int %s;\n", tree->decl->u.id->name);
+                fprintf(output, "priv_int %s;\n", tree->decl->u.id->name); // init in one place, ss_init in other
                 indent();
-                fprintf(output, "ss_init(%s);\n", tree->decl->u.id->name);
+                if (is_priv == 1 && gflag == 1) {
+                    fprintf(global_stream, "ss_init(%s);\n", tree->decl->u.id->name);
+                } else {
+                    fprintf(output, "ss_init(%s);\n", tree->decl->u.id->name);
+                }
             }
             break;
         }
@@ -4191,17 +4308,30 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
                 fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
-            } else {
-                fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
+            } else { // private float
+                fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name); // Float is represented by 4 priv_ints 
                 indent();
-                fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
-                indent();
-                fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                indlev++;
-                indent();
-                indent();
-                fprintf(output, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
-                indlev--;
+                // output order for global private 
+                // if(gflag != 1){
+                if (is_priv == 1 && gflag == 1){
+                    fprintf(global_stream, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                    indent_global_stream();
+                    fprintf(global_stream, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    indlev++;
+                    indent_global_stream();
+                    indent_global_stream();
+                    fprintf(global_stream, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
+                    indlev--;
+                } else {
+                    fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                    indent();
+                    fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    indlev++;
+                    indent();
+                    indent();
+                    fprintf(output, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
+                    indlev--;
+                }
             }
             break;
         }
@@ -4235,7 +4365,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
             break;
         }
     case DINIT: {
-        ast_priv_decl_show(tree->decl, spec, current);
+        ast_priv_decl_show(tree->decl, spec, current, gflag);
         indent();
         astexpr e0 = Identifier(tree->decl->decl->u.id);
         astexpr e1 = Assignment(e0, ASS_eq, tree->u.expr);
@@ -4283,14 +4413,18 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current) {
             // e0->ftype = e1->ftype = tree->u.expr->ftype;
         }
         ast_expr_show(e1);
-        fprintf(output, ";\n");
+        if (is_priv == 1 && gflag == 1){
+            fprintf(global_stream, ";\n");
+        } else {
+            fprintf(output, ";\n");
+        }
         break;
     }
     // symbol list
     case DLIST:
-        ast_priv_decl_show(tree->u.next, spec, current);
+        ast_priv_decl_show(tree->u.next, spec, current, gflag);
         indent();
-        ast_priv_decl_show(tree->decl, spec, current);
+        ast_priv_decl_show(tree->decl, spec, current, gflag);
         break;
     // priv array (supports up to two dimensions so far).
     case DARRAY:
@@ -4560,10 +4694,11 @@ void ast_list_element_show(astdecl tree) {
 void ast_decl_show(astdecl tree) {
     switch (tree->type) {
     case DIDENT:
-        if (!strcmp(tree->u.id->name, "main"))
+        if (!strcmp(tree->u.id->name, "main")) {
             fprintf(output, "%s", " __original_main");
-        else
-            fprintf(output, "%s", tree->u.id->name);
+        } else {
+            fprintf(output, "%s", tree->u.id->name); // the public variable name gets printed here
+        }
         break;
     case DPAREN:
         fprintf(output, "(");
@@ -5138,9 +5273,79 @@ void ast_ompcon_show(ompcon t, branchnode current) {
     }
 }
 
-void ast_show(aststmt tree, char *output_filename) {
+/**
+ * Read the content of a file into a dynamically allocated string.
+ *
+ * This function opens the file "PICCO_Global.txt" for reading. It determines the size of the file,
+ * allocates memory to hold its content, reads the file into the allocated memory, and returns a pointer
+ * to the allocated string containing the file content. If any errors occur during file operations
+ * or memory allocation, the function prints an error message and exits the program.
+ *
+ * @return A pointer to a dynamically allocated string containing the content of the file.
+ */
+char *readFileToString() {
+    FILE *file = fopen("PICCO_Global.txt", "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        exit(1);
+    }
 
+    // Seek to end of file to determine file size
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    // Allocate memory for the string
+    char *fileContent = (char *)malloc(fileSize + 1);
+    if (fileContent == NULL) {
+        perror("Error allocating memory");
+        fclose(file);
+        exit(1);
+    }
+
+    // Read the file into the string
+    size_t bytesRead = fread(fileContent, 1, fileSize, file);
+    if (bytesRead != fileSize) {
+        perror("Error reading file");
+        fclose(file);
+        free(fileContent);
+        exit(1);
+    }
+    
+    fileContent[bytesRead] = '\0';
+    fclose(file);
+    
+    // Deleting the file
+    char remove_file[] = "PICCO_Global.txt";
+    if (remove(remove_file) != 0) {
+        printf("Error deleting the file %s.\n", remove_file);
+    }
+    
+    return fileContent;
+}
+
+
+/**
+ * Display an abstract syntax tree and handle output streams.
+ *
+ * This function opens the output stream and global variables stream specified by 'output_filename'
+ * and "PICCO_Global.txt". It then sets up various data structures for processing
+ * the abstract syntax tree 'tree'. After processing the tree, it closes the global variables stream
+ * and reads the content of "PICCO_Global.txt" into memory. Finally, it closes the output stream and
+ * inserts the content of "PICCO_Global.txt" into 'output_filename' after a specific line.
+ *
+ * @param tree The abstract syntax tree to display.
+ * @param output_filename The name of the output file where the generated code will be displayed.
+ */
+char *ast_show(aststmt tree, char *output_filename) {
+    // This is where the output stream gets set 
     output = fopen(output_filename, "w+");
+    // This is where the global variables stream get set 
+    global_stream = fopen("PICCO_Global.txt", "w+");
+    if (global_stream == NULL) {
+        perror("Error opening/creating PICCO_Global.txt");
+        return 1;
+    }
     _curfile = Symbol(filename);
     indlev = 0;
     if_top = if_stack_new();
@@ -5150,7 +5355,14 @@ void ast_show(aststmt tree, char *output_filename) {
     bpis = batch_private_index_stack_new();
     sns = struct_node_stack_new();
     ast_stmt_show(tree, if_tree);
+    fclose(global_stream);
+    fclose(output);
+
+    // Read the global_stream as a string 
+    char *fileContent = readFileToString();
     if_branchtree_free(if_tree);
+    // Return the global_stream to picco.c
+    return fileContent;
 }
 
 void ast_expr_show_stderr(astexpr tree) {
