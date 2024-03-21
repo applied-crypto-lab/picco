@@ -5357,58 +5357,6 @@ void ast_ompcon_show(ompcon t, branchnode current) {
 }
 
 /**
- * Read the content of a file into a dynamically allocated string.
- *
- * This function opens the file "PICCO_Global.txt" for reading. It determines the size of the file,
- * allocates memory to hold its content, reads the file into the allocated memory, and returns a pointer
- * to the allocated string containing the file content. If any errors occur during file operations
- * or memory allocation, the function prints an error message and exits the program.
- *
- * @return A pointer to a dynamically allocated string containing the content of the file.
- */
-char *readFileToString() {
-    FILE *file = fopen("PICCO_Global.txt", "r");
-    if (file == NULL) {
-        perror("Error opening file");
-        exit(1);
-    }
-
-    // Seek to end of file to determine file size
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    // Allocate memory for the string
-    char *fileContent = (char *)malloc(fileSize + 1);
-    if (fileContent == NULL) {
-        perror("Error allocating memory");
-        fclose(file);
-        exit(1);
-    }
-
-    // Read the file into the string
-    size_t bytesRead = fread(fileContent, 1, fileSize, file);
-    if (bytesRead != fileSize) {
-        perror("Error reading file");
-        fclose(file);
-        free(fileContent);
-        exit(1);
-    }
-    
-    fileContent[bytesRead] = '\0';
-    fclose(file);
-    
-    // Deleting the file
-    char remove_file[] = "PICCO_Global.txt";
-    if (remove(remove_file) != 0) {
-        printf("Error deleting the file %s.\n", remove_file);
-    }
-    
-    return fileContent;
-}
-
-
-/**
  * Display an abstract syntax tree and handle output streams.
  *
  * This function opens the output stream and global variables stream specified by 'output_filename'
