@@ -122,7 +122,8 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
-    fprintf(output_filename, "\n\n/* smc-compiler generated main() */\n"
+    fprintf(output_filename, 
+                    "\n\n/* smc-compiler generated main() */\n"
                     "int %s(int argc, char **argv) {\n",
                     MAIN_NEWNAME);
 
@@ -139,25 +140,30 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
     // Check the input parameters
     // this will be different based on flag
     if (mode) {            // -m - measurement mode
-        fprintf(output_filename, "\n\tif(argc != 3){\n"
+        fprintf(output_filename, // There should be EXACTLY 3 arguments passed for measurement mode
+                        "\n\tif(argc != 3){\n"
                         " \tfprintf(stderr,\"Incorrect input parameters\\n\");\n"
                         "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
                         "  exit(1);\n}\n");
-        fprintf(output_filename, "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
+        fprintf(output_filename, 
+                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
                         peers, threshold, bits, res, total_threads);
+
     } else {               // -d - deployment mode
-        fprintf(output_filename, "\nif(argc < 8){\n"
+        fprintf(output_filename, // There should be AT LEAST 7 arguments passed
+                        "\nif(argc < 8){\n"
                         "  fprintf(stderr,\"Incorrect input parameters\\n\");\n"
                         "  fprintf(stderr,\"Usage: <id> <runtime-config> <privatekey-filename> <number-of-input-parties> <number-of-output-parties> <input-share> <output>\\n\");\n"
                         "  exit(1);\n}\n");
-        fprintf(output_filename, "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
+        fprintf(output_filename, 
+                        "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
                         "for(int i = 0; i < argc-6; i++)\n"
                         "   IO_files[i] = argv[6+i];\n"
                         "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
                         peers, threshold, bits, res, total_threads);
     }
 
-        // The SMC_Utils gets the following:
+    // The SMC_Utils gets the following:
     /* id */                  // A number,           index: 1
     /* runtime_config */      //"runtime-config",   index: 2
     /* privatekey_filename */ //"private_03.pem",   index: 3
@@ -193,14 +199,16 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
     fprintf(output_filename, "\n\n%s\n\n", global_priv_var);
 
     if (num_threads > 0)
-        fprintf(output_filename, "  ort_initialize(&argc, &argv);\n"
+        fprintf(output_filename, 
+                        "  ort_initialize(&argc, &argv);\n"
                         "  omp_set_num_threads(%d);\n",
                         total_threads);
     if (mainfuncRettype == 0)
         fprintf(output_filename, "  _xval = (int) %s(argc, argv);\n", MAIN_RENAME);
     else
         fprintf(output_filename, "%s(argc, argv);\n", MAIN_RENAME);
-    fprintf(output_filename, "  gettimeofday(&tv2, NULL);\n"
+    fprintf(output_filename, 
+                    "  gettimeofday(&tv2, NULL);\n"
                     "  std::cout << \"Time: \" << __s->time_diff(&tv1,&tv2) << \" seconds \"<< std::endl;\n");
     if (num_threads > 0)
         fprintf(output_filename, "  ort_finalize(_xval);\n");
