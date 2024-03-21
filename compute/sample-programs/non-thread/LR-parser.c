@@ -6,6 +6,9 @@ public int K = 100; // the maximum number of variables in the expression
 // ( = K+2
 // ) = K+3 
 // EOF = K+4
+
+// example used on the input data: (1+2)*(3+4)*(5*6)*(7+8)+(9+10)EOF
+
 public int M = 10; // the number of variables in the expression
 public int S = 30; // the length of the expression
 
