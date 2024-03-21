@@ -4,21 +4,16 @@
 // This program supports an array of inputs a[] which contains UNIQUE VALUES (NO DUPLICATES)
 
 struct node {
-private
-    int<50> data;
+private int<50> data;
     struct node *next;
 };
 
-public
-int count = 3;
+public int count = 3;
 
-public
-int main() {
+public int main() {
 
-public
-    int i, j;
-private
-    int a[count], output, c;
+    public int i, j;
+    private int a[count], output, c;
     struct node *ptr1, *ptr2, *head;
 
     smcinput(a, 1, count);
