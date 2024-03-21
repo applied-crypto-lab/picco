@@ -950,8 +950,8 @@ void ss_batch_BOP_float_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int res
         // smc_mult(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
         ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "*", threadID, net, ss);
     } else if (op == "-") {
-        // smc_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
-        ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "-", threadID, net, ss);
+        ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
+        // ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "-", threadID, net, ss);
 
     } else if (op == "+") {
         // smc_add(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
@@ -992,7 +992,7 @@ void ss_batch_BOP_float_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int res
 }
 
 void ss_batch_BOP_float_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net,  SecretShare *ss) {
-
+    
     mpz_t *result_org = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
@@ -1000,27 +1000,28 @@ void ss_batch_BOP_float_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resu
         mpz_init_set(result_org[i], result[index_array[3 * i + 2]]);
         mpz_init(result_tmp[i]);
     }
-
+    
     if (op == "==") {
-        ss_batch_fop_comparison(result, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
         // smc_eqeq(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == "!=") {
-        ss_batch_fop_comparison(result, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
-        ss->modSub(result, 1, result, size);
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
+        ss->modSub(result_tmp, 1, result_tmp, size);
         // smc_neq(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == ">") {
-        ss_batch_fop_comparison(result, b, a, resultlen_sig, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
+        ss_batch_fop_comparison(result_tmp, b, a, resultlen_sig, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
         // smc_gt(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == ">=") {
-        ss_batch_fop_comparison(result, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
-        ss->modSub(result, 1, result, size);
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
+        ss->modSub(result_tmp, 1, result_tmp, size);
         // smc_geq(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == "<") {
-        ss_batch_fop_comparison(result, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
+        printf("ss_batch_fop_comparison\n");
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
         // smc_lt(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == "<=") {
-        ss_batch_fop_comparison(result, b, a, resultlen_sig, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
-        ss->modSub(result, 1, result, size);
+        ss_batch_fop_comparison(result_tmp, b, a, resultlen_sig, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
+        ss->modSub(result_tmp, 1, result_tmp, size);
         // smc_leq(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     }
 
