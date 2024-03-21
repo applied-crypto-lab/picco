@@ -43,7 +43,7 @@ control_sequence_stack batch_stack = NULL;
 control_sequence_stack private_selection_stack = NULL;
 struct_node_stack sns = NULL;
 FILE *output = NULL;
-FILE *global_stream = NULL; /* The stream that will hold global private variables*/
+str global_string; /* The string that will hold global private variables*/
 int gf = 0; /* A global flag that will be updated based on the tree->gflag. 1-Global, 0-Regular*/
 int is_priv = 0; /* A global flag that will be updated based on the varible. 1-Private, 0-Public*/
 is_init_decl = 0; /* This flag is used to indicated if we are at declaration or initialization part. 
@@ -62,11 +62,12 @@ static void indent() {
             putc(' ', output);
 }
 
-static void indent_global_stream() { 
+// Function to add indentation to the string
+static void indent_global_string(str myString) {
     int i;
     if (indlev > 0)
         for (i = 2 * indlev; i > 0; i--)
-            putc(' ', global_stream);
+            str_putc(myString, ' '); // Add a space character to the string
 }
 
 void ast_clear_all_tmp_variables(branchnode current) {
@@ -1407,12 +1408,12 @@ void ast_ptr_assignment_show(astexpr left, astexpr right, str rightop) {
     char *type = (char *)malloc(sizeof(char) * buffer_size);
     ast_return_type_of_rop(&type, right);
     if (is_priv == 1 && gf == 1 && is_init_decl == 1) // This is where global private pointers get handled 
-        fprintf(global_stream, "__s->smc_set%s_ptr(", type);
+        str_printf(global_string, "__s->smc_set%s_ptr(", type);
     else 
         fprintf(output, "__s->smc_set%s_ptr(", type);
     ast_expr_show(left);
     if (is_priv == 1 && gf == 1 && is_init_decl == 1)
-        fprintf(global_stream, ", %s, ", str_string(rightop));
+        str_printf(global_string, ", %s, ", str_string(rightop));
     else 
         fprintf(output, ", %s, ", str_string(rightop));
     if (left->u.sym->type == 2)
@@ -1420,13 +1421,13 @@ void ast_ptr_assignment_show(astexpr left, astexpr right, str rightop) {
     else {
         if (left->ftype == 0) {  // This is where global private pointers get handled 
             if (is_priv == 1 && gf == 1 && is_init_decl == 1)
-                fprintf(global_stream, "\"int\", %d)", left->thread_id);
+                str_printf(global_string, "\"int\", %d)", left->thread_id);
             else 
                 fprintf(output, "\"int\", %d)", left->thread_id);
         }
         if (left->ftype == 1) {
             if (is_priv == 1 && gf == 1 && is_init_decl == 1)
-                fprintf(global_stream, "\"float\", %d)", left->thread_id);
+                str_printf(global_string, "\"float\", %d)", left->thread_id);
             else 
                 fprintf(output, "\"float\", %d)", left->thread_id);
         }
@@ -3140,7 +3141,7 @@ void ast_expr_show(astexpr tree) {
     switch (tree->type) {
     case IDENT:
         if (is_init_decl == 1 && gf == 1 && is_priv == 1) {
-            fprintf(global_stream, "%s", tree->u.sym->name);
+            str_printf(global_string, "%s", tree->u.sym->name);
             // printf("\nName: %s\n", tree->u.sym->name); // the private name gets printed here
         } else {
             fprintf(output, "%s", tree->u.sym->name);
@@ -3148,7 +3149,7 @@ void ast_expr_show(astexpr tree) {
         break;
     case CONSTVAL:
         if (is_init_decl == 1 && gf == 1 && is_priv == 1) {
-            fprintf(global_stream, "%s", tree->u.str);
+            str_printf(global_string, "%s", tree->u.str);
             // printf("\nValue: %s\n", tree->u.str); // the const value for both private and public gets printed here
         } else {
             fprintf(output, "%s", tree->u.str);
@@ -3156,7 +3157,7 @@ void ast_expr_show(astexpr tree) {
         break;
     case STRING: 
         if (is_init_decl == 1 && gf == 1 && is_priv == 1) {
-            fprintf(global_stream, "%s", tree->u.str);
+            str_printf(global_string, "%s", tree->u.str);
         } else {
             fprintf(output, "%s", tree->u.str);
         }
@@ -3278,20 +3279,20 @@ void ast_expr_show(astexpr tree) {
     case UOP:
         if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             if (tree->flag != PRI)
-                fprintf(global_stream, "%s", UOP_symbols[tree->opid]);
+                str_printf(global_string, "%s", UOP_symbols[tree->opid]);
             if (tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
-                fprintf(global_stream, "(");
+                str_printf(global_string, "(");
             if (tree->opid == UOP_sizeoftype || tree->opid == UOP_typetrick)
                 ast_decl_show(tree->u.dtype);
             else if (tree->flag == PRI && tree->opid == UOP_lnot) {
-                fprintf(global_stream, "__s->smc_eqeq(");
+                str_printf(global_string, "__s->smc_eqeq(");
                 ast_expr_show(tree->left);
-                fprintf(global_stream, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
+                str_printf(global_string, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
                 indent();
             } else
                 ast_expr_show(tree->left);
             if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
-                fprintf(global_stream, ")");
+                str_printf(global_string, ")");
         } else {
             if (tree->flag != PRI)
                 fprintf(output, "%s", UOP_symbols[tree->opid]);
@@ -3316,7 +3317,7 @@ void ast_expr_show(astexpr tree) {
         if (tree->left->flag == PUB && tree->right->flag == PUB) {
             if (is_priv == 1 && gf == 1 && is_init_decl == 1) { // We need this cause what if a user inputs 1+2 as a value for priv-global-vars
                 ast_expr_show(tree->left);
-                fprintf(global_stream, " %s ", BOP_symbols[tree->opid]);
+                str_printf(global_string, " %s ", BOP_symbols[tree->opid]);
                 ast_expr_show(tree->right);
             } else {
                 ast_expr_show(tree->left);
@@ -3522,13 +3523,13 @@ void ast_expr_show(astexpr tree) {
                 break;
             }
             if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-                fprintf(global_stream, "__s->smc_set(");
+                str_printf(global_string, "__s->smc_set(");
             } else {
                 fprintf(output, "__s->smc_set("); // This is where the smc gets printed for private global variables 
             }
             ast_expr_show(tree->right); // This is where the name and value gets printed after smc_set()
             if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-                fprintf(global_stream, ", ");
+                str_printf(global_string, ", ");
             } else {
                 fprintf(output, ", ");
             }
@@ -3537,14 +3538,14 @@ void ast_expr_show(astexpr tree) {
             /* print the bitlength of parameter */
             if (tree->left->ftype == 1) {
                 if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-                    fprintf(global_stream, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print it to the global_stream 
+                    str_printf(global_string, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print it to the global_string 
                     // printf("%d, %d, %d, %d, \"float\", %d\n", tree->left->size, tree->left->size, tree->left->thread_id); // Print it to the terminal 
                 } else {
                     fprintf(output, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print to output stream
                 }
             } else if (tree->left->ftype == 0) {
                 if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-                    fprintf(global_stream, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print it to the global_stream 
+                    str_printf(global_string, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print it to the global_string 
                     // printf("%d, %d, \"int\", %d\n", tree->left->size, tree->left->size, tree->left->thread_id); // Print it to the terminal 
                 } else {
                     fprintf(output, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print to output stream
@@ -4348,7 +4349,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - int
-                    fprintf(global_stream, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
+                    str_printf(global_string, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                 } else {
                     fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                 }
@@ -4358,7 +4359,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 fprintf(output, "priv_int %s;\n", tree->decl->u.id->name); // init in one place, ss_init in other
                 indent();
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1) {
-                    fprintf(global_stream, "ss_init(%s);\n", tree->decl->u.id->name);
+                    str_printf(global_string, "ss_init(%s);\n", tree->decl->u.id->name);
                 } else {
                     fprintf(output, "ss_init(%s);\n", tree->decl->u.id->name);
                 }
@@ -4370,7 +4371,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - float
-                    fprintf(global_stream, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
+                    str_printf(global_string, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
                 } else {
                     fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
                 }
@@ -4379,13 +4380,13 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 indent();
                 // output order for global private 
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
-                    fprintf(global_stream, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
-                    indent_global_stream();
-                    fprintf(global_stream, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    str_printf(global_string, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                    indent_global_string(global_string);
+                    str_printf(global_string, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
                     indlev++;
-                    indent_global_stream();
-                    indent_global_stream();
-                    fprintf(global_stream, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
+                    indent_global_string(global_string);
+                    indent_global_string(global_string);
+                    str_printf(global_string, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
                     indlev--;
                 } else {
                     fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
@@ -4479,7 +4480,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
         }
         ast_expr_show(e1);
         if (is_priv == 1 && gflag == 1){
-            fprintf(global_stream, ";\n\n"); // This is where the ; gets printed for most global_stream vars
+            str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
         } else {
             fprintf(output, ";\n");
         }
@@ -5076,25 +5077,25 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
             ast_assignment_prefix_show(tree);
             if (tree->opid != ASS_eq) {
                 if (tree->right->ftype == 1) {
-                    if (is_init_decl == 1) // If it is a declaration and we are setting a op of two globals private values to a new global private value, print this inside global_stream
-                        fprintf(global_stream, "(%s, %s, %s, %d, %d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                    if (is_init_decl == 1) // If it is a declaration and we are setting a op of two globals private values to a new global private value, print this inside global_string
+                        str_printf(global_string, "(%s, %s, %s, %d, %d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
                     else 
                         fprintf(output, "(%s, %s, %s, %d, %d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
                 } else {
                     if (is_init_decl == 1)
-                        fprintf(global_stream, "(%s, %s, %s, %d, %d, %d, \"int\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->right->size, tree->left->size, tree->right->thread_id);
+                        str_printf(global_string, "(%s, %s, %s, %d, %d, %d, \"int\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->right->size, tree->left->size, tree->right->thread_id);
                     else
                         fprintf(output, "(%s, %s, %s, %d, %d, %d, \"int\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->right->size, tree->left->size, tree->right->thread_id);
                 }
             } else {
                 if (tree->right->ftype == 1) {
                     if (is_init_decl == 1)
-                        fprintf(global_stream, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                        str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
                     else 
                         fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
                 } else {
                     if (is_init_decl == 1)
-                        fprintf(global_stream, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                        str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
                     else 
                         fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
                 }
@@ -5234,7 +5235,7 @@ void ast_assignment_prefix_show(astexpr tree) {
     switch (tree->opid) {
     case ASS_eq:
         if (is_init_decl ==1) // if there is a global variable that gets init by a op of two globals, then move that declaration down 
-            fprintf(global_stream, "__s->smc_set");
+            str_printf(global_string, "__s->smc_set");
         else 
             fprintf(output, "__s->smc_set");
         break;
@@ -5422,12 +5423,10 @@ char *readFileToString() {
 char *ast_show(aststmt tree, char *output_filename) {
     // This is where the output stream gets set 
     output = fopen(output_filename, "w+");
-    // This is where the global variables stream get set 
-    global_stream = fopen("PICCO_Global.txt", "w+");
-    if (global_stream == NULL) {
-        perror("Error opening/creating PICCO_Global.txt");
-        return 1;
-    }
+
+    // This is where the global variables string get set 
+    global_string = Str("");
+
     _curfile = Symbol(filename);
     indlev = 0;
     if_top = if_stack_new();
@@ -5437,13 +5436,12 @@ char *ast_show(aststmt tree, char *output_filename) {
     bpis = batch_private_index_stack_new();
     sns = struct_node_stack_new();
     ast_stmt_show(tree, if_tree);
-    fclose(global_stream);
-    fclose(output);
 
-    // Read the global_stream as a string 
-    char *fileContent = readFileToString();
+    fclose(output);
+    char *fileContent = str_string(global_string);
     if_branchtree_free(if_tree);
-    // Return the global_stream to picco.c
+    
+    // Return the global_string to picco.c
     return fileContent;
 }
 
