@@ -1016,7 +1016,6 @@ void ss_batch_BOP_float_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resu
         ss->modSub(result_tmp, 1, result_tmp, size);
         // smc_geq(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == "<") {
-        printf("ss_batch_fop_comparison\n");
         ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
         // smc_lt(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result_tmp, resultlen_sig, size, type, threadID);
     } else if (op == "<=") {

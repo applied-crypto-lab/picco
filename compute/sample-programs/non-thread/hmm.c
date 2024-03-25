@@ -69,8 +69,8 @@ void main() {
       if (u > 1) {
 	 for (j = 0; j < N; j++) [
 	    if (temp[0][j] < temp[1][j]) {
-	       temp[0][j] = temp[1][j];
-	       max[0] = max[1];
+	       temp[0][j] = temp[1][j]; 
+	      //  max[0] = max[1]; // causes segfault in program execution
 	    }
 	 ]
       }
