@@ -196,23 +196,19 @@ public void eof_routine(struct token** header)
 	struct token* x1;
 	x1 = pop(header);
 	int result = 0; 
-        if(*header != 0) {
-			if(x1->type == 0) // id
-				x1->type == 1; // F
-			struct token* x2;
-			x2 = pop(header);
-			if(x2->type == 5) // *
-				prod_sub_routine(header, x1, 0);
-			else if(x2->type == 4) // +
-				plus_sub_routine(header, x1, 0);
-		  x1 = pop(header); 
-		  result = x1->val; 
-		  smcoutput(result, 1); 
-        }
-	else {
-		result = x1->val; 
-		smcoutput(result, 1);//output the result
+	if(*header != 0) {
+		if(x1->type == 0) // id
+			x1->type == 1; // F
+		struct token* x2;
+		x2 = pop(header);
+		if(x2->type == 5) // *
+			prod_sub_routine(header, x1, 0);
+		else if(x2->type == 4) // +
+			plus_sub_routine(header, x1, 0);
+		x1 = pop(header); 
 	}
+	result = x1->val; 
+	smcoutput(result, 1);//output the result
 }
 public int main() {
 	private int ids[M]; 
