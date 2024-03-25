@@ -4349,6 +4349,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - int
+                    // fprintf(output, "priv_ptr %s;", tree->decl->u.id->name); // Added after declaring private global pointers
                     str_printf(global_string, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                 } else {
                     fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
