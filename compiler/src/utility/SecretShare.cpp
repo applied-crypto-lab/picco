@@ -500,24 +500,29 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
 
     // Convert mpz_result to long long and store in result vector
     for (int i = 0; i < size; i++) {
+        result[i] = mpz_get_d(mpz_result[i]); // Retrieve the value
+        mpz_clear(mpz_result[i]);              // Clear the memeory
 
-        // Initialize temporary variable
-        mpz_t tmp;
-        mpz_init(tmp);
+        // AB: The code block below leads to correctness issues. 
+        // Was originally added in commit 0a6bc76bbdc230225cc77f36b586ed38f9d917de
+        // commenting it out fixes it.
+        // // Initialize temporary variable
+        // mpz_t tmp;
+        // mpz_init(tmp);
 
-        // Multiply result[j] by 2
-        mpz_mul_ui(tmp, mpz_result[i], 2);
+        // // Multiply result[j] by 2
+        // mpz_mul_ui(tmp, mpz_result[i], 2);
 
-        // Check if tmp is greater than fieldSize
-        if (mpz_cmp(tmp, fieldSize) > 0) { 
-            // If so, subtract fieldSize from result[j]
-            mpz_sub(mpz_result[i], mpz_result[i], fieldSize);
-        }
-        result[i] = mpz_get_si(mpz_result[i]); // Retrieve the value
+        // // Check if tmp is greater than fieldSize
+        // if (mpz_cmp(tmp, fieldSize) > 0) { 
+        //     // If so, subtract fieldSize from result[j]
+        //     mpz_sub(mpz_result[i], mpz_result[i], fieldSize);
+        // }
+        // result[i] = mpz_get_si(mpz_result[i]); // Retrieve the value
 
-        // Clear the memeory
-        mpz_clear(mpz_result[i]);             
-        mpz_clear(tmp);
+        // // Clear the memeory
+        // mpz_clear(mpz_result[i]);             
+        // mpz_clear(tmp);
     }
 
     mpz_clear(temp);
