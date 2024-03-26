@@ -4101,7 +4101,8 @@ void ast_decl_stmt_show(aststmt tree, branchnode current) {
             is_init_decl = 0;
         }
         ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag);
-        
+        is_priv = 0;
+        is_init_decl = 0;
     } else if (tree->u.declaration.spec->subtype == SPEC_struct || tree->u.declaration.spec->subtype == SPEC_union) {
         // struct variable declaration
         if (tree->u.declaration.decl) {
