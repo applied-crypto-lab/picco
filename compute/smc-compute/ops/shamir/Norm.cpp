@@ -77,8 +77,9 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
         }
     }
 
-        Mult(c, x, v, size, threadID, net, ss);
-        Mult(vp, s, v, size, threadID, net, ss);
+    // these multiplications can be batched together
+    Mult(c, x, v, size, threadID, net, ss);
+    Mult(vp, s, v, size, threadID, net, ss);
 
     // free the memory
     for (int i = 0; i < size; ++i) {
