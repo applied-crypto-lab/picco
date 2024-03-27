@@ -1738,9 +1738,16 @@ void SMC_Utils::smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_i
 // seed_map - contains binary encodings of access sets T (as defined in Baccarini et al., "Multi-Party Replicated Secret Sharing over a Ring with Applications to Privacy-Preserving Machine Learning," 2023)
 // 2*KEYSIZE - 16 bytes for
 void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) {
-    uint8_t RandomData_send[2 * KEYSIZE];
-    uint8_t RandomData_recv[2 * KEYSIZE];
+    
+    // allocated using new, other wise the memory is automatically freed when the function goes out of scope
+    uint8_t *RandomData_send = new uint8_t[2 * KEYSIZE];
+    uint8_t *RandomData_recv = new uint8_t[2 * KEYSIZE];
     memset(RandomData_recv, 0, sizeof(uint8_t) * 2 * KEYSIZE);
+    memset(RandomData_send, 0, sizeof(uint8_t) * 2 * KEYSIZE);
+    // needs to be freed at some point
+
+    // uint8_t RandomData_send[2 * KEYSIZE];// this doesnt work
+    // uint8_t RandomData_recv[2 * KEYSIZE];
 
 #if __SHAMIR__
     std::vector<int> coefficients;
@@ -1765,8 +1772,12 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 
             assert(send_map.size() == recv_map.size());
             for (size_t i = 0; i < send_map.size(); i++) {
+                // printf("sending to %i\n", send_map[i]);
                 net.sendDataToPeer(static_cast<int>(send_map[i]), 2 * KEYSIZE, RandomData_send);
+                // print_hexa_2(RandomData_send, 2 * KEYSIZE);
+                // printf("recv from %i\n", recv_map[i]);
                 net.getDataFromPeer(static_cast<int>(recv_map[i]), 2 * KEYSIZE, RandomData_recv);
+                // print_hexa_2(RandomData_recv, 2 * KEYSIZE);
 
                 // generating the share id T corresponding to the key I just recieved
                 T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
@@ -1777,6 +1788,9 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 
 #endif
 #if __RSS__
+                // cout << "inserting" << T_recv << " to ";
+                // print_hexa_2(RandomData_recv, 2 * KEYSIZE);
+
                 rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
 
 #endif
@@ -1788,6 +1802,8 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 
 #endif
 #if __RSS__
+            // cout << "inserting" << recv_map << " to ";
+            // print_hexa_2(RandomData_send, 2 * KEYSIZE);
             rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
 #endif
         }
@@ -1796,6 +1812,12 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
         std::cerr << "[seedSetup] " << ex.what() << "\n";
         exit(1);
     }
+
+    // used for testing
+    // for (auto& [key, value]: rss_share_seeds) {
+    //     std::cout << key << " has value " ;
+    //     print_hexa_2(value, 2*KEYSIZE);
+    // }
 }
 
 // binary_rep = bianry encoding of share T generated from seed_map
@@ -1879,15 +1901,85 @@ std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 uint SMC_Utils::getNumShares() {
     return ss->getNumShares();
 }
-#endif
 using std::cout;
 using std::endl;
 using std::vector;
 
-void SMC_Utils::smc_test_rss() {
-    int n = 5;
-    for (int i = 1; i < n + 1; i++) {
-        vector<vector<int>> mul_map = ss->generate_MultSparse_map(n, i);
-        cout << "mul_map(" << i << ") : " << mul_map << endl;
+void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
+    uint numShares = ss->getNumShares();
+    uint bytes = (ss->ring_size + 7) >> 3;
+    printf("bytes : %u\n", bytes);
+
+    // expected RSS initialization
+    priv_int *B_sparse = new priv_int[ss->getNumShares()];
+    priv_int *C = new priv_int[ss->getNumShares()];
+    for (int i = 0; i < ss->getNumShares(); i++) {
+        B_sparse[i] = new priv_int_t[size];
+        memset(B_sparse[i], 0, sizeof(priv_int_t) * size);
+        C[i] = new priv_int_t[size];
+        memset(C[i], 0, sizeof(priv_int_t) * size);
     }
+
+    priv_int result = new priv_int_t[size];
+    memset(result, 0, sizeof(priv_int_t) * size);
+
+    smc_open(result, A, size, -1);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) A [%lu]: %u\n", i, result[i]);
+    }
+
+    ss->sparsify(B_sparse, B, size);
+
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("B[%lu]: %i\n", i, B[i]);
+    // }
+
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
+        }
+        printf("\n");
+    }
+
+    // uint8_t *buffer = new uint8_t[bytes];
+    // ss->prg_getrandom(0, bytes, size, buffer);
+    // for (int i = 0; i < size; i++) {
+    //     memcpy(result + i, buffer + i * bytes, bytes);
+    //     printf("prg(0) %u\n", result[i]);
+    // }
+    // ss->prg_getrandom(1, bytes, size, buffer);
+    // for (int i = 0; i < size; i++) {
+    //     memcpy(result + i, buffer + i * bytes, bytes);
+    //     printf("prg(1) %u\n", result[i]);
+    // }
+
+    smc_open(result, B_sparse, size, -1);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
+    }
+
+    Rss_Mult_Sparse_3pc(C, A, B_sparse, size, ss->ring_size, net, ss);
+
+    // for (size_t i = 0; i < size; i++) {
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         printf("C[%lu][%lu]: %u \n", i, s, C[s][i]);
+    //     }
+    //     printf("\n");
+    // }
+
+    smc_open(result, C, size, -1);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) C [%lu]: %u\n", i, result[i]);
+    }
+
+    for (size_t _picco_i = 0; _picco_i < numShares; _picco_i++) {
+        delete[] C[_picco_i];
+        delete[] B_sparse[_picco_i];
+    }
+    delete[] C;
+    delete[] B_sparse;
+    // delete[] buffer;
+
+    delete[] result;
 }
+#endif

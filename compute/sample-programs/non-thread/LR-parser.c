@@ -6,6 +6,10 @@ public int K = 100; // the maximum number of variables in the expression
 // ( = K+2
 // ) = K+3 
 // EOF = K+4
+
+// example used on the input data: (1+2)*(3+4)*(5*6)*(7+8)+(9+0)EOF
+// expected result=9459
+
 public int M = 10; // the number of variables in the expression
 public int S = 30; // the length of the expression
 
@@ -45,7 +49,7 @@ public void id_routine(struct token** header, int val)
 	struct token* t; 
 	t = pmalloc(1, struct token); 
 	t->type = 0; 
-	t->val = val;/******** WRGONG ***************/ 
+	t->val = val;/******** WRONG ***************/ 
 	push(header, t); 
 }
 public void check_for_removable_lbra(struct token** header)
@@ -171,47 +175,40 @@ public void rbra_routine(struct token** header)
 {
         struct token* x1;
         x1 = pop(header);
-        if(*header != 0)
-        {
-                 if(x1->type == 0) // id
-                        x1->type == 1; // F
-                  struct token* x2;
-                  x2 = pop(header);
-                  if(x2->type == 5) // *
-                        prod_sub_routine(header, x1, 1);
-                  else if(x2->type == 4) // +
-                        plus_sub_routine(header, x1, 1);
-		  else if(x2->type == 6)
-		  {
-			x1->type = 1; 
-			push(header, x1); 
-		  }
+        if(*header != 0) {
+			if(x1->type == 0) // id
+				x1->type == 1; // F
+			struct token* x2;
+			x2 = pop(header);
+			if(x2->type == 5) // *
+				prod_sub_routine(header, x1, 1);
+			else if(x2->type == 4) // +
+				plus_sub_routine(header, x1, 1);
+			else if(x2->type == 6) {
+				x1->type = 1; 
+				push(header, x1); 
+			}
 	}
 }
 
 public void eof_routine(struct token** header)
 {
-        struct token* x1;
-        x1 = pop(header);
+	struct token* x1;
+	x1 = pop(header);
 	int result = 0; 
-        if(*header != 0)
-        {
-                 if(x1->type == 0) // id
-                        x1->type == 1; // F
-                  struct token* x2;
-                  x2 = pop(header);
-                  if(x2->type == 5) // *
-                        prod_sub_routine(header, x1, 0);
-                  else if(x2->type == 4) // +
-                        plus_sub_routine(header, x1, 0);
-		  x1 = pop(header); 
-		  result = x1->val; 
-		  smcoutput(result, 1); 
-        }
-	else{
-		result = x1->val; 
-		smcoutput(result, 1);//output the result
+	if(*header != 0) {
+		if(x1->type == 0) // id
+			x1->type == 1; // F
+		struct token* x2;
+		x2 = pop(header);
+		if(x2->type == 5) // *
+			prod_sub_routine(header, x1, 0);
+		else if(x2->type == 4) // +
+			plus_sub_routine(header, x1, 0);
+		x1 = pop(header); 
 	}
+	result = x1->val; 
+	smcoutput(result, 1);//output the result
 }
 public int main() {
 	private int ids[M]; 
@@ -224,8 +221,7 @@ public int main() {
 	smcinput(expr, 1, S);
 	smcinput(ids, 1, M);
 
-	while(index < S)
-	{
+	while(index < S) {
 		symbol = expr[index]; 
 		if(symbol < K) //id
 			id_routine(&header, ids[symbol]); 	

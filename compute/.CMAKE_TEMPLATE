@@ -15,7 +15,7 @@ set(OMPDIR "/insert/ompi/install/dir/here")
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(OMPI)
-find_package(CryptoPP REQUIRED)
+# find_package(CryptoPP REQUIRED)
 find_package(GMP REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
@@ -70,7 +70,7 @@ endif()
 set(LIBS
       ${CMAKE_THREAD_LIBS_INIT}
       ${OPENSSL_LIBRARIES}
-      ${CRYPTOPP_LIBRARIES}
+      # ${CRYPTOPP_LIBRARIES}
       ${GMP_LIBRARIES}
 )
 

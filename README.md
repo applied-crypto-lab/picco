@@ -21,7 +21,6 @@ To compile or run user programs using PICCO code, a machine should have the foll
 - [GCC](https://gcc.gnu.org/) or [LLVM/clang](https://clang.llvm.org/) (clang generally performs better than GCC and is recommended)
 - [GMP](https://gmplib.org/)
 - [OpenSSL](https://www.openssl.org/source/) (v1.1.1 or newer)
-- [Crypto++](https://cryptopp.com/)
 - [Flex](https://github.com/westes/flex.git) - fast lexical analyzer generator
 - [GNU Bison parser](https://www.gnu.org/software/bison/)
 - [CMake](https://cmake.org/)
@@ -213,7 +212,7 @@ Here the flag `-O` indicates that the utility program will be used to reconstruc
 In the current implementation, not all features of C are supported in user programs written our extension of C. We tested a rather small subset of C reserved words and the rest are commented out (and may not go past the parser). Thus, if your program does not compile, please contact us and we will examine the code and add the necessary functionalities to the PICCO compiler. The list below provides a more detailed information about restrictions on user programs in the current implementation.
 
 - The current implementation supports private arrays with at most two dimensions.
-- Built-in I/O statements `smcinput` and `smcoutput` are not allowed to appear within the body of a loop or iteration (such as a repeatedly called function).
+- Built-in I/O statements `smcinput` and `smcoutput` are not allowed to appear within the body of a loop or iteration (such as a repeatedly called function) or branching statement (e.g., if-else block).
 - If `smcinput` or `smcoutput` is used for an array, the number of elements to read/write needs to be given as either a constant or a variable initialized with a constant. More complex ways of specifying the size (such as arbitrary expressions) are currently not supported.
 - There are restrictions on arithmetic or comparison statements used within the body of a parallel loop: If a statement contains more than a single operation, it needs to be rewritten into multiple statements that execute one operation at a time. This applies to type casting of private variables as well. 
   Also, any assignment statement should store the result of the computation into an element of an array because it is not meaningful to simultaneously store multiple values from different loop iterations in a single non-array type variable.

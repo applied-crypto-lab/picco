@@ -17,6 +17,7 @@
 #include "../ops/rss/IntDiv.hpp"
 #include "../ops/rss/LTZ.hpp"
 #include "../ops/rss/Mult.hpp"
+#include "../ops/rss/MultSparse.hpp"
 #include "../ops/rss/Open.hpp"
 #include "../ops/rss/Pow2.hpp"
 #include "../ops/rss/PrivIndex.hpp"

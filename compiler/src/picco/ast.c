@@ -353,6 +353,7 @@ astspec speclist_getspec(astspec s, int type, int subtype) {
 aststmt Statement(enum stmttype type, int subtype, aststmt body) {
     aststmt s = smalloc(sizeof(struct aststmt_));
     s->flag = 0; // default flag is pub
+    s->gflag = 0; // default is non global
     s->is_stmt_for_sng = 0;
     s->type = type;
     s->subtype = subtype;

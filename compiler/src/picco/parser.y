@@ -236,7 +236,7 @@ FILE 	*var_file;
 
 %type <stmt>   jump_statement
 %type <stmt>   translation_unit
-%type <stmt>   external_declaration
+%type <stmt>   external_declaration /* the flag to keep track of globals, gflag */
 %type <stmt>   function_definition
 %type <stmt>   smc_statement
 %type <stmt>   batch_statement
@@ -1132,6 +1132,7 @@ declaration:
       else
         $$ = Declaration($1, NULL);
       isTypedef = 0;
+      $$->gflag = 0;
 
   }
   |
@@ -1142,10 +1143,12 @@ declaration:
       $$ = Declaration($1, $2);
       isTypedef = 0;
       set_pointer_flag($1, $2);
+      $$->gflag = 0;
     }
   | threadprivate_directive // OpenMP Version 2.5 ISO/IEC 9899:1999 addition
     {
         $$ = OmpStmt(OmpConstruct(DCTHREADPRIVATE, $1, NULL));
+        $$->gflag = 0;
     }
 
 ;
@@ -2231,11 +2234,13 @@ pfree_statement:
 translation_unit:
     external_declaration
     {
-	$$ = pastree = $1;
+	$$ = pastree = $1;  
+    $$->gflag = 1; // pastree is the generated AST, this does have a gflag that is defaulted to 0 or global-public
     }
   | translation_unit external_declaration
     {
-      $$ = pastree = BlockList($1, $2);
+      $$ = pastree = BlockList($1, $2); 
+      $$->gflag = 1;
     }
 ;
 
@@ -2247,7 +2252,8 @@ external_declaration:
     }
   | declaration
     {
-      $$ = $1;
+      $$ = $1; 
+      $$->gflag = 1; 
     }
     /* Actually, although not in the grammar, we support 1 more option
      * here:  Verbatim

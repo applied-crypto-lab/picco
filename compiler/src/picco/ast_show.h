@@ -1,7 +1,8 @@
 /*
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) 2013 PICCO Team
+   ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
    PICCO is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,7 +41,7 @@ extern void ast_ompcon_show(ompcon tree, branchnode current);
 extern void ast_ompdir_show(ompdir t);
 extern void ast_ompclause_show(ompclause t);
 
-extern void ast_show(aststmt tree, char *output_filename);
+extern char *ast_show(aststmt tree, char *output_filename);
 extern void ast_show_stderr(aststmt tree);
 extern void ast_spec_show_stderr(astspec tree);
 extern void ast_decl_show_stderr(astdecl tree);
@@ -59,7 +60,7 @@ extern void batch_statement_popAll(batch_statement_stack stack);
 void ast_comma_expr_show(astexpr);
 int ast_check_priv_if(astexpr);
 void ast_priv_decl_sng_show(astdecl, astspec);
-void ast_priv_decl_show(astdecl, astspec, branchnode);
+void ast_priv_decl_show(astdecl, astspec, branchnode, int gflag);
 void ast_priv_single_expr_show(astexpr tree);
 void ast_priv_cast_helper_show(astexpr tree);
 void ast_decl_memory_assign_int(astdecl, char *);
@@ -70,7 +71,7 @@ void ast_free_memory_for_local_variables(ltablelist);
 void ast_decl_stmt_show(aststmt, branchnode);
 void ast_decl_sng_stmt_show(aststmt);
 void ast_if_stmt_show(aststmt, branchnode, int);
-void ast_priv_expr_show(astexpr, branchnode);
+void ast_priv_expr_show(astexpr, branchnode, int);
 void ast_temporary_variable_declaration();
 void ast_iter_tree(aststmt, mvarstack);
 void ast_is_selection_complete(aststmt, astexpr, int *);
