@@ -7,7 +7,7 @@
 /*
 * version of Input where t parties are inputting values into the computation
 * this implementation is **independent** of the number of parties in the computation
-* if pid is NOT an input party, then input is (void/null/whatever)
+* if pid is NOT an input party, then the argument (T *input) is (void/null/whatever)
 * numInputParties = input_parties.size()
 * input dimensiopns : [size]
 * result dimensions : [numShares][numInputParties][size] (this matches the convention used in RSS_GenerateRandomShares_*pc)
