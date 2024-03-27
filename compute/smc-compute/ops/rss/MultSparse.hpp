@@ -153,24 +153,36 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
 
     T z = T(0);
     uint tracker;
+    // only p \nin T_star computes v
+    if (!p_prime_in_T(pid, T_hat)) {
+        for (i = 0; i < size; i++) {
+            v[i] = a[0][i] * (b_hat[0][i] + b_hat[1][i] + b_hat[2][i] + b_hat[3][i] + b_hat[4][i] + b_hat[5][i]) +
+                   a[1][i] * (b_hat[0][i] + b_hat[1][i] + b_hat[2][i] + b_hat[3][i] + b_hat[4][i] + b_hat[5][i]) +
+                   a[2][i] * (b_hat[1][i] + b_hat[3][i]) +
+                   a[3][i] * (b_hat[0][i] + b_hat[2][i]) +
+                   a[4][i] * (b_hat[0][i] + b_hat[1][i]) +
+                   a[5][i] * (b_hat[0][i] + b_hat[4][i]);
+        }
+    }
+
     for (i = 0; i < size; i++) {
-        v[i] = a[0][i] * (b_hat[0][i] + b_hat[1][i] + b_hat[2][i] + b_hat[3][i] + b_hat[4][i] + b_hat[5][i]) +
-               a[1][i] * (b_hat[0][i] + b_hat[1][i] + b_hat[2][i] + b_hat[3][i] + b_hat[4][i] + b_hat[5][i]) +
-               a[2][i] * (b_hat[1][i] + b_hat[3][i]) +
-               a[3][i] * (b_hat[0][i] + b_hat[2][i]) +
-               a[4][i] * (b_hat[0][i] + b_hat[1][i]) +
-               a[5][i] * (b_hat[0][i] + b_hat[4][i]);
+
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                if (
+                    (p_prime != (pid)) and
+                    (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and
+                    (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties))) and
+                    (!p_prime_in_T(p_prime, T_hat))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     tracker += 1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties))) and
+                    (!p_prime_in_T(p_prime, T_hat))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
@@ -269,40 +281,49 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     }
     T z = T(0);
     uint tracker;
+    // only p \nin T_star computes v
+
+    if (!p_prime_in_T(pid, T_hat)) {
+        for (i = 0; i < size; i++) {
+            v[i] =
+                a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+                a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+                a[2][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+                a[3][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+                a[4][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[15][i]) +
+                a[5][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
+                a[6][i] * (b[2][i] + b[5][i] + b[7][i] + b[9][i] + b[11][i] + b[13][i]) +
+                a[7][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i] + b[10][i] + b[11][i] + b[12][i]) +
+                a[8][i] * (b[0][i] + b[4][i] + b[5][i] + b[10][i] + b[11][i] + b[16][i]) +
+                a[9][i] * (b[1][i] + b[4][i] + b[7][i] + b[8][i] + b[10][i] + b[13][i]) +
+                a[10][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[9][i]) +
+                a[11][i] * (b[0][i] + b[1][i] + b[4][i] + b[6][i] + b[7][i] + b[8][i]) +
+                a[12][i] * (b[0][i] + b[1][i] + b[2][i] + b[4][i] + b[5][i] + b[7][i]) +
+                a[13][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i]) +
+                a[14][i] * (b[2][i] + b[4][i] + b[5][i]) +
+                a[15][i] * (b[1][i] + b[4][i]) +
+                a[16][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[15][i]) +
+                a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
+                a[18][i] * (b[1][i] + b[8][i]) +
+                a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
+        }
+    }
     for (i = 0; i < size; i++) {
-        v[i] =
-            a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[2][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[3][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[4][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[15][i]) +
-            a[5][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[6][i] * (b[2][i] + b[5][i] + b[7][i] + b[9][i] + b[11][i] + b[13][i]) +
-            a[7][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i] + b[10][i] + b[11][i] + b[12][i]) +
-            a[8][i] * (b[0][i] + b[4][i] + b[5][i] + b[10][i] + b[11][i] + b[16][i]) +
-            a[9][i] * (b[1][i] + b[4][i] + b[7][i] + b[8][i] + b[10][i] + b[13][i]) +
-            a[10][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[9][i]) +
-            a[11][i] * (b[0][i] + b[1][i] + b[4][i] + b[6][i] + b[7][i] + b[8][i]) +
-            a[12][i] * (b[0][i] + b[1][i] + b[2][i] + b[4][i] + b[5][i] + b[7][i]) +
-            a[13][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i]) +
-            a[14][i] * (b[2][i] + b[4][i] + b[5][i]) +
-            a[15][i] * (b[1][i] + b[4][i]) +
-            a[16][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[15][i]) +
-            a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
-            a[18][i] * (b[1][i] + b[8][i]) +
-            a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
 
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties))) and
+                    (!p_prime_in_T(p_prime, T_hat))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     tracker += 1;
                 } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
+                    (p_prime == pid) and
+                    (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties))) and
+                    (!p_prime_in_T(p_prime, T_hat))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
