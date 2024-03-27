@@ -157,9 +157,9 @@ void NodeConfiguration::loadConfig(std::string configFile) {
         }
 
         // Validate IP address format
-        if (!std::regex_match(tokens[1], ipPattern)) {
-            throw std::runtime_error("Invalid IP address in runtime-config file: " + line + " exiting...");
-        }
+        // if (!std::regex_match(tokens[1], ipPattern)) {
+        //     throw std::runtime_error("Invalid IP address in runtime-config file: " + line + " exiting...");
+        // }
 
         // Validate port number (should be an integer)
         if (!std::regex_match(tokens[2], std::regex(R"(\d+)"))) {
