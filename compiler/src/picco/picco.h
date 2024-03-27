@@ -35,6 +35,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef __APPLE__
+#include <sys/types.h>
+#endif
+
 extern int enableOpenMP;      /* If 0, ignore OpenMP constructs */
 extern int enableOmpix;       /* Enable OMPi-extensions */
 extern char *filename;        /* The file we parse */

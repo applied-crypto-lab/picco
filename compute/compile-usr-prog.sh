@@ -34,7 +34,16 @@ fname="${2%%.*}"
 
 cp ".CMAKE_TEMPLATE" "CMakeLists.txt"
 
-sed -i "s/XXXXX/$fname/g" CMakeLists.txt
+os=$(uname) 
+
+if [ "$os" == "Darwin" ]; then   
+  sed -i '' "s/XXXXX/$fname/g" CMakeLists.txt
+elif [ "$os" == "Linux" ]; then   
+  sed -i "s/XXXXX/$fname/g" CMakeLists.txt
+else   
+  echo "Unknown OS detected"
+fi
+
 
 mkdir -p build
 cd build

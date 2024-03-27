@@ -2,7 +2,7 @@
 
 mkdir -p bin # making bin directory if does not exist
 cd src/picco	
-# make clean # this isn't necessary to do every single time changes in src/picco are made
+make clean # this isn't necessary to do every single time changes in src/picco are made
 make
 mv picco ../../bin/
 cd ../utility

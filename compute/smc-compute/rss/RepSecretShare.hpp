@@ -32,7 +32,12 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <wmmintrin.h> // for intrinsics for AES-NI
+
+#ifdef __arm64__
+#include "../../../common/sse2neon.h" //for intrinsics (translated for ARM processors, e.g., Apple Silicon)
+#else 
+#include <wmmintrin.h> //for intrinsics for AES-NI
+#endif
 
 #define CONTAINER_SIZE 16
 #define KEYSIZE 16

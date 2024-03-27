@@ -35,10 +35,14 @@
 #include <stdint.h> //for int8_t
 #include <stdio.h>
 #include <string.h> //for memcmp
-#include <tmmintrin.h>
 #include <unistd.h>
 #include <vector>
+
+#ifdef __arm64__
+#include "../../../common/sse2neon.h" //for intrinsics (translated for ARM processors, e.g., Apple Silicon)
+#else 
 #include <wmmintrin.h> //for intrinsics for AES-NI
+#endif
 
 #define KE2(NK, OK, RND)                           \
     NK = OK;                                       \
