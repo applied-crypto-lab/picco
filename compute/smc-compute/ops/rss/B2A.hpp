@@ -46,19 +46,20 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     std::vector<int> input_parties(threshold);
     std::iota(input_parties.begin(), input_parties.end(), 1);
 
-    T ***result = new T **[numShares];
-    for (size_t s = 0; s < numShares; s++) {
-        result[s] = new T *[threshold];
-        for (size_t i = 0; i < threshold; i++) {
+    T ***result = new T **[threshold];
+    for (size_t s = 0; s < threshold; s++) {
+        result[s] = new T *[numShares];
+        for (size_t i = 0; i < numShares; i++) {
             result[s][i] = new T[size];
             memset(result[s][i], 0, sizeof(T) * size); // sanitizing destination
         }
     }
 
-    // only t participants need to decreaseViewWidthcompute the XOR of a subset of their shares of [a]
-    // mapping \xi will also be predefined
+    // only t participants need to compute the XOR of a subset of their shares of [a]
+    // mapping \xi predefined
     if (id < threshold + 1) {
 
+        // Rss_Input_p_star(result, computed_xors, input_parties, send_recv_map, size, ring_size, nodeNet, ss);
     } else {
 
         // Rss_Input_p_star(result, NULL, input_parties, send_recv_map, size, ring_size, nodeNet, ss);
@@ -66,6 +67,15 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
 
     // these maps need to be revised (taken originally from edabit, where we needed t+1 input parties)
     // for B2A, only need t input parties
+
+    // cleanup
+    for (size_t i = 0; i < numShares; i++) {
+        for (size_t j = 0; j < threshold; j++) {
+            delete[] result[i][j];
+        }
+        delete[] result[i];
+    }
+    delete[] result;
 }
 
 #endif // _B2A_HPP_

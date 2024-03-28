@@ -35,7 +35,7 @@
 
 #ifdef __arm64__
 #include "../../../common/sse2neon.h" //for intrinsics (translated for ARM processors, e.g., Apple Silicon)
-#else 
+#else
 #include <wmmintrin.h> //for intrinsics for AES-NI
 #endif
 
@@ -1214,15 +1214,15 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
 
         std::vector<int> tmp;
         switch (n) {
-        case 3:
+        case 3:                           // T_{p+1}
             tmp = {mod_n(p_star + 1, n)}; // no sorting necessary
             break;
-        case 5:
+        case 5: // T_{p+1, p + 2}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
             // sorting for consistency
             sort(tmp.begin(), tmp.end());
             break;
-        case 7:
+        case 7: // T_{p+1, p + 2, p + 3}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
             sort(tmp.begin(), tmp.end());
             break;
@@ -1410,9 +1410,11 @@ std::vector<std::vector<int>> replicatedSecretShare<T>::generate_MultSparse_map(
 
     case 7:
         return {
+            // if my id > 3, compute as normal, otherwise set to -1
             {((_id > 3) ? mod_n(_id - 1, _n) : -1),
              ((_id > 3) ? mod_n(_id - 2, _n) : -1),
              ((_id > 3) ? mod_n(_id - 3, _n) : -1)},
+            // if the COMPUTED VALUE is > 3 , compute as normal, otherwise set to -1
             {(mod_n(_id + 1, _n) > 3 ? mod_n(_id + 1, _n) : -1),
              (mod_n(_id + 2, _n) > 3 ? mod_n(_id + 2, _n) : -1),
              (mod_n(_id + 3, _n) > 3 ? mod_n(_id + 3, _n) : -1)},
@@ -1465,8 +1467,17 @@ template <typename T>
 void ss_batch_free_operator(T ****op, int size) {
 }
 
+// takes an array of public values and creates sparse
+// only useful for testing correctness
+// in actual protocols where we deal with sparse shares, already secret-shared values would be sparsify'd, and not all parties would have access to the nonzero share
 template <typename T>
 void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
+    // using this function for convenience, the argument here is fixed to 'n' since we fix T_hat to always be the lexicographically first share
+    // using n as an argument is a shortcut to guarantee we get the indeces of the following T_hat's
+    // e.g.,
+    // n = 3 -> T_hat_{1}
+    // n = 5 -> T_hat_{1,2}
+    // n = 7 -> T_hat_{1,2,3}
     int idx = generateT_star_index(3);
     cout << "idx : " << idx << endl;
     if (idx >= 0) {
