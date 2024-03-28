@@ -30,7 +30,7 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
     //     for (size_t i = 0; i < numInputParties; i++) {
     //         // sanitizing destination
     //         // potentially not needed?, given the context of which this is called (inside B2A, where we created the destination variables themselves)
-    //         memset(result[s][i], 0, sizeof(T) * size);
+    //         memset(resulti], 0, sizeof(T) * size);
     //     }
     // }
 
@@ -63,7 +63,7 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
             if (s != T_star_index and (std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
                 ss->prg_getrandom(s, bytes, size, buffer[s]);
                 for (size_t i = 0; i < size; i++) {
-                    memcpy(result[s][p_star_index] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[s][p_star][i]
+                    memcpy(result[p_star_index][s] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[p_star][s][i]
                 }
             }
         }
@@ -78,12 +78,12 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
             for (uint s = 0; s < numShares; s++) {
                 if (s != T_star_index) {
                     for (size_t i = 0; i < size; i++) {
-                        result[T_star_index][my_index][i] -= result[s][my_index][i];
+                        result[my_index][T_star_index][i] -= result[my_index][s][i];
                     }
                 } else {
                     // only happens once, p_star adding the value which is being inputted to share T_star
                     for (size_t i = 0; i < size; i++) {
-                        result[T_star_index][my_index][i] += input[i];
+                        result[my_index][T_star_index][i] += input[i];
                     }
                 }
             }
@@ -92,8 +92,8 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
         // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
         // However, will still need to extract the shares received into the correct locations
     }
-    // sending everything in the result[my_T_star_index][my_index]
-    nodeNet.SendAndGetDataFromPeer(result[my_T_star_index][my_index], recvbuf, size, ring_size, send_recv_map);
+    // sending everything in the result[my_index][my_T_star_index]
+    nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, size, ring_size, send_recv_map);
     /*
     the order which data is received into recvbuf corresponds to the recv component of send_recv_map
     e.g. supposed input_parties = {1,2,3}
@@ -110,8 +110,7 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
             if (p_star == send_recv_map[1][recv_id_idx]) {
                 // getting the index of the share T_star
                 T_star_index = ss->generateT_star_index(p_star);
-                // copying all the contents of recvbuf[recv_id_idx] into result[T_star_index]
-                memcpy(result[T_star_index][p_star_index], recvbuf[recv_id_idx], sizeof(T) * size);
+                memcpy(result[p_star_index][T_star_index], recvbuf[recv_id_idx], sizeof(T) * size);
             }
         }
         p_star_index += 1;
