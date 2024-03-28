@@ -4552,8 +4552,9 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
 
 void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     indent();
+    // str_printf(global_string, "%d, %d, %d", is_priv, gf, is_init_decl);
+    // str_printf(global_string, "%s, ", tree->decl->u.id->name);
     if (tree->decl->type == DIDENT) {
-        str_printf(global_string, "%s, %s, %s", is_priv, gf, is_init_decl);
         if (gf == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
