@@ -172,17 +172,16 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if (
-                    (p_prime != (pid)) and
+                if ((p_prime != (pid)) and
                     (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and
                     (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties))) and
                     (!p_prime_in_T(p_prime, T_hat))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     tracker += 1;
-                } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties))) and
-                    (!p_prime_in_T(p_prime, T_hat))) {
+                } else if ((p_prime == pid) and
+                           (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties))) and
+                           (!p_prime_in_T(p_prime, T_hat))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
