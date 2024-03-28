@@ -3825,7 +3825,7 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
     case DARRAY:
         if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
             if (!flag) {
-                ast_decl_memory_assign_int(tree, struct_name);
+                ast_decl_memory_assign_int(tree, struct_name); // for non-global array 
                 indlev--;
             } else
                 ast_decl_memory_free_int(tree, struct_name);
@@ -3864,7 +3864,7 @@ void ast_print_struct_helper_function(astspec tree) {
     char *struct_name = (char *)malloc(sizeof(char) * buffer_size);
 
     if (tree->name) {
-        sprintf(init_func, "%s_init", tree->name->name);
+        sprintf(init_func, "%s_init", tree->name->name); // This is where the struct or union init function gets printed
         sprintf(free_func, "%s_free", tree->name->name);
         sprintf(struct_name, "%s_node->", tree->name->name);
     }
@@ -4105,9 +4105,15 @@ void ast_decl_stmt_show(aststmt tree, branchnode current) {
         is_priv = 0;
         is_init_decl = 0;
     } else if (tree->u.declaration.spec->subtype == SPEC_struct || tree->u.declaration.spec->subtype == SPEC_union) {
+        if (gf == 1) { // Do this only for global struct or union 
+            is_init_decl = 1; // We know it is a declaration of global struct or union  
+        } else {
+            is_init_decl = 0;
+        }
         // struct variable declaration
         if (tree->u.declaration.decl) {
-            ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag); // gives error in here 
+            ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag); 
+            is_init_decl = 0;
         }
         // struct declaration
         else {
@@ -4351,8 +4357,8 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - int
-                    // fprintf(output, "priv_ptr %s;", tree->decl->u.id->name); // Added after declaring private global pointers
-                    str_printf(global_string, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
+                    fprintf(output, "priv_ptr %s;", tree->decl->u.id->name); // Added after declaring private global pointers
+                    str_printf(global_string, "%s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                 } else {
                     fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                 }
@@ -4373,8 +4379,9 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             // pointer to private float
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
-                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - float
-                    str_printf(global_string, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
+                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - 
+                    fprintf(output, "priv_ptr %s = ", tree->decl->u.id->name);
+                    str_printf(global_string, "%s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
                 } else {
                     fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
                 }
@@ -4413,7 +4420,10 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 ast_decl_show(tree);
                 fprintf(output, ";\n");
                 indent();
-                fprintf(output, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name);
+                if (gf == 1 && is_init_decl == 1) 
+                    str_printf(global_string, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where a private global struct or union init function call gets printed
+                else 
+                    fprintf(output, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where any non-global struct or union init function call gets printed
             }
             // pointer declaration
             else {
@@ -4423,7 +4433,12 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 if (!contain_pub_field) {
                     indent();
                     int level = ast_compute_ptr_level(tree);
-                    fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                    if (gf == 1 && is_init_decl == 1) {
+                        fprintf(output, "priv_ptr %s;\n", tree->decl->u.id->name);
+                        str_printf(global_string, "%s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                    } else {
+                        fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                    }
                 } else {
                     ast_spec_show(spec);
                     fprintf(output, " ");
@@ -4510,6 +4525,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 }
             }
             if (symtab_get(stab, tree->decl->u.id, IDNAME) == NULL) {
+                // fprintf(output, "Int Hits here!");
                 ast_decl_memory_assign_int(tree, "");
                 indlev--;
             }
@@ -4525,6 +4541,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 }
             }
             if (symtab_get(stab, tree->decl->u.id, IDNAME) == NULL) {
+                // fprintf(output, "Float Hits here!");
                 ast_decl_memory_assign_float(tree, "");
                 indlev--;
             }
@@ -4535,42 +4552,89 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
 
 void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     indent();
+    // str_printf(global_string, "%d, %d, %d", is_priv, gf, is_init_decl);
+    // str_printf(global_string, "%s, ", tree->decl->u.id->name);
     if (tree->decl->type == DIDENT) {
-        fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
+        } else 
+            fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
         ast_expr_show(tree->u.expr);
     } else if (tree->decl->type == DARRAY) {
-        fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
+        } else 
+            fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
         ast_expr_show(tree->decl->u.expr);
     }
-    fprintf(output, "));\n");
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "));\n");
+    } else 
+        fprintf(output, "));\n");
     // init
     indent();
-    fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "for (int _picco_i = 0; _picco_i < ");
+    } else 
+        fprintf(output, "for (int _picco_i = 0; _picco_i < ");
     if (tree->decl->type == DIDENT)
         ast_expr_show(tree->u.expr);
     else if (tree->decl->type == DARRAY)
         ast_expr_show(tree->decl->u.expr);
-    fprintf(output, "; _picco_i++)\n");
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "; _picco_i++)\n");
+    } else 
+        fprintf(output, "; _picco_i++)\n");
     indlev++;
     indent();
     if (tree->decl->type == DIDENT) {
         indent();
-        fprintf(output, "ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
+        } else 
+            fprintf(output, "ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
     } else if (tree->decl->type == DARRAY) {
         arg_str = Str("");
         ast_expr_print(arg_str, tree->u.expr);
-        fprintf(output, "{\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "{\n");
+        } else 
+            fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        } else 
+            fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
         indent();
-        fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+        } else 
+            fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
         indent();
         indent();
-        fprintf(output, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            indent_global_string(global_string);
+            str_printf(global_string, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
+        } else 
+            fprintf(output, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
         indlev--;
         indent();
-        fprintf(output, "}\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "}\n");
+        } else 
+            fprintf(output, "}\n");
         str_free(arg_str);
     }
 }
@@ -4621,61 +4685,137 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
 void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
     indent();
     if (tree->decl->type == DIDENT) {
-        fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
+        } else 
+            fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
         ast_expr_show(tree->u.expr);
     } else if (tree->decl->type == DARRAY) {
-        fprintf(output, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
+        } else 
+            fprintf(output, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
         ast_expr_show(tree->decl->u.expr);
     }
-    fprintf(output, "));\n");
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "));\n");
+    } else 
+        fprintf(output, "));\n");
     // init
     indent();
-    fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "for (int _picco_i = 0; _picco_i < ");
+    } else 
+        fprintf(output, "for (int _picco_i = 0; _picco_i < ");
     if (tree->decl->type == DIDENT)
         ast_expr_show(tree->u.expr);
     else if (tree->decl->type == DARRAY)
         ast_expr_show(tree->decl->u.expr);
-    fprintf(output, "; _picco_i++)\n");
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "; _picco_i++)\n");
+    } else 
+        fprintf(output, "; _picco_i++)\n");
     indlev++;
     indent();
     if (tree->decl->type == DIDENT) {
-        fprintf(output, "{\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "{\n");
+        } else 
+            fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->u.id->name);
+        } else 
+            fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->u.id->name);
         indent();
-        fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
+        } else 
+            fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
         indent();
         indent();
-        fprintf(output, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
+        } else 
+            fprintf(output, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
         indlev--;
         indent();
-        fprintf(output, "}\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "}\n");
+        } else 
+            fprintf(output, "}\n");
     } else if (tree->decl->type == DARRAY) {
         arg_str = Str("");
         ast_expr_print(arg_str, tree->u.expr);
-        fprintf(output, "{\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "{\n");
+        } else 
+            fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        } else 
+            fprintf(output, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
         indent();
-        fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+        } else 
+            fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
         indent();
-        fprintf(output, "{\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "{\n");
+        } else 
+            fprintf(output, "{\n");
         indlev++;
         indent();
-        fprintf(output, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->decl->u.id->name);
+        } else 
+            (output, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->decl->u.id->name);
         indent();
-        fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
+        } else 
+            fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
         indent();
         indent();
-        fprintf(output, "ss_init(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "ss_init(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
+        } else 
+            fprintf(output, "ss_init(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
         indlev--;
         indent();
-        fprintf(output, "}\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "}\n");
+        } else 
+            fprintf(output, "}\n");
         indlev--;
         indent();
-        fprintf(output, "}\n");
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "}\n");
+        } else 
+            fprintf(output, "}\n");
         str_free(arg_str);
     }
 }
