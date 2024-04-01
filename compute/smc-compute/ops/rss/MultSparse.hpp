@@ -114,7 +114,6 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     uint threshold = ss->getThreshold();
     int pid = nodeNet.getID();
     vector<vector<int>> mul_map = ss->generate_MultSparse_map(numParties, pid);
-
     T *v = new T[size];
 
     std::vector<uint8_t> prg_ctrs(6);
@@ -145,7 +144,9 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        if (prg_ctrs[i] > 0) {
+            ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        }
 
         // sanitizing destination (just in case)
         memset(c[i], 0, sizeof(T) * size);
@@ -155,6 +156,8 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     uint tracker;
     // only p \nin T_star computes v
     if (!p_prime_in_T(pid, T_hat)) {
+        // std::cout << pid << " not in " << T_hat << std::endl;
+
         for (i = 0; i < size; i++) {
             v[i] = a[0][i] * (b_hat[0][i] + b_hat[1][i] + b_hat[2][i] + b_hat[3][i] + b_hat[4][i] + b_hat[5][i]) +
                    a[1][i] * (b_hat[0][i] + b_hat[1][i] + b_hat[2][i] + b_hat[3][i] + b_hat[4][i] + b_hat[5][i]) +
@@ -165,28 +168,27 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
         }
     }
 
-    for (i = 0; i < size; i++) {
-
-        // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            // printf("\n");
+    // printf("finished calculating v\n");
+    for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+        // printf("\n");
+        if (!p_prime_in_T(p_prime, T_hat)) {
+            // std::cout << p_prime << " not in " << T_hat << std::endl;
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and
-                    (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and
-                    (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties))) and
-                    (!p_prime_in_T(p_prime, T_hat))) {
-                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
-                    tracker += 1;
-                } else if ((p_prime == pid) and
-                           (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties))) and
-                           (!p_prime_in_T(p_prime, T_hat))) {
-                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
-                    v[i] -= z;
+                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                    for (i = 0; i < size; i++) {
+                        memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                        c[T_index][i] += z;
+                        tracker += 1;
+                    }
+                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
+                    for (i = 0; i < size; i++) {
 
-                    tracker += 1;
+                        memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                        c[T_index][i] += z;
+                        v[i] -= z;
+                        tracker += 1;
+                    }
                 }
             }
         }
@@ -196,15 +198,20 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     // communication
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, mul_map);
     if (mul_map[1][0] > 0) {
+        // printf("FIRST IF\n");
+        // std::cout << "inserting data recived from " << mul_map[1][0] << " into index " << 0 << " and adding to share index " << 5 << std::endl;
         for (size_t i = 0; i < size; i++)
-            c[5][i] = c[5][i] + recv_buf[0][i]; // received from id + 2 (mul_map[1][0])
+            c[3][i] = c[3][i] + recv_buf[0][i]; // received from id + 2 (mul_map[1][0])
     }
     if (mul_map[1][1] > 0) {
+        // printf("SECOND IF\n");
+        // std::cout << "inserting data recived from " << mul_map[1][1] << " into index " << 1 << " and adding to share index " << 3 << std::endl;
         for (size_t i = 0; i < size; i++)
-            c[3][i] = c[3][i] + recv_buf[1][i]; // received from id + 1 (mul_map[1][1])
+            c[5][i] = c[5][i] + recv_buf[1][i]; // received from id + 1 (mul_map[1][1])
     }
     // if myid \notin T_hat
     if (!p_prime_in_T(pid, T_hat)) {
+        // std::cout << pid << " not in " << T_hat << std::endl;
         for (i = 0; i < size; i++) {
             // need to check here that i actually received something from another party
             // worth separating these loops, first checking if mul_map > 0 so it's checked exactly twice
@@ -272,7 +279,9 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
-        ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        if (prg_ctrs[i] > 0) {
+            ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
+        }
 
         // sanitizing destination (just in case)
         // printf("case )\n");
@@ -338,17 +347,17 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
 
     if (mul_map[1][0] > 0) {
         for (size_t i = 0; i < size; i++)
-            c[19][i] = c[19][i] + recv_buf[0][i]; // received from id + 1 (mul_map[1][2])
+            c[9][i] = c[9][i] + recv_buf[0][i]; // received from id + 1 (mul_map[1][2])
     }
 
     if (mul_map[1][1] > 0) {
         for (size_t i = 0; i < size; i++)
-            c[16][i] = c[16][i] + recv_buf[1][i]; // received from id + 2 (mul_map[1][1])
+            c[15][i] = c[15][i] + recv_buf[1][i]; // received from id + 2 (mul_map[1][1])
     }
 
     if (mul_map[1][2] > 0) {
         for (size_t i = 0; i < size; i++)
-            c[10][i] = c[10][i] + recv_buf[2][i]; // received from id + 3 (mul_map[1][0])
+            c[19][i] = c[19][i] + recv_buf[2][i]; // received from id + 3 (mul_map[1][0])
     }
     // if myid \notin T_hat
     if (!p_prime_in_T(pid, T_hat)) {
@@ -357,13 +366,6 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
             // worth separating these loops, first checking if mul_map > 0 so it's checked exactly twice
             c[0][i] = c[0][i] + v[i]; // can be done before S/R
         }
-    }
-
-    // ss->prg_getrandom(0, bytes, size, buffer);
-    for (i = 0; i < size; i++) {
-        c[10][i] = c[10][i] + recv_buf[2][i]; // received from id + 3 (mul_map[1][0])
-        c[16][i] = c[16][i] + recv_buf[1][i]; // received from id + 2 (mul_map[1][1])
-        c[19][i] = c[19][i] + recv_buf[0][i]; // received from id + 1 (mul_map[1][2])
     }
 
     for (i = 0; i < threshold; i++) {
@@ -379,7 +381,6 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     delete[] buffer;
     delete[] recv_buf;
 }
-
 
 // non-threaded versions (since RSS is single threaded )
 template <typename T>
