@@ -653,7 +653,7 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
             (*narray_element_index)++;
             str_printf(leftop, "_picco_batch_tmp_array%d", *narray_element_index);
             // previous version had " %s ", which would insert whitespace around only the equality operator
-            // When op is written inside the smc_batch string below, it caused caused problems  in smc-compute since " = " was unrecognized
+            // When op is written inside the smc_batch string below, it caused caused problems in smc-compute since " = " was unrecognized
             // replaced with "%s" solves the issue
             sprintf(op, "%s", ASS_symbols[tree->u.expr->opid]); 
         } else if (tree->u.expr->right->flag == PRI) {
@@ -1408,18 +1408,29 @@ void ast_return_type_of_rop(char **type, astexpr right) {
 void ast_ptr_assignment_show(astexpr left, astexpr right, str rightop) {
     char *type = (char *)malloc(sizeof(char) * buffer_size);
     ast_return_type_of_rop(&type, right);
+
     if (is_priv == 1 && gf == 1 && is_init_decl == 1) // This is where global private pointers get handled 
+        str_printf(global_string, "__s->smc_set%s_ptr(", type);
+    else if (gf == 1 && is_init_decl == 1) // This is where part of the all-priv-element-struct global init function call gets handled (pretty tricky!)
         str_printf(global_string, "__s->smc_set%s_ptr(", type);
     else 
         fprintf(output, "__s->smc_set%s_ptr(", type);
+
     ast_expr_show(left);
+    
     if (is_priv == 1 && gf == 1 && is_init_decl == 1)
+        str_printf(global_string, ", %s, ", str_string(rightop));
+    else if (gf == 1 && is_init_decl == 1) // This is where part of the all-priv-element-struct global init function call gets handled (pretty tricky!)
         str_printf(global_string, ", %s, ", str_string(rightop));
     else 
         fprintf(output, ", %s, ", str_string(rightop));
-    if (left->u.sym->type == 2)
-        fprintf(output, "\"struct\", %d)", left->thread_id);
-    else {
+
+    if (left->u.sym->type == 2) {
+        if (gf == 1 && is_init_decl == 1)  // This is where part of the all-priv-element-struct global init gets handled
+            str_printf(global_string, "\"struct\", %d)", left->thread_id); 
+        else 
+            fprintf(output, "\"struct\", %d)", left->thread_id);
+    } else {
         if (left->ftype == 0) {  // This is where global private pointers get handled 
             if (is_priv == 1 && gf == 1 && is_init_decl == 1)
                 str_printf(global_string, "\"int\", %d)", left->thread_id);
@@ -2446,9 +2457,9 @@ void ast_stmt_show(aststmt tree, branchnode current) {
     }
     case DECLARATION:
         if (!tree->is_stmt_for_sng)
-            ast_decl_stmt_show(tree, current);
+            ast_decl_stmt_show(tree, current); // declaration is for a non-single entity
         else
-            ast_decl_sng_stmt_show(tree);
+            ast_decl_sng_stmt_show(tree); // declaration is for a single entity
         break;
     case VERBATIM:
         fprintf(output, "%s\n", tree->u.code);
@@ -3141,23 +3152,29 @@ void ast_priv_expr_show(astexpr tree, branchnode current, int gflag) {
 void ast_expr_show(astexpr tree) {
     switch (tree->type) {
     case IDENT:
-        if (is_init_decl == 1 && gf == 1 && is_priv == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             str_printf(global_string, "%s", tree->u.sym->name);
             // printf("\nName: %s\n", tree->u.sym->name); // the private name gets printed here
+        } else if (gf == 1 && is_init_decl == 1) {
+            str_printf(global_string, "%s", tree->u.sym->name);
         } else {
             fprintf(output, "%s", tree->u.sym->name);
         }
         break;
     case CONSTVAL:
-        if (is_init_decl == 1 && gf == 1 && is_priv == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             str_printf(global_string, "%s", tree->u.str);
             // printf("\nValue: %s\n", tree->u.str); // the const value for both private and public gets printed here
+        } else if (gf == 1 && is_init_decl == 1) {
+            str_printf(global_string, "%s", tree->u.str);
         } else {
             fprintf(output, "%s", tree->u.str);
         }
         break;
     case STRING: 
-        if (is_init_decl == 1 && gf == 1 && is_priv == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
+            str_printf(global_string, "%s", tree->u.str);
+        } else if (gf == 1 && is_init_decl == 1) {
             str_printf(global_string, "%s", tree->u.str);
         } else {
             fprintf(output, "%s", tree->u.str);
@@ -3197,11 +3214,15 @@ void ast_expr_show(astexpr tree) {
         // if it does contain any public field, we will use its original name
         // otherwise, we will add suffix at the end.
         // if tree->left->u.sym->struct_type == NULL -------> it is the struct declared by openMP constructs
-
+        // fprintf(output, "111"); // This does not print the name correctly (Issue#2)
         if (tree->left->u.sym->struct_type == NULL || struct_node_get_flag(sns, tree->left->u.sym->struct_type->name->name)) {
             ast_expr_show(tree->left);
             fprintf(output, "->%s", tree->u.sym->name);
-        }
+        } 
+        // else if (tree->left->u.sym->struct_type != NULL) { // the issue is that this line says it is null so it dosen't get printed
+        //     ast_expr_show(tree->left);
+        //     fprintf(output, "->%s", tree->u.sym->name);
+        // }
         break;
     case BRACEDINIT:
         if (tree->left->type != COMMALIST)
@@ -3295,8 +3316,12 @@ void ast_expr_show(astexpr tree) {
             if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
                 str_printf(global_string, ")");
         } else {
-            if (tree->flag != PRI)
-                fprintf(output, "%s", UOP_symbols[tree->opid]);
+            if (tree->flag != PRI) { // This is where struct to a pointer assignment takes place
+                if (gf == 1 && is_init_decl == 1)
+                    str_printf(global_string, "%s", UOP_symbols[tree->opid]);
+                else 
+                    fprintf(output, "%s", UOP_symbols[tree->opid]);
+            }
             if (tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
                 fprintf(output, "(");
             if (tree->opid == UOP_sizeoftype || tree->opid == UOP_typetrick)
@@ -3485,7 +3510,7 @@ void ast_expr_show(astexpr tree) {
         }
         break;
     case ASS:
-        /* for simpile pri to pri assignment */
+        /* for simple pri to pri assignment */
         if (tree->left->flag == PRI && tree->right->flag == PRI) {
             if (tree->right->index == 0) {
                 if (tree->right->type == FUNCCALL) {
@@ -3581,7 +3606,10 @@ void ast_expr_show(astexpr tree) {
                 } else {
                     /*for pub assignment */
                     ast_expr_show(tree->left);
-                    fprintf(output, " %s ", ASS_symbols[tree->opid]);
+                    if (gf == 1 && is_init_decl == 1)
+                        str_printf(global_string, " %s ", ASS_symbols[tree->opid]); // this is where the symbol on global struct gets printed (Finally)
+                    else 
+                        fprintf(output, " %s ", ASS_symbols[tree->opid]); 
                     ast_expr_show(tree->right);
                 }
             }
@@ -4342,7 +4370,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
  */
 /* Handles private declarations*/
 void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gflag) {
-    /* printing global private declaration into a string */
+    /* printing global private declarations into a string */
     switch (tree->type) {
     case DECLARATOR:
         if(gflag != 1) {
@@ -4379,7 +4407,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             // pointer to private float
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
-                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - 
+                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - decl
                     fprintf(output, "priv_ptr %s = ", tree->decl->u.id->name);
                     str_printf(global_string, "%s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
                 } else {
@@ -4497,7 +4525,9 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             // e0->ftype = e1->ftype = tree->u.expr->ftype;
         }
         ast_expr_show(e1);
-        if (is_priv == 1 && gflag == 1){
+        if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
+            str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
+        } else if (gflag == 1 && is_init_decl == 1){
             str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
         } else {
             fprintf(output, ";\n");
@@ -4528,7 +4558,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 // fprintf(output, "Int Hits here!");
                 ast_decl_memory_assign_int(tree, "");
                 indlev--;
-            }
+            } 
         } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
