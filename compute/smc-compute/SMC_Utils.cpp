@@ -1907,6 +1907,7 @@ using std::vector;
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     uint numShares = ss->getNumShares();
+    int threshold = ss->getThreshold();
     uint bytes = (ss->ring_size + 7) >> 3;
     printf("bytes : %u\n", bytes);
 
@@ -1930,34 +1931,17 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     ss->sparsify(B_sparse, B, size);
 
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("B[%lu]: %i\n", i, B[i]);
-    // }
-
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
             printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
         }
-        printf("\n");
     }
 
-    // uint8_t *buffer = new uint8_t[bytes];
-    // ss->prg_getrandom(0, bytes, size, buffer);
-    // for (int i = 0; i < size; i++) {
-    //     memcpy(result + i, buffer + i * bytes, bytes);
-    //     printf("prg(0) %u\n", result[i]);
-    // }
-    // ss->prg_getrandom(1, bytes, size, buffer);
-    // for (int i = 0; i < size; i++) {
-    //     memcpy(result + i, buffer + i * bytes, bytes);
-    //     printf("prg(1) %u\n", result[i]);
-    // }
 
     smc_open(result, B_sparse, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
-    }
-
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
+    // }
     Rss_Mult_Sparse_3pc(C, A, B_sparse, size, ss->ring_size, net, ss);
 
     // for (size_t i = 0; i < size; i++) {
@@ -1968,9 +1952,21 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // }
 
     smc_open(result, C, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) C [%lu]: %u\n", i, result[i]);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) C [%lu]: %u\n", i, result[i]);
+    // }
+
+
+
+    priv_int_t ***res = new priv_int_t **[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        res[s] = new priv_int_t *[threshold];
+        for (size_t i = 0; i < threshold; i++) {
+            res[s][i] = new priv_int_t[size];
+            memset(res[s][i], 0, sizeof(priv_int_t) * size); // sanitizing destination
+        }
     }
+
 
     for (size_t _picco_i = 0; _picco_i < numShares; _picco_i++) {
         delete[] C[_picco_i];
@@ -1981,5 +1977,16 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // delete[] buffer;
 
     delete[] result;
+
+
+
+
+    for (size_t i = 0; i < numShares; i++) {
+        for (size_t j = 0; j < threshold; j++) {
+            delete[] res[i][j];
+        }
+        delete[] res[i];
+    }
+    delete[] res;
 }
 #endif

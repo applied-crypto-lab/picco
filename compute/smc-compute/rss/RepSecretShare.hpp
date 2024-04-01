@@ -1229,13 +1229,13 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
         default:
             break;
         }
-        cout << "tmp : " << tmp << endl;
+        // cout << "tmp : " << tmp << endl;
         for (size_t i = 0; i < T_map_mpc.size(); i++) {
             if (tmp == T_map_mpc.at(i)) {
                 return i;
             }
         }
-        cout << "index not found, returning -1" << endl;
+        cout << "index not found (party "<< id<<" does not have access), returning -1" << endl;
         return -1;
         // throw std::runtime_error("index not found, there's a logic error somewhere");
     } catch (const std::runtime_error &ex) {
@@ -1479,7 +1479,7 @@ void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
     // n = 5 -> T_hat_{1,2}
     // n = 7 -> T_hat_{1,2,3}
     int idx = generateT_star_index(3);
-    cout << "idx : " << idx << endl;
+    // cout << "idx : " << idx << endl;
     if (idx >= 0) {
 
         // for (size_t i = 0; i < numShares; i++) {
