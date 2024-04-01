@@ -85,7 +85,7 @@ template <typename T>
 class replicatedSecretShare {
 
 public:
-    replicatedSecretShare(int _id, int _n, int _t, uint ring_size, std::map<std::vector<int>, uint8_t *>);
+    replicatedSecretShare(int _id, int _n, int _t, uint ring_size, std::map<std::vector<int>, std::string>);
     ~replicatedSecretShare();
     uint getNumShares();
     uint getTotalNumShares();
@@ -97,7 +97,7 @@ public:
 
     __m128i *prg_keyschedule(uint8_t *src);
     void prg_aes(uint8_t *, uint8_t *, __m128i *);
-    void prg_setup(std::map<std::vector<int>, uint8_t *>);
+    void prg_setup(std::map<std::vector<int>, std::string>);
     void prg_getrandom(int keyID, uint size, uint length, uint8_t *dest);
     void prg_getrandom(uint size, uint length, uint8_t *dest);
 
@@ -211,7 +211,7 @@ private:
 
 /* method definitions */
 template <typename T>
-replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _ring_size, std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
+replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _ring_size, std::map<std::vector<int>, std::string> rss_share_seeds) {
     id = _id;
     n = _n;
     t = _t;
@@ -261,7 +261,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
             {mod_n(id + 1, n)},
             {mod_n(id - 1, n)},
         };
-        for (auto var : T_map_mpc) {
+        for (auto &var : T_map_mpc) { // using reference so vector gets modified
             sort(var.begin(), var.end());
         }
         // we want s2 = 0 (for parties 1 and 3)
@@ -295,7 +295,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         // we can sort the T_map without fear of messing up the order of shares
         // since these partially function as the ID for each share
         // shares will always be in the correct positions regardless
-        for (auto var : T_map_mpc) {
+        for (auto &var : T_map_mpc) {
             sort(var.begin(), var.end());
         }
 
@@ -353,7 +353,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         };
 
         // sorting each share in T_map
-        for (auto var : T_map_mpc) {
+        for (auto &var : T_map_mpc) {
             sort(var.begin(), var.end());
         }
 
@@ -382,7 +382,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         std::cerr << "ERROR: an invalid number of parties was provided. RSS only supports n = {3,5,7}\n";
         exit(1);
     }
-
+    printf("prg_setup\n");
     prg_setup(rss_share_seeds);
 }
 
@@ -390,7 +390,12 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
 // we sorted T_map_mpc in the replicatedSecretShare constructor (above)
 // now we just need to access rss_share_seeds[T_map_mpc.at(i)] to get the corresponding value (32 random bytes, the "value")
 template <typename T>
-void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
+void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, std::string> rss_share_seeds) {
+    // for (auto &[key, value] : rss_share_seeds) {
+    //     std::cout << key << " has value " << value << endl;
+    //     // print_hexa_2(value, 2*KEYSIZE);
+    // }
+
     // need to create numShares+1 keys, random containers, etc
     uint numKeys = numShares + 1;
     random_container = new uint8_t *[numKeys];
@@ -423,8 +428,13 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> r
     prg_key[numKeys - 1] = prg_keyschedule(RandomData + KEYSIZE);
 
     for (size_t i = 0; i < T_map_mpc.size(); i++) {
-        memcpy(random_container[i], rss_share_seeds[T_map_mpc.at(i)], KEYSIZE);
-        prg_key[i] = prg_keyschedule(rss_share_seeds[T_map_mpc.at(i)] + KEYSIZE); // should be able to do this
+        // getting value stored at rss_share_seeds[T_map_mpc[i]]
+        std::string str = rss_share_seeds[T_map_mpc.at(i)];
+        uint8_t key[2 * KEYSIZE];
+        std::copy(str.begin(), str.end(), key);
+
+        memcpy(random_container[i], key, KEYSIZE);
+        prg_key[i] = prg_keyschedule(key + KEYSIZE); // should be able to do this
     }
     uint8_t res[KEYSIZE] = {};
     for (size_t i = 0; i < numKeys; i++) {
@@ -1235,7 +1245,7 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
                 return i;
             }
         }
-        cout << "index not found (party "<< id<<" does not have access), returning -1" << endl;
+        cout << "index not found (party " << id << " does not have access), returning -1" << endl;
         return -1;
         // throw std::runtime_error("index not found, there's a logic error somewhere");
     } catch (const std::runtime_error &ex) {
@@ -1478,7 +1488,7 @@ void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
     // n = 3 -> T_hat_{1}
     // n = 5 -> T_hat_{1,2}
     // n = 7 -> T_hat_{1,2,3}
-    int idx = generateT_star_index(3);
+    int idx = generateT_star_index(n);
     // cout << "idx : " << idx << endl;
     if (idx >= 0) {
 

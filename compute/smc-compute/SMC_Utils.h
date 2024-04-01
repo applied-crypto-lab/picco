@@ -558,7 +558,7 @@ public:
     void smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, int threadID);
 
     std::map<std::string, std::vector<int>> shamir_seeds_coefs; // mapping of keys (str) to polynomial coefficients
-    std::map<std::vector<int>, uint8_t *> rss_share_seeds;
+    std::map<std::vector<int>, std::string > rss_share_seeds;
 
     int id;
 

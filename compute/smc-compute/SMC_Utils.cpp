@@ -18,6 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
+#include <iomanip>
 #include <string>
 
 // Constructors
@@ -47,12 +48,13 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 #if __SHAMIR__
 
     net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
-    printf("SHAMIR\n");
+    printf("Technique: SHAMIR\n");
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
-    printf("RSS\n");
+    printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
+    // printf("RSS_constructor end\n");
 
 #endif
 
@@ -1735,19 +1737,16 @@ void SMC_Utils::smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_i
 #endif
 }
 
+std::string uint8PtrToString(const uint8_t *data, size_t length) {
+    return std::string(data, data + length);
+}
+
 // seed_map - contains binary encodings of access sets T (as defined in Baccarini et al., "Multi-Party Replicated Secret Sharing over a Ring with Applications to Privacy-Preserving Machine Learning," 2023)
 // 2*KEYSIZE - 16 bytes for
 void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) {
-    
-    // allocated using new, other wise the memory is automatically freed when the function goes out of scope
-    uint8_t *RandomData_send = new uint8_t[2 * KEYSIZE];
-    uint8_t *RandomData_recv = new uint8_t[2 * KEYSIZE];
-    memset(RandomData_recv, 0, sizeof(uint8_t) * 2 * KEYSIZE);
-    memset(RandomData_send, 0, sizeof(uint8_t) * 2 * KEYSIZE);
-    // needs to be freed at some point
-
-    // uint8_t RandomData_send[2 * KEYSIZE];// this doesnt work
-    // uint8_t RandomData_recv[2 * KEYSIZE];
+    // this works now, since we are copying the data to a string, which is persistent in scope
+    uint8_t RandomData_send[2 * KEYSIZE]; 
+    uint8_t RandomData_recv[2 * KEYSIZE];
 
 #if __SHAMIR__
     std::vector<int> coefficients;
@@ -1764,6 +1763,7 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
     FILE *fp = fopen("/dev/urandom", "r"); // used for pulling good randomness for seeds
     try {
         for (auto &seed : seed_map) {
+
             send_map = extract_share_WITH_ACCESS(seed, peers, id);
             recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
 
@@ -1790,8 +1790,9 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 #if __RSS__
                 // cout << "inserting" << T_recv << " to ";
                 // print_hexa_2(RandomData_recv, 2 * KEYSIZE);
-
-                rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
+                std::string result = uint8PtrToString(RandomData_recv, 2 * KEYSIZE);
+                // rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
+                rss_share_seeds.insert(std::pair<std::vector<int>, std::string>(T_recv, result));
 
 #endif
             }
@@ -1804,7 +1805,10 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 #if __RSS__
             // cout << "inserting" << recv_map << " to ";
             // print_hexa_2(RandomData_send, 2 * KEYSIZE);
-            rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
+            // rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
+            std::string result = uint8PtrToString(RandomData_send, 2 * KEYSIZE);
+            rss_share_seeds.insert(std::pair<std::vector<int>, std::string>(recv_map, result));
+
 #endif
         }
         fclose(fp);
@@ -1814,9 +1818,9 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
     }
 
     // used for testing
-    // for (auto& [key, value]: rss_share_seeds) {
-    //     std::cout << key << " has value " ;
-    //     print_hexa_2(value, 2*KEYSIZE);
+    // for (auto &[key, value] : rss_share_seeds) {
+    //     std::cout << key << " has value " << value << endl;
+    //     // print_hexa_2(value, 2*KEYSIZE);
     // }
 }
 
@@ -1937,12 +1941,11 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         }
     }
 
-
     smc_open(result, B_sparse, size, -1);
     // for (size_t i = 0; i < size; i++) {
     //     printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
     // }
-    Rss_Mult_Sparse_3pc(C, A, B_sparse, size, ss->ring_size, net, ss);
+    // Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
 
     // for (size_t i = 0; i < size; i++) {
     //     for (size_t s = 0; s < numShares; s++) {
@@ -1956,8 +1959,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("(open) C [%lu]: %u\n", i, result[i]);
     // }
 
-
-
     priv_int_t ***res = new priv_int_t **[numShares];
     for (size_t s = 0; s < numShares; s++) {
         res[s] = new priv_int_t *[threshold];
@@ -1966,7 +1967,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             memset(res[s][i], 0, sizeof(priv_int_t) * size); // sanitizing destination
         }
     }
-
 
     for (size_t _picco_i = 0; _picco_i < numShares; _picco_i++) {
         delete[] C[_picco_i];
@@ -1977,9 +1977,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // delete[] buffer;
 
     delete[] result;
-
-
-
 
     for (size_t i = 0; i < numShares; i++) {
         for (size_t j = 0; j < threshold; j++) {
