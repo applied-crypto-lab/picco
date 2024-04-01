@@ -380,4 +380,30 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     delete[] recv_buf;
 }
 
+
+// non-threaded versions (since RSS is single threaded )
+template <typename T>
+void Rss_Mult_Sparse(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // from here, we defer to the 3-, 5-, or 7-party implementations
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Mult_Sparse_3pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 5:
+            Rss_Mult_Sparse_5pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        case 7:
+            Rss_Mult_Sparse_7pc(C, A, B, size, ss->ring_size, net, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Mult] " + error);
+    }
+}
+
 #endif // _MULTSPARSE_HPP_
