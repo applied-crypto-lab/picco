@@ -42,6 +42,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
     net = *nodeNet; // dereferencing, net is "copy initialized"
+
     seedSetup(seed_map, numOfPeers, threshold);
 
     std::cout << "Creating SecretShare\n";
@@ -1745,9 +1746,9 @@ std::string uint8PtrToString(const uint8_t *data, size_t length) {
 // 2*KEYSIZE - 16 bytes for
 void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) {
     // this works now, since we are copying the data to a string, which is persistent in scope
-    uint8_t RandomData_send[2 * KEYSIZE]; 
+    uint8_t RandomData_send[2 * KEYSIZE];
     uint8_t RandomData_recv[2 * KEYSIZE];
-
+    printf("seedSetup\n");
 #if __SHAMIR__
     std::vector<int> coefficients;
     // typedef int var_type; // this is here because I don't feel like refactoring shamirSS to use uints
@@ -1758,14 +1759,19 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 #endif
 
     std::vector<int> T_recv, send_map, recv_map; // declaring once to be reused
-
+    std::vector<int> recv_map_original;
     // its fine to reuse vectors when inserting into the final mapping
     FILE *fp = fopen("/dev/urandom", "r"); // used for pulling good randomness for seeds
     try {
         for (auto &seed : seed_map) {
 
             send_map = extract_share_WITH_ACCESS(seed, peers, id);
-            recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
+            recv_map_original = extract_share_WITHOUT_ACCESS(seed, peers, id);       // equivalent to T_mine in the current iteration
+            recv_map = extract_share_WITHOUT_ACCESS_new(seed, peers, id, threshold); // equivalent to T_mine in the current iteration
+            // std::cout << "seed : " << seed << endl;
+            // std::cout << "send_map          : " << send_map << endl;
+            // std::cout << "recv_map_original : " << recv_map << endl;
+            // std::cout << "recv_new          : " << recv_map << endl;
 
             if (fread(RandomData_send, 1, (2 * KEYSIZE), fp) != (2 * KEYSIZE))
                 throw std::runtime_error("error reading random bytes from /dev/urandom. Which OS are you using?");
@@ -1781,14 +1787,17 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 
                 // generating the share id T corresponding to the key I just recieved
                 T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
+                std::vector<int> T_recv_test = extract_share_WITHOUT_ACCESS_new(seed, peers, recv_map[i], threshold);
                 sort(T_recv.begin(), T_recv.end());
+                sort(T_recv_test.begin(), T_recv_test.end());
 #if __SHAMIR__
                 coefficients = generateCoefficients(T_recv, threshold);
                 shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_recv), coefficients));
 
 #endif
 #if __RSS__
-                // cout << "inserting" << T_recv << " to ";
+                // cout << "inserting (original)" << T_recv << endl;
+                // cout << "inserting (new)     " << T_recv_test << endl; // SHOULDNT BE USED
                 // print_hexa_2(RandomData_recv, 2 * KEYSIZE);
                 std::string result = uint8PtrToString(RandomData_recv, 2 * KEYSIZE);
                 // rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
@@ -1796,19 +1805,23 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 
 #endif
             }
-            sort(recv_map.begin(), recv_map.end()); // sorting now that we're done using it to know the order which we're recieving shares
+            // printf("\n");
+            sort(recv_map.begin(), recv_map.end());                   // sorting now that we're done using it to know the order which we're recieving shares
+            sort(recv_map_original.begin(), recv_map_original.end()); // sorting now that we're done using it to know the order which we're recieving shares
 #if __SHAMIR__
             coefficients = generateCoefficients(recv_map, threshold);
             shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_send), coefficients));
 
 #endif
 #if __RSS__
-            // cout << "inserting" << recv_map << " to ";
+            // cout << "inserting (recv_map_org)" << recv_map_original << endl;
+            // cout << "inserting (recv_map_new)" << recv_map << endl;
             // print_hexa_2(RandomData_send, 2 * KEYSIZE);
             // rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
             std::string result = uint8PtrToString(RandomData_send, 2 * KEYSIZE);
-            rss_share_seeds.insert(std::pair<std::vector<int>, std::string>(recv_map, result));
+            rss_share_seeds.insert(std::pair<std::vector<int>, std::string>(recv_map_original, result));
 
+            // printf("\n");
 #endif
         }
         fclose(fp);
@@ -1818,10 +1831,13 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
     }
 
     // used for testing
+    // int ctr = 0;
     // for (auto &[key, value] : rss_share_seeds) {
-    //     std::cout << key << " has value " << value << endl;
+    //     std::cout << key << endl;
+    //     ctr += 1;
     //     // print_hexa_2(value, 2*KEYSIZE);
     // }
+    // std::cout << "num keys = " << ctr << std::endl;
 }
 
 // binary_rep = bianry encoding of share T generated from seed_map
@@ -1842,12 +1858,41 @@ std::vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers,
     }
     return result;
 }
+// older version, gives incorrect results for some binary representations for >=7 parties
+// replaced by "naive" approach in "new" function
 std::vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
     // iterate through bits from left to right
     std::vector<int> result;
     for (int i = peers - 1; i > 0; i--) { // scans through remaining n-1 (LSB always set)
         if (!GET_BIT(binary_rep, i)) {
             result.push_back(((id + i - 1) % peers + 1));
+        }
+    }
+    return result;
+}
+
+std::vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS_new(int binary_rep, int peers, int id, int threshold) {
+    // first getting the sendIDs
+    int tmp = 0;
+    int idx = 0;
+    std::vector<int> result(threshold);
+    for (int peer = 1; peer <= peers; peer++) {
+        // std::cout << "peer: " << peer << std::endl;
+        idx = 0;
+        for (int i = 1; i < peers; i++) { // scans through remaining n-1 (LSB always set)
+            // std::cout << "i : " << i << std::endl;
+            tmp = ((peer + i - 1) % peers + 1);
+            if (GET_BIT(binary_rep, i)) {
+                if (tmp == id) {
+                    // std::cout << "idx : " << idx << std::endl;
+                    // std::cout << "peer: " << peer << std::endl;
+                    result.at(idx) = peer;
+                    // std::cout << "result: " << result << std::endl;
+                    break;
+                } else {
+                    idx += 1;
+                }
+            }
         }
     }
     return result;
@@ -1928,6 +1973,13 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     priv_int result = new priv_int_t[size];
     memset(result, 0, sizeof(priv_int_t) * size);
 
+    // for (size_t i = 0; i < size; i++) {
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         printf("A[%lu][%lu]: %u \n", i, s, A[s][i]);
+    //     }
+    //     printf("\n");
+    // }
+
     smc_open(result, A, size, -1);
     for (size_t i = 0; i < size; i++) {
         printf("(open) A [%lu]: %u\n", i, result[i]);
@@ -1935,17 +1987,18 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     ss->sparsify(B_sparse, B, size);
 
-    for (size_t i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++) {
-            printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
-        }
-    }
+    // for (size_t i = 0; i < size; i++) {
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
+    //     }
+    // }
 
     smc_open(result, B_sparse, size, -1);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
-    // }
-    // Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
+    }
+    Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
+    // Mult(C, A, A, size, net, ss);
 
     // for (size_t i = 0; i < size; i++) {
     //     for (size_t s = 0; s < numShares; s++) {
@@ -1955,9 +2008,9 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // }
 
     smc_open(result, C, size, -1);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("(open) C [%lu]: %u\n", i, result[i]);
-    // }
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) C [%lu]: %u\n", i, result[i]);
+    }
 
     priv_int_t ***res = new priv_int_t **[numShares];
     for (size_t s = 0; s < numShares; s++) {

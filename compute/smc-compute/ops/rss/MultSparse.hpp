@@ -28,7 +28,7 @@
 using std::vector;
 
 /*
-This header contains implementations of the functionality MultSparse([a], [b_hat]), where the shares of [b_hat] are "sparese"
+This header contains implementations of the functionality MultSparse([a], [b_hat]), where the shares of [b_hat] are "sparse"
 Definition: A secret is denoted as "sparsely distributed" iff all but one of the shares are zero.
 e.g. in (3,1), [b_hat] is considered sparse if b_hat_{2} = b_hat_{3} = 0, and b_hat_{1} is some value in the ring R
 

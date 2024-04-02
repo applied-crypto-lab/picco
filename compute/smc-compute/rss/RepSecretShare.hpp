@@ -322,8 +322,8 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         open_map_mpc = {
             {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 3, n)},
             {mod_n(id - 1, n), mod_n(id - 2, n), mod_n(id - 3, n)},
-
         };
+
         general_map = {
             {mod_n(id + 4, n), mod_n(id + 5, n), mod_n(id + 6, n)}, // send
             {mod_n(id + 3, n), mod_n(id + 2, n), mod_n(id + 1, n)}, // recv
@@ -432,6 +432,10 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, std::string>
         std::string str = rss_share_seeds[T_map_mpc.at(i)];
         uint8_t key[2 * KEYSIZE];
         std::copy(str.begin(), str.end(), key);
+
+        // std::cout << T_map_mpc.at(i) << " => ";
+        // print_hexa_2(key, 2*KEYSIZE);
+
 
         memcpy(random_container[i], key, KEYSIZE);
         prg_key[i] = prg_keyschedule(key + KEYSIZE); // should be able to do this
@@ -1224,15 +1228,19 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
 
         std::vector<int> tmp;
         switch (n) {
-        case 3:                           // T_{p+1}
-            tmp = {mod_n(p_star + 1, n)}; // no sorting necessary
+        case 3:
+            // T_{p+1}
+            // no sorting necessary
+            tmp = {mod_n(p_star + 1, n)};
             break;
-        case 5: // T_{p+1, p + 2}
+        case 5:
+            // T_{p+1, p + 2}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
             // sorting for consistency
             sort(tmp.begin(), tmp.end());
             break;
-        case 7: // T_{p+1, p + 2, p + 3}
+        case 7:
+            // T_{p+1, p + 2, p + 3}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
             sort(tmp.begin(), tmp.end());
             break;
