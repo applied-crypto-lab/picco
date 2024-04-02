@@ -1998,19 +1998,24 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
     }
     Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
-    // Mult(C, A, A, size, net, ss);
-
-    // for (size_t i = 0; i < size; i++) {
-    //     for (size_t s = 0; s < numShares; s++) {
-    //         printf("C[%lu][%lu]: %u \n", i, s, C[s][i]);
-    //     }
-    //     printf("\n");
-    // }
-
+    // Mult(C, A, B_sparse, size, net, ss);
     smc_open(result, C, size, -1);
+    printf("\n");
     for (size_t i = 0; i < size; i++) {
         printf("(open) C [%lu]: %u\n", i, result[i]);
     }
+    printf("\n");
+
+
+   Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
+    // Mult(C, A, B_sparse, size, net, ss);
+    smc_open(result, C, size, -1);
+    printf("\n");
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) C [%lu]: %u\n", i, result[i]);
+    }
+    printf("\n");
+
 
     priv_int_t ***res = new priv_int_t **[numShares];
     for (size_t s = 0; s < numShares; s++) {

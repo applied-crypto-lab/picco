@@ -187,6 +187,9 @@ public:
 
     std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
 
+    inline bool pid_in_T(int pid, std::vector<int> T_map);
+    inline bool chi_pid_is_T(int pid, std::vector<int> T_map);
+
     T *SHIFT;
     T *ODD;
     T *EVEN;
@@ -435,7 +438,6 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, std::string>
 
         // std::cout << T_map_mpc.at(i) << " => ";
         // print_hexa_2(key, 2*KEYSIZE);
-
 
         memcpy(random_container[i], key, KEYSIZE);
         prg_key[i] = prg_keyschedule(key + KEYSIZE); // should be able to do this
@@ -1504,6 +1506,42 @@ void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
         for (size_t j = 0; j < size; j++)
             result[idx][j] += T(x[j]);
         // }
+    }
+}
+
+// general-use "is pid in share T?"
+template <typename T>
+inline bool replicatedSecretShare<T>::pid_in_T(int pid, std::vector<int> T_map) {
+    switch (n) {
+    case 3:
+        return (pid == T_map[0]);
+    case 5:
+        return (pid == T_map[0] or pid == T_map[1]);
+    case 7:
+        return (pid == T_map[0] or pid == T_map[1] or pid == T_map[2]);
+    default:
+        return false;
+    }
+}
+
+// checks if \chi(p) == T?
+template <typename T>
+inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> T_map) {
+    switch (n) {
+    case 5: {
+        return ((mod_n(pid + 1, n) == T_map[0]) and (mod_n(pid + 2, n) == T_map[1])) or
+               ((mod_n(pid + 1, n) == T_map[1]) and (mod_n(pid + 2, n) == T_map[0]));
+    }
+    case 7: {
+        int chi_0 = mod_n(pid + 1, n);
+        int chi_1 = mod_n(pid + 2, n);
+        int chi_2 = mod_n(pid + 3, n);
+
+        return ((chi_0 == T_map[0] or chi_0 == T_map[1] or chi_0 == T_map[2]) and (chi_1 == T_map[0] or chi_1 == T_map[1] or chi_1 == T_map[2]) and
+                (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
+    }
+    default:
+        return false;
     }
 }
 

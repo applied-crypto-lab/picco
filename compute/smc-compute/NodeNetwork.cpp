@@ -1308,11 +1308,19 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
             // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
             if (send_recv_map[0][i] > 0) {
                 sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
+                // for (size_t j = 0; j < size; j++) {
+                // printf("sent %lu\n", SendData[j]);
+                // }
+                // std::cout << "senkding to " << send_recv_map[0][i] << std::endl;
             }
         }
         for (size_t i = 0; i < send_recv_map[1].size(); i++) {
             if (send_recv_map[1][i] > 0) {
                 getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
+                // for (size_t j = 0; j < size; j++) {
+                //     printf("received %lu\n", RecvData[i][j]);
+                // }
+                // std::cout << "recv from " << send_recv_map[1][i] << " into index " << i << std::endl;
             }
         }
     }
@@ -1441,7 +1449,6 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvDat
     }
 }
 
-
 // used for multiplication
 void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
@@ -1469,8 +1476,6 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t **SendData, uint8_t **RecvD
         }
     }
 }
-
-
 
 void NodeNetwork::sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size) {
     try {

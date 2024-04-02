@@ -155,7 +155,7 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     T z = T(0);
     uint tracker;
     // only p \nin T_star computes v
-    if (!p_prime_in_T(pid, T_hat)) {
+    if (!ss->pid_in_T(pid, T_hat)) {
         // std::cout << pid << " not in " << T_hat << std::endl;
 
         for (i = 0; i < size; i++) {
@@ -170,25 +170,24 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
 
     // printf("finished calculating v\n");
     for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-        // printf("\n");
-        if (!p_prime_in_T(p_prime, T_hat)) {
-            // std::cout << p_prime << " not in " << T_hat << std::endl;
+        if (!ss->pid_in_T(p_prime, T_hat)) {
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                if ((p_prime != (pid)) and
+                    (!(ss->pid_in_T(p_prime, ss->T_map_mpc[T_index]))) and
+                    (!(ss->chi_pid_is_T(p_prime, ss->T_map_mpc[T_index])))) {
                     for (i = 0; i < size; i++) {
                         memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                         c[T_index][i] += z;
-                        tracker += 1;
                     }
-                } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
+                    tracker += 1;
+                } else if ((p_prime == pid) and (!(ss->chi_pid_is_T(pid, ss->T_map_mpc[T_index])))) {
                     for (i = 0; i < size; i++) {
-
                         memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                         c[T_index][i] += z;
                         v[i] -= z;
-                        tracker += 1;
                     }
+                    tracker += 1;
                 }
             }
         }
@@ -210,7 +209,7 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
             c[5][i] = c[5][i] + recv_buf[1][i]; // received from id + 1 (mul_map[1][1])
     }
     // if myid \notin T_hat
-    if (!p_prime_in_T(pid, T_hat)) {
+    if (!ss->pid_in_T(pid, T_hat)) {
         // std::cout << pid << " not in " << T_hat << std::endl;
         for (i = 0; i < size; i++) {
             // need to check here that i actually received something from another party
@@ -243,6 +242,10 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     uint threshold = ss->getThreshold();
     int pid = nodeNet.getID();
     vector<vector<int>> mul_map = ss->generate_MultSparse_map(numParties, pid);
+    // printf("mul_map:\n");
+    // for (auto m : mul_map) {
+    //     std::cout << m << std::endl;
+    // }
 
     T *v = new T[size];
     std::vector<uint8_t> prg_ctrs(20);
@@ -291,7 +294,7 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     uint tracker;
     // only p \nin T_star computes v
 
-    if (!p_prime_in_T(pid, T_hat)) {
+    if (!ss->pid_in_T(pid, T_hat)) {
         for (i = 0; i < size; i++) {
             v[i] =
                 a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
@@ -316,26 +319,29 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
                 a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
         }
     }
-    for (i = 0; i < size; i++) {
 
-        // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+    // printf("finished calculating v\n");
+    for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+        if (!ss->pid_in_T(p_prime, T_hat)) {
+
             // printf("\n");
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties))) and
-                    (!p_prime_in_T(p_prime, T_hat))) {
-                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                if ((p_prime != (pid)) and (!(ss->pid_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(ss->chi_pid_is_T(p_prime, ss->T_map_mpc[T_index])))) {
+                    for (i = 0; i < size; i++) {
+                        memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                        c[T_index][i] += z;
+                    }
                     tracker += 1;
                 } else if (
                     (p_prime == pid) and
-                    (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties))) and
-                    (!p_prime_in_T(p_prime, T_hat))) {
-                    memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
-                    v[i] -= z;
+                    (!(ss->chi_pid_is_T(pid, ss->T_map_mpc[T_index])))) {
+                    for (i = 0; i < size; i++) {
 
+                        memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
+                        c[T_index][i] += z;
+                        v[i] -= z;
+                    }
                     tracker += 1;
                 }
             }
@@ -345,26 +351,36 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, mul_map);
 
+    int idx = 0;
     if (mul_map[1][0] > 0) {
+        idx = 10;
+        // printf("FIRST IF\n");
+        // std::cout << "inserting data recived from " << mul_map[1][0] << " into index " << 0 << " and adding to share index " << idx << std::endl;
         for (size_t i = 0; i < size; i++)
-            c[9][i] = c[9][i] + recv_buf[0][i]; // received from id + 1 (mul_map[1][2])
+            c[idx][i] += recv_buf[0][i]; // received from id + 1 (mul_map[1][2])
     }
 
     if (mul_map[1][1] > 0) {
+        idx = 16;
+        // printf("SECOND IF\n");
+        // std::cout << "inserting data recived from " << mul_map[1][1] << " into index " << 1 << " and adding to share index " << idx << std::endl;
         for (size_t i = 0; i < size; i++)
-            c[15][i] = c[15][i] + recv_buf[1][i]; // received from id + 2 (mul_map[1][1])
+            c[idx][i] += recv_buf[1][i]; // received from id + 2 (mul_map[1][1])
     }
 
     if (mul_map[1][2] > 0) {
+        idx = 19;
+        // printf("THIRD IF\n");
+        // std::cout << "inserting data recived from " << mul_map[1][2] << " into index " << 2 << " and adding to share index " << idx << std::endl;
         for (size_t i = 0; i < size; i++)
-            c[19][i] = c[19][i] + recv_buf[2][i]; // received from id + 3 (mul_map[1][0])
+            c[idx][i] += recv_buf[2][i]; // received from id + 3 (mul_map[1][0])
     }
     // if myid \notin T_hat
-    if (!p_prime_in_T(pid, T_hat)) {
+    if (!ss->pid_in_T(pid, T_hat)) {
         for (i = 0; i < size; i++) {
             // need to check here that i actually received something from another party
             // worth separating these loops, first checking if mul_map > 0 so it's checked exactly twice
-            c[0][i] = c[0][i] + v[i]; // can be done before S/R
+            c[0][i] += v[i]; // can be done before S/R
         }
     }
 
