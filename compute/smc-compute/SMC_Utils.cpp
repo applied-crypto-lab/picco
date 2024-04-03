@@ -1959,6 +1959,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     int threshold = ss->getThreshold();
     uint bytes = (ss->ring_size + 7) >> 3;
     printf("bytes : %u\n", bytes);
+    printf("----\n\n");
 
     // expected RSS initialization
     priv_int *B_sparse = new priv_int[ss->getNumShares()];
@@ -1980,10 +1981,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("\n");
     // }
 
-    smc_open(result, A, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) A [%lu]: %u\n", i, result[i]);
-    }
+    // smc_open(result, A, size, -1);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) A [%lu]: %u\n", i, result[i]);
+    // }
 
     ss->sparsify(B_sparse, B, size);
 
@@ -1993,42 +1994,61 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     }
     // }
 
-    smc_open(result, B_sparse, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
-    }
-    Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
-    // Mult(C, A, B_sparse, size, net, ss);
-    smc_open(result, C, size, -1);
-    printf("\n");
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) C [%lu]: %u\n", i, result[i]);
-    }
-    printf("\n");
+    //     smc_open(result, B_sparse, size, -1);
+    //     for (size_t i = 0; i < size; i++) {
+    //         printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
+    //     }
+    //     Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
+    //     // Mult(C, A, B_sparse, size, net, ss);
+    //     smc_open(result, C, size, -1);
+    //     printf("\n");
+    //     for (size_t i = 0; i < size; i++) {
+    //         printf("(open) C [%lu]: %u\n", i, result[i]);
+    //     }
+    //     printf("\n");
 
+    //    Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
+    //     // Mult(C, A, B_sparse, size, net, ss);
+    //     smc_open(result, C, size, -1);
+    //     printf("\n");
+    //     for (size_t i = 0; i < size; i++) {
+    //         printf("(open) C [%lu]: %u\n", i, result[i]);
+    //     }
+    //     printf("\n");
 
-   Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
-    // Mult(C, A, B_sparse, size, net, ss);
-    smc_open(result, C, size, -1);
-    printf("\n");
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) C [%lu]: %u\n", i, result[i]);
-    }
-    printf("\n");
+    vector<int> input_parties = {1, 2, 3};
+    uint numInputParties = input_parties.size();
 
-
-    priv_int_t ***res = new priv_int_t **[numShares];
-    for (size_t s = 0; s < numShares; s++) {
-        res[s] = new priv_int_t *[threshold];
-        for (size_t i = 0; i < threshold; i++) {
-            res[s][i] = new priv_int_t[size];
-            memset(res[s][i], 0, sizeof(priv_int_t) * size); // sanitizing destination
+    priv_int_t ***res = new priv_int_t **[numInputParties];
+    for (size_t j = 0; j < numInputParties; j++) {
+        res[j] = new priv_int_t *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            res[j][s] = new priv_int_t[size];
+            memset(res[j][s], 0, sizeof(priv_int_t) * size);
         }
     }
 
-    for (size_t _picco_i = 0; _picco_i < numShares; _picco_i++) {
-        delete[] C[_picco_i];
-        delete[] B_sparse[_picco_i];
+    // cant use pid_in_T because that is only for fixed vector sizes:
+    // n = 3 -> len(T) = 1
+    // n = 5 -> len(T) = 2
+    // n = 7 -> len(T) = 3
+    if (std::find(input_parties.begin(), input_parties.end(), id) != input_parties.end()) {
+        std::cout << id << " is an input party" << std::endl;
+
+    } else {
+        std::cout << id << " is NOT an input party" << std::endl;
+    }
+
+    std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
+
+    printf("---\nsend_recv_map\n");
+    for (auto var : send_recv_map) {
+        std::cout << var << std::endl;
+    }
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] C[i];
+        delete[] B_sparse[i];
     }
     delete[] C;
     delete[] B_sparse;
@@ -2036,9 +2056,9 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     delete[] result;
 
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < threshold; j++) {
-            delete[] res[i][j];
+    for (size_t i = 0; i < numInputParties; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            delete[] res[i][s];
         }
         delete[] res[i];
     }

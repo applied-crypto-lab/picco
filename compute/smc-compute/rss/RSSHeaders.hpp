@@ -13,6 +13,7 @@
 #include "../ops/rss/FLLTZ.hpp"
 #include "../ops/rss/FLMult.hpp"
 #include "../ops/rss/FLRound.hpp"
+#include "../ops/rss/Input.hpp"
 #include "../ops/rss/Int2FL.hpp"
 #include "../ops/rss/IntDiv.hpp"
 #include "../ops/rss/LTZ.hpp"
