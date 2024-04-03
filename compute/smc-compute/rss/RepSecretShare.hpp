@@ -189,6 +189,7 @@ public:
 
     inline bool pid_in_T(int pid, std::vector<int> T_map);
     inline bool chi_pid_is_T(int pid, std::vector<int> T_map);
+    std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> input_parties);
 
     T *SHIFT;
     T *ODD;
@@ -1220,7 +1221,7 @@ std::vector<int> replicatedSecretShare<T>::generateT_star(int p_star) {
     case 7:
         return {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
     default:
-        break;
+        return {};
     }
 }
 
@@ -1231,18 +1232,18 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
         std::vector<int> tmp;
         switch (n) {
         case 3:
-            // T_{p+1}
+            // T_{p + 1}
             // no sorting necessary
             tmp = {mod_n(p_star + 1, n)};
             break;
         case 5:
-            // T_{p+1, p + 2}
+            // T_{p + 1, p + 2}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
             // sorting for consistency
             sort(tmp.begin(), tmp.end());
             break;
         case 7:
-            // T_{p+1, p + 2, p + 3}
+            // T_{p + 1, p + 2, p + 3}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
             sort(tmp.begin(), tmp.end());
             break;
@@ -1255,7 +1256,7 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
                 return i;
             }
         }
-        cout << "index not found (party " << id << " does not have access), returning -1" << endl;
+        // cout << "index not found (party " << id << " does not have access), returning -1" << endl;
         return -1;
         // throw std::runtime_error("index not found, there's a logic error somewhere");
     } catch (const std::runtime_error &ex) {
@@ -1543,6 +1544,72 @@ inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> T_m
     default:
         return false;
     }
+}
+
+/*
+* generates the send-recv mapping for Input_p_star
+* guarantees there's no "deadlocks", meaning parties will never encounter a scenario where two (or more) parties are waiting to receive from another party in the same round
+* An example "deadlock" would be;:
+    p2 sends to [ 1,  3] (in order)
+    p3 sends to [ 1,  2] (in order)
+    p1 receives from [ (2, 3), -1 ] (same round)
+    p2 receives from [-1,  3]
+    p3 receives from [-1,  2]
+* This configuration is problematic has p2 and p3 sending to p1 in the same round
+* The optimal setup would be as follows:
+    p2 sends to [ 3,  1] (in order)
+    p3 sends to [ 1,  2] (in order)
+    p1 receives from [ 3,  2]
+    p2 receives from [-1,  3]
+    p3 receives from [ 2, -1]
+* note, the following case CAN occur (and is NOT a deadlock)
+    p2 sends to [1, 3] (in order)
+    p1 receives from [2, -1]
+    p3 receives from [-1, 2]
+* Since p3 is not receiving in the "first round", they immediately jump to the "second round" and start waiting to receive from p2
+* This is NOT considered a deadlock, because it does not incur any additional communication cost
+*/
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap(std::vector<int> input_parties) {
+
+    if (input_parties.size() > n) {
+        throw std::runtime_error("Cannot have more than n input parties");
+    }
+
+    uint numInputParties = input_parties.size();
+    std::vector<std::vector<int>> send_recv_map(2, vector<int>(numInputParties, -1));
+    // for (auto var : send_recv_map) {
+    //     std::cout << var << std::endl;
+    // }
+    // alternate S-R mapping implementation using pairs instead of 2d vectors
+    // DO NOT DELETE, may use in future (replace 2d vectors with pairs for better readability)
+    // std::pair<std::vector<int>, std::vector<int>> s_r_pair(vector<int>(numInputParties, -1), vector<int>(numInputParties, -1));
+    // std::cout<<s_r_pair.first<<endl;
+    // std::cout<<s_r_pair.second<<endl;
+    std::vector<int> T_star;
+
+    for (auto p_star : input_parties) {
+        T_star = generateT_star(p_star);
+        if (!pid_in_T(id, T_star)) {
+            // id IS entitled to share T_star, so continue
+            int last_pid = T_star.back();
+            std::vector<int> send_ids = generateT_star(last_pid);
+            std::cout << send_ids << std::endl;
+            // id is the one responsible for sending shares, and therefore needs to populate the sendIDs in the send_recv_map
+            if (id == p_star) {
+                send_recv_map[0] = send_ids;
+            } else {
+                // otherwise, i am a party entitled to receive this share, and need to set one of my recv_id's according to my position in send_ids
+                // looping through the send_ids of p_star
+                for (size_t i = 0; i < send_ids.size(); i++) {
+                    if (id == send_ids[i]) {
+                        send_recv_map[1][i] = p_star;
+                    }
+                }
+            }
+        }
+    }
+    return send_recv_map;
 }
 
 #endif
