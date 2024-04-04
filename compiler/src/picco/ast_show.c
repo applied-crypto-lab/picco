@@ -3153,8 +3153,7 @@ void ast_expr_show(astexpr tree) {
     switch (tree->type) {
     case IDENT:
         if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-            str_printf(global_string, "%s", tree->u.sym->name);
-            // printf("\nName: %s\n", tree->u.sym->name); // the private name gets printed here
+            str_printf(global_string, "%s", tree->u.sym->name); // the private name gets printed here
         } else if (gf == 1 && is_init_decl == 1) {
             str_printf(global_string, "%s", tree->u.sym->name);
         } else {
@@ -3163,9 +3162,8 @@ void ast_expr_show(astexpr tree) {
         break;
     case CONSTVAL:
         if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-            str_printf(global_string, "%s", tree->u.str);
-            // printf("\nValue: %s\n", tree->u.str); // the const value for both private and public gets printed here
-        } else if (gf == 1 && is_init_decl == 1) {
+            str_printf(global_string, "%s", tree->u.str); // the const value for both private and public gets printed here
+        } else if (gf == 1 && is_init_decl == 1 &&  (tree->ftype == SPEC_struct || tree->ftype == SPEC_union)) {
             str_printf(global_string, "%s", tree->u.str);
         } else {
             fprintf(output, "%s", tree->u.str);
@@ -3298,44 +3296,26 @@ void ast_expr_show(astexpr tree) {
         ast_expr_show(tree->right);
         break;
 
-    case UOP:
-        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
-            if (tree->flag != PRI)
+    case UOP: 
+        if (tree->flag != PRI) { // This is where struct to a pointer & takes place
+            if (gf == 1 && is_init_decl == 1)
                 str_printf(global_string, "%s", UOP_symbols[tree->opid]);
-            if (tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
-                str_printf(global_string, "(");
-            if (tree->opid == UOP_sizeoftype || tree->opid == UOP_typetrick)
-                ast_decl_show(tree->u.dtype);
-            else if (tree->flag == PRI && tree->opid == UOP_lnot) {
-                str_printf(global_string, "__s->smc_eqeq(");
-                ast_expr_show(tree->left);
-                str_printf(global_string, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
-                indent();
-            } else
-                ast_expr_show(tree->left);
-            if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
-                str_printf(global_string, ")");
-        } else {
-            if (tree->flag != PRI) { // This is where struct to a pointer assignment takes place
-                if (gf == 1 && is_init_decl == 1)
-                    str_printf(global_string, "%s", UOP_symbols[tree->opid]);
-                else 
-                    fprintf(output, "%s", UOP_symbols[tree->opid]);
-            }
-            if (tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
-                fprintf(output, "(");
-            if (tree->opid == UOP_sizeoftype || tree->opid == UOP_typetrick)
-                ast_decl_show(tree->u.dtype);
-            else if (tree->flag == PRI && tree->opid == UOP_lnot) {
-                fprintf(output, "__s->smc_eqeq(");
-                ast_expr_show(tree->left);
-                fprintf(output, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
-                indent();
-            } else
-                ast_expr_show(tree->left);
-            if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
-                fprintf(output, ")");
+            else 
+                fprintf(output, "%s", UOP_symbols[tree->opid]);
         }
+        if (tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
+            fprintf(output, "(");
+        if (tree->opid == UOP_sizeoftype || tree->opid == UOP_typetrick)
+            ast_decl_show(tree->u.dtype);
+        else if (tree->flag == PRI && tree->opid == UOP_lnot) {
+            fprintf(output, "__s->smc_eqeq(");
+            ast_expr_show(tree->left);
+            fprintf(output, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
+            indent();
+        } else
+            ast_expr_show(tree->left);
+        if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
+            fprintf(output, ")");
         break;
 
     case BOP:
@@ -3607,7 +3587,7 @@ void ast_expr_show(astexpr tree) {
                     /*for pub assignment */
                     ast_expr_show(tree->left);
                     if (gf == 1 && is_init_decl == 1)
-                        str_printf(global_string, " %s ", ASS_symbols[tree->opid]); // this is where the symbol on global struct gets printed (Finally)
+                        str_printf(global_string, " %s ", ASS_symbols[tree->opid]); // this is where the assignment on global struct gets printed (Finally)
                     else 
                         fprintf(output, " %s ", ASS_symbols[tree->opid]); 
                     ast_expr_show(tree->right);
