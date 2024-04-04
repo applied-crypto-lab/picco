@@ -568,6 +568,7 @@ public:
 
     std::vector<int> extract_share_WITH_ACCESS(int binary_rep, int peers, int id);
     std::vector<int> extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id);
+    std::vector<int> extract_share_WITHOUT_ACCESS_new(int binary_rep, int peers, int id, int threshold);
     void getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int>> &result);
     std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 

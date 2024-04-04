@@ -37,7 +37,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
 
     // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
-    std::vector<std::vector<int>> xi_map = ss->generateB2A_map();
+    // std::vector<std::vector<int>> xi_map = ;
 
     // first t parties are the "input parties"
     // (3,1): p1
@@ -59,10 +59,10 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     // mapping \xi predefined
     if (id < threshold + 1) {
 
-        // Rss_Input_p_star(result, computed_xors, input_parties, send_recv_map, size, ring_size, nodeNet, ss);
+        // Rss_Input_p_star(result, computed_xors, input_parties, size, ring_size, nodeNet, ss);
     } else {
 
-        // Rss_Input_p_star(result, NULL, input_parties, send_recv_map, size, ring_size, nodeNet, ss);
+        // Rss_Input_p_star(result, NULL, input_parties, size, ring_size, nodeNet, ss);
     }
 
     // these maps need to be revised (taken originally from edabit, where we needed t+1 input parties)

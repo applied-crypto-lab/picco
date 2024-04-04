@@ -32,17 +32,17 @@ inline bool chi_p_prime_in_T(int p_prime, std::vector<int> T_map, int n) {
             ((((p_prime + 1 - 1) % n + 1) == T_map[1]) and (((p_prime + 2 - 1) % n + 1) == T_map[0])));
 }
 
-// CHECK
-// does the mapping {p_prime+1, p_prime+2} need to be sorted?
-// i think so, so we're better off just checking the combinations directly
-inline bool chi_p_prime_in_T_new(int p_prime, std::vector<int> T_map_mpc, int n) {
-    // return ((
-    //     (mod_n(p_prime + 1, n) == T_map_mpc[0]) and
-    //     (mod_n(p_prime + 2, n) == T_map_mpc[1]))); // this wont work, would require soring {p_prime+1, p_prime+2}
+// // CHECK
+// // does the mapping {p_prime+1, p_prime+2} need to be sorted?
+// // i think so, so we're better off just checking the combinations directly
+// inline bool chi_p_prime_in_T_new(int p_prime, std::vector<int> T_map_mpc, int n) {
+//     // return ((
+//     //     (mod_n(p_prime + 1, n) == T_map_mpc[0]) and
+//     //     (mod_n(p_prime + 2, n) == T_map_mpc[1]))); // this wont work, would require soring {p_prime+1, p_prime+2}
 
-    return (((mod_n(p_prime + 1, n) == T_map_mpc[0]) and (mod_n(p_prime + 2, n) == T_map_mpc[1])) or
-            ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
-}
+//     return (((mod_n(p_prime + 1, n) == T_map_mpc[0]) and (mod_n(p_prime + 2, n) == T_map_mpc[1])) or
+//             ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
+// }
 
 inline bool p_prime_in_T(int p_prime, std::vector<int> T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1]);
@@ -496,14 +496,14 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker+=1;
+                    tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
 
-                    tracker+=1;
+                    tracker += 1;
                 }
             }
         }
@@ -574,13 +574,13 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker+=1;
+                    tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
-                    tracker+=1;
+                    tracker += 1;
                 }
             }
         }
@@ -914,14 +914,14 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker+=1;
+                    tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
 
-                    tracker+=1;
+                    tracker += 1;
                 }
             }
         }
@@ -1014,14 +1014,14 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker+=1;
+                    tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
 
-                    tracker+=1;
+                    tracker += 1;
                 }
             }
         }
@@ -1478,14 +1478,14 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] ^= z;
-                    tracker+=1;
+                    tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] ^= z;
                     v[i] ^= z;
 
-                    tracker+=1;
+                    tracker += 1;
                 }
             }
         }
@@ -1575,14 +1575,14 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
                 tracker = 0;
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] ^= buffer[T_index][trackers[T_index]];
-                    tracker+=1;
+                    tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
 
                     v[i] ^= buffer[T_index][trackers[T_index]];
 
-                    tracker+=1;
+                    tracker += 1;
                 }
             }
         }

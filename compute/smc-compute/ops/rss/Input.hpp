@@ -10,29 +10,21 @@
 * if pid is NOT an input party, then the argument (T *input) is (void/null/whatever)
 * numInputParties = input_parties.size()
 * input dimensiopns : [size]
-* result dimensions : [numShares][numInputParties][size] (this matches the convention used in RSS_GenerateRandomShares_*pc)
+* result dimensions : [numInputParties][numShares][size] 
+* This is a different/better representation than what is used in edaBit, since it allows us to test individual outputs, while keeping the structure well-formed
+* e.g., 
 * we, buy default, set T* to be the canonnically "first" share that the input party possesses (and is thus the "computed" share)
 * which is dictated by T_map (defined in RepSecretShare)
 * example input_parties  = {1, 2, 3} (for 7pc B2A)
 * we assume input_parties is in increasing order
-* we also assume that the mapping that is (now) an argument is defined inside whatever protocol is calling Input^*, and is *well-formed*
-* meaning no *race conditions*, where two parties are sending to the same destination party in the same round (and similarly for receiving)
- */
+ */ 
 template <typename T>
-void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, std::vector<std::vector<int>> send_recv_map, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties,  uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numInputParties = input_parties.size();
     uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
     int pid = ss->getID();
-
-    // not needed since we already do this in B2A
-    // for (size_t s = 0; s < numShares; s++) {
-    //     for (size_t i = 0; i < numInputParties; i++) {
-    //         // sanitizing destination
-    //         // potentially not needed?, given the context of which this is called (inside B2A, where we created the destination variables themselves)
-    //         memset(resulti], 0, sizeof(T) * size);
-    //     }
-    // }
+    std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
 
     // receiving from at most numInputParties
     // though some of these buffers may be unused
@@ -47,7 +39,6 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<uint> input_parties, st
     for (uint s = 0; s < numShares; s++) {
         buffer[s] = new uint8_t[bytes * size];
     }
-
     // instead of generating T_star, just get the index in T_map where it exists (different for each party)
     // iterating through every input party
     int T_star_index;
