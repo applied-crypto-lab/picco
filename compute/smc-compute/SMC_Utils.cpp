@@ -1955,8 +1955,11 @@ using std::endl;
 using std::vector;
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
+    // size = 2; // testing only so I dont have to keep openeing rss_main.cpp
+
     uint numShares = ss->getNumShares();
     int threshold = ss->getThreshold();
+    uint ring_size = ss->ring_size;
     uint bytes = (ss->ring_size + 7) >> 3;
     printf("bytes : %u\n", bytes);
     printf("----\n\n");
@@ -2016,8 +2019,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     }
     //     printf("\n");
 
-    vector<int> input_parties = {1, 2, 3};
+    // vector<int> input_parties = {1 };
+    vector<int> input_parties = {0};
     uint numInputParties = input_parties.size();
+
 
     priv_int_t ***res = new priv_int_t **[numInputParties];
     for (size_t j = 0; j < numInputParties; j++) {
@@ -2034,17 +2039,33 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // n = 7 -> len(T) = 3
     if (std::find(input_parties.begin(), input_parties.end(), id) != input_parties.end()) {
         std::cout << id << " is an input party" << std::endl;
-
+        Rss_Input_p_star(res, reinterpret_cast<priv_int_t *>(B), input_parties, size, ring_size, net, ss);
     } else {
         std::cout << id << " is NOT an input party" << std::endl;
+        // priv_int placeholder = nullptr;
+        Rss_Input_p_star(res, static_cast<priv_int>(nullptr), input_parties, size, ring_size, net, ss);
     }
 
-    std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
+    for (size_t i = 0; i < numInputParties; i++) {
+        // for (size_t j = 0; j < size; j++) {
+        //     for (size_t s = 0; s < numShares; s++) {
+        //         printf("res[%lu][%lu][%lu]: %u \n", i, s, j, res[i][s][j]);
+        //     }
+        //     printf("\n");
+        // }
 
-    printf("---\nsend_recv_map\n");
-    for (auto var : send_recv_map) {
-        std::cout << var << std::endl;
+        smc_open(result, res[i], size, -1);
+        for (size_t j = 0; j < size; j++) {
+            printf("(open) party %i's input  [%lu] %u\n", input_parties[i], j, result[j]);
+        }
+        // printf("\n");
     }
+
+    // std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
+    // printf("---\nsend_recv_map\n");
+    // for (auto var : send_recv_map) {
+    //     std::cout << var << std::endl;
+    // }
 
     for (size_t i = 0; i < numShares; i++) {
         delete[] C[i];

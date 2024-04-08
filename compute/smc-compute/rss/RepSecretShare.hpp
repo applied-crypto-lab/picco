@@ -30,6 +30,7 @@
 #include <map>
 #include <regex>
 #include <stdexcept>
+#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -423,7 +424,7 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, std::string>
         }
         fclose(fp);
     } catch (const std::runtime_error &ex) {
-        std::cerr << "[prg_setup] " << ex.what() << "\n";
+        std::cerr << "[generateInputSendRecvMap] " << ex.what() << "\n";
         exit(1);
     }
 
@@ -1571,45 +1572,72 @@ inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> T_m
 */
 template <typename T>
 std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap(std::vector<int> input_parties) {
+    try {
 
-    if (input_parties.size() > n) {
-        throw std::runtime_error("Cannot have more than n input parties");
-    }
+        if (input_parties.size() > n) {
+            throw std::runtime_error("Cannot have more than n input parties");
+        }
 
-    uint numInputParties = input_parties.size();
-    std::vector<std::vector<int>> send_recv_map(2, vector<int>(numInputParties, -1));
-    // for (auto var : send_recv_map) {
-    //     std::cout << var << std::endl;
-    // }
-    // alternate S-R mapping implementation using pairs instead of 2d vectors
-    // DO NOT DELETE, may use in future (replace 2d vectors with pairs for better readability)
-    // std::pair<std::vector<int>, std::vector<int>> s_r_pair(vector<int>(numInputParties, -1), vector<int>(numInputParties, -1));
-    // std::cout<<s_r_pair.first<<endl;
-    // std::cout<<s_r_pair.second<<endl;
-    std::vector<int> T_star;
+        uint numInputParties = input_parties.size();
+        uint dim = std::max(numInputParties, uint(t));
+        // uint dim = (numInputParties);
+        // std::cout << "dim : " << dim << std::endl;
+        std::vector<std::vector<int>> send_recv_map(2, vector<int>(dim, -1));
+        // for (auto var : send_recv_map) {
+        //     std::cout << var << std::endl;
+        // }
+        // alternate S-R mapping implementation using pairs instead of 2d vectors
+        // DO NOT DELETE, may use in future (replace 2d vectors with pairs for better readability)
+        // std::pair<std::vector<int>, std::vector<int>> s_r_pair(vector<int>(numInputParties, -1), vector<int>(numInputParties, -1));
+        // std::cout<<s_r_pair.first<<endl;
+        // std::cout<<s_r_pair.second<<endl;
+        std::vector<int> T_star;
 
-    for (auto p_star : input_parties) {
-        T_star = generateT_star(p_star);
-        if (!pid_in_T(id, T_star)) {
-            // id IS entitled to share T_star, so continue
-            int last_pid = T_star.back();
-            std::vector<int> send_ids = generateT_star(last_pid);
-            std::cout << send_ids << std::endl;
-            // id is the one responsible for sending shares, and therefore needs to populate the sendIDs in the send_recv_map
-            if (id == p_star) {
-                send_recv_map[0] = send_ids;
-            } else {
-                // otherwise, i am a party entitled to receive this share, and need to set one of my recv_id's according to my position in send_ids
-                // looping through the send_ids of p_star
-                for (size_t i = 0; i < send_ids.size(); i++) {
-                    if (id == send_ids[i]) {
-                        send_recv_map[1][i] = p_star;
+        for (auto p_star : input_parties) {
+            if (p_star > n || p_star < 1) {
+                throw std::runtime_error("Non-existent input party supplied :  " + std::to_string(p_star));
+            }
+            T_star = generateT_star(p_star);
+            if (!pid_in_T(id, T_star)) {
+                // id IS entitled to share T_star, so continue
+                int last_pid = T_star.back();
+                std::vector<int> send_ids = generateT_star(last_pid);
+                // std::cout << send_ids << std::endl;
+                // id is the one responsible for sending shares, and therefore needs to populate the sendIDs in the send_recv_map
+                if (id == p_star) {
+                    send_recv_map[0] = send_ids;
+                } else {
+                    // otherwise, i am a party entitled to receive this share, and need to set one of my recv_id's according to my position in send_ids
+                    // looping through the send_ids of p_star
+                    for (size_t i = 0; i < send_ids.size(); i++) {
+                        if (id == send_ids[i]) {
+                            send_recv_map[1][i] = p_star;
+                        }
                     }
                 }
             }
         }
+        // deleting placeholder -1's
+        // this is necessary for the edge case where the number of input parties is LESS than the threshold
+        // e.g., if p1 is an input party, then T_star = {2,3} (which 4 and 5 are entitled to)
+        // the algorithm originally produced this mapping
+        // 1 sends to [4, 5]
+        // 4 receives from [1]
+        // 5 receives from [-1]
+        // this is obviously incorrect, since 5 never gets the share it was entitled to
+        // the first solution we attempted is to initalize send_recv_map based on max(numInputParties, threshold)
+        // the logic here is that an input party will need to communicate the computed share to exactly (threshold) number of parties
+        // but this introduces a problem in send/recv, since in send/recv, the data p5 receives from p1 will be written out-of-bounds of the recv_buffer (which is allocated based on the number of input parties, as to not waste memory)
+        // The below solution just removes the "-1" placeholders that were introduced above to ensure the recv indices were placed appropriately
+        // The complecity is linear in std::max(numInputParties, uint(t)), which is very fast
+        send_recv_map[1].erase(std::remove(send_recv_map[1].begin(), send_recv_map[1].end(), -1), send_recv_map[1].end());
+        send_recv_map[0].erase(std::remove(send_recv_map[0].begin(), send_recv_map[0].end(), -1), send_recv_map[0].end());
+        return send_recv_map;
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[generateInputSendRecvMap] " << ex.what() << "\n";
+        exit(1);
+
     }
-    return send_recv_map;
 }
 
 #endif
