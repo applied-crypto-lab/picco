@@ -25,7 +25,19 @@
 #include "Input.hpp"
 #include <cmath>
 #include <numeric>
+/* 
+3pc xi map:
+p1 : [{2}, {3}]
 
+5pc xi map:
+p1 :  [{2,3}, {2,4}, {2,5}, {3,4}, {3,5}]
+p2 :  [{1,3}, {1,4}, {1,5}, {4,5}]
+
+7pc xi map:
+p1 : [(2, 3, 4), (2, 3, 5), (2, 3, 6), (2, 3, 7), (2, 4, 6), (2, 4, 7), (2, 5, 6), (2, 5, 7), (2, 6, 7), (4, 6, 7), (3, 5, 7)]
+p2 : [(3, 4, 5), (3, 4, 6), (3, 4, 7), (1, 3, 4), (3, 5, 6), (1, 3, 5), (3, 6, 7), (1, 3, 6), (1, 3, 7), (1, 5, 7), (1, 6, 7)] 
+p3 : [(4, 5, 6), (4, 5, 7), (1, 4, 5), (2, 4, 5), (1, 4, 6), (1, 4, 7), (1, 2, 4), (5, 6, 7), (1, 5, 6), (1, 2, 5), (1, 2, 6), (1, 2, 7)] 
+ */
 // [a] is bitwise-shared
 template <typename T>
 void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -35,6 +47,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     int id = ss->getID();
     uint numShares = ss->getNumShares();
     std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
+    std::vector<std::vector<int>> xi_map = ss->generateXi_map();
 
     // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
     // std::vector<std::vector<int>> xi_map = ;
@@ -62,7 +75,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
         // Rss_Input_p_star(result, computed_xors, input_parties, size, ring_size, nodeNet, ss);
     } else {
 
-        // Rss_Input_p_star(result, NULL, input_parties, size, ring_size, nodeNet, ss);
+        // Rss_Input_p_star(result, static_cast<priv_int>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
 
     // these maps need to be revised (taken originally from edabit, where we needed t+1 input parties)

@@ -1381,7 +1381,7 @@ std::vector<std::vector<int>> replicatedSecretShare<T>::generateXi_map() {
     case 3:
         switch (id) {
         case 1:
-
+            return {{0,1}};
         default:
             break;
         }
@@ -1639,5 +1639,7 @@ std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap
 
     }
 }
+
+
 
 #endif
