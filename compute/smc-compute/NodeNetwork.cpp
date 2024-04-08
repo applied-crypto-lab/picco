@@ -1311,7 +1311,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
                 // for (size_t j = 0; j < size; j++) {
                 // printf("sent %lu\n", SendData[j]);
                 // }
-                // std::cout << "senkding to " << send_recv_map[0][i] << std::endl;
+                // std::cout << "-- sending to " << send_recv_map[0][i] << " -- "<< std::endl;
             }
         }
         for (size_t i = 0; i < send_recv_map[1].size(); i++) {
@@ -1320,7 +1320,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
                 // for (size_t j = 0; j < size; j++) {
                 //     printf("received %lu\n", RecvData[i][j]);
                 // }
-                // std::cout << "recv from " << send_recv_map[1][i] << " into index " << i << std::endl;
+                // std::cout << "** recv from " << send_recv_map[1][i] << " into index " << i << " **"<<std::endl;
             }
         }
     }
