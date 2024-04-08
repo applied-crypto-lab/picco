@@ -4353,7 +4353,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
     /* printing global private declarations into a string */
     switch (tree->type) {
     case DECLARATOR:
-        if(gflag != 1) {
+        if(is_priv == 1 && is_init_decl == 1 && gflag != 1) { // My other assumption is that this might be wrong, -> this is taken from the old code when the other stu was working on this, but It seems like it is preventing the globals to be pushed to some sort of table 
             ltable_push(spec, tree, current->tablelist->head);
         }
         if (tree->decl->type == DARRAY) {
@@ -4508,7 +4508,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
         if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
             str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
         } else if (gflag == 1 && is_init_decl == 1){
-            str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
+            str_printf(global_string, ";\n\n"); // This is where the ; gets printed for struct global_string 
         } else {
             fprintf(output, ";\n");
         }
@@ -4534,11 +4534,14 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                     exit(0);
                 }
             }
-            if (symtab_get(stab, tree->decl->u.id, IDNAME) == NULL) {
-                // fprintf(output, "Int Hits here!");
+            stentry e = symtab_get(stab, tree->decl->u.id, IDNAME);
+            if (e == NULL) { // g-priv-two-dim-int-arr
                 ast_decl_memory_assign_int(tree, "");
                 indlev--;
-            } 
+            } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) { // g-priv-one-dim-int-arr
+                ast_decl_memory_assign_int(tree, "");
+                indlev--;
+            }
         } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
@@ -4550,8 +4553,11 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                     exit(0);
                 }
             }
-            if (symtab_get(stab, tree->decl->u.id, IDNAME) == NULL) {
-                // fprintf(output, "Float Hits here!");
+            stentry e = symtab_get(stab, tree->decl->u.id->name, IDNAME);
+            if (e == NULL) {
+                ast_decl_memory_assign_float(tree, "");
+                indlev--;
+            } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) {
                 ast_decl_memory_assign_float(tree, "");
                 indlev--;
             }

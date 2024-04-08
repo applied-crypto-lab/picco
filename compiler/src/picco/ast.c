@@ -319,7 +319,7 @@ int decl_ispointer(astdecl d) {
  * It will crash if given an ABSDECLARATOR with no identifier!
  */
 astdecl decl_getidentifier(astdecl d) {
-    if (d->type == DIDENT)
+    if (d->type == DIDENT) // This is from decl (astdecl_), id (symbol_), type (int) -> // int: 0 and float: 1 and struct: 2
         return (d);
     else if (d->type == DLIST) /* Should be DECL_decllist */
         return (decl_getidentifier(d->u.next));
