@@ -183,7 +183,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
         // }
         // printf("\n");
         // // reusing a_sparse
-        // Mult(a_sparse, result[1], w, size, nodeNet, ss);
+        Mult(a_sparse, result[1], w, size, nodeNet, ss);
 
         // Open(res_check, a_sparse, size, -1, nodeNet, ss);
         // for (size_t j = 0; j < size; j++) {
