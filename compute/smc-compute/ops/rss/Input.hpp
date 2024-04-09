@@ -51,7 +51,7 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
     int my_index = 0;
     int my_T_star_index = 0;
     for (auto p_star : input_parties) {
-        T_star_index = ss->generateT_star_index(p_star);
+        T_star_index = ss->generateT_star_index(p_star); // cannot be made static/const
         // iterating through every set T in mapping T_map_mpc (every share, exclusing T^*)
         // calling the PRGs whenever applicable
         for (uint s = 0; s < numShares; s++) {

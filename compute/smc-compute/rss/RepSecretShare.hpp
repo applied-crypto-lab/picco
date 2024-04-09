@@ -182,9 +182,10 @@ public:
     std::vector<int> generateT_star(int p_star);
     int generateT_star_index(int p_star);
     void sparsify(T **result, int *x, int size);
+    void sparsify(T **result, T *x, int size);
 
     std::vector<std::vector<int>> generateB2A_map();
-    std::vector<std::vector<int>> generateXi_map();
+    std::vector<int> generateXi_map();
 
     std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
 
@@ -1340,65 +1341,76 @@ void replicatedSecretShare<T>::generatePublicCoef(T *result, int value) {
     }
 }
 
-template <typename T>
-std::vector<std::vector<int>> replicatedSecretShare<T>::generateB2A_map() {
-    switch (n) {
-    case 3:
-        return {
-            {((id < 4) ? mod_n(id - 1, n) : -1)},
-            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1)}};
-    case 5:
-        return {
-            // if my id < 4, compute as normal, otherwise set to -1
-            {((id < 4) ? mod_n(id - 1, n) : -1),
-             ((id < 4) ? mod_n(id - 2, n) : -1)},
-            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
-            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1),
-             (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
-        };
+// template <typename T>
+// std::vector<std::vector<int>> replicatedSecretShare<T>::generateB2A_map() {
+//     switch (n) {
+//     case 3:
+//         return {
+//             {((id < 4) ? mod_n(id - 1, n) : -1)},
+//             {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1)}};
+//     case 5:
+//         return {
+//             // if my id < 4, compute as normal, otherwise set to -1
+//             {((id < 4) ? mod_n(id - 1, n) : -1),
+//              ((id < 4) ? mod_n(id - 2, n) : -1)},
+//             // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+//             {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1),
+//              (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
+//         };
 
-    case 7:
-        return {
-            // if my id < 5, compute as normal, otherwise set to -1
-            {((id < 5) ? mod_n(id - 1, n) : -1),
-             ((id < 5) ? mod_n(id - 2, n) : -1),
-             ((id < 5) ? mod_n(id - 3, n) : -1)},
-            // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
-            {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
-             (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
-             (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
-        };
-    default:
-        break;
-    }
-}
+//     case 7:
+//         return {
+//             // if my id < 5, compute as normal, otherwise set to -1
+//             {((id < 5) ? mod_n(id - 1, n) : -1),
+//              ((id < 5) ? mod_n(id - 2, n) : -1),
+//              ((id < 5) ? mod_n(id - 3, n) : -1)},
+//             // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
+//             {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
+//              (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
+//              (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
+//         };
+//     default:
+//         break;
+//     }
+// }
 
 // this map is used in the updated B2A protocol
 // only parties < t+1 use this
+// returns the indices of the shares that party i needs to compute the local XOR of the input to B2A
+// this is the most optimal implementation
 template <typename T>
-std::vector<std::vector<int>> replicatedSecretShare<T>::generateXi_map() {
+std::vector<int> replicatedSecretShare<T>::generateXi_map() {
     switch (n) {
     case 3:
         switch (id) {
         case 1:
-            return {{0,1}};
+            // p1 : [{2}, {3}]
+            return {0, 1};
         default:
             break;
         }
     case 5:
         switch (id) {
         case 1:
+            // p1 :  [{2,3}, {2,4}, {2,5}, {3,4}, {3,5}]
+            return {0, 1, 2, 3, 4};
         case 2:
-
+            // p2 :  [{1,3}, {1,4}, {1,5}, {4,5}]
+            return {0, 1, 2, 3};
         default:
             break;
         }
     case 7:
         switch (id) {
         case 1:
+            // p1 : [(2, 3, 4), (2, 3, 5), (2, 3, 6), (2, 3, 7), (2, 4, 6), (2, 4, 7), (2, 5, 6), (2, 5, 7), (2, 6, 7), (4, 6, 7), (3, 5, 7)]
+            return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         case 2:
+            // p2 : [(3, 4, 5), (3, 4, 6), (3, 4, 7), (1, 3, 4), (3, 5, 6), (1, 3, 5), (3, 6, 7), (1, 3, 6), (1, 3, 7), (1, 5, 7), (1, 6, 7)]
+            return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         case 3:
-
+            // p3 : [(4, 5, 6), (4, 5, 7), (1, 4, 5), (2, 4, 5), (1, 4, 6), (1, 4, 7), (1, 2, 4), (5, 6, 7), (1, 5, 6), (1, 2, 5), (1, 2, 6), (1, 2, 7)]
+            return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
         default:
             break;
         }
@@ -1500,14 +1512,26 @@ void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
     // n = 3 -> T_hat_{1}
     // n = 5 -> T_hat_{1,2}
     // n = 7 -> T_hat_{1,2,3}
-    int idx = generateT_star_index(n);
+    static const int idx = generateT_star_index(n); // only needs to be done once ever
     // cout << "idx : " << idx << endl;
     if (idx >= 0) {
-
-        // for (size_t i = 0; i < numShares; i++) {
         for (size_t j = 0; j < size; j++)
-            result[idx][j] += T(x[j]);
-        // }
+            result[idx][j] = T(x[j]);
+    }
+}
+template <typename T>
+void replicatedSecretShare<T>::sparsify(T **result, T *x, int size) {
+    // using this function for convenience, the argument here is fixed to 'n' since we fix T_hat to always be the lexicographically first share
+    // using n as an argument is a shortcut to guarantee we get the indeces of the following T_hat's
+    // e.g.,
+    // n = 3 -> T_hat_{1}
+    // n = 5 -> T_hat_{1,2}
+    // n = 7 -> T_hat_{1,2,3}
+    static const int idx = generateT_star_index(n); // only needs to be done once ever
+    // cout << "idx : " << idx << endl;
+    if (idx >= 0) {
+        for (size_t j = 0; j < size; j++)
+            result[idx][j] = T(x[j]);
     }
 }
 
@@ -1636,10 +1660,7 @@ std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap
     } catch (const std::runtime_error &ex) {
         std::cerr << "[generateInputSendRecvMap] " << ex.what() << "\n";
         exit(1);
-
     }
 }
-
-
 
 #endif

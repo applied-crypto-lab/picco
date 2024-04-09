@@ -1991,24 +1991,32 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     ss->sparsify(B_sparse, B, size);
 
-    // for (size_t i = 0; i < size; i++) {
-    //     for (size_t s = 0; s < numShares; s++) {
-    //         printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
-    //     }
-    // }
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
+        }
+    }
+    smc_open(result, B_sparse, size, -1);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
+    }
+    Rss_Mult_Sparse(C, B_sparse, B_sparse, size, net, ss);
+    // Mult(C, A, B_sparse, size, net, ss);
 
-    //     smc_open(result, B_sparse, size, -1);
-    //     for (size_t i = 0; i < size; i++) {
-    //         printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
-    //     }
-    //     Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
-    //     // Mult(C, A, B_sparse, size, net, ss);
-    //     smc_open(result, C, size, -1);
-    //     printf("\n");
-    //     for (size_t i = 0; i < size; i++) {
-    //         printf("(open) C [%lu]: %u\n", i, result[i]);
-    //     }
-    //     printf("\n");
+
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            printf("C[%lu][%lu]: %u \n", i, s, C[s][i]);
+        }
+        printf("\n");
+    }
+
+    smc_open(result, C, size, -1);
+    printf("\n");
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) C [%lu]: %u\n", i, result[i]);
+    }
+    printf("\n");
 
     //    Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
     //     // Mult(C, A, B_sparse, size, net, ss);
@@ -2023,7 +2031,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     vector<int> input_parties = {0};
     uint numInputParties = input_parties.size();
 
-
     priv_int_t ***res = new priv_int_t **[numInputParties];
     for (size_t j = 0; j < numInputParties; j++) {
         res[j] = new priv_int_t *[numShares];
@@ -2037,29 +2044,24 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // n = 3 -> len(T) = 1
     // n = 5 -> len(T) = 2
     // n = 7 -> len(T) = 3
-    if (std::find(input_parties.begin(), input_parties.end(), id) != input_parties.end()) {
-        std::cout << id << " is an input party" << std::endl;
-        Rss_Input_p_star(res, reinterpret_cast<priv_int_t *>(B), input_parties, size, ring_size, net, ss);
-    } else {
-        std::cout << id << " is NOT an input party" << std::endl;
-        // priv_int placeholder = nullptr;
-        Rss_Input_p_star(res, static_cast<priv_int>(nullptr), input_parties, size, ring_size, net, ss);
-    }
+    
 
-    for (size_t i = 0; i < numInputParties; i++) {
-        // for (size_t j = 0; j < size; j++) {
-        //     for (size_t s = 0; s < numShares; s++) {
-        //         printf("res[%lu][%lu][%lu]: %u \n", i, s, j, res[i][s][j]);
-        //     }
-        //     printf("\n");
-        // }
+    // if (std::find(input_parties.begin(), input_parties.end(), id) != input_parties.end()) {
+    //     std::cout << id << " is an input party" << std::endl;
+    //     Rss_Input_p_star(res, reinterpret_cast<priv_int_t *>(B), input_parties, size, ring_size, net, ss);
+    // } else {
+    //     std::cout << id << " is NOT an input party" << std::endl;
+    //     // priv_int placeholder = nullptr;
+    //     Rss_Input_p_star(res, static_cast<priv_int>(nullptr), input_parties, size, ring_size, net, ss);
+    // }
 
-        smc_open(result, res[i], size, -1);
-        for (size_t j = 0; j < size; j++) {
-            printf("(open) party %i's input  [%lu] %u\n", input_parties[i], j, result[j]);
-        }
-        // printf("\n");
-    }
+    // for (size_t i = 0; i < numInputParties; i++) {
+    //     smc_open(result, res[i], size, -1);
+    //     for (size_t j = 0; j < size; j++) {
+    //         printf("(open) party %i's input  [%lu] %u\n", input_parties[i], j, result[j]);
+    //     }
+    //     // printf("\n");
+    // }
 
     // std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
     // printf("---\nsend_recv_map\n");
