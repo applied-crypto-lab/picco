@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+// #include "str.h"
 
 static str bf = NULL; /* Everything is printed on this buffer */
 
@@ -651,10 +652,12 @@ void ast_expr_print(str s, astexpr tree) {
 }
 
 void ast_stmt_print(str s, aststmt tree) {
+    // bf = Str("");
     if (s == NULL)
         return;
     bf = s;
     ast_stmt_prn(tree);
+    // printf(str_string(bf)); // I used this to print the buffer (4/8/23 z)
 }
 
 void ast_decl_print(str s, astdecl tree) {

@@ -349,6 +349,11 @@ void scope_end(symtab t) {
     }
 }
 
+/**
+ * This function prints the symbol table with variable's name, space and (array) in it is an array.
+ * This function is suppose to go over all entries of the stab, but somehow it only
+ * prints the entries from the current scope. 
+*/
 void scope_show(symtab t) {
     stentry e;
     int i = 0;
@@ -356,13 +361,30 @@ void scope_show(symtab t) {
                       "LABELNAME", "FUNCNAME", "SUFIELDNAME"};
 
     printf("Current scope (%d):\n--------------\n", t->scopelevel);
-    for (e = t->top; e; e = e->stacknext) {
-        if (e->key != &scopemark)
+    for (e = t->top; e; e = e->stacknext) { // start at the top, and keep doing next 
+        if (e->key != &scopemark) { // if the scope mark is not hit yet
             printf("%*s%s (%s)%s\n", 2 * (i + 1), " ", e->key->name, space[e->space],
                    e->isarray ? " (array)" : " ");
-        else {
+        } else { // If the scope mark is hit, go to the next scope
             printf("%*sScope -%d\n%*s----------\n", 2 * (i + 1), " ", i + 1, 2 * (i + 1), " ");
             i++;
         }
-    }
+    } // continue the loop until everything is printed from all the scopes
 }
+
+// Information about the symbol table itself 
+/**
+ * The table is of form symtab_ 
+ * This struct includes: 
+ * 1- The table of all entries 
+ *      * The table itself is of form stentry with STSIZE of 1031 
+ *      * This stentry_ includes:
+ *      * 1 - key -> the symbol
+ *            a - the key is of the form symbol_. This includes: name, *next, type, isptr, and struct_type
+ *      * 2 - 1 table for all the spaces 
+ *      * 3 - bucketnext for the bucket (Not sure what this is used for yet!) (this is a form of stentry)
+ *      * 4 - stacknext for the scope stack (this is a form of stentry)
+ *      * 5 - this also includes other stuff like decl, spec, idecl, field, some ints, and some flags (isarray, isthrpriv, scopelevel).
+ * 2- The first entry at the top (Most recent in scope)
+ * 3. Scopelevel (current scope)
+*/
