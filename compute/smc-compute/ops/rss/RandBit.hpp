@@ -37,17 +37,17 @@ void Rss_RandBit(T **res, uint ring_size, uint size, NodeNetwork nodeNet, replic
     int numParties = ss->getPeers();
     int id = ss->getID();
     uint numShares = ss->getNumShares();
+    // passing 0 will always give us index of the nonzero share (as long as id is entitled to it):
+    // n = 3 -> {1}
+    // n = 5 -> {1,2}
+    // n = 7 -> {1,2,3}
+    static const int T_star_index = ss->generateT_star_index(0);
     // std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
-
-    // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
-    // std::vector<std::vector<int>> xi_map = ;
 
     // first t parties are the "input parties"
     // (3,1): p1
     // (5,2): p1, p2
     // (7,3): p1, p2, p3
-    // AB: make sure this starts at "1" not 0
-    // it is, so good to go
     std::vector<int> input_parties(threshold);
     std::iota(input_parties.begin(), input_parties.end(), 1);
 
@@ -84,19 +84,7 @@ void Rss_RandBit(T **res, uint ring_size, uint size, NodeNetwork nodeNet, replic
         delete[] buffer; // not needed anymore
         delete[] bits;   // not needed anymore
     } else {
-        // std::cout << id << " is NOT an input party" << std::endl;
-        Rss_Input_p_star(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
-    }
-
-    // std::cout << "Input done" << std::endl;
-    // passing 0 will always give us index of the nonzero share:
-    // n = 3 -> {1}
-    // n = 5 -> {1,2}
-    // n = 7 -> {1,2,3}
-    static const int T_star_index = ss->generateT_star_index(0);
-    // std::cout << "T_star_index : " << T_star_index << std::endl;
-    // this means i (id) have access to the share
-    if (T_star_index >= 0) {
+        // this means i (id) and the other t+1 parties are responsible for generating the random bit b_{\hat{T}}
         uint8_t *buffer = new uint8_t[size];
         ss->prg_getrandom(T_star_index, 1, size, buffer);
         T *bits = new T[size];
@@ -104,15 +92,18 @@ void Rss_RandBit(T **res, uint ring_size, uint size, NodeNetwork nodeNet, replic
         for (size_t i = 0; i < size; i++) {
             a_sparse[T_star_index][i] = GET_LSB(buffer); // check that this is correct/secure
         }
+
         // don't need to call sparsify here
         // ss->sparsify(a_sparse, a[T_star_index], size);
+        Rss_Input_p_star(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
+
+        delete[] buffer; // not needed anymore
     }
-    // std::cout << "sparsify done" << std::endl;
+
     // for Mult, we cant store the output in one of the variables we use for sparsify, since we need the original values to compute the XOR (after mult)
     switch (numParties) {
     case 3:
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
-
         for (uint s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 res[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
@@ -120,9 +111,7 @@ void Rss_RandBit(T **res, uint ring_size, uint size, NodeNetwork nodeNet, replic
         }
         break;
     case 5:
-        // printf("multSparse\n");
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
-
         for (uint s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 w[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
@@ -148,10 +137,10 @@ void Rss_RandBit(T **res, uint ring_size, uint size, NodeNetwork nodeNet, replic
             A_buff[s] = new T[2 * size];
             B_buff[s] = new T[2 * size];
             C_buff[s] = new T[2 * size];
-            memcpy(A_buff, result[0][s], sizeof(T) * size);
-            memcpy(A_buff + size, result[1][s], sizeof(T) * size);
-            memcpy(B_buff, a_sparse[s], sizeof(T) * size);
-            memcpy(B_buff + size, result[2][s], sizeof(T) * size);
+            memcpy(A_buff[s], result[0][s], sizeof(T) * size);
+            memcpy(A_buff[s] + size, result[1][s], sizeof(T) * size);
+            memcpy(B_buff[s], a_sparse[s], sizeof(T) * size);
+            memcpy(B_buff[s] + size, result[2][s], sizeof(T) * size);
             // result[0]*a_sparse
             // result[1]*result[2]
             memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination

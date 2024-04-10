@@ -49,6 +49,11 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     int numParties = ss->getPeers();
     int id = ss->getID();
     uint numShares = ss->getNumShares();
+    // passing 0 will always give us index of the nonzero share:
+    // n = 3 -> {1}
+    // n = 5 -> {1,2}
+    // n = 7 -> {1,2,3}
+    static const int T_star_index = ss->generateT_star_index(0);
     // std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
 
     // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
@@ -58,8 +63,6 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     // (3,1): p1
     // (5,2): p1, p2
     // (7,3): p1, p2, p3
-    // AB: make sure this starts at "1" not 0
-    // it is, so good to go
     std::vector<int> input_parties(threshold);
     std::iota(input_parties.begin(), input_parties.end(), 1);
 
@@ -97,42 +100,18 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
                 xors[i] ^= a[idx][i];
             }
         }
-        // for (size_t i = 0; i < size; i++) {
-        //     printf("xors[%lu]: %u \n", i, xors[i]);
-        // }
 
         Rss_Input_p_star(result, xors, input_parties, size, ring_size, nodeNet, ss);
 
         delete[] xors; // not needed anymore
     } else {
-        // std::cout << id << " is NOT an input party" << std::endl;
+        // performing sparsiy "while" parties <= t compute their xors
+        // this means i (id) have access to the last share of a
+        // call sparsify on the share at index (T_star_index)
+        ss->sparsify(a_sparse, a[T_star_index], size);
         Rss_Input_p_star(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
 
-    // T *res_check = new T[size];
-    // memset(res_check, 0, sizeof(T) * size);
-
-    // for (size_t i = 0; i < input_parties.size(); i++) {
-    //     Open(res_check, result[i], size, -1, nodeNet, ss);
-    //     for (size_t j = 0; j < size; j++) {
-    //         printf("(open) party %i's input  [%lu] %u\n", input_parties[i], j, res_check[j]);
-    //     }
-    //     printf("\n");
-    // }
-
-    // std::cout << "Input done" << std::endl;
-    // passing 0 will always give us index of the nonzero share:
-    // n = 3 -> {1}
-    // n = 5 -> {1,2}
-    // n = 7 -> {1,2,3}
-    static const int T_star_index = ss->generateT_star_index(0);
-    // std::cout << "T_star_index : " << T_star_index << std::endl;
-    // this means i (id) have access to the share
-    if (T_star_index >= 0) {
-        // call sparsify on the share at index (T_star_index)
-        ss->sparsify(a_sparse, a[T_star_index], size);
-    }
-    // std::cout << "sparsify done" << std::endl;
     // for Mult, we cant store the output in one of the variables we use for sparsify, since we need the original values to compute the XOR (after mult)
     switch (numParties) {
     case 3:
@@ -145,51 +124,16 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
         }
         break;
     case 5:
-        // printf("multSparse\n");
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
-
-        // Open(res_check, result[0], size, -1, nodeNet, ss);
-        // for (size_t j = 0; j < size; j++) {
-        //     printf("(open, MultSparse input 1) [%lu] %u\n", j, res_check[j]);
-        // }
-        // printf("\n");
-        // Open(res_check, a_sparse, size, -1, nodeNet, ss);
-        // for (size_t j = 0; j < size; j++) {
-        //     printf("(open, MultSparse input 2) [%lu] %u\n", j, res_check[j]);
-        // }
-        // printf("\n");
-
-        // Open(res_check, w, size, -1, nodeNet, ss);
-        // for (size_t j = 0; j < size; j++) {
-        //     printf("(open, MultSparse) [%lu] %u\n", j, res_check[j]);
-        // }
-        // printf("\n");
 
         for (uint s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 w[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
             }
         }
-        // printf("mult\n");
 
-        // Open(res_check, result[1], size, -1, nodeNet, ss);
-        // for (size_t j = 0; j < size; j++) {
-        //     printf("(open, Mult input 1) [%lu] %u\n", j, res_check[j]);
-        // }
-        // printf("\n");
-        // Open(res_check, w, size, -1, nodeNet, ss);
-        // for (size_t j = 0; j < size; j++) {
-        //     printf("(open, Mult input 2) [%lu] %u\n", j, res_check[j]);
-        // }
-        // printf("\n");
-        // // reusing a_sparse
+        // reusing a_sparse
         Mult(a_sparse, result[1], w, size, nodeNet, ss);
-
-        // Open(res_check, a_sparse, size, -1, nodeNet, ss);
-        // for (size_t j = 0; j < size; j++) {
-        //     printf("(open, Mult) [%lu] %u\n", j, res_check[j]);
-        // }
-        // printf("\n");
 
         for (uint s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
@@ -209,10 +153,10 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
             A_buff[s] = new T[2 * size];
             B_buff[s] = new T[2 * size];
             C_buff[s] = new T[2 * size];
-            memcpy(A_buff, result[0][s], sizeof(T) * size);
-            memcpy(A_buff + size, result[1][s], sizeof(T) * size);
-            memcpy(B_buff, a_sparse[s], sizeof(T) * size);
-            memcpy(B_buff + size, result[2][s], sizeof(T) * size);
+            memcpy(A_buff[s], result[0][s], sizeof(T) * size);
+            memcpy(A_buff[s] + size, result[1][s], sizeof(T) * size);
+            memcpy(B_buff[s], a_sparse[s], sizeof(T) * size);
+            memcpy(B_buff[s] + size, result[2][s], sizeof(T) * size);
             // result[0]*a_sparse
             // result[1]*result[2]
             memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
