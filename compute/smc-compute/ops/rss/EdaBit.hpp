@@ -22,7 +22,151 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
+#include "AddBitwise.hpp"
+#include <cstring>
+#include <numeric>
 
+// bitlength -> bitlength of the output
+// updated, generic version
+template <typename T>
+void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    if (bitlength > ring_size) {
+        throw std::runtime_error("the bitlength cannot be larger than the ring_size; bitlength = " + std::to_string(bitlength) + ", ring_size = " + std::to_string(ring_size));
+    }
+    int threshold = ss->getThreshold();
+    int numParties = ss->getPeers();
+    int id = ss->getID();
+    uint numShares = ss->getNumShares();
+    uint bytes = (ring_size + 7) >> 3;
+
+    uint total_size = 2 * size; // for shares in Z_2k and Z_2
+    std::vector<int> input_parties(threshold + 1);
+    std::iota(input_parties.begin(), input_parties.end(), 1);
+    int numInputParties = input_parties.size();
+
+    T ***result = new T **[threshold + 1];
+    for (size_t s = 0; s < threshold + 1; s++) {
+        result[s] = new T *[numShares];
+        for (size_t i = 0; i < numShares; i++) {
+            result[s][i] = new T[total_size];
+            memset(result[s][i], 0, sizeof(T) * total_size); // sanitizing destination
+        }
+    }
+    T **r_bitwise = new T *[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        r_bitwise[s] = new T[numInputParties];
+        memset(r_bitwise[s], 0, sizeof(T) * numInputParties);
+        // ensuring destinations are sanitized
+        memset(r[s], 0, sizeof(T) * size);
+        memset(b_2[s], 0, sizeof(T) * size);
+    }
+
+    if (id < threshold + 1) {
+        uint8_t *buffer = new uint8_t[size];
+        ss->prg_getrandom(1, size, buffer);
+        T *r_val = new T[size];
+        memset(r_val, 0, sizeof(T) * size);
+        for (size_t i = 0; i < size; i++) {
+            memcpy(r_val + i, buffer + i * bytes, bytes);
+        }
+        Rss_Input_edaBit(result, r_val, input_parties, size, ring_size, nodeNet, ss);
+
+        delete[] buffer; // not needed anymore
+        delete[] r_val;  // not needed anymore
+    } else {
+        Rss_Input_edaBit(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
+    }
+
+    // first (size) elements of result are the shares over Z_2k
+    // summing all the random values shared in Z_2k
+    for (size_t in = 0; in < numInputParties; in++) {
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r[s][i] += result[in][s][i];
+            }
+            // may not be necessary if we directly start performing BitAdd
+            memcpy(r_bitwise[s] + in * size, result[in][s], sizeof(T) * size); // check this
+        }
+    }
+
+    switch (numParties) {
+    case 3:
+        Rss_BitAdd(r, result[0], result[1], bitlength, bitlength, ring_size, size, nodeNet, ss);
+        break;
+    case 5: {
+        T **temp = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            temp[s] = new T[size];
+            memset(temp[s], 0, sizeof(T) * size);
+        }
+        Rss_BitAdd(temp, result[0], result[1], bitlength, bitlength, ring_size, size, nodeNet, ss);
+        uint reslen = std::min(bitlength + 1, ring_size); // not needed here, since we're just interested in the lengths of the inputs
+
+        Rss_BitAdd(r, temp, result[2], reslen, bitlength, ring_size, size, nodeNet, ss);
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] temp[i];
+        }
+        delete[] temp;
+        break;
+    }
+    case 7: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        T **C_buff = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[2 * size];
+            // memset(A_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+            B_buff[s] = new T[2 * size];
+            // memset(B_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+            C_buff[s] = new T[2 * size];
+            memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+
+            memcpy(A_buff[s], result[0][s], sizeof(T) * size);
+            memcpy(A_buff[s] + size, result[1][s], sizeof(T) * size);
+            memcpy(B_buff[s], result[2][s], sizeof(T) * size);
+            memcpy(B_buff[s] + size, result[3][s], sizeof(T) * size);
+        }
+        // this can theoretically be done with a Mult_and_MultSparse special function
+        Rss_bitAdd(C_buff, A_buff, B_buff, bitlength, bitlength, ring_size, 2*size, nodeNet, ss);
+        uint reslen = std::min(bitlength + 1, ring_size); // not needed here, since we're just interested in the lengths of the inputs
+        for (size_t s = 0; s < numShares; s++) {
+            // memset(A_buff[s], 0, sizeof(T) *  size); // sanitizing destination
+            // memset(B_buff[s], 0, sizeof(T) *  size); // sanitizing destination
+
+            memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
+            memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
+        }
+
+        Rss_bitAdd(C_buff, A_buff, B_buff, reslen, reslen, ring_size, size, nodeNet, ss);
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+            delete[] C_buff[i];
+        }
+        delete[] A_buff;
+        delete[] B_buff;
+        delete[] C_buff;
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (bitlength < ring_size) {
+        uint numCarry = ring_size - bitlength; // however many bits we need to convert with b2a
+    }
+
+    for (size_t s = 0; s < threshold + 1; s++) {
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] result[s][i];
+        }
+        delete[] result[s];
+    }
+    delete[] result;
+}
 
 template <typename T>
 void Rss_edaBit(T **r, T **b_2, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -129,12 +273,8 @@ void Rss_GenerateRandomShares(T **res, T **res_bitwise, uint ring_size, uint siz
         r_values[0][p_index][1 * i] = r_bits[i] - r_values[1][p_index][1 * i];
         r_values[0][p_index][size + i] = r_bits[i] ^ r_values[1][p_index][size + i];
 
-
         // r_values[0][p_index][1 * i] = T(5) - r_values[1][p_index][1 * i];
         // r_values[0][p_index][size + i] = T(5) ^ r_values[1][p_index][size + i];
-
-
-
     }
 
     // need to generate more random shares so that binary and arithmetic representations are different
@@ -171,36 +311,36 @@ void Rss_GenerateRandomShares(T **res, T **res_bitwise, uint ring_size, uint siz
     delete[] r_bits;
 }
 
-template <typename T>
-void Rss_edaBit(T **r, T **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+// template <typename T>
+// void Rss_edaBit(T **r, T **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = ss->getID();
-    uint numParties = ss->getPeers();
-    // printf("numParties : %u\n",numParties);
+//     // int pid = ss->getID();
+//     uint numParties = ss->getPeers();
+//     // printf("numParties : %u\n",numParties);
 
-    uint i;
-    // need to multiply by the number of parties in the computation
-    uint new_size = numParties * size;
+//     uint i;
+//     // need to multiply by the number of parties in the computation
+//     uint new_size = numParties * size;
 
-    T **r_bitwise = new T *[2];
-    for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new T[new_size];
-        memset(r_bitwise[i], 0, sizeof(T) * new_size);
+//     T **r_bitwise = new T *[2];
+//     for (i = 0; i < 2; i++) {
+//         r_bitwise[i] = new T[new_size];
+//         memset(r_bitwise[i], 0, sizeof(T) * new_size);
 
-        // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(T) * size);
-        memset(b_2[i], 0, sizeof(T) * size);
-    }
+//         // ensuring destinations are sanitized
+//         memset(r[i], 0, sizeof(T) * size);
+//         memset(b_2[i], 0, sizeof(T) * size);
+//     }
 
-    Rss_GenerateRandomShares(r, r_bitwise, ring_size, bit_length, size, nodeNet);
+//     Rss_GenerateRandomShares(r, r_bitwise, ring_size, bit_length, size, nodeNet);
 
-    Rss_nBitAdd(b_2, r_bitwise, ring_size, size, nodeNet);
+//     Rss_nBitAdd(b_2, r_bitwise, ring_size, size, nodeNet);
 
-    for (i = 0; i < 2; i++) {
-        delete[] r_bitwise[i];
-    }
-    delete[] r_bitwise;
-}
+//     for (i = 0; i < 2; i++) {
+//         delete[] r_bitwise[i];
+//     }
+//     delete[] r_bitwise;
+// }
 
 template <typename T>
 void Rss_GenerateRandomShares(T **res, T **res_bitwise, uint ring_size, uint bit_length, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -269,7 +409,6 @@ void Rss_GenerateRandomShares(T **res, T **res_bitwise, uint ring_size, uint bit
         // r_values[0][p_index][2 * i] = r_bits[i] ;
         r_values[0][p_index][2 * i] = r_bits[i] - r_values[1][p_index][2 * i];
         r_values[0][p_index][2 * i + 1] = r_bits[i] ^ r_values[1][p_index][2 * i + 1];
-
     }
 
     // need to generate more random shares so that binary and arithmetic representations are different
@@ -536,7 +675,6 @@ void Rss_GenerateRandomShares_trunc(T **res, T **res_prime, T **res_bitwise, uin
     delete[] r_prime;
 }
 
-
 template <typename T>
 void Rss_edaBit_5pc(T **r, T **b_2, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -619,7 +757,7 @@ void Rss_GenerateRandomShares_5pc(T **res, T **res_bitwise, uint ring_size, uint
         ss->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
     }
 
-    int *index_map = new int[threshold+1];
+    int *index_map = new int[threshold + 1];
 
     uint reset_value;
     switch (pid) {
@@ -719,7 +857,7 @@ void Rss_GenerateRandomShares_5pc(T **res, T **res_bitwise, uint ring_size, uint
         }
     }
 
-    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc );
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc);
 
     // extracting from buffer
     for (size_t i = 0; i < size; i++) {
@@ -966,8 +1104,6 @@ void Rss_GenerateRandomShares_trunc_5pc(T **res, T **res_prime, T **res_bitwise,
         }
     }
 
-
-
     for (size_t i = 0; i < size; i++) {
 
         int index = ((pid - 2) % (numParties - 1) + (numParties - 1)) % (numParties - 1);
@@ -992,7 +1128,7 @@ void Rss_GenerateRandomShares_trunc_5pc(T **res, T **res_prime, T **res_bitwise,
         }
     }
 
-    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc );
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc);
 
     // extracting from buffer
     for (size_t i = 0; i < size; i++) {
@@ -1053,7 +1189,6 @@ void Rss_GenerateRandomShares_trunc_5pc(T **res, T **res_prime, T **res_bitwise,
     delete[] r_prime;
     delete[] r_bits;
 }
-
 
 template <typename T>
 void Rss_edaBit_7pc(T **r, T **b_2, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -1251,7 +1386,7 @@ void Rss_GenerateRandomShares_7pc(T **res, T **res_bitwise, uint ring_size, uint
         }
     }
 
-    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc );
+    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc);
 
     // extracting from buffer
     for (size_t i = 0; i < size; i++) {
@@ -1308,6 +1443,5 @@ void Rss_GenerateRandomShares_7pc(T **res, T **res_bitwise, uint ring_size, uint
     delete[] r_buffer;
     delete[] r_bits;
 }
-
 
 #endif // _EDABIT_HPP_
