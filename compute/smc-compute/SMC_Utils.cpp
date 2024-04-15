@@ -18,7 +18,6 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
-#include "B2A.hpp"
 #include "RSS_types.hpp"
 #include "bit_utils.hpp"
 #include <iomanip>
@@ -2008,7 +2007,7 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    // size = 2; //  testing only so I dont have to keep opening rss_main.cpp
+    size = 50000; //  testing only so I dont have to keep opening rss_main.cpp
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2016,6 +2015,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     uint ring_size = ss->ring_size;
     uint bytes = (ss->ring_size + 7) >> 3;
     printf("bytes : %u\n", bytes);
+    printf("size : %u\n", size);
     printf("----\n\n");
 
     __m128i *key_prg;
@@ -2063,10 +2063,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     priv_int_t **Data1 = new priv_int_t *[totalNumShares];
     priv_int_t **Data2 = new priv_int_t *[totalNumShares];
     for (int i = 0; i < totalNumShares; i++) {
-        Data2[i] = new priv_int_t[size];
-        memset(Data2[i], 0, sizeof(priv_int_t) * size);
         Data1[i] = new priv_int_t[size];
         memset(Data1[i], 0, sizeof(priv_int_t) * size);
+        Data2[i] = new priv_int_t[size];
+        memset(Data2[i], 0, sizeof(priv_int_t) * size);
     }
 
     for (int i = 0; i < size; i++) {
@@ -2092,8 +2092,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // }
 
     // expected RSS initialization
+
     priv_int *B_sparse = new priv_int[ss->getNumShares()];
     priv_int *C = new priv_int[ss->getNumShares()];
+    priv_int *D = new priv_int[ss->getNumShares()];
     priv_int *A_bit = new priv_int[ss->getNumShares()];
     priv_int *B_bit = new priv_int[ss->getNumShares()];
     for (int i = 0; i < ss->getNumShares(); i++) {
@@ -2101,20 +2103,51 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(B_sparse[i], 0, sizeof(priv_int_t) * size);
         C[i] = new priv_int_t[size];
         memset(C[i], 0, sizeof(priv_int_t) * size);
+        D[i] = new priv_int_t[size];
+        memset(D[i], 0, sizeof(priv_int_t) * size);
     }
 
-    for (size_t i = 0; i < numShares; i++) {
-        A_bit[i] = Data1[share_mapping[id - 1][i]];
-        B_bit[i] = Data2[share_mapping[id - 1][i]];
-    }
+    // for (size_t i = 0; i < numShares; i++) {
+    //     A_bit[i] = Data1[share_mapping[id - 1][i]];
+    //     B_bit[i] = Data2[share_mapping[id - 1][i]];
+    // }
 
     priv_int result = new priv_int_t[size];
     memset(result, 0, sizeof(priv_int_t) * size);
 
+    priv_int result_2 = new priv_int_t[size];
+    memset(result_2, 0, sizeof(priv_int_t) * size);
+
+    Rss_edaBit(C, D, ring_size, size, ring_size, net, ss);
+    Open(result, C, size, -1, net, ss);
+    Open_Bitwise(result_2, D, size, -1, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        if (result[i] != result_2[i]) {
+            printf("edabit ERROR\n");
+            printf("(open, Z_2k) r   [%lu]: %u\t", i, result[i]);
+            print_binary(result[i], ring_size);
+            printf("(open, Z_2) bits [%lu]: %u\t", i, result_2[i]);
+            print_binary(result_2[i], ring_size);
+        }
+    }
+
+        Rss_edaBit(C, D, ring_size, size, ring_size, net, ss);
+    Open(result, C, size, -1, net, ss);
+        Open_Bitwise(result_2, D, size, -1, net, ss);
+    for (size_t i = 0; i < size; i++) {
+            if (result[i] != result_2[i]) {
+                printf("edabit ERROR\n");
+                printf("(open, Z_2k) r   [%lu]: %u\t", i, result[i]);
+                print_binary(result[i], ring_size);
+                printf("(open, Z_2) bits [%lu]: %u\t", i, result_2[i]);
+                print_binary(result_2[i], ring_size);
+            }
+        }
+
     // for (size_t s = 0; s < numShares; s++) {
     //     for (size_t i = 0; i < size; i++) {
     //         printf("A_bit[%lu][%lu]: %u \n", i, s, A_bit[s][i]);
-    //         // printf("B_bit[%lu][%lu]: %u \n", s,i, B_bit[s][i]);
+    //         printf("B_bit[%lu][%lu]: %u \n", s,i, B_bit[s][i]);
     //     }
     //     printf("\n");
     // }
@@ -2125,27 +2158,26 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // }
 
     // printf("\n");
-    Rss_B2A(C, A_bit, ring_size, size, net, ss);
+    // Rss_B2A(C, A_bit, ring_size, size, net, ss);
 
-    smc_open(result, C, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open, Z_k) A_bit [%lu]: %u\n", i, result[i]);
-    }
-    printf("\n");
+    // smc_open(result, C, size, -1);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open, Z_k) A_bit [%lu]: %u\n", i, result[i]);
+    // }
+    // printf("\n");
 
     // Open_Bitwise(result, B_bit, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
     //     printf("(open, Z_2) B_bit [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
     // }
 
-    Rss_B2A(C, B_bit, ring_size, size, net, ss);
-    printf("\n");
+    // Rss_B2A(C, B_bit, ring_size, size, net, ss);
+    // printf("\n");
 
-    smc_open(result, C, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open, Z_k) B_bit [%lu]: %u\n", i, result[i]);
-    }
+    // smc_open(result, C, size, -1);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open, Z_k) B_bit [%lu]: %u\n", i, result[i]);
+    // }
 
     // ss->sparsify(B_sparse, B, size);
 
@@ -2185,17 +2217,17 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("\n");
 
     // vector<int> input_parties = {1 };
-    vector<int> input_parties = {0};
-    uint numInputParties = input_parties.size();
+    // vector<int> input_parties = {0};
+    // uint numInputParties = input_parties.size();
 
-    priv_int_t ***res = new priv_int_t **[numInputParties];
-    for (size_t j = 0; j < numInputParties; j++) {
-        res[j] = new priv_int_t *[numShares];
-        for (size_t s = 0; s < numShares; s++) {
-            res[j][s] = new priv_int_t[size];
-            memset(res[j][s], 0, sizeof(priv_int_t) * size);
-        }
-    }
+    // priv_int_t ***res = new priv_int_t **[numInputParties];
+    // for (size_t j = 0; j < numInputParties; j++) {
+    //     res[j] = new priv_int_t *[numShares];
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         res[j][s] = new priv_int_t[size];
+    //         memset(res[j][s], 0, sizeof(priv_int_t) * size);
+    //     }
+    // }
 
     // cant use pid_in_T because that is only for fixed vector sizes:
     // n = 3 -> len(T) = 1
@@ -2224,8 +2256,8 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // for (auto var : send_recv_map) {
     //     std::cout << var << std::endl;
     // }
-    for (int i = 0; i < totalNumShares; i++) {
 
+    for (size_t i = 0; i < totalNumShares; i++) {
         delete[] Data1[i];
         delete[] Data2[i];
     }
@@ -2237,20 +2269,21 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     for (size_t i = 0; i < numShares; i++) {
         delete[] C[i];
+        delete[] D[i];
         delete[] B_sparse[i];
     }
     delete[] C;
+    delete[] D;
     delete[] B_sparse;
-    // delete[] buffer;
-
     delete[] result;
+    delete[] result_2;
 
-    for (size_t i = 0; i < numInputParties; i++) {
-        for (size_t s = 0; s < numShares; s++) {
-            delete[] res[i][s];
-        }
-        delete[] res[i];
-    }
-    delete[] res;
+    // for (size_t i = 0; i < numInputParties; i++) {
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         delete[] res[i][s];
+    //     }
+    //     delete[] res[i];
+    // }
+    // delete[] res;
 }
 #endif

@@ -45,10 +45,10 @@ template <typename T>
 void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     //  int n = ss->getPeers();
-    int threshold = ss->getThreshold();
-    int numParties = ss->getPeers();
-    int id = ss->getID();
-    uint numShares = ss->getNumShares();
+    static int threshold = ss->getThreshold();
+    static int numParties = ss->getPeers();
+    static int id = ss->getID();
+    static uint numShares = ss->getNumShares();
     // passing 0 will always give us index of the nonzero share:
     // n = 3 -> {1}
     // n = 5 -> {1,2}

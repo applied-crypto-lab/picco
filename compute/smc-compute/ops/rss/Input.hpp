@@ -131,10 +131,14 @@ first (size) elements are shared in Z_2k, second (size) elements are packed shar
 */
 template <typename T>
 void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // std::cout << "size = " << size<<std::endl;   
+    // std::cout << "ring_size = " << ring_size<<std::endl;   
+
+
     // uint numInputParties = input_parties.size();
-    uint numShares = ss->getNumShares();
+    static uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
-    int pid = ss->getID();
+    static int pid = ss->getID();
     uint total_size = 2 * size;
     std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
 

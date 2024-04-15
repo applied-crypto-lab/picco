@@ -23,6 +23,9 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 #include "AddBitwise.hpp"
+#include "B2A.hpp"
+#include "Open.hpp"
+#include <algorithm>
 #include <cstring>
 #include <numeric>
 
@@ -34,16 +37,23 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
     if (bitlength > ring_size) {
         throw std::runtime_error("the bitlength cannot be larger than the ring_size; bitlength = " + std::to_string(bitlength) + ", ring_size = " + std::to_string(ring_size));
     }
-    int threshold = ss->getThreshold();
-    int numParties = ss->getPeers();
-    int id = ss->getID();
-    uint numShares = ss->getNumShares();
+    static int threshold = ss->getThreshold();
+    static int numParties = ss->getPeers();
+    static int id = ss->getID();
+    static uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
 
     uint total_size = 2 * size; // for shares in Z_2k and Z_2
     std::vector<int> input_parties(threshold + 1);
     std::iota(input_parties.begin(), input_parties.end(), 1);
     int numInputParties = input_parties.size();
+
+    // std::cout << "numParties : " << numParties << std::endl;
+    // std::cout << "threshold : " << threshold << std::endl;
+    // std::cout << "id : " << id << std::endl;
+    // std::cout << "numShares : " << numShares << std::endl;
+    // std::cout << "numInputParties : " << numInputParties << std::endl;
+    // std::cout << "bytes : " << bytes << std::endl;
 
     T ***result = new T **[threshold + 1];
     for (size_t s = 0; s < threshold + 1; s++) {
@@ -53,18 +63,16 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
             memset(result[s][i], 0, sizeof(T) * total_size); // sanitizing destination
         }
     }
-    T **r_bitwise = new T *[numShares];
     for (size_t s = 0; s < numShares; s++) {
-        r_bitwise[s] = new T[numInputParties];
-        memset(r_bitwise[s], 0, sizeof(T) * numInputParties);
         // ensuring destinations are sanitized
         memset(r[s], 0, sizeof(T) * size);
         memset(b_2[s], 0, sizeof(T) * size);
     }
 
-    if (id < threshold + 1) {
-        uint8_t *buffer = new uint8_t[size];
-        ss->prg_getrandom(1, size, buffer);
+    if (id <= threshold + 1) {
+        // std::cout << "id " << id << " is an input party" << std::endl;
+        uint8_t *buffer = new uint8_t[size*bytes];
+        ss->prg_getrandom(bytes, size, buffer);
         T *r_val = new T[size];
         memset(r_val, 0, sizeof(T) * size);
         for (size_t i = 0; i < size; i++) {
@@ -75,8 +83,12 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
         delete[] buffer; // not needed anymore
         delete[] r_val;  // not needed anymore
     } else {
+        // std::cout << "id " << id << " is NOT an input party" << std::endl;
         Rss_Input_edaBit(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
+ return;
+
+    // printf("input_eda_done\n");
 
     // first (size) elements of result are the shares over Z_2k
     // summing all the random values shared in Z_2k
@@ -85,30 +97,60 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
             for (size_t i = 0; i < size; i++) {
                 r[s][i] += result[in][s][i];
             }
-            // may not be necessary if we directly start performing BitAdd
-            memcpy(r_bitwise[s] + in * size, result[in][s], sizeof(T) * size); // check this
         }
     }
 
     switch (numParties) {
-    case 3:
-        Rss_BitAdd(r, result[0], result[1], bitlength, bitlength, ring_size, size, nodeNet, ss);
+    case 3: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[size];
+            B_buff[s] = new T[size];
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd(b_2, A_buff, B_buff, bitlength, bitlength, ring_size, size, nodeNet, ss);
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+        }
+        delete[] A_buff;
+        delete[] B_buff;
         break;
+    }
     case 5: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
         T **temp = new T *[numShares];
         for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[size];
+            B_buff[s] = new T[size];
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
+
             temp[s] = new T[size];
             memset(temp[s], 0, sizeof(T) * size);
         }
-        Rss_BitAdd(temp, result[0], result[1], bitlength, bitlength, ring_size, size, nodeNet, ss);
-        uint reslen = std::min(bitlength + 1, ring_size); // not needed here, since we're just interested in the lengths of the inputs
+        Rss_BitAdd(temp, result[0], result[1], bitlength, bitlength, ring_size, size, nodeNet, ss); // WRONG ARGS
+        uint reslen = std::min(bitlength + 1, ring_size);                                           // not needed here, since we're just interested in the lengths of the inputs
 
-        Rss_BitAdd(r, temp, result[2], reslen, bitlength, ring_size, size, nodeNet, ss);
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(A_buff[s], result[2][s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd(b_2, temp, A_buff, reslen, bitlength, ring_size, size, nodeNet, ss);
 
         for (size_t i = 0; i < numShares; i++) {
             delete[] temp[i];
+            delete[] A_buff[i];
+            delete[] B_buff[i];
         }
         delete[] temp;
+        delete[] A_buff;
+        delete[] B_buff;
         break;
     }
     case 7: {
@@ -123,13 +165,13 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
             C_buff[s] = new T[2 * size];
             memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
 
-            memcpy(A_buff[s], result[0][s], sizeof(T) * size);
-            memcpy(A_buff[s] + size, result[1][s], sizeof(T) * size);
-            memcpy(B_buff[s], result[2][s], sizeof(T) * size);
-            memcpy(B_buff[s] + size, result[3][s], sizeof(T) * size);
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(A_buff[s] + size, result[1][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[2][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s] + size, result[3][s] + size, sizeof(T) * size);
         }
         // this can theoretically be done with a Mult_and_MultSparse special function
-        Rss_bitAdd(C_buff, A_buff, B_buff, bitlength, bitlength, ring_size, 2*size, nodeNet, ss);
+        Rss_BitAdd(C_buff, A_buff, B_buff, bitlength, bitlength, ring_size, 2 * size, nodeNet, ss);
         uint reslen = std::min(bitlength + 1, ring_size); // not needed here, since we're just interested in the lengths of the inputs
         for (size_t s = 0; s < numShares; s++) {
             // memset(A_buff[s], 0, sizeof(T) *  size); // sanitizing destination
@@ -139,7 +181,7 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
             memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
         }
 
-        Rss_bitAdd(C_buff, A_buff, B_buff, reslen, reslen, ring_size, size, nodeNet, ss);
+        Rss_BitAdd(b_2, A_buff, B_buff, reslen, reslen, ring_size, size, nodeNet, ss);
 
         for (size_t i = 0; i < numShares; i++) {
             delete[] A_buff[i];
@@ -156,7 +198,54 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
     }
 
     if (bitlength < ring_size) {
-        uint numCarry = ring_size - bitlength; // however many bits we need to convert with b2a
+        // at this point, we know there are carries which need to be removed
+        // however, any carries BEYOND k (ring_size) bits do NOT need to be converted
+        // therefore, we are only interested in the smaller of the following two values:
+        // the exact number of carries introduced by BitAdd : ceil(log2(t+1))
+        // the difference between k and the bitlength
+        uint numCarry = std::min(uint(ceil(log2(threshold))), ring_size - bitlength);
+
+        T **buffer = new T *[numShares];
+        T **res = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            buffer[s] = new T[numCarry * size];
+            res[s] = new T[numCarry * size];
+            memset(buffer[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+            memset(res[s], 0, sizeof(T) * 2 * size);    // sanitizing destination
+        }
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t m = 0; m < numCarry; m++) {
+                for (size_t i = 0; i < size; i++) {
+                    buffer[s][m * size + i] = GET_BIT(b_2[s][i], T(bitlength + m)); // carries start at the (bitlength) position
+                }
+            }
+        }
+        Rss_B2A(res, buffer, ring_size, numCarry * size, nodeNet, ss);
+        for (size_t s = 0; s < numShares; s++) {
+            memset(buffer[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+        }
+
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t m = 0; m < numCarry; m++) {
+                for (size_t i = 0; i < size; i++) {
+                    buffer[s][i] += res[s][m * size + i] * (T(1) << (T(m))); // check
+                }
+            }
+        }
+
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r[s][i] -= buffer[s][i] * (T(1) << (T(bitlength))); // check
+            }
+        }
+        // reusing buffer for summation, since it's no longer needed
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] buffer[i];
+            delete[] res[i];
+        }
+        delete[] buffer;
+        delete[] res;
     }
 
     for (size_t s = 0; s < threshold + 1; s++) {

@@ -1688,7 +1688,7 @@ void Mult_Bitwise(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecr
 }
 
 template <typename T>
-void Mult_Byte(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void Mult_Byte(uint8_t **C, uint8_t **A, uint8_t **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // from here, we defer to the 3-, 5-, or 7-party implementations
     try {
         int peers = ss->getPeers();

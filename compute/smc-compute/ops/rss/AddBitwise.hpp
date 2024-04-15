@@ -23,6 +23,10 @@
 #include "../../rss/RepSecretShare.hpp"
 #include "Mult.hpp"
 #include <cmath>
+#include <cstdint>
+
+template <typename T>
+void CarryBuffer(T **buffer, T **d, uint **index_array, uint size, uint k, uint numShares);
 
 // a,b are private and bitwise secret-shared
 // we would never supply any alen/blen >ring_size, so we don't need to check here, right?
@@ -30,16 +34,23 @@
 // any bits BEYOND the k-1th would be discarded anyways
 template <typename T>
 void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    uint inlen = std::max(alen,blen);
+
+    // std::cout << "(bitAdd) sizeof(T) = " << sizeof(T) << std::endl;
+    // std::cout << "(bitAdd) size = " << size << std::endl;
+    // std::cout << "(bitAdd) ring_size = " << ring_size << std::endl;
+    uint inlen = std::max(alen, blen);
+
     // uint reslen = std::min(std::max(alen,blen) + 1, ring_size); // not needed here, since we're just interested in the lengths of the inputs
     // the resultlen WILL be max(alen,blen) + 1
 
     static uint numShares = ss->getNumShares();
+
     T **d = new T *[2 * numShares];
     for (size_t i = 0; i < 2 * numShares; i++) {
         d[i] = new T[size];
         memset(d[i], 0, sizeof(T) * size);
     }
+
     Mult_Bitwise(res, a, b, size, nodeNet, ss);
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
@@ -47,7 +58,7 @@ void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uin
             d[numShares + s][i] = res[s][i];
         }
     }
-    Rss_CircleOpL(d, inlen, size, nodeNet);
+    Rss_CircleOpL(d, inlen, size, nodeNet, ss);
 
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)
@@ -60,6 +71,7 @@ void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uin
 }
 
 // a is public, b is private and bitwise secret-shared
+// used in share conversion (potentially not needed anymore)
 template <typename T>
 void Rss_BitAdd(T **res, T *a, T **b, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -170,7 +182,7 @@ void Rss_CircleOpL(T **d, uint r_size, uint size, NodeNetwork nodeNet, replicate
             }
 
             // bitwise multiplication
-            Rss_Mult_Byte(u, a, b, num, nodeNet, ss);
+            Mult_Byte(u, a, b, num, nodeNet, ss);
 
             for (l = 0; l < size; ++l) {
                 for (j = 0; j < op_r; ++j) {
@@ -181,10 +193,10 @@ void Rss_CircleOpL(T **d, uint r_size, uint size, NodeNetwork nodeNet, replicate
                     mask2m8 = (2 * j + 1) & 7;
 
                     for (size_t s = 0; s < numShares; s++) {
-                        d[s][l] = SET_BIT(d[s][l], mask2, GET_BIT(u[s][t_index], mask1m8));
+                        d[s][l] = SET_BIT(d[s][l], mask2, GET_BIT(static_cast<T>(u[s][t_index]), mask1m8));
 
                         // simplified from needing two separate loops
-                        d[numShares + s][l] = SET_BIT(d[numShares + s][l], mask2, (GET_BIT(u[s][t_index], mask2m8) ^ GET_BIT(d[numShares + s][l], mask2)));
+                        d[numShares + s][l] = SET_BIT(d[numShares + s][l], mask2, (GET_BIT(static_cast<T>(u[s][t_index]), mask2m8) ^ GET_BIT(d[numShares + s][l], mask2)));
                     }
                 }
             }
