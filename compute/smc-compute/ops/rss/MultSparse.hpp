@@ -400,7 +400,7 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
 
 // non-threaded versions (since RSS is single threaded )
 template <typename T>
-void Rss_Mult_Sparse(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void Mult_Sparse(T **C, T **A, T **B, int size, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // from here, we defer to the 3-, 5-, or 7-party implementations
     try {
         int peers = ss->getPeers();

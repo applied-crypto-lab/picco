@@ -25,23 +25,29 @@
 #include <cmath>
 
 // a,b are private and bitwise secret-shared
+// we would never supply any alen/blen >ring_size, so we don't need to check here, right?
+// alen,blen should ALWAYS be <= k
+// any bits BEYOND the k-1th would be discarded anyways
 template <typename T>
-void Rss_BitAdd(T **res, T **a, T **b, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    uint inlen = std::max(alen,blen);
+    // uint reslen = std::min(std::max(alen,blen) + 1, ring_size); // not needed here, since we're just interested in the lengths of the inputs
+    // the resultlen WILL be max(alen,blen) + 1
 
-    uint numShares = ss->getNumShares();
+    static uint numShares = ss->getNumShares();
     T **d = new T *[2 * numShares];
     for (size_t i = 0; i < 2 * numShares; i++) {
         d[i] = new T[size];
         memset(d[i], 0, sizeof(T) * size);
     }
-    Rss_Mult_Bitwise(res, a, b, size, ring_size, nodeNet, ss);
+    Mult_Bitwise(res, a, b, size, nodeNet, ss);
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
             d[s][i] = a[s][i] ^ b[s][i];
             d[numShares + s][i] = res[s][i];
         }
     }
-    Rss_CircleOpL(d, ring_size, size, nodeNet);
+    Rss_CircleOpL(d, inlen, size, nodeNet);
 
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)

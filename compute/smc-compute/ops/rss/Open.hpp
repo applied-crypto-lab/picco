@@ -283,4 +283,28 @@ void Open(T *result, T **shares, int size, int threadID, NodeNetwork nodeNet, re
     }
 }
 
+template <typename T>
+void Open_Bitwise(T *result, T **shares, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    try {
+        int peers = ss->getPeers();
+        switch (peers) {
+        case 3:
+            Rss_Open_Bitwise_3pc(result, shares, size, ss->ring_size, nodeNet, ss);
+            break;
+        case 5:
+            Rss_Open_Bitwise_5pc(result, shares, size, ss->ring_size, nodeNet, ss);
+            break;
+        case 7:
+            Rss_Open_Bitwise_7pc(result, shares, size, ss->ring_size, nodeNet, ss);
+            break;
+        default:
+            throw std::runtime_error("invalid number of parties");
+        }
+    } catch (const std::runtime_error &ex) {
+        std::string error(ex.what());
+        throw std::runtime_error("[Open_Bitwise] " + error);
+    }
+}
+
+
 #endif

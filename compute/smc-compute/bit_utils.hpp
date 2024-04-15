@@ -31,6 +31,10 @@ template <typename T>
 inline __attribute__((always_inline)) T GET_BIT(T X, T N) {
     return (((X) >> (N)) & T(1));
 }
+template <typename T>
+inline __attribute__((always_inline)) T GET_LSB(T X) {
+    return (X & T(1));
+}
 
 // sets the Nth bit of X (from right to left) to B
 template <typename T>
