@@ -33,7 +33,9 @@ void CarryBuffer(T **buffer, T **d, uint **index_array, uint size, uint k, uint 
 // alen,blen should ALWAYS be <= k
 // any bits BEYOND the k-1th would be discarded anyways
 template <typename T>
-void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
 
     // std::cout << "(bitAdd) sizeof(T) = " << sizeof(T) << std::endl;
     // std::cout << "(bitAdd) size = " << size << std::endl;
@@ -58,7 +60,7 @@ void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uin
             d[numShares + s][i] = res[s][i];
         }
     }
-    Rss_CircleOpL(d, inlen, size, nodeNet, ss);
+    Rss_CircleOpL(d, size, inlen, nodeNet, ss);
 
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)
@@ -73,7 +75,7 @@ void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint ring_size, uin
 // a is public, b is private and bitwise secret-shared
 // used in share conversion (potentially not needed anymore)
 template <typename T>
-void Rss_BitAdd(T **res, T *a, T **b, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_BitAdd(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint numShares = ss->getNumShares();
     T **d = new T *[2 * numShares];
@@ -90,7 +92,7 @@ void Rss_BitAdd(T **res, T *a, T **b, uint ring_size, uint size, NodeNetwork nod
             d[numShares + s][i] = (a[i] & b[s][i]);
         }
     }
-    Rss_CircleOpL(d, ring_size, size, nodeNet);
+    Rss_CircleOpL(d, size, ring_size, nodeNet);
 
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)
@@ -103,7 +105,7 @@ void Rss_BitAdd(T **res, T *a, T **b, uint ring_size, uint size, NodeNetwork nod
 }
 
 template <typename T>
-void Rss_CircleOpL(T **d, uint r_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_CircleOpL(T **d, uint size, uint r_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     T i, j, l, y, z, op_r; // used for loops
     uint numShares = ss->getNumShares();

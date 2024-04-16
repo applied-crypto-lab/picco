@@ -23,6 +23,9 @@
 #include <cstdio>
 #include <string>
 #include <sys/types.h>
+#include <cassert>
+
+#define assertm(exp, msg) assert(((void)msg, exp))
 
 // this is a suite of bit-level utilities, primarily used for certain RSS operations, as well as the seed generation algorithm
 

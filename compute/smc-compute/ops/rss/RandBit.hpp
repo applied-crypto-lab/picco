@@ -30,7 +30,7 @@
 #include <numeric>
 
 template <typename T>
-void Rss_RandBit(T **res, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_RandBit(T **res,  uint size, uint ring_size,NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     //  int n = ss->getPeers();
     int threshold = ss->getThreshold();

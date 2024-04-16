@@ -2007,7 +2007,7 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    size = 50; //  testing only so I dont have to keep opening rss_main.cpp
+    size = 5000; //  testing only so I dont have to keep opening rss_main.cpp
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2117,7 +2117,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     priv_int result_2 = new priv_int_t[size];
     memset(result_2, 0, sizeof(priv_int_t) * size);
 
-    Rss_edaBit(C, D, 8, size, ring_size, net, ss);
+    edaBit(C, D, 8, size, ring_size, net, ss);
     Open(result, C, size, -1, net, ss);
     Open_Bitwise(result_2, D, size, -1, net, ss);
     for (size_t i = 0; i < size; i++) {
@@ -2131,18 +2131,18 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         }
     }
 
-    //     Rss_edaBit(C, D, ring_size, size, ring_size, net, ss);
-    // Open(result, C, size, -1, net, ss);
-    //     Open_Bitwise(result_2, D, size, -1, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //         if (result[i] != result_2[i]) {
-    //             printf("edabit ERROR\n");
-    //             printf("(open, Z_2k) r   [%lu]: %u\t", i, result[i]);
-    //             print_binary(result[i], ring_size);
-    //             printf("(open, Z_2) bits [%lu]: %u\t", i, result_2[i]);
-    //             print_binary(result_2[i], ring_size);
-    //         }
-    //     }
+    edaBit(C, D, ring_size, size, ring_size, net, ss);
+    Open(result, C, size, -1, net, ss);
+    Open_Bitwise(result_2, D, size, -1, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        if (result[i] != result_2[i]) {
+            printf("edabit ERROR\n");
+            printf("(open, Z_2k) r   [%lu]: %u\t", i, result[i]);
+            print_binary(result[i], ring_size);
+            printf("(open, Z_2) bits [%lu]: %u\t", i, result_2[i]);
+            print_binary(result_2[i], ring_size);
+        }
+    }
     // for (size_t s = 0; s < numShares; s++) {
     //     for (size_t i = 0; i < size; i++) {
     //         printf("A_bit[%lu][%lu]: %u \n", i, s, A_bit[s][i]);

@@ -25,6 +25,7 @@
 #include "Input.hpp"
 #include "Mult.hpp"
 #include "MultSparse.hpp"
+#include <cassert>
 #include <cmath>
 #include <numeric>
 /*
@@ -42,7 +43,8 @@ p3 : [(4, 5, 6), (4, 5, 7), (1, 4, 5), (2, 4, 5), (1, 4, 6), (1, 4, 7), (1, 2, 4
  */
 // [a] is a secret bit shared in Z_2 (stored in a T)
 template <typename T>
-void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    assertm((ring_size == ss->ring_size ) , "checking ring_size argument == ss->ring_size");
 
     //  int n = ss->getPeers();
     static int threshold = ss->getThreshold();

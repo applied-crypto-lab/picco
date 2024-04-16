@@ -24,6 +24,8 @@ std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> input_pa
  */
 template <typename T>
 void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
+
     // uint numInputParties = input_parties.size();
     uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
@@ -88,7 +90,6 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
         // However, will still need to extract the shares received into the correct locations
     }
 
-
     // std::cout << "my_index : " << my_index << std::endl;
     // std::cout << "my_T_star_index : " << my_T_star_index << std::endl;
     // std::cout << "send_recv_map : " << send_recv_map << std::endl;
@@ -127,18 +128,16 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
     delete[] buffer;
 }
 
-
-/*  
+/*
 the input functionality called by edaBit
-input : [size] 
+input : [size]
 result : [numInputParties][numShares][2*size]
 first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2)
 */
 template <typename T>
 void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    // std::cout << "size = " << size<<std::endl;   
-    // std::cout << "ring_size = " << ring_size<<std::endl;   
-
+    // std::cout << "size = " << size<<std::endl;
+    // std::cout << "ring_size = " << ring_size<<std::endl;
 
     // uint numInputParties = input_parties.size();
     static uint numShares = ss->getNumShares();

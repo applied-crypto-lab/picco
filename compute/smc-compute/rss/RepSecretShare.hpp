@@ -183,6 +183,7 @@ public:
     int generateT_star_index(int p_star);
     void sparsify(T **result, int *x, int size);
     void sparsify(T **result, T *x, int size);
+    void sparsify_public(T *result, int x);
 
     std::vector<std::vector<int>> generateB2A_map();
     std::vector<int> generateXi_map();
@@ -1541,6 +1542,15 @@ void replicatedSecretShare<T>::sparsify(T **result, T *x, int size) {
     }
 }
 
+// the destination result is allocated to be of dimension [numShares]
+template <typename T>
+void replicatedSecretShare<T>::sparsify_public(T *result, int x ) {
+    static const int idx = generateT_star_index(1); // will always be party 1's "first" share, other parties (with access) are set accordingly
+    std::cout << "sparsify public idx = "<<idx << std::endl;
+    if (idx >= 0) {
+        result[idx] = x;
+    }
+}
 // general-use "is pid in share T?"
 template <typename T>
 inline bool replicatedSecretShare<T>::pid_in_T(int pid, std::vector<int> T_map) {
