@@ -42,9 +42,9 @@ void new_Rss_MSB(Lint **res, Lint **a, uint size, uint ring_size, NodeNetwork *n
     // stays the same
     Rss_RandBit(b, size, ring_size, nodeNet);
 
-    // Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, ring_size - 1, nodeNet);
+    // edaBit(edaBit_r, edaBit_b_2, size, ring_size, ring_size - 1, nodeNet);
     // need to generate full edabit for final implementation
-    Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
+    edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
 
     for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
@@ -196,11 +196,11 @@ void new_Rss_MSB_time(Lint **res, Lint **a, uint size, uint ring_size, NodeNetwo
     op_timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     timer += 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     // printf("----> rb time = %.6lf\n", (double)(op_timer * 1e-6));
-    // Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, ring_size - 1, nodeNet);
+    // edaBit(edaBit_r, edaBit_b_2, size, ring_size, ring_size - 1, nodeNet);
     // need to generate full edabit for final implementation
     gettimeofday(&start, NULL); // start timer here
 
-    Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
+    edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
     gettimeofday(&end, NULL); // stop timer here
     op_timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     timer += 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
@@ -393,9 +393,9 @@ void test_new_Rss_MSB(Lint **res, Lint **a, uint size, uint ring_size, NodeNetwo
     // stays the same
     Rss_RandBit(b, 2 * size, ring_size, nodeNet);
 
-    Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, ring_size - 1, nodeNet);
+    edaBit(edaBit_r, edaBit_b_2, size, ring_size, ring_size - 1, nodeNet);
     // need to generate full edabit for final implementation
-    // Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
+    // edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
 
     for (i = 0; i < size; i++) {
         r[0][i] = edaBit_r[0][i] + (GET_BIT(b[0][i], Lint(ring_size - 1)) << Lint(ring_size - 1));

@@ -33,7 +33,7 @@
 // bitlength -> bitlength of the output
 // updated, generic version
 template <typename T>
-void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
     if (bitlength > ring_size) {
