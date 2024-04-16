@@ -22,10 +22,33 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
+#include "MSB.hpp"
 
+// evaluates the boolean expression (a <? b) and returns a bit (not the larger/smaller of the two)
 template <typename T>
-void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    uint numShares = ss->getNumShares();
+    uint ring_size = ss->ring_size;
+
+    T **diff = new T *[numShares];
+    for (size_t i = 0; i < numShares; i++) {
+        diff[i] = new T[size];
+    }
+
+    for (size_t s = 0; s < numShares; s++)
+        for (size_t i = 0; i < size; i++)
+            diff[s][i] = a[s][i] - b[s][i]; // compinting the difference of a and b
+
+    Rss_MSB(result, diff, size, ring_size, nodeNet, ss);
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] diff[i];
+    }
+
+    delete[] diff;
 }
+
 template <typename T>
 void doOperation_LT(T **result, int *a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
 }
