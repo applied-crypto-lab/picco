@@ -26,9 +26,19 @@
 // the function expects a and b to be arrays of binary values
 // a is a single value
 // b is two single values of packed shares
+
+template <typename T>
+void Rss_CarryOut(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss);
+
+template <typename T>
+void OptimalBuffer(T **buffer, T **d, uint size, uint r_size, replicatedSecretShare<T> *ss);
+
+template <typename T>
+void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss);
+
 template <typename T>
 void Rss_BitLT(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
     uint numShares = ss->getNumShares();
 
     uint i, j; // used for loops
@@ -49,12 +59,12 @@ void Rss_BitLT(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork node
             b_prime[s][j] = (b[s][j] ^ ai[s]);
         }
     }
-    Rss_CarryOut(res, a, b_prime, size, ring_size, nodeNet);
+    Rss_CarryOut(res, a, b_prime, size, ring_size, nodeNet, ss);
 
     // flipping on share of output
     for (j = 0; j < size; ++j) {
         for (size_t s = 0; s < numShares; s++) {
-            res[s][j] = GET_BIT(res[s][j], 0) ^ GET_BIT(ai[s], 0);
+            res[s][j] = GET_BIT(res[s][j], T(0)) ^ GET_BIT(ai[s], T(0));
         }
         // res[1][j] = GET_BIT(res[1][j], 0) ^ GET_BIT(b2, 0);
     }
@@ -69,7 +79,7 @@ void Rss_BitLT(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork node
 template <typename T>
 void Rss_CarryOut(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
     uint i;
     uint numShares = ss->getNumShares();
@@ -97,7 +107,7 @@ void Rss_CarryOut(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork n
         }
     }
 
-    Rss_CarryOutAux(res, d, size, ring_size, nodeNet);
+    Rss_CarryOutAux(res, d, size, ring_size, nodeNet, ss);
 
     for (i = 0; i < numShares * 2; i++) {
         delete[] d[i];
@@ -134,7 +144,7 @@ void OptimalBuffer(T **buffer, T **d, uint size, uint r_size, replicatedSecretSh
 // a non-recursive solution to minimize memory consumption
 template <typename T>
 void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    assertm((ring_size == ss->ring_size ) , "checking ring_size argument == ss->ring_size");
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
     static uint numShares = ss->getNumShares();
     uint i, j, originial_num, num, n_uints, r_size, new_r_size, t_index;
@@ -197,8 +207,8 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
                 mask1m8 = (2 * j) & 7; // "&7" = %8, used for leftover bits
 
                 for (size_t s = 0; s < numShares; s++) {
-                    buffer[s][i] = SET_BIT(buffer[s][i], j, GET_BIT(u[s][t_index], mask1m8));
-                    buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], j, (GET_BIT(u[s][t_index], mask2m8) ^ GET_BIT(d[numShares + s][i], mask2)));
+                    buffer[s][i] = SET_BIT(buffer[s][i], j, GET_BIT(T(u[s][t_index]), mask1m8));
+                    buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], j, (GET_BIT(T(u[s][t_index]), mask2m8) ^ GET_BIT(d[numShares + s][i], mask2)));
                 }
             }
         }
@@ -236,7 +246,7 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
     // Is this wrong? why is it only two shares?
     for (size_t s = 0; s < numShares; s++) {
         for (i = 0; i < size; ++i) {
-            res[s][i] = SET_BIT(res[s][i], 0, GET_BIT(d[numShares + s][i], 0));
+            res[s][i] = SET_BIT(res[s][i], T(0), GET_BIT(d[numShares + s][i], T(0)));
             // res[1][i] = SET_BIT(res[1][i], 0, GET_BIT(d[3][i], 0));
         }
     }
