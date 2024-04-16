@@ -73,11 +73,11 @@ void Rss_RandBit(T **res,  uint size, uint ring_size,NodeNetwork nodeNet, replic
     // mapping \xi predefined
     if (id < threshold + 1) {
         uint8_t *buffer = new uint8_t[size];
-        ss->prg_getrandom(1, size, buffer);
+        ss->prg_getrandom(1, size, buffer); // generating (size) bytes into buffer
         T *bits = new T[size];
         memset(bits, 0, sizeof(T) * size);
         for (size_t i = 0; i < size; i++) {
-            bits[i] = GET_LSB(buffer); // check that this is correct/secure
+            bits[i] = GET_LSB(buffer[i]); // check that this is correct/secure
         }
         Rss_Input_p_star(result, bits, input_parties, size, ring_size, nodeNet, ss);
 
@@ -90,7 +90,7 @@ void Rss_RandBit(T **res,  uint size, uint ring_size,NodeNetwork nodeNet, replic
         T *bits = new T[size];
         memset(bits, 0, sizeof(T) * size);
         for (size_t i = 0; i < size; i++) {
-            a_sparse[T_star_index][i] = GET_LSB(buffer); // check that this is correct/secure
+            a_sparse[T_star_index][i] = GET_LSB(buffer[i]); // check that this is correct/secure
         }
 
         // don't need to call sparsify here
