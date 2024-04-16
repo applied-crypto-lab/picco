@@ -17,8 +17,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _LTZ_HPP_
-#define _LTZ_HPP_
+#ifndef _LT_HPP_
+#define _LT_HPP_
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
@@ -33,4 +33,4 @@ template <typename T>
 void doOperation_LT(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
 }
 
-#endif // _LTZ_HPP_
+#endif // _LT_HPP_
