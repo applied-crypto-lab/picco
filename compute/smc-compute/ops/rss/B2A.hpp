@@ -54,6 +54,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     // n = 5 -> {1,2}
     // n = 7 -> {1,2,3}
     static const int T_star_index = ss->generateT_star_index(0);
+    // std::cout << "T_star_index = "<<T_star_index << std::endl;
     // std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
 
     // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
@@ -65,7 +66,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
     // (7,3): p1, p2, p3
     std::vector<int> input_parties(threshold);
     std::iota(input_parties.begin(), input_parties.end(), 1);
-
+    // std::cout << "input_parties = "<< input_parties << std::endl;
     T ***result = new T **[threshold];
     for (size_t s = 0; s < threshold; s++) {
         result[s] = new T *[numShares];
@@ -105,6 +106,7 @@ void Rss_B2A(T **res, T **a, uint ring_size, uint size, NodeNetwork nodeNet, rep
 
         delete[] xors; // not needed anymore
     } else {
+        // std::cout << id << " is NOT an input party" << std::endl;
         // performing sparsiy "while" parties <= t compute their xors
         // this means i (id) have access to the last share of a
         // call sparsify on the share at index (T_star_index)
