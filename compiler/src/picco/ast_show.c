@@ -4397,7 +4397,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
 void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gflag) {
     /* printing global private declarations into a string */
     switch (tree->type) {
-    case DECLARATOR:
+    case DECLARATOR: // The array issue is cause of this table push, I am 50 percent sure
         if(gflag != 1) { // Don't change this, this table is used to keep track and clear the vars after it is done
             ltable_push(spec, tree, current->tablelist->head);
         }

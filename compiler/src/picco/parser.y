@@ -51,7 +51,6 @@
 #include "ast_print.h"    
     
 void    check_uknown_var(char *name);
-void    global_scope_var_init(astexpr e2, astdecl decl);
 void    parse_error(int exitvalue, char *format, ...);
 void    yyerror(char *s);
 void    check_for_main_and_declare(astspec s, astdecl d);
@@ -1099,7 +1098,7 @@ assignment_operator:
 ;
 
 /*  ISO/IEC 9899:1999 6.5.17 */
-expression:			
+expression:	// This is where each expression gets handled 
     assignment_expression
     {
       $$ = $1;
@@ -1713,7 +1712,7 @@ statement:
       $$ = $1;
       $$->flag = $1->flag;
     }
-  | expression_statement
+  | expression_statement // this is where expressions gets handled 
     {
       $$ = $1;
       $$->flag = $1->flag;
@@ -1864,11 +1863,11 @@ block_item:
 
 /*  ISO/IEC 9899:1999 6.8.3 */
 expression_statement:
-    ';'
+    ';' // handles empty expressions
     {
       $$ = Expression(NULL);
     }
-  | expression ';'
+  | expression ';' // handles expressions with a given value
     {
       $$ = Expression($1);
       $$->l = $1->l;
@@ -4017,7 +4016,19 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
         e->flag = PUB;
         e->index = -1; 
     }
- 
+
+    // e: Represents the entire expression being assigned to variable i.
+    // e1: Represents the left operand of the addition operation, which is 1.
+    // e2: Represents the right operand of the addition operation, which is 3.
+    // this takes care of a+b 
+    // Check if the expression is a constant or a constant expression
+    if (global_variables_c_restrict_flag == 1) {
+        if (e1 != NULL && e2 != NULL) { // i + i
+            parse_error(-1, "Initializer element is not a constant or a constant expression 1.\n");
+        } else if (e1 == NULL && e2 != NULL) { // 2 + i
+            parse_error(-1, "Initializer element is not a constant or a constant expression 3.\n");
+        }
+    }
    //COMPUTE THE MODULUS FOR DIFFERENT OPERATIONS AND DIFFERENT TYPES OF PRIVATE VARIABLES
 } 
 
@@ -4123,22 +4134,6 @@ int set_security_flag_spec(astspec spec){
         return PRI;
 }
 
-// Function to check if an initializer is a constant value or a mathematical operation involving constant values
-void global_scope_var_init(astexpr e2, astdecl decl) {
-    if (global_variables_c_restrict_flag == 1) {
-        if (pointer_flag == 0 && e2->type != CONSTANT) { // it the declarator is a non-pointer and it is global scope
-            parse_error(-1, "Initializer element is not constant.\n"); // Constant value
-        }
-        // else if (pointer_flag == 1) { // it the declarator is a pointer and it is global scope
-        //     if (e2->u.str == NULL) { // && e2->u.str != CONSTANT) {
-        //         parse_error(-1, "Pointer initializer element is not constant. %x\n %s\n", e2->u.str, e2->u.sym->name); // Constant value
-        //     } else if (symbol_exists(e2->u.sym->name) == 0) {
-        //         parse_error(-1, "2 Pointer initializer element is not constant. %x\n %s\n", e2->u.str, e2->u.sym->name); // Constant value
-        //     } 
-        // }
-        // Not a constant value or mathematical operation involving constant values
-    }
-}
 
 void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
     stentry entry;
@@ -4212,7 +4207,6 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
     else
         e1->arraysize = NULL;
     
-    global_scope_var_init(e2, decl);
 }
 void security_check_for_condition(astexpr e){
     int flag  = 0;
