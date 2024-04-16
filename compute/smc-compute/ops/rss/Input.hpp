@@ -87,6 +87,11 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
         // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
         // However, will still need to extract the shares received into the correct locations
     }
+
+
+    // std::cout << "my_index : " << my_index << std::endl;
+    // std::cout << "my_T_star_index : " << my_T_star_index << std::endl;
+    // std::cout << "send_recv_map : " << send_recv_map << std::endl;
     // sending everything in the result[my_index][my_T_star_index]
     nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, size, ring_size, send_recv_map);
     /*

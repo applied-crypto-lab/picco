@@ -27,6 +27,7 @@
 #include "Open.hpp"
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 #include <numeric>
 
 // bitlength -> bitlength of the output
@@ -71,13 +72,24 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
 
     if (id <= threshold + 1) {
         // std::cout << "id " << id << " is an input party" << std::endl;
-        uint8_t *buffer = new uint8_t[size*bytes];
+        uint8_t *buffer = new uint8_t[size * bytes];
         ss->prg_getrandom(bytes, size, buffer);
         T *r_val = new T[size];
         memset(r_val, 0, sizeof(T) * size);
-        for (size_t i = 0; i < size; i++) {
-            memcpy(r_val + i, buffer + i * bytes, bytes);
+
+        if (bitlength == ring_size) {
+            for (size_t i = 0; i < size; i++) {
+                memcpy(r_val + i, buffer + i * bytes, bytes);
+            }
+        } else if (bitlength < ring_size) {
+            for (size_t i = 0; i < size; i++) {
+                memcpy(r_val + i, buffer + i * bytes, bytes);
+                r_val[i] = r_val[i] & ss->SHIFT[bitlength];
+            }
+        } else {
+            std::cerr << "bitlength cannot exceede the ring size: " << bitlength << " > " << ring_size << endl;
         }
+
         Rss_Input_edaBit(result, r_val, input_parties, size, ring_size, nodeNet, ss);
 
         delete[] buffer; // not needed anymore
@@ -86,7 +98,6 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
         // std::cout << "id " << id << " is NOT an input party" << std::endl;
         Rss_Input_edaBit(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
- return;
 
     // printf("input_eda_done\n");
 
@@ -134,7 +145,7 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
             temp[s] = new T[size];
             memset(temp[s], 0, sizeof(T) * size);
         }
-        Rss_BitAdd(temp, result[0], result[1], bitlength, bitlength, ring_size, size, nodeNet, ss); // WRONG ARGS
+        Rss_BitAdd(temp, A_buff, B_buff, bitlength, bitlength, ring_size, size, nodeNet, ss); // WRONG ARGS
         uint reslen = std::min(bitlength + 1, ring_size);                                           // not needed here, since we're just interested in the lengths of the inputs
 
         for (size_t s = 0; s < numShares; s++) {
@@ -203,15 +214,15 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
         // therefore, we are only interested in the smaller of the following two values:
         // the exact number of carries introduced by BitAdd : ceil(log2(t+1))
         // the difference between k and the bitlength
-        uint numCarry = std::min(uint(ceil(log2(threshold))), ring_size - bitlength);
-
+        uint numCarry = std::min(uint(ceil(log2(threshold + 1))), ring_size - bitlength);
+        // cout << "numCarry : " << numCarry << endl;
         T **buffer = new T *[numShares];
         T **res = new T *[numShares];
         for (size_t s = 0; s < numShares; s++) {
             buffer[s] = new T[numCarry * size];
             res[s] = new T[numCarry * size];
-            memset(buffer[s], 0, sizeof(T) * 2 * size); // sanitizing destination
-            memset(res[s], 0, sizeof(T) * 2 * size);    // sanitizing destination
+            memset(buffer[s], 0, sizeof(T) * numCarry * size); // sanitizing destination
+            memset(res[s], 0, sizeof(T) * numCarry * size);    // sanitizing destination
         }
         for (size_t s = 0; s < numShares; s++) {
             for (size_t m = 0; m < numCarry; m++) {
@@ -222,7 +233,7 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
         }
         Rss_B2A(res, buffer, ring_size, numCarry * size, nodeNet, ss);
         for (size_t s = 0; s < numShares; s++) {
-            memset(buffer[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+            memset(buffer[s], 0, sizeof(T) * numCarry * size); // sanitizing destination
         }
 
         for (size_t s = 0; s < numShares; s++) {
@@ -236,6 +247,9 @@ void Rss_edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeN
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 r[s][i] -= buffer[s][i] * (T(1) << (T(bitlength))); // check
+                
+                // removing any bits > (bitlength-1), since they are irrelevant may cause interference 
+                b_2[s][i] = b_2[s][i] & ss->SHIFT[bitlength]; 
             }
         }
         // reusing buffer for summation, since it's no longer needed
