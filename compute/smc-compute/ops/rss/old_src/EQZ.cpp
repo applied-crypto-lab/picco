@@ -31,7 +31,7 @@ void Rss_EQZ(Lint **res, Lint **a, uint size, uint ring_size, NodeNetwork *nodeN
         ai[1] = -1; // party 3's share 2
     }
 
-    Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
+    edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
 
     for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
