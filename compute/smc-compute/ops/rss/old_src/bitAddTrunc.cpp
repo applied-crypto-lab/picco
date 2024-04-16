@@ -198,12 +198,11 @@ void Rss_BitAdd_trunc_5pc(Lint **res, Lint **carry, Lint **a, Lint **b, uint rin
     // Rss_CircleOpL_Lint(d, ring_size, size, map, nodeNet); // new version w Lints
     Rss_CircleOpL_mp_test(d, ring_size, size, nodeNet); // original
 
-    for (i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++) {
+    for (size_t s = 0; s < numShares; s++) {
+        for (i = 0; i < size; i++) {
             res[s][i] = (a[s][i] ^ b[s][i]) ^ (d[numShares + s][i] << 1);
             carry[s][i] = GET_BIT(d[numShares + s][i], Lint(m - 1));
             carry[s][size + i] = GET_BIT(d[numShares + s][i], Lint(ring_size - 1));
-            
             carry[s][2 * size + i] = GET_BIT(res[s][i], Lint(ring_size - 1));
         }
 

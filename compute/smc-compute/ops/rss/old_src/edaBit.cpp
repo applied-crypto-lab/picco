@@ -1,6 +1,6 @@
 #include "edaBit.h"
 
-void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *nodeNet) {
+void edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, NodeNetwork *nodeNet) {
 
     // int pid = nodeNet->getID();
     uint numParties = nodeNet->getPeers();
@@ -145,7 +145,7 @@ void Rss_GenerateRandomShares(Lint **res, Lint **res_bitwise, uint ring_size, ui
     delete[] r_bits;
 }
 
-void Rss_edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork *nodeNet) {
+void edaBit(Lint **r, Lint **b_2, uint size, uint ring_size, uint bit_length, NodeNetwork *nodeNet) {
 
     // int pid = nodeNet->getID();
     uint numParties = nodeNet->getPeers();

@@ -53,7 +53,7 @@ void new_Rss_Convert(Lint **res, Lint **a, uint size, uint ring_size, uint ring_
 
     // only need ring_size bit-length values for both parts of computation
     // first protection and b2a
-    Rss_edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
+    edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
 
     for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {

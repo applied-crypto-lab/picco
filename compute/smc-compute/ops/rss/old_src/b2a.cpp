@@ -1,5 +1,7 @@
 #include "b2a.h"
 
+// this implementaiton of b2a assumes uses a single secret bit (shared in Z_2) is stored in a Lint
+// this is directly compatible with the new b2a implementation
 void Rss_b2a(Lint **res, Lint **a, uint ring_size, uint size, NodeNetwork *nodeNet) {
     int pid = nodeNet->getID();
     uint numShares = nodeNet->getNumShares();
