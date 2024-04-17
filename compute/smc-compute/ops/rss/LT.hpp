@@ -30,7 +30,6 @@ void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen,
 
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
-
     T **diff = new T *[numShares];
     for (size_t i = 0; i < numShares; i++) {
         diff[i] = new T[size];
@@ -50,10 +49,56 @@ void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen,
 }
 
 template <typename T>
-void doOperation_LT(T **result, int *a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_LT(T **result, int *a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    uint numShares = ss->getNumShares();
+    uint ring_size = ss->ring_size;
+    T **diff = new T *[numShares];
+    for (size_t i = 0; i < numShares; i++) {
+        diff[i] = new T[size];
+    }
+
+    T *ai = new T[numShares];
+    memset(ai, 0, sizeof(T) * numShares);
+    ss->sparsify_public(ai, 1);
+
+    for (size_t s = 0; s < numShares; s++)
+        for (size_t i = 0; i < size; i++)
+            diff[s][i] = T(a[s]) * ai[s] - b[s][i]; // compinting the difference of a and b
+
+    Rss_MSB(result, diff, size, ring_size, nodeNet, ss);
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] diff[i];
+    }
+
+    delete[] diff;
+    delete[] ai;
 }
+
 template <typename T>
-void doOperation_LT(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_LT(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    uint numShares = ss->getNumShares();
+    uint ring_size = ss->ring_size;
+    T **diff = new T *[numShares];
+    for (size_t i = 0; i < numShares; i++) {
+        diff[i] = new T[size];
+    }
+    T *ai = new T[numShares];
+    memset(ai, 0, sizeof(T) * numShares);
+    ss->sparsify_public(ai, 1);
+
+    for (size_t s = 0; s < numShares; s++)
+        for (size_t i = 0; i < size; i++)
+            diff[s][i] = a[s][i] - T(b[i]) * ai[s]; // compinting the difference of a and b
+
+    Rss_MSB(result, diff, size, ring_size, nodeNet, ss);
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] diff[i];
+    }
+
+    delete[] diff;
+    delete[] ai;
 }
 
 #endif // _LT_HPP_
