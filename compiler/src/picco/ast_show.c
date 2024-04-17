@@ -3802,51 +3802,34 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
             } else {
                 fprintf(output, "\n\n");
                 if (!flag) {
+                    fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", struct_name, tree->decl->u.id->name);
+                    indent();
+                    fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    indlev++;
+                    indlev++;
+                    indent();
                     if (technique_var == SHAMIR_SS) {
-                        fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", struct_name, tree->decl->u.id->name);
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                        indlev++;
-                        indlev++;
-                        indent();
                         fprintf(output, "ss_init(%s%s[_picco_i]);\n", struct_name, tree->decl->u.id->name);
-                        indlev--;
-                        indlev--;
                     } else if (technique_var == REPLICATED_SS) {
-                        fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", struct_name, tree->decl->u.id->name);
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
-                        indlev++;
-                        indlev++;
-                        indent();
-                        fprintf(output, "__s->ss_init(%s%s[_picco_i], 4);\n", struct_name, tree->decl->u.id->name);
-                        indlev--;
-                        indlev--;
+                        fprintf(output, "__s->ss_init(%s%s[_picco_i], __s->getNumShares());\n", struct_name, tree->decl->u.id->name);
                     }
+                    indlev--;
+                    indlev--;
                 } else {
+                    indent();
+                    fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    indlev++;
+                    indlev++;
+                    indent();
                     if (technique_var == SHAMIR_SS) {
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                        indlev++;
-                        indlev++;
-                        indent();
                         fprintf(output, "ss_clear(%s%s[_picco_i]);\n", struct_name, tree->decl->u.id->name);
-                        indlev--;
-                        indlev--;
-                        indent();
-                        fprintf(output, "free(%s%s);\n", struct_name, tree->decl->u.id->name);
                     } else if (technique_var == REPLICATED_SS) {
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
-                        indlev++;
-                        indlev++;
-                        indent();
-                        fprintf(output, "__s->ss_clear(%s%s[_picco_i], 4);\n", struct_name, tree->decl->u.id->name);
-                        indlev--;
-                        indlev--;
-                        indent();
-                        fprintf(output, "free(%s%s);\n", struct_name, tree->decl->u.id->name);
+                        fprintf(output, "__s->ss_clear(%s%s[_picco_i], __s->getNumShares());\n", struct_name, tree->decl->u.id->name);
                     }
+                    indlev--;
+                    indlev--;
+                    indent();
+                    fprintf(output, "free(%s%s);\n", struct_name, tree->decl->u.id->name);
                 }
             }
             break;
@@ -4451,45 +4434,31 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                 indent();
                 // output order for global private 
                 if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
+                    str_printf(global_string, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                    indent_global_string(global_string);
+                    str_printf(global_string, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    indlev++;
+                    indent_global_string(global_string);
+                    indent_global_string(global_string);
                     if (technique_var == SHAMIR_SS) {
-                        str_printf(global_string, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
-                        indent_global_string(global_string);
-                        str_printf(global_string, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                        indlev++;
-                        indent_global_string(global_string);
-                        indent_global_string(global_string);
                         str_printf(global_string, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
-                        indlev--;
-                    } else if (technique_var == REPLICATED_SS){
-                        str_printf(global_string, "%s = (priv_int *)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", tree->decl->u.id->name);
-                        indent_global_string(global_string);
-                        str_printf(global_string, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
-                        indlev++;
-                        indent_global_string(global_string);
-                        indent_global_string(global_string);
-                        str_printf(global_string, "__s->ss_init(%s[_picco_i], 4);\n", tree->decl->u.id->name);
-                        indlev--;
+                    } else if (technique_var == REPLICATED_SS) {
+                        str_printf(global_string, "__s->ss_init(C_val[_picco_i], __s->getNumShares());\n", tree->decl->u.id->name);
                     }
+                    indlev--;
                 } else {
+                    fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                    indent();
+                    fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                    indlev++;
+                    indent();
+                    indent();
                     if (technique_var == SHAMIR_SS) {
-                        fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                        indlev++;
-                        indent();
-                        indent();
                         fprintf(output, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
-                        indlev--;
-                    } else if (technique_var == REPLICATED_SS){
-                        fprintf(output, "%s = (priv_int *)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", tree->decl->u.id->name);
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
-                        indlev++;
-                        indent();
-                        indent();
-                        fprintf(output, "__s->ss_init(%s[_picco_i], 4);\n", tree->decl->u.id->name);
-                        indlev--;
+                    } else if (technique_var == REPLICATED_SS) {
+                        fprintf(output, "__s->ss_init(C_val[_picco_i], __s->getNumShares());\n", tree->decl->u.id->name);
                     }
+                    indlev--;
                 }
             }
             break;
@@ -4748,15 +4717,41 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         indent();
         if (gf == 1) {
             indent_global_string(global_string);
-            str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
-        } else 
-            fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            if (technique_var == SHAMIR_SS) {
+                str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            } else if (technique_var == REPLICATED_SS) {
+                str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->decl->u.id->name);
+                ast_expr_show(tree->decl->u.expr);
+                str_printf(global_string, "));\n");
+            }
+        } else {
+            if (technique_var == SHAMIR_SS) {
+                fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            } else if (technique_var == REPLICATED_SS) {
+                fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->decl->u.id->name);
+                ast_expr_show(tree->decl->u.expr);
+                fprintf(output, "));\n");
+            }
+        }
         indent();
         if (gf == 1) {
             indent_global_string(global_string);
-            str_printf(global_string, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
-        } else 
-            fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+            if (technique_var == SHAMIR_SS) {
+                str_printf(global_string, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+            } else if (technique_var == REPLICATED_SS) {
+                str_printf(global_string, "for (int _picco_j = 0; _picco_j < ");
+                ast_expr_show(tree->decl->u.expr);
+                str_printf(global_string, "; _picco_j++)\n");
+            }
+        } else {
+            if (technique_var == SHAMIR_SS) {
+                fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+            } else if (technique_var == REPLICATED_SS) {
+                fprintf(output, "for (int _picco_j = 0; _picco_j < ");
+                ast_expr_show(tree->decl->u.expr);
+                fprintf(output, "; _picco_j++)\n");
+            }
+        }
         indent();
         indent();
         if (gf == 1) {
@@ -4869,34 +4864,34 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
 void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
     indent();
     if (tree->decl->type == DIDENT) {
-        if (gf == 1) {
-            indent_global_string(global_string);
-            str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
-            if (technique_var == SHAMIR_SS)
-                ast_expr_show(tree->u.expr);
-            else if (technique_var == REPLICATED_SS)
-                str_printf(global_string, "__s->getNumShares()");
-        } else {
-            fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
-            if (technique_var == SHAMIR_SS)
-                ast_expr_show(tree->u.expr);
-            else if (technique_var == REPLICATED_SS)
-                fprintf(output, "__s->getNumShares()");
+        if (technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
+            } else 
+                fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->u.id->name);
+            ast_expr_show(tree->u.expr);
+        } else if (technique_var == REPLICATED_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (4", prefix, tree->decl->u.id->name);
+            } else 
+                fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (4", prefix, tree->decl->u.id->name);
         }
     } else if (tree->decl->type == DARRAY) {
-        if (gf == 1) {
-            indent_global_string(global_string);
-            str_printf(global_string, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
-            if (technique_var == SHAMIR_SS)
-                ast_expr_show(tree->decl->u.expr);
-            else if (technique_var == REPLICATED_SS)
-                str_printf(global_string, "__s->getNumShares()");
-        } else {
-            fprintf(output, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
-            if (technique_var == SHAMIR_SS)
-                ast_expr_show(tree->decl->u.expr);
-            else if (technique_var == REPLICATED_SS)
-                fprintf(output, "__s->getNumShares()");
+        if (technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
+            } else 
+                fprintf(output, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (", prefix, tree->decl->decl->u.id->name);
+            ast_expr_show(tree->decl->u.expr);
+        } else if (technique_var == REPLICATED_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (4", prefix, tree->decl->decl->u.id->name);
+            } else 
+                fprintf(output, "%s%s = (priv_int***)malloc(sizeof(priv_int**) * (4", prefix, tree->decl->decl->u.id->name);
         }
     }
     if (gf == 1) {
@@ -4916,18 +4911,18 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
             ast_expr_show(tree->u.expr);
         else if (technique_var == REPLICATED_SS) {
             if (gf == 1)
-                str_printf(global_string, "__s->getNumShares()");
+                str_printf(global_string, "4");
             else 
-                fprintf(output, "__s->getNumShares()");
+                fprintf(output, "4");
         }
     } else if (tree->decl->type == DARRAY) {
         if (technique_var == SHAMIR_SS)
             ast_expr_show(tree->decl->u.expr);
-        else if (technique_var == REPLICATED_SS){
+        else if (technique_var == REPLICATED_SS) {
             if (gf == 1)
-                str_printf(global_string, "__s->getNumShares()");
+                str_printf(global_string, "4");
             else 
-                fprintf(output, "__s->getNumShares()");
+                fprintf(output, "4");
         }
     }
     if (gf == 1) {
@@ -4949,37 +4944,26 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS)
                 str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS) {
-                str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
-                ast_expr_show(tree->u.expr);
-                str_printf(global_string, "));\n");
-            }
-        } else 
+            else if (technique_var == REPLICATED_SS)
+                str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", prefix, tree->decl->u.id->name);
+        } else {
             if (technique_var == SHAMIR_SS)
                 fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS) {
-                fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
-                ast_expr_show(tree->u.expr);
-                fprintf(output, "));\n");
-            }
+            else if (technique_var == REPLICATED_SS)
+                fprintf(output, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", prefix, tree->decl->u.id->name);
+        }
         indent();
         if (gf == 1) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS)
                 str_printf(global_string, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-            else if (technique_var == REPLICATED_SS) {
-                str_printf(global_string, "for (int _picco_j = 0; _picco_j < ");
-                ast_expr_show(tree->u.expr);
-                str_printf(global_string, "; _picco_j++)\n");
-            }
+            else if (technique_var == REPLICATED_SS) 
+                str_printf(global_string, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
         } else {
             if (technique_var == SHAMIR_SS)
                 fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-            else if (technique_var == REPLICATED_SS) {
-                fprintf(output, "for (int _picco_j = 0; _picco_j < ");
-                ast_expr_show(tree->u.expr);
-                fprintf(output, "; _picco_j++)\n");
-            }
+            else if (technique_var == REPLICATED_SS)
+                fprintf(output, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
         }
         indent();
         indent();
@@ -4987,13 +4971,19 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS)
                 str_printf(global_string, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS) 
-                str_printf(global_string, "__s->ss_init(%s%s[_picco_i][_picco_j], 4);\n", prefix, tree->decl->u.id->name);
+            else if (technique_var == REPLICATED_SS) {
+                str_printf(global_string, "__s->ss_init(%s%s[_picco_i][_picco_j], ", prefix, tree->decl->u.id->name);
+                ast_expr_show(tree->u.expr);
+                str_printf(global_string, ");\n");
+            }
         } else {
             if (technique_var == SHAMIR_SS)
                 fprintf(output, "ss_init(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS) 
-                fprintf(output, "__s->ss_init(%s%s[_picco_i][_picco_j], 4);\n", prefix, tree->decl->u.id->name);
+            else if (technique_var == REPLICATED_SS) {
+                fprintf(output, "__s->ss_init(%s%s[_picco_i][_picco_j], ", prefix, tree->decl->u.id->name);
+                ast_expr_show(tree->u.expr);
+                fprintf(output, ");\n");
+            }
         }
         indlev--;
         indent();
@@ -5012,25 +5002,32 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
             fprintf(output, "{\n");
         indlev++;
         indent();
-        if (gf == 1) {
-            indent_global_string(global_string);
-            str_printf(global_string, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (",  prefix, tree->decl->decl->u.id->name);
-            ast_expr_show(tree->decl->u.expr);
-            str_printf(global_string, "));\n");
-        } else 
-            fprintf(output, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (",  prefix, tree->decl->decl->u.id->name);
-            ast_expr_show(tree->decl->u.expr);
-            fprintf(output, "));\n");
+        if (technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            } else 
+                fprintf(output, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        } else if (technique_var == REPLICATED_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (__s->getNumShares()));\n", prefix, tree->decl->decl->u.id->name);
+            } else 
+                fprintf(output, "%s%s[_picco_i] = (priv_int**)malloc(sizeof(priv_int*) * (__s->getNumShares()));\n", prefix, tree->decl->decl->u.id->name);
+        }
         indent();
-        if (gf == 1) {
-            indent_global_string(global_string);
-            str_printf(global_string, "for (int _picco_j = 0; _picco_j < ");
-            ast_expr_show(tree->decl->u.expr);
-            str_printf(global_string, "; _picco_j++)\n");
-        } else {
-            fprintf(output, "for (int _picco_j = 0; _picco_j < ");
-            ast_expr_show(tree->decl->u.expr);
-            fprintf(output, "; _picco_j++)\n");
+        if (technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+            } else 
+                fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+        } else if (technique_var == REPLICATED_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
+            } else 
+                fprintf(output, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
         }
         indent();
         if (gf == 1) {
@@ -5040,46 +5037,59 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
             fprintf(output, "{\n");
         indlev++;
         indent();
-        if (gf == 1) {
-            indent_global_string(global_string);
-            if (technique_var == SHAMIR_SS)
+        if (technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
                 str_printf(global_string, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS) {
-                str_printf(global_string, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
-            }
-        } else 
-            if (technique_var == SHAMIR_SS)
+            } else 
                 fprintf(output, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", prefix, tree->decl->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS) {
-                fprintf(output, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        } else if (technique_var == REPLICATED_SS) {
+           if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->decl->u.id->name);
+                ast_expr_show(tree->decl->u.expr);
+                str_printf(global_string, "));\n");
+            } else {
+                fprintf(output, "%s%s[_picco_i][_picco_j] = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->decl->u.id->name);
+                ast_expr_show(tree->decl->u.expr);
+                fprintf(output, "));\n");
             }
+        }
         indent();
-        if (gf == 1) {
-            indent_global_string(global_string);
-            if (technique_var == SHAMIR_SS)
+        if (technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
                 str_printf(global_string, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
-            else if (technique_var == REPLICATED_SS)
-                str_printf(global_string, "for (int _picco_k = 0; _picco_k < %s; _picco_k++)\n", str_string(arg_str));
-        } else {
-            if (technique_var == SHAMIR_SS)
+            } else 
                 fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
-            else if (technique_var == REPLICATED_SS) {
-                fprintf(output, "for (int _picco_k = 0; _picco_k < %s; _picco_k++)\n", str_string(arg_str));
+        } else if (technique_var == REPLICATED_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "for (int _picco_k = 0; _picco_k < ");
+                ast_expr_show(tree->decl->u.expr);
+                str_printf(global_string, "; _picco_k++)\n");
+            } else {
+                fprintf(output, "for (int _picco_k = 0; _picco_k < ");
+                ast_expr_show(tree->decl->u.expr);
+                fprintf(output, "; _picco_k++)\n");
             }
         }
         indent();
         indent();
-        if (gf == 1) {
-            indent_global_string(global_string);
-            if (technique_var == SHAMIR_SS)
+        if ( technique_var == SHAMIR_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
                 str_printf(global_string, "ss_init(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS)
-                str_printf(global_string, "__s->ss_init(%s%s[_picco_i][_picco_j][_picco_k], 4);\n", prefix, tree->decl->decl->u.id->name);
-        } else 
-            if (technique_var == SHAMIR_SS)
+            } else 
                 fprintf(output, "ss_init(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
-            else if (technique_var == REPLICATED_SS)
-                fprintf(output, "__s->ss_init(%s%s[_picco_i][_picco_j][_picco_k], 4);\n", prefix, tree->decl->decl->u.id->name);
+        } else if (technique_var == REPLICATED_SS) {
+            if (gf == 1) {
+                indent_global_string(global_string);
+                str_printf(global_string, "__s->ss_init(%s%s[_picco_i][_picco_j][_picco_k], %s);\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            } else {
+                fprintf(output, "__s->ss_init(%s%s[_picco_i][_picco_j][_picco_k], %s);\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            }
+        }
         indlev--;
         indent();
         if (gf == 1) {
@@ -5099,127 +5109,94 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
 }
 
 void ast_decl_memory_free_float(astdecl tree, char *prefix) {
-    // free according to the technique used 
-    fprintf(output, "\n\n");
+    // free
+    indent();
     if (technique_var == SHAMIR_SS) {
-        indent();
         fprintf(output, "for (int _picco_i = 0; _picco_i < ");
         if (tree->decl->type == DIDENT)
             ast_expr_show(tree->u.expr);
         else if (tree->decl->type == DARRAY)
             ast_expr_show(tree->decl->u.expr);
         fprintf(output, "; _picco_i++)\n");
-        indlev++;
-        indent();
-        if (tree->decl->type == DIDENT) {
-            fprintf(output, "{\n");
-            indlev++;
-            indent();
-            fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-            indent();
-            indent();
-            fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
-            indent();
-            fprintf(output, "}\n");
-            indent();
-            fprintf(output, "free(%s%s);\n", prefix, tree->decl->u.id->name);
-        } else if (tree->decl->type == DARRAY) {
-            arg_str = Str("");
-            ast_expr_print(arg_str, tree->u.expr);
-            fprintf(output, "{\n");
-            indlev++;
-            indent();
-            fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
-            indent();
-            fprintf(output, "{\n");
-            indlev++;
-            indent();
-            fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
-            indent();
-            indent();
-            fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
-            indent();
-            fprintf(output, "free(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
-            indlev--;
-            indent();
-            fprintf(output, "}\n");
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name);
-            indent();
-            fprintf(output, "}\n");
-            indent();
-            fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
-            str_free(arg_str);
-        }
     } else if (technique_var == REPLICATED_SS) {
-        indent();
-        fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
-        // if (tree->decl->type == DIDENT)
-        //     ast_expr_show(tree->u.expr);
-        // else if (tree->decl->type == DARRAY)
-        //     ast_expr_show(tree->decl->u.expr);
-        // fprintf(output, "; _picco_i++)\n");
+        fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+    }
+    indlev++;
+    indlev++;
+    indent();
+    if (tree->decl->type == DIDENT) {
+        fprintf(output, "{\n");
         indlev++;
         indlev++;
         indent();
-        if (tree->decl->type == DIDENT) {
-            fprintf(output, "{\n");
-            indlev++;
-            indlev++;
-            indent();
-            fprintf(output, "for (int _picco_j = 0; _picco_j < ");
-            ast_expr_show(tree->u.expr);
-            fprintf(output, "; _picco_j++)\n");
-            indent();
-            indent();
-            fprintf(output, "__s->ss_clear(%s%s[_picco_i][_picco_j], 4);\n", prefix, tree->decl->u.id->name);
-            indlev--;
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
-            indent();
-            fprintf(output, "}\n");
-            indent();
-            fprintf(output, "free(%s%s);\n", prefix, tree->decl->u.id->name);
-        } else if (tree->decl->type == DARRAY) {
-            arg_str = Str("");
-            ast_expr_print(arg_str, tree->u.expr);
-            fprintf(output, "{\n");
-            indlev++;
-            indlev++;
-            indent();
-            fprintf(output, "for (int _picco_j = 0; _picco_j < ");
-            ast_expr_show(tree->decl->u.expr);
-            fprintf(output, "; _picco_j++)\n");
-            indent();
-            fprintf(output, "{\n");
-            indlev++;
-            indlev++;
-            indent();
-            fprintf(output, "for (int _picco_k = 0; _picco_k < %s; _picco_k++)\n", str_string(arg_str));
-            indent();
-            indent();
-            fprintf(output, "__s->ss_clear(%s%s[_picco_i][_picco_j][_picco_k], 4);\n", prefix, tree->decl->decl->u.id->name);
-            indent();
-            fprintf(output, "free(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
-            indlev--;
-            indlev--;
-            indent();
-            fprintf(output, "}\n");
-            indlev--;
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name);
-            indent();
-            fprintf(output, "}\n");
-            indent();
-            fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
-            str_free(arg_str);
+        if (technique_var == SHAMIR_SS) {
+            fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
+        } else if (technique_var == REPLICATED_SS) {
+            fprintf(output, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
         }
+        indent();
+        indent();
+        if (technique_var == SHAMIR_SS) {
+            fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
+        } else if (technique_var == REPLICATED_SS) {
+            fprintf(output, "__s->ss_clear(%s%s[_picco_i][_picco_j], ", prefix, tree->decl->u.id->name);
+            ast_expr_show(tree->u.expr);
+            fprintf(output, ");\n");
+        }
+        indlev--;
+        indlev--;
+        indent();
+        fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
+        indent();
+        fprintf(output, "}\n");
+        indent();
+        fprintf(output, "free(%s%s);\n", prefix, tree->decl->u.id->name);
+    } else if (tree->decl->type == DARRAY) {
+        arg_str = Str("");
+        ast_expr_print(arg_str, tree->u.expr);
+        fprintf(output, "{\n");
+        indlev++;
+        indlev++;
+        indent();
+        if (technique_var == SHAMIR_SS) {
+            fprintf(output, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
+        } else if (technique_var == REPLICATED_SS) {
+            fprintf(output, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
+        }
+        indent();
+        fprintf(output, "{\n");
+        indlev++;
+        indlev++;
+        indent();
+        if (technique_var == SHAMIR_SS) {
+            fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++)\n");
+        } else if (technique_var == REPLICATED_SS) {
+            fprintf(output, "for (int _picco_k = 0; _picco_k < ");
+            ast_expr_show(tree->u.expr);
+            fprintf(output, "; _picco_k++)\n");
+        }
+        indent();
+        indent();
+        if (technique_var == SHAMIR_SS) {
+            fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j][_picco_k]);\n", prefix, tree->decl->decl->u.id->name);
+        } else if (technique_var == REPLICATED_SS) {
+            fprintf(output, "__s->ss_clear(%s%s[_picco_i][_picco_j][_picco_k], %s);\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+        }
+        indent();
+        fprintf(output, "free(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
+        indlev--;
+        indlev--;
+        indent();
+        fprintf(output, "}\n");
+        indlev--;
+        indlev--;
+        indent();
+        fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name);
+        indent();
+        fprintf(output, "}\n");
+        indent();
+        fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
+        str_free(arg_str);
     }
     indlev--;
 }
