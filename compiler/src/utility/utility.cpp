@@ -419,11 +419,11 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 if (secrecy == 1) {
                     if (j < result.size()) { // Check if j is within the bounds of result
                         // deal with negative results
-                        try {
-                            ss->flipNegative(result[j]);
-                        } catch (const std::exception& e) {
-                            throw std::runtime_error("[Int] Failed to flip negative: " + std::string(e.what()));
-                        }
+                        // try {
+                        //     ss->flipNegative(result[j]);
+                        // } catch (const std::exception& e) {
+                        //     throw std::runtime_error("[Int] Failed to flip negative: " + std::string(e.what()));
+                        // }
                         try {
                             value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
                         } catch (const std::exception& e) {
@@ -518,16 +518,16 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                         throw std::runtime_error("[reconstructSecret, private float] Error in reconstructing secret for [private float]: " + std::string(e.what()));
                     }
                 }
-                for (int k = 0; k < 4; k++) {
-                    if (k == 1) {
-                        // deal with negative results
-                        try {
-                            ss->flipNegative(result[1]);
-                        } catch (const std::exception& e) {
-                            throw std::runtime_error("[Private Float] Failed to flip negative: " + std::string(e.what()));
-                        }
-                    }
-                }
+                // for (int k = 0; k < 4; k++) {
+                //     if (k == 1) {
+                //         // deal with negative results
+                //         try {
+                //             ss->flipNegative(result[1]);
+                //         } catch (const std::exception& e) {
+                //             throw std::runtime_error("[Private Float] Failed to flip negative: " + std::string(e.what()));
+                //         }
+                //     }
+                // }
                 // p (result[1]): Exponent part.
                 // v (result[0]): Mantissa.
                 // z (result[2]): Indicator for special cases. if set, val=0
