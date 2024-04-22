@@ -4634,13 +4634,13 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
             indent_global_string(global_string);
             str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
             if (technique_var == SHAMIR_SS) 
-                ast_expr_show(tree->u.expr);
+                ast_expr_show(tree->decl->u.expr);
             else if (technique_var == REPLICATED_SS)
                 str_printf(global_string, "__s->getNumShares()");
         } else {
             fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
             if (technique_var == SHAMIR_SS) 
-                ast_expr_show(tree->u.expr); // was ast_expr_show(tree->decl->u.expr);
+                ast_expr_show(tree->decl->u.expr);
             else if (technique_var == REPLICATED_SS)
                 fprintf(output, "__s->getNumShares()");
         }
@@ -4669,7 +4669,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         }
     } else if (tree->decl->type == DARRAY) {
         if (technique_var == SHAMIR_SS) 
-            ast_expr_show(tree->u.expr); // was ast_expr_show(tree->decl->u.expr);
+            ast_expr_show(tree->decl->u.expr);
         else if (technique_var == REPLICATED_SS){
             if (gf == 1) {
                 str_printf(global_string, "__s->getNumShares()");

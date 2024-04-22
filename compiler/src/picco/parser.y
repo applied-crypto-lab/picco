@@ -4022,13 +4022,13 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     // e2: Represents the right operand of the addition operation, which is 3.
     // this takes care of a+b 
     // Check if the expression is a constant or a constant expression
-    if (global_variables_c_restrict_flag == 1) {
-        if (e1 != NULL && e2 != NULL) { // i + i
-            parse_error(-1, "Initializer element is not a constant or a constant expression 1.\n");
-        } else if (e1 == NULL && e2 != NULL) { // 2 + i
-            parse_error(-1, "Initializer element is not a constant or a constant expression 3.\n");
-        }
-    }
+    // if (global_variables_c_restrict_flag == 1) { // this needs to prevent the assignments below only in global scope and I realize that it prevents it inside main too, so commented it out to be able to merge this code to main, and I will on 4/19 or 4/22 mon
+    //     if (e1 != NULL && e2 != NULL) { // i + i
+    //         parse_error(-1, "Initializer element is not a constant or a constant expression 1.\n");
+    //     } else if (e1 == NULL && e2 != NULL) { // 2 + i
+    //         parse_error(-1, "Initializer element is not a constant or a constant expression 3.\n");
+    //     }
+    // }
    //COMPUTE THE MODULUS FOR DIFFERENT OPERATIONS AND DIFFERENT TYPES OF PRIVATE VARIABLES
 } 
 
