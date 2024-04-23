@@ -35,7 +35,7 @@
 template <typename T>
 void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
     if (bitlength > ring_size) {
         throw std::runtime_error("the bitlength cannot be larger than the ring_size; bitlength = " + std::to_string(bitlength) + ", ring_size = " + std::to_string(ring_size));
     }
@@ -262,6 +262,170 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
         delete[] buffer;
         delete[] res;
     }
+
+    for (size_t s = 0; s < threshold + 1; s++) {
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] result[s][i];
+        }
+        delete[] result[s];
+    }
+    delete[] result;
+}
+
+// m = number of bits being truncated
+template <typename T>
+void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
+
+    static int threshold = ss->getThreshold();
+    static int numParties = ss->getPeers();
+    static int id = ss->getID();
+    static uint numShares = ss->getNumShares();
+    uint bytes = (ring_size + 7) >> 3;
+
+    uint total_size = 3 * size; // for shares in Z_2k and Z_2
+    std::vector<int> input_parties(threshold + 1);
+    std::iota(input_parties.begin(), input_parties.end(), 1);
+    int numInputParties = input_parties.size();
+
+    T ***result = new T **[threshold + 1];
+    for (size_t s = 0; s < threshold + 1; s++) {
+        result[s] = new T *[numShares];
+        for (size_t i = 0; i < numShares; i++) {
+            result[s][i] = new T[total_size];
+            memset(result[s][i], 0, sizeof(T) * total_size); // sanitizing destination
+        }
+    }
+    for (size_t s = 0; s < numShares; s++) {
+        // ensuring destinations are sanitized
+        memset(r[s], 0, sizeof(T) * size);
+        memset(b_2[s], 0, sizeof(T) * size);
+    }
+
+    if (id <= threshold + 1) {
+        uint8_t *buffer = new uint8_t[size * bytes];
+        ss->prg_getrandom(bytes, size, buffer);
+        T *r_val = new T[size];
+        memset(r_val, 0, sizeof(T) * size);
+        for (size_t i = 0; i < size; i++) {
+            memcpy(r_val + i, buffer + i * bytes, bytes);
+        }
+
+        Rss_Input_edaBit(result, r_val, input_parties, size, ring_size, nodeNet, ss);
+
+        delete[] buffer; // not needed anymore
+        delete[] r_val;  // not needed anymore
+    } else {
+        // std::cout << "id " << id << " is NOT an input party" << std::endl;
+        Rss_Input_edaBit(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
+    }
+
+    // first (size) elements of result are the shares over Z_2k
+    // summing all the random values shared in Z_2k
+    for (size_t in = 0; in < numInputParties; in++) {
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r[s][i] += result[in][s][i];
+            }
+        }
+    }
+
+    switch (numParties) {
+    case 3: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[size];
+            B_buff[s] = new T[size];
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd(b_2, A_buff, B_buff, ring_size, ring_size, size, ring_size, nodeNet, ss);
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+        }
+        delete[] A_buff;
+        delete[] B_buff;
+        break;
+    }
+    case 5: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        T **temp = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[size];
+            B_buff[s] = new T[size];
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
+
+            temp[s] = new T[size];
+            memset(temp[s], 0, sizeof(T) * size);
+        }
+        Rss_BitAdd(temp, A_buff, B_buff, ring_size, ring_size, size, ring_size, nodeNet, ss); 
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(A_buff[s], result[2][s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd(b_2, temp, A_buff, ring_size, ring_size, size, ring_size, nodeNet, ss);
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] temp[i];
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+        }
+        delete[] temp;
+        delete[] A_buff;
+        delete[] B_buff;
+        break;
+    }
+    case 7: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        T **C_buff = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[2 * size];
+            // memset(A_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+            B_buff[s] = new T[2 * size];
+            // memset(B_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+            C_buff[s] = new T[2 * size];
+            memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(A_buff[s] + size, result[1][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[2][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s] + size, result[3][s] + size, sizeof(T) * size);
+        }
+        // this can theoretically be done with a Mult_and_MultSparse special function
+        Rss_BitAdd(C_buff, A_buff, B_buff, ring_size, ring_size, 2 * size, ring_size, nodeNet, ss);
+        for (size_t s = 0; s < numShares; s++) {
+            // memset(A_buff[s], 0, sizeof(T) *  size); // sanitizing destination
+            // memset(B_buff[s], 0, sizeof(T) *  size); // sanitizing destination
+
+            memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
+            memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd(b_2, A_buff, B_buff, ring_size, ring_size, size, ring_size, nodeNet, ss);
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+            delete[] C_buff[i];
+        }
+        delete[] A_buff;
+        delete[] B_buff;
+        delete[] C_buff;
+        break;
+    }
+    default:
+        break;
+    }
+
 
     for (size_t s = 0; s < threshold + 1; s++) {
         for (size_t i = 0; i < numShares; i++) {

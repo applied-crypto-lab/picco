@@ -144,11 +144,13 @@ public:
     void getCoef(int id);
 
     void PRG(mpz_t **output, uint size, uint start_ind);
+    void PRG_thread(mpz_t **output, uint size, uint start_ind);
 
     int computePolynomials(std::vector<int> polys, int point);
 
     void randInit(unsigned char *keys[KEYSIZE]);
     void randInit_thread(int threadID);
+    void randInit_thread_mult(int threadID, unsigned char *keys[KEYSIZE]);
 
     void generateRandValue(int bits, int size, mpz_t *results);
     void generateRandValue(int bits, int size, mpz_t *results, int threadID);
@@ -227,9 +229,11 @@ private:
     uint *multIndices;
 
     // additional data structures for multiplication
-    gmp_randstate_t *rstatesMult;
+    static gmp_randstate_t *rstatesMult;
 
+    static int *rand_isFirst_thread_mult;
     gmp_randstate_t rstate_mine;
+    static gmp_randstate_t **rstates_thread_mult;
 
     // for 3-party multiplication
     gmp_randstate_t rstate_0;
@@ -240,11 +244,11 @@ private:
     mpz_t id_p1_inv;
 
     // from Random.cpp
-    int *rand_isFirst_thread;
     // int rand_isInitialized;
-    gmp_randstate_t *rstates;
-    gmp_randstate_t **rstates_thread;
-    pthread_mutex_t mutex;
+    static int *rand_isFirst_thread;
+    static gmp_randstate_t *rstates;
+    static gmp_randstate_t **rstates_thread;
+    static pthread_mutex_t mutex;
 
     mpz_t *poly_evaluation; // stores polynomial evaluation for random generation, only is filled once
 };

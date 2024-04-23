@@ -22,7 +22,14 @@
 
 using std::cout;
 using std::endl;
+gmp_randstate_t *SecretShare::rstatesMult;
+gmp_randstate_t **SecretShare::rstates_thread_mult;
 
+int *SecretShare::rand_isFirst_thread = NULL;
+int *SecretShare::rand_isFirst_thread_mult = NULL;
+gmp_randstate_t *SecretShare::rstates;
+gmp_randstate_t **SecretShare::rstates_thread;
+pthread_mutex_t SecretShare::mutex;
 /*
  * the constructor receives:
  * p - the number of computational parties or peers,
@@ -98,12 +105,20 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     // initialize PRGs for (non-)interactive random generation
     pthread_mutex_init(&mutex, NULL);
     rand_isFirst_thread = (int *)malloc(sizeof(int) * numThreads);
+    rand_isFirst_thread_mult = (int *)malloc(sizeof(int) * numThreads);
     for (int i = 0; i < numThreads; i++) {
         rand_isFirst_thread[i] = 0;
+        rand_isFirst_thread_mult[i] = 0;
     }
+
     rstates_thread = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * polynomials.size());
     for (int i = 0; i < polynomials.size(); i++) {
         rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
+    }
+
+    rstates_thread_mult = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * (2 * threshold));
+    for (int i = 0; i < 2 * threshold; i++) {
+        rstates_thread_mult[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
     }
 
     std::map<std::string, vector<int>>::iterator it;
@@ -162,6 +177,25 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     free(temp1);
     free(temp2);
     mpz_clear(zero);
+}
+void SecretShare::randInit_thread_mult(int threadID, unsigned char *keys[KEYSIZE]) {
+    if (threadID == -1) {
+        return;
+    }
+    if (rand_isFirst_thread_mult[threadID] == 0) {
+        std::map<std::string, vector<int>>::iterator it;
+        mpz_t *temp_keys = (mpz_t *)malloc(sizeof(mpz_t) * polynomials.size());
+        int k = 0;
+        for (it = polynomials.begin(); it != polynomials.end(); it++) {
+            mpz_init(temp_keys[k]);
+            mpz_set_str(temp_keys[k], ((*it).first).c_str(), BASE_10);
+            k++;
+        }
+        for (int i = 0; i < polynomials.size(); i++) {
+            gmp_randinit_default(rstates_thread_mult[i][threadID]);
+            gmp_randseed(rstates_thread_mult[i][threadID], temp_keys[i]);
+        }
+    }
 }
 
 void SecretShare::randInit_thread(int threadID) {
@@ -1055,6 +1089,16 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
     mpz_clear(coefficient);
     for (int i = 0; i < size; i++) {
         mpz_urandomm(temp[i], rstate_0, fieldSize); // step 5, the "or" condition
+    }
+}
+
+// start_ind dictates which half of the array to take from
+// if 0, the first half. if t, the second half
+void SecretShare::PRG_thread(mpz_t **output, uint size, uint start_ind) {
+    for (int i = 0; i < threshold; i++) {
+        for (int j = 0; j < size; j++) {
+            mpz_urandomm(output[i][j], rstatesMult[i + start_ind], fieldSize);
+        }
     }
 }
 

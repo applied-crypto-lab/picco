@@ -2006,7 +2006,7 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    size = 10000; //  testing only so I dont have to keep opening rss_main.cpp
+    size = 10; //  testing only so I dont have to keep opening rss_main.cpp
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2076,7 +2076,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
         Data1[totalNumShares - 1][i] = i;
-        Data2[totalNumShares - 1][i] = i + 1;
+        Data2[totalNumShares - 1][i] = 0;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
             Data2[totalNumShares - 1][i] -= Data2[j][i];
@@ -2093,6 +2093,15 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // }
 
     // expected RSS initialization
+
+    priv_int result = new priv_int_t[size];
+    memset(result, 0, sizeof(priv_int_t) * size);
+
+    priv_int result_2 = new priv_int_t[size];
+    memset(result_2, 0, sizeof(priv_int_t) * size);
+
+    priv_int result_3 = new priv_int_t[size];
+    memset(result_3, 0, sizeof(priv_int_t) * size);
 
     priv_int *B_sparse = new priv_int[ss->getNumShares()];
     priv_int *a = new priv_int[ss->getNumShares()];
@@ -2120,50 +2129,92 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     B_bit[i] = Data2[share_mapping[id - 1][i]];
     // }
 
-    priv_int result = new priv_int_t[size];
-    memset(result, 0, sizeof(priv_int_t) * size);
+    // Open(result_2, a, size, -1, net, ss);
+    // Open(result_3, b, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
+    //     printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    // }
 
-    priv_int result_2 = new priv_int_t[size];
-    memset(result_2, 0, sizeof(priv_int_t) * size);
+    // doOperation_EQZ(b, C, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, b, size, -1, net, ss);
+    // // Open(result_3, b, size, -1, net, ss);
 
-    priv_int result_3 = new priv_int_t[size];
-    memset(result_3, 0, sizeof(priv_int_t) * size);
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     // print_binary(result[i], ring_size);
+    //     printf("(open) b   [%lu]: %u\n", i, result_2[i]);
+    //     // print_binary(result_2[i], ring_size);
+    //     if (!(result[i] == (result_2[i] == 0))) {
+    //         printf("EQZ ERROR\n");
 
-    doOperation_LT(C, a, b, ring_size, ring_size, ring_size, size, -1, net, ss);
-    Open(result, C, size, -1, net, ss);
-    Open(result_2, a, size, -1, net, ss);
-    Open(result_3, b, size, -1, net, ss);
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
+    // }
+    // printf("\n");
+    // // Rss_BitDec(C, a, size, ring_size, net, ss);
+    // doOperation_EQZ(a, C, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // // Open(result_3, b, size, -1, net, ss);
 
-    for (size_t i = 0; i < size; i++) {
-        // printf("(open) c   [%lu]: %u\n", i, result[i]);
-        // printf("(open) a   [%lu]: %u\n", i, result_2[i]);
-        // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
-        if (!(result[i] == (result_2[i] < result_3[i]))) {
-            printf("LT ERROR\n");
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     // print_binary(result[i], ring_size);
+    //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
+    //     // print_binary(result_2[i], ring_size);
+    //     if (!(result[i] == (result_2[i] == 0))) {
+    //         printf("EQZ ERROR\n");
 
-            // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-            // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-            // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
-        }
-    }
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
+    // }
 
-    doOperation_LT(C, b, a, ring_size, ring_size, ring_size, size, -1, net, ss);
-    Open(result, C, size, -1, net, ss);
-    Open(result_2, a, size, -1, net, ss);
-    Open(result_3, b, size, -1, net, ss);
+    // Rss_BitDec(C, a, size, ring_size, net, ss);
+    // // doOperation_LT(C, a, b, ring_size, ring_size, ring_size, size, -1, net, ss);
+    // Open_Bitwise(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // // Open(result_3, b, size, -1, net, ss);
 
-    for (size_t i = 0; i < size; i++) {
-        // printf("(open) c   [%lu]: %u\n", i, result[i]);
-        // printf("(open) a   [%lu]: %u\n", i, result_2[i]);
-        // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
-        if (!(result[i] == (result_2[i] > result_3[i]))) {
-            printf("LT ERROR\n");
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     if (!(result[i] == (result_2[i]))) {
+    //         printf("BitDec ERROR\n");
 
-            // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-            // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-            // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
-        }
-    }
+    //         printf("(open) c   [%lu]: %u\t", i, result[i]);
+    //         print_binary(result[i], ring_size);
+    //         printf("(open) a   [%lu]: %u\t", i, result_2[i]);
+    //         print_binary(result_2[i], ring_size);
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
+    // }
+
+    // doOperation_LT(C, b, a, ring_size, ring_size, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // Open(result_3, b, size, -1, net, ss);
+
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     // printf("(open) a   [%lu]: %u\n", i, result_2[i]);
+    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     if (!(result[i] == (result_2[i] > result_3[i]))) {
+    //         printf("LT ERROR\n");
+
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
+    // }
 
     // Rss_RandBit(C, size, ring_size, net, ss);
     // Open(result, C, size, -1, net, ss);

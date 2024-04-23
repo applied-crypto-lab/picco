@@ -35,7 +35,7 @@ void CarryBuffer(T **buffer, T **d, uint **index_array, uint size, uint k, uint 
 template <typename T>
 void Rss_BitAdd(T **res, T **a, T **b, uint alen, uint blen, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
     // std::cout << "(bitAdd) sizeof(T) = " << sizeof(T) << std::endl;
     // std::cout << "(bitAdd) size = " << size << std::endl;
@@ -84,7 +84,8 @@ void Rss_BitAdd(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nod
         memset(d[i], 0, sizeof(T) * size);
     }
     T *ai = new T[numShares];
-    ss->generateMap(ai, -1);
+    memset(ai, 0, sizeof(T) * numShares);
+    ss->sparsify_public(ai, -1);
 
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
@@ -92,7 +93,9 @@ void Rss_BitAdd(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nod
             d[numShares + s][i] = (a[i] & b[s][i]);
         }
     }
-    Rss_CircleOpL(d, size, ring_size, nodeNet);
+    // Rss_CircleOpL(d, size, ring_size, nodeNet);
+
+    Rss_CircleOpL(d, size, ring_size, nodeNet, ss);
 
     for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)
@@ -249,6 +252,48 @@ void CarryBuffer(T **buffer, T **d, uint **index_array, uint size, uint k, uint 
             }
         }
     }
+}
+
+// a,b are private and bitwise secret-shared
+// we would never supply any alen/blen >ring_size, so we don't need to check here, right?
+// alen,blen should ALWAYS be <= k
+// any bits BEYOND the k-1th would be discarded anyways
+template <typename T>
+void Rss_BitAdd_Trunc(T **res, T **res_carry, T **a, T **b, uint alen, uint blen, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
+
+    uint inlen = std::max(alen, blen);
+
+    static uint numShares = ss->getNumShares();
+
+    T **d = new T *[2 * numShares];
+    for (size_t i = 0; i < 2 * numShares; i++) {
+        d[i] = new T[size];
+        memset(d[i], 0, sizeof(T) * size);
+    }
+
+    Mult_Bitwise(res, a, b, size, nodeNet, ss);
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            d[s][i] = a[s][i] ^ b[s][i];
+            d[numShares + s][i] = res[s][i];
+        }
+    }
+    Rss_CircleOpL(d, size, inlen, nodeNet, ss);
+
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            res[s][i] = (a[s][i] ^ b[s][i]) ^ (d[numShares + s][i] << T(1));
+            res_carry[s][i] = GET_BIT(d[numShares + s][i], T(m - 1));
+            res_carry[s][size + i] = GET_BIT(d[numShares + s][i], T(ring_size - 1));
+            res_carry[s][2 * size + i] = GET_BIT(res[s][i], T(ring_size - 1));
+        }
+    }
+    for (size_t i = 0; i < 2 * numShares; i++) {
+        delete[] d[i];
+    }
+    delete[] d;
 }
 
 #endif
