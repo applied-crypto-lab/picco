@@ -144,13 +144,13 @@ public:
     void getCoef(int id);
 
     void PRG(mpz_t **output, uint size, uint start_ind);
-    void PRG_thread(mpz_t **output, uint size, uint start_ind);
+    void PRG_thread(mpz_t **output, uint size, uint start_ind, int threadID);
 
     int computePolynomials(std::vector<int> polys, int point);
 
     void randInit(unsigned char *keys[KEYSIZE]);
     void randInit_thread(int threadID);
-    void randInit_thread_mult(int threadID, unsigned char *keys[KEYSIZE]);
+    void randInit_thread_mult(int threadID);
 
     void generateRandValue(int bits, int size, mpz_t *results);
     void generateRandValue(int bits, int size, mpz_t *results, int threadID);
@@ -228,6 +228,7 @@ private:
 
     uint *multIndices;
 
+    unsigned char **mult_keys;
     // additional data structures for multiplication
     static gmp_randstate_t *rstatesMult;
 
