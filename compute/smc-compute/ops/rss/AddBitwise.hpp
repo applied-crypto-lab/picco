@@ -266,7 +266,6 @@ void Rss_BitAdd_Trunc(T **res, T **res_carry, T **a, T **b, uint alen, uint blen
     uint inlen = std::max(alen, blen);
 
     static uint numShares = ss->getNumShares();
-    static uint numParties = ss->getPeers();
 
     T **d = new T *[2 * numShares];
     for (size_t i = 0; i < 2 * numShares; i++) {

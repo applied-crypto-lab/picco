@@ -33,7 +33,8 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     T **sum = new T *[numShares];
     T **r_m_prime = new T *[numShares];
     T **b = new T *[numShares];
-    T **r_km1 = new T *[numShares];
+    T **b_km1 = new T *[numShares];
+    T **b_2 = new T *[numShares];
 
     T *c = new T[size];
     memset(c, 0, sizeof(T) * size);
@@ -43,7 +44,11 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     for (size_t i = 0; i < numShares; i++) {
         edaBit_r[i] = new T[size];
         r_m_prime[i] = new T[size];
-        r_km1[i] = new T[size];
+
+        b_km1[i] = new T[size];
+        memset(b_km1[i], 0, sizeof(T) * size);
+        b_2[i] = new T[size];
+        memset(b_2[i], 0, sizeof(T) * size);
         sum[i] = new T[size];
 
         b[i] = new T[size];
@@ -54,7 +59,7 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, 1);
 
-    edaBit_trunc(edaBit_r, r_m_prime, r_km1, size, ring_size, m, nodeNet);
+    edaBit_trunc(edaBit_r, r_m_prime, b_km1, size, ring_size, m, nodeNet);
 
     // computing the sum of input and edabit_r
     for (size_t i = 0; i < size; i++) {
@@ -66,15 +71,11 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     Open(c, sum, size, threadID, nodeNet, ss);
 
     for (size_t i = 0; i < size; i++) {
-
         // (c / 2^m) mod 2^(k-m-1)
         c_prime[i] = (c[i] >> T(m)) & ss->SHIFT[ring_size - m - 1];
         for (size_t s = 0; s < numShares; s++) {
-
-            b[s][i] = r_km1[s][i] + ((c[i] * ai[s]) >> T(ring_size - 1)) - 2 * ((c[i]) >> T(ring_size - 1)) * r_km1[s][i];
-
-            r_m_prime[s][i] = r_m_prime[s][i] - (r_km1[s][i] << T(ring_size - 1 - m));
-
+            b[s][i] = b_km1[s][i] + ((c[i] * ai[s]) >> T(ring_size - 1)) - 2 * ((c[i]) >> T(ring_size - 1)) * b_km1[s][i];
+            r_m_prime[s][i] = r_m_prime[s][i] - (b_km1[s][i] << T(ring_size - 1 - m));
             result[s][i] = (c_prime[i] * ai[s]) - r_m_prime[s][i] + (b[s][i] << T(ring_size - m - 1));
         }
     }
@@ -82,18 +83,21 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     delete[] ai;
     delete[] c;
     delete[] c_prime;
+
     for (size_t i = 0; i < numShares; i++) {
         delete[] edaBit_r[i];
         delete[] sum[i];
         delete[] b[i];
         delete[] r_m_prime[i];
-        delete[] r_km1[i];
+        delete[] b_km1[i];
+        delete[] b_2[i];
     }
     delete[] edaBit_r;
     delete[] b;
     delete[] sum;
     delete[] r_m_prime;
-    delete[] r_km1;
+    delete[] b_km1;
+    delete[] b_2;
 }
 
 // trunation of all data by DIFFERENT m's

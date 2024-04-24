@@ -273,8 +273,12 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
 }
 
 // m = number of bits being truncated
+// r -  full size share (z2k)
+// r_hat - k-1-m bit share (z2k)
+// b_2 - individual bits of r (z2), used for deterministic truncation
+// b_km1 - MSB of r, shares over z2k
 template <typename T>
-void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
@@ -347,8 +351,26 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, 
 
         Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, 0, size, ring_size, nodeNet, ss);
         for (size_t s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < numShares; i++) {
+            for (size_t i = 0; i < size; i++) {
                 temp_carry[s][2 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+            }
+        }
+        Rss_B2A(temp_carry, temp_carry, 3 * size, ring_size, nodeNet, ss);
+
+        // getting msb (that we just converted from z2 to z2k) and moving it to b_km1
+        // can we theoretically use an assignment operator?
+        // potential problem is that this would lead to a memory leak, would need to free b_2's memory (allocated inside trunc) first, and then make sure we dont free it again at the end of trunc
+        // this is viable, since edaBit_trunc should only be called inside truncation
+        // leaving for now since we know it's correct
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+        }
+
+        // this line is missing subtracting the left-shifted MSB
+        // adding m-1 and subtracting k carries
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][size + i]) << T(ring_size - m));
             }
         }
 
@@ -386,6 +408,27 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, 
 
         Rss_BitAdd_Trunc(b_2, temp_carry, temp, A_buff, ring_size, ring_size, 2 * size, size, ring_size, nodeNet, ss);
 
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                temp_carry[s][4 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+            }
+        }
+
+        Rss_B2A(temp_carry, temp_carry, 5 * size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+        }
+
+        // adding m-1 and subtracting k carries
+        // this line is missing subtracting the left-shifted MSB
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][2 * size + i] - ((temp_carry[s][3 * size + i]) << T(ring_size - m));
+            }
+        }
+
         for (size_t i = 0; i < numShares; i++) {
             delete[] temp_carry[i];
             delete[] temp[i];
@@ -402,15 +445,15 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, 
         T **A_buff = new T *[numShares];
         T **B_buff = new T *[numShares];
         T **C_buff = new T *[numShares];
-        T **C_buff_carry = new T *[numShares];
+        T **temp_carry = new T *[numShares];
         for (size_t s = 0; s < numShares; s++) {
             A_buff[s] = new T[2 * size];
             B_buff[s] = new T[2 * size];
 
             C_buff[s] = new T[2 * size];
             memset(C_buff[s], 0, sizeof(T) * 2 * size);
-            C_buff_carry[s] = new T[size * 7]; // 7 for 2 carries per bitAdd (3), plus one for MSB of res
-            memset(C_buff_carry[s], 0, sizeof(T) * size * 7);
+            temp_carry[s] = new T[size * 7]; // 7 for 2 carries per bitAdd (3), plus one for MSB of res
+            memset(temp_carry[s], 0, sizeof(T) * size * 7);
 
             memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
             memcpy(A_buff[s] + size, result[1][s] + size, sizeof(T) * size);
@@ -419,14 +462,14 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, 
         }
 
         // this can theoretically be done with a Mult_and_MultSparse special function
-        Rss_BitAdd_Trunc(C_buff, C_buff_carry, A_buff, B_buff, ring_size, ring_size, 0, 2 * size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(C_buff, temp_carry, A_buff, B_buff, ring_size, ring_size, 0, 2 * size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
             memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
             memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
         }
 
-        Rss_BitAdd_Trunc(b_2, C_buff_carry, A_buff, B_buff, ring_size, ring_size, 4 * size, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, 4 * size, size, ring_size, nodeNet, ss);
         /*
         NOTICE BEFORE PROCEEDING
 
@@ -437,16 +480,37 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, uint m, uint size, uint ring_size, 
         carry_buffer[numShares][7*size]
         (m-1, first half of BA 1) (m-1, second half of BA 1) (k-1, first half of BA 1) (k-1, second half of BA 1) (m-1, BA 2) (k-1, BA 2)
 
-        therfore, to remove the carry bits, we need to be careful
+        therfore, to remove the carry bits, we need to be careful when computing the summation
          */
+
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                temp_carry[s][6 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+            }
+        }
+
+        Rss_B2A(temp_carry, temp_carry, 7 * size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+        }
+
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][size + i] - ((temp_carry[s][3 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][4 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
+            }
+        }
+
         for (size_t i = 0; i < numShares; i++) {
             delete[] A_buff[i];
             delete[] B_buff[i];
-            delete[] C_buff_carry[i];
+            delete[] temp_carry[i];
             delete[] C_buff[i];
         }
         delete[] A_buff;
-        delete[] C_buff_carry;
+        delete[] temp_carry;
         delete[] B_buff;
         delete[] C_buff;
         break;
@@ -968,4 +1032,4 @@ void Rss_GenerateRandomShares_trunc_5pc(T **res, T **res_prime, T **res_bitwise,
     delete[] r_bits;
 }
 
-#endif // _EDABIT_HPP_
+#endif // _EDABIT_HPP_r
