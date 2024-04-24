@@ -259,13 +259,14 @@ void CarryBuffer(T **buffer, T **d, uint **index_array, uint size, uint k, uint 
 // alen,blen should ALWAYS be <= k
 // any bits BEYOND the k-1th would be discarded anyways
 template <typename T>
-void Rss_BitAdd_Trunc(T **res, T **res_carry, T **a, T **b, uint alen, uint blen, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_BitAdd_Trunc(T **res, T **res_carry, T **a, T **b, uint alen, uint blen, uint m, uint carry_offeset, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
     uint inlen = std::max(alen, blen);
 
     static uint numShares = ss->getNumShares();
+    static uint numParties = ss->getPeers();
 
     T **d = new T *[2 * numShares];
     for (size_t i = 0; i < 2 * numShares; i++) {
@@ -282,14 +283,16 @@ void Rss_BitAdd_Trunc(T **res, T **res_carry, T **a, T **b, uint alen, uint blen
     }
     Rss_CircleOpL(d, size, inlen, nodeNet, ss);
 
-    for (size_t i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++) {
-            res[s][i] = (a[s][i] ^ b[s][i]) ^ (d[numShares + s][i] << T(1));
-            res_carry[s][i] = GET_BIT(d[numShares + s][i], T(m - 1));
-            res_carry[s][size + i] = GET_BIT(d[numShares + s][i], T(ring_size - 1));
-            res_carry[s][2 * size + i] = GET_BIT(res[s][i], T(ring_size - 1));
+    // only getting the carrys for bitAddTrunc - the MSB of res will be extracted later
+        for (size_t i = 0; i < size; i++) {
+            for (size_t s = 0; s < numShares; s++) {
+                res[s][i] = (a[s][i] ^ b[s][i]) ^ (d[numShares + s][i] << T(1));
+                res_carry[s][carry_offeset + i] = GET_BIT(d[numShares + s][i], T(m - 1)); // shouldn't this be (m) instead of (m-1)?
+                res_carry[s][carry_offeset + size + i] = GET_BIT(d[numShares + s][i], T(ring_size - 1));
+                // res_carry[s][2 * size + i] = GET_BIT(res[s][i], T(ring_size - 1));
+            }
         }
-    }
+
     for (size_t i = 0; i < 2 * numShares; i++) {
         delete[] d[i];
     }
