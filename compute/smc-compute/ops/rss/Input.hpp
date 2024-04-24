@@ -248,7 +248,7 @@ result : [numInputParties][numShares][3*size]
 first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2), third (size) elements are shared in Z_2k (for r_hat value)
 */
 template <typename T>
-void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_parties, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_parties, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     static uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
@@ -303,7 +303,7 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
                         result[my_index][T_star_index][size + i] ^= result[my_index][s][size + i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][2 * size + i] += result[my_index][s][2 * size + i];
+                        result[my_index][T_star_index][2 * size + i] -= result[my_index][s][2 * size + i];
                     }
                 } else {
                     // only happens once, p_star adding the value which is being inputted to share T_star
@@ -314,7 +314,7 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
                         result[my_index][T_star_index][size + i] ^= input[i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][2 * size + i] += input[i];
+                        result[my_index][T_star_index][2 * size + i] += (input[i] >> T(m));
                     }
                 }
             }

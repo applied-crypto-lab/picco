@@ -316,13 +316,13 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
             memcpy(r_val + i, buffer + i * bytes, bytes);
         }
 
-        Rss_Input_edaBit_Trunc(result, r_val, input_parties, size, ring_size, nodeNet, ss);
+        Rss_Input_edaBit_Trunc(result, r_val, input_parties, m, size, ring_size, nodeNet, ss);
 
         delete[] buffer; // not needed anymore
         delete[] r_val;  // not needed anymore
     } else {
         // std::cout << "id " << id << " is NOT an input party" << std::endl;
-        Rss_Input_edaBit_Trunc(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
+        Rss_Input_edaBit_Trunc(result, static_cast<T *>(nullptr), input_parties, m, size, ring_size, nodeNet, ss);
     }
 
     // first (size) elements of result are the shares over Z_2k
