@@ -2076,7 +2076,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
         Data1[totalNumShares - 1][i] = i;
-        Data2[totalNumShares - 1][i] = 0;
+        Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
             Data2[totalNumShares - 1][i] -= Data2[j][i];
@@ -2128,7 +2128,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     A_bit[i] = Data1[share_mapping[id - 1][i]];
     //     B_bit[i] = Data2[share_mapping[id - 1][i]];
     // }
-
     // Open(result_2, a, size, -1, net, ss);
     // Open(result_3, b, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
@@ -2136,6 +2135,23 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
     //     printf("(open) b   [%lu]: %u\n", i, result_3[i]);
     // }
+
+    int m = 10;
+    doOperation_Trunc(C, b, ring_size, m, size, -1, net, ss);
+    Open(result_2, C, size, -1, net, ss);
+    Open(result, b, size, -1, net, ss);
+    // printf("\n");
+    for (size_t i = 0; i < size; i++) {
+        if (!(result_2[i] == (result[i] >> priv_int_t(m)))) {
+            printf("trunc  ERROR\n");
+            printf("(open)  input     [%lu]: %u\n", i, result[i]);
+            print_binary(result[i], ring_size);
+            printf("(open)  trunc res [%lu]: %u\n", i, result_2[i]);
+            print_binary(result_2[i], ring_size);
+            printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
+            print_binary(result[i] >> priv_int_t(m), ring_size);
+        }
+    }
 
     // doOperation_EQZ(b, C, ring_size, size, -1, net, ss);
     // Open(result, C, size, -1, net, ss);

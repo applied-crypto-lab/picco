@@ -21,6 +21,8 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
+#include "B2A.hpp"
+#include "BitLT.hpp"
 #include "EdaBit.hpp"
 
 // trunation of all data by a single M
@@ -37,6 +39,8 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     T **b_km1 = new T *[numShares];
     T **b_2 = new T *[numShares];
 
+    T **u_2 = new T *[numShares];
+
     T *c = new T[size];
     memset(c, 0, sizeof(T) * size);
     T *c_prime = new T[size];
@@ -44,7 +48,9 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
 
     for (size_t i = 0; i < numShares; i++) {
         edaBit_r[i] = new T[size];
+        memset(edaBit_r[i], 0, sizeof(T) * size);
         r_hat[i] = new T[size];
+        memset(r_hat[i], 0, sizeof(T) * size);
 
         b_km1[i] = new T[size];
         memset(b_km1[i], 0, sizeof(T) * size);
@@ -54,6 +60,8 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
 
         b[i] = new T[size];
         memset(b[i], 0, sizeof(T) * size);
+        u_2[i] = new T[size];
+        memset(u_2[i], 0, sizeof(T) * size);
     }
 
     T *ai = new T[numShares];
@@ -61,51 +69,36 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     ss->sparsify_public(ai, 1);
 
     edaBit_Trunc(edaBit_r, r_hat, b_2, b_km1, m, size, ring_size, nodeNet, ss);
-
-    T *res_check_1 = new T[size];
-    memset(res_check_1, 0, sizeof(T) * size);
-
-    T *res_check_2 = new T[size];
-    memset(res_check_2, 0, sizeof(T) * size);
-
-    T *res_check_3 = new T[size];
-    memset(res_check_3, 0, sizeof(T) * size);
-
-    T *res_check_4 = new T[size];
-    memset(res_check_4, 0, sizeof(T) * size);
-
-    Open(res_check_1, edaBit_r, size, -1, nodeNet, ss);
-    Open(res_check_2, r_hat, size, -1, nodeNet, ss);
-    Open_Bitwise(res_check_3, b_2, size, -1, nodeNet, ss); // b_2 shares are in Z2
-    Open(res_check_4, b_km1, size, -1, nodeNet, ss);
-
-    for (size_t i = 0; i < size; i++) {
-        printf("(open)  r      [%lu]: %u\n", i, res_check_1[i]);
-        print_binary(res_check_1[i], ring_size);
-        printf("(open)  b_2    [%lu]: %u\n", i, res_check_3[i]);
-        print_binary(res_check_3[i], ring_size);
-        printf("(open)  b_km1  [%lu]: %u\n", i, res_check_4[i]);
-        print_binary(res_check_4[i], ring_size);
-        printf("(open)  r_hat  [%lu]: %u\n", i, res_check_2[i]);
-        print_binary(res_check_2[i], ring_size);
-    }
-
+    
     // computing the sum of input and edabit_r
-    for (size_t i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++) {
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
             sum[s][i] = (input[s][i] + edaBit_r[s][i]);
         }
     }
 
     Open(c, sum, size, threadID, nodeNet, ss);
 
+    // (c / 2^m) mod 2^(k-m-1)
     for (size_t i = 0; i < size; i++) {
-        // (c / 2^m) mod 2^(k-m-1)
         c_prime[i] = (c[i] >> T(m)) & ss->SHIFT[ring_size - m - 1];
+    }
+
+    for (size_t i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
             b[s][i] = b_km1[s][i] + ((c[i] * ai[s]) >> T(ring_size - 1)) - 2 * ((c[i]) >> T(ring_size - 1)) * b_km1[s][i];
             r_hat[s][i] = r_hat[s][i] - (b_km1[s][i] << T(ring_size - 1 - m));
             result[s][i] = (c_prime[i] * ai[s]) - r_hat[s][i] + (b[s][i] << T(ring_size - m - 1));
+        }
+    }
+
+    // the following block of code converts a probabilistic trunation to deterministic
+    // in order to preserve security (see Li et al., "Efficient 3PC for Binary Circuits with Application to Maliciously-Secure DNN Inference", USENIX 2023)
+    Rss_BitLT(u_2, c, b_2, size, m, nodeNet, ss);
+    Rss_B2A(u_2, u_2, size, ring_size, nodeNet, ss);
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            result[s][i] = (result[s][i] - u_2[s][i]);
         }
     }
 
@@ -120,7 +113,9 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
         delete[] r_hat[i];
         delete[] b_km1[i];
         delete[] b_2[i];
+        delete[] u_2[i];
     }
+    delete[] u_2;
     delete[] edaBit_r;
     delete[] b;
     delete[] sum;

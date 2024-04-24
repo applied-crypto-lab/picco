@@ -38,7 +38,7 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
 
 template <typename T>
 void Rss_BitLT(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
+    // assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
     uint numShares = ss->getNumShares();
 
     uint i, j; // used for loops
@@ -79,7 +79,7 @@ void Rss_BitLT(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork node
 template <typename T>
 void Rss_CarryOut(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
+    // assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
     uint i;
     uint numShares = ss->getNumShares();
@@ -144,7 +144,7 @@ void OptimalBuffer(T **buffer, T **d, uint size, uint r_size, replicatedSecretSh
 // a non-recursive solution to minimize memory consumption
 template <typename T>
 void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
+    // assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
     static uint numShares = ss->getNumShares();
     uint i, j, originial_num, num, n_uints, r_size, new_r_size, t_index;
