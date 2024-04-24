@@ -29,6 +29,7 @@
 // there isn't a functionality that requires the "normal" ordered parallel prefix, so we don't implement it here
 // we should probably have it compute the "normal" ordered parallel prefix, but have the bits of the input reversed 
 // stores the result in input
+// follows similar logic to that in BitAdd implementation
 template <typename T>
 void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
 
