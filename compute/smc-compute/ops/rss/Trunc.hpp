@@ -21,6 +21,7 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
+#include "EdaBit.hpp"
 
 // trunation of all data by a single M
 template <typename T>
@@ -59,7 +60,7 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, 1);
 
-    edaBit_trunc(edaBit_r, r_m_prime, b_km1, size, ring_size, m, nodeNet);
+    edaBit_Trunc(edaBit_r, r_m_prime, b_2, b_km1, m, size, ring_size, nodeNet, ss);
 
     // computing the sum of input and edabit_r
     for (size_t i = 0; i < size; i++) {

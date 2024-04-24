@@ -349,7 +349,7 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
             memset(temp_carry[s], 0, sizeof(T) * size * 3);
         }
 
-        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, 0, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 0, size, ring_size, nodeNet, ss);
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 temp_carry[s][2 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
@@ -400,13 +400,13 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
             temp[s] = new T[size];
             memset(temp[s], 0, sizeof(T) * size);
         }
-        Rss_BitAdd_Trunc(temp, temp_carry, A_buff, B_buff, ring_size, ring_size, 0, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(temp, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 0, size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
             memcpy(A_buff[s], result[2][s] + size, sizeof(T) * size);
         }
 
-        Rss_BitAdd_Trunc(b_2, temp_carry, temp, A_buff, ring_size, ring_size, 2 * size, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(b_2, temp_carry, temp, A_buff, ring_size, ring_size, m, 2 * size, size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
@@ -462,14 +462,14 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
         }
 
         // this can theoretically be done with a Mult_and_MultSparse special function
-        Rss_BitAdd_Trunc(C_buff, temp_carry, A_buff, B_buff, ring_size, ring_size, 0, 2 * size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(C_buff, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 0, 2 * size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
             memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
             memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
         }
 
-        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, 4 * size, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 4 * size, size, ring_size, nodeNet, ss);
         /*
         NOTICE BEFORE PROCEEDING
 
