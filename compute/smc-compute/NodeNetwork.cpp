@@ -728,6 +728,7 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
             mode = 0;
         }
     }
+
     // int sendIdx = 0, getIdx = 0;
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
@@ -1175,7 +1176,7 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
-    int idx = 0;
+    int idx = 0; 
     getRounds(size, &count, &rounds);
     for (uint k = 0; k <= rounds; k++) {
         for (uint i = 0; i < threshold; i++) {
@@ -1215,10 +1216,50 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
             mode = 0;
         }
     }
+
+    // this needs to be implemented such that multithreading can function for Shamir SS
+    // int count = 0, rounds = 0;
+    // getRounds(size, &count, &rounds);
+    // for (int i = 0; i <= peers; i++)
+    //     buffer_handlers[i][threadID] = buffers[i];
+
+    // pthread_mutex_lock(&buffer_mutex);
+    // for (int i = 0; i <= peers; i++)
+    //     comm_flags[i][threadID] = 1;
+    // pthread_cond_signal(&buffer_conditional_variables[threadID]);
+    // // gettimeofday(&tv1, NULL);
+    // pthread_mutex_unlock(&buffer_mutex);
+
+    // for (int i = 1; i <= peers + 1; i++) {
+    //     if (id == i) {
+    //         for (int k = 0; k <= rounds; k++) {
+    //             for (int j = 1; j <= peers + 1; j++) {
+    //                 if (id == j)
+    //                     continue;
+    //                 pthread_mutex_lock(&socket_mutex);
+    //                 sendDataToPeer(j, data[j - 1], k * count, count, size, threadID);
+    //                 pthread_mutex_unlock(&socket_mutex);
+    //             }
+    //             pthread_mutex_lock(&socket_mutex);
+    //             while (unit_flags[threadID] == 0) {
+    //                 // gettimeofday(&tv1, NULL);
+    //                 pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
+    //             }
+    //             unit_flags[threadID] = 0;
+    //             pthread_cond_signal(&flag_conditional_variables[threadID]);
+    //             pthread_mutex_unlock(&socket_mutex);
+    //         }
+    //     }
+    // }
+
+    // for (int i = 0; i < size; i++)
+    //     mpz_set(buffers[id - 1][i], data[id - 1][i]);
+    
 }
 
 // sends one piece of data to recvFromIds
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
+    std::cout << "multicast threadID : "<<threadID << std::endl;
     test_flags[threadID]++;
     int id = getID();
     int peers = config->getPeerCount();

@@ -30,6 +30,8 @@
 // IMPORTANT !!!!!!!!!
 // the result is returned as bitwise shares packed into a single Lint (res)
 // would additionally need to call B2A (After unpacking the shares) to get results over Z2k
+// not implementing the functionality explicitly, since theres only a few floating point protocols where it's used
+// better to do the allocations/B2A there
 template <typename T>
 void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -54,7 +56,7 @@ void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, 
 
     // only need ring_size bit-length values for both parts of computation
     // first protection and b2a
-    edaBit(edaBit_r, edaBit_b_2, size, ring_size, nodeNet);
+    edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
@@ -62,9 +64,9 @@ void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, 
         }
     }
 
-    Rss_Open(c, sum, size, ring_size, nodeNet);
+    Open(c, sum, size, -1, nodeNet, ss);
 
-    Rss_BitAdd(res, c, edaBit_b_2, ring_size, size, nodeNet);
+    Rss_BitAdd(res, c, edaBit_b_2, size, ring_size, nodeNet, ss);
 
     delete[] ai;
     delete[] c;
@@ -79,9 +81,4 @@ void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, 
     delete[] sum;
 }
 
-//performs B2A on the individual bits of res
-// res is of dimension [numShares][k*size]
-template <typename T>
-void Rss_BitDec_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-}
 #endif // _BITDEC_HPP_

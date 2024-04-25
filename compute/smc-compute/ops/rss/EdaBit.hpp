@@ -35,7 +35,7 @@
 template <typename T>
 void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    assertm((ring_size == ss->ring_size) , "checking ring_size argument == ss->ring_size");
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
     if (bitlength > ring_size) {
         throw std::runtime_error("the bitlength cannot be larger than the ring_size; bitlength = " + std::to_string(bitlength) + ", ring_size = " + std::to_string(ring_size));
     }
@@ -272,509 +272,267 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
     delete[] result;
 }
 
+// m = number of bits being truncated
+// r -  full size share (z2k)
+// r_hat - k-1-m bit share (z2k)
+// b_2 - individual bits of r (z2), used for deterministic truncation
+// b_km1 - MSB of r, shares over z2k
 template <typename T>
-void Rss_edaBit_trunc(T **r, T **r_prime, T **r_km1, uint size, uint ring_size, uint m, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // int pid = ss->getID();
-    uint numParties = ss->getPeers();
+    assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
-    uint i;
-
-    T **r_bitwise = new T *[2];
-    T **carry = new T *[2];
-    T **b_2 = new T *[2];
-    uint new_size = numParties * size;
-    uint b2a_size = 3 * size;
-
-    for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new T[new_size];
-        memset(r_bitwise[i], 0, sizeof(T) * new_size);
-        // carry will hold both kth and m-1th bits, in succession
-        carry[i] = new T[b2a_size];
-        memset(carry[i], 0, sizeof(T) * b2a_size);
-
-        b_2[i] = new T[size];
-        memset(b_2[i], 0, sizeof(T) * size);
-
-        // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(T) * size);
-        memset(r_prime[i], 0, sizeof(T) * size);
-        memset(r_km1[i], 0, sizeof(T) * size);
-    }
-
-    Rss_GenerateRandomShares_trunc(r, r_prime, r_bitwise, ring_size, m, size, nodeNet);
-
-    Rss_nBitAdd_trunc(b_2, carry, r_bitwise, ring_size, m, size, nodeNet);
-
-    Rss_b2a(carry, carry, ring_size, b2a_size, nodeNet);
-
-    memcpy(r_km1[0], carry[0] + 2 * (size), size * sizeof(T));
-    memcpy(r_km1[1], carry[1] + 2 * (size), size * sizeof(T));
-
-    // adding m-1 and subtracting k carries
-    for (size_t i = 0; i < size; i++) {
-
-        r_prime[0][i] = r_prime[0][i] + carry[0][i] - ((carry[0][size + i]) << T(ring_size - m));
-        r_prime[1][i] = r_prime[1][i] + carry[1][i] - ((carry[1][size + i]) << T(ring_size - m));
-    }
-
-    for (i = 0; i < 2; i++) {
-        delete[] r_bitwise[i];
-        delete[] carry[i];
-        delete[] b_2[i];
-    }
-    delete[] r_bitwise;
-    delete[] carry;
-    delete[] b_2;
-}
-
-template <typename T>
-void Rss_edaBit_trunc_test(T **r, T **r_prime, T **r_km1, uint size, uint ring_size, uint m, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-    // int pid = ss->getID();
-    uint numParties = ss->getPeers();
-
-    uint i;
-
-    T **r_bitwise = new T *[2];
-    T **carry = new T *[2];
-    T **b_2 = new T *[2];
-    uint new_size = numParties * size;
-    uint b2a_size = 3 * size;
-
-    for (i = 0; i < 2; i++) {
-        r_bitwise[i] = new T[new_size];
-        memset(r_bitwise[i], 0, sizeof(T) * new_size);
-        // carry will hold both kth and m-1th bits, in succession
-        carry[i] = new T[b2a_size];
-        memset(carry[i], 0, sizeof(T) * b2a_size);
-
-        b_2[i] = new T[size];
-        memset(b_2[i], 0, sizeof(T) * size);
-
-        // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(T) * size);
-        memset(r_prime[i], 0, sizeof(T) * size);
-        memset(r_km1[i], 0, sizeof(T) * size);
-    }
-
-    Rss_GenerateRandomShares_trunc(r, r_prime, r_bitwise, ring_size, m, size, nodeNet);
-
-    Rss_nBitAdd_trunc(b_2, carry, r_bitwise, ring_size, m, size, nodeNet);
-
-    Rss_b2a(carry, carry, ring_size, b2a_size, nodeNet);
-
-    memcpy(r_km1[0], carry[0] + 2 * (size), size * sizeof(T));
-    memcpy(r_km1[1], carry[1] + 2 * (size), size * sizeof(T));
-
-    // adding m-1 and subtracting k carries
-    for (size_t i = 0; i < size; i++) {
-
-        // r_prime[0][i] = r_prime[0][i] + carry[0][i] - ((carry[0][size + i]) << T(ring_size - m));
-        // r_prime[1][i] = r_prime[1][i] + carry[1][i] - ((carry[1][size + i]) << T(ring_size - m));
-
-        r_prime[0][i] = r_prime[0][i] + carry[0][i];
-        r_prime[1][i] = r_prime[1][i] + carry[1][i];
-    }
-
-    for (i = 0; i < 2; i++) {
-        delete[] r_bitwise[i];
-        delete[] carry[i];
-        delete[] b_2[i];
-    }
-    delete[] r_bitwise;
-    delete[] carry;
-    delete[] b_2;
-}
-
-template <typename T>
-void Rss_GenerateRandomShares_trunc(T **res, T **res_prime, T **res_bitwise, uint ring_size, uint m, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-    int pid = ss->getID();
-    uint i, j;
+    static int threshold = ss->getThreshold();
+    static int numParties = ss->getPeers();
+    static int id = ss->getID();
+    static uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
-    // printf("bytes : %u \n", bytes);
-    uint p_index = pid - 1;
-    uint numParties = ss->getPeers();
-    // printf("numParties : %u \n", numParties);
 
-    // T temp0, temp1;
+    uint total_size = 3 * size; // for shares in 2*Z_2k and Z_2
+    std::vector<int> input_parties(threshold + 1);
+    std::iota(input_parties.begin(), input_parties.end(), 1);
+    int numInputParties = input_parties.size();
 
-    // used since we have effectively double the number of values
-    // since we need to represent both arithmetic and binary shares
-    uint new_size = 3 * size;
-
-    // generate a single random value, which happens to already be the sum of random bits *2^j
-    // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    T ***r_values = new T **[2];
-    for (i = 0; i < 2; i++) {
-        r_values[i] = new T *[numParties];
-        for (j = 0; j < numParties; j++) {
-            r_values[i][j] = new T[new_size];
-            memset(r_values[i][j], 0, sizeof(T) * new_size);
+    T ***result = new T **[threshold + 1];
+    for (size_t s = 0; s < threshold + 1; s++) {
+        result[s] = new T *[numShares];
+        for (size_t i = 0; i < numShares; i++) {
+            result[s][i] = new T[total_size];
+            memset(result[s][i], 0, sizeof(T) * total_size); // sanitizing destination
         }
     }
 
-    int gamma[2];
-    switch (pid) {
-    case 1:
-        gamma[0] = 1;
-        gamma[1] = 2;
-        break;
-    case 2:
-        gamma[0] = 2;
-        gamma[1] = 0;
-        break;
-    case 3:
-        gamma[0] = 0;
-        gamma[1] = 1;
-        break;
-    }
-
-    T *r_bits = new T[size];
-    memset(r_bits, 0, sizeof(T) * size);
-    T *r_prime = new T[size];
-    memset(r_prime, 0, sizeof(T) * size);
-
-    uint8_t *buffer = new uint8_t[bytes * new_size];
-    // each party generating a unique random value
-    ss->prg_getrandom(bytes, size, buffer);
-
-    memcpy(r_bits, buffer, size * bytes);
-
-    for (i = 0; i < size; i++) {
-        r_bits[i] = r_bits[i] & ss->SHIFT[ring_size];
-        r_prime[i] = (r_bits[i] >> T(m));
-    }
-
-    ss->prg_getrandom(1, bytes, new_size, buffer);
-
-    // store arithmetic and bitwise representation sequentially
-    // calculating p_i's own individual shares
-
-    memcpy(r_values[1][p_index], buffer, size * bytes);
-    memcpy(r_values[1][p_index] + size, buffer + size * bytes, size * bytes);
-    memcpy(r_values[1][p_index] + 2 * size, buffer + 2 * size * bytes, size * bytes);
-
-    for (i = 0; i < size; i++) {
-        r_values[0][p_index][1 * i] = r_bits[i] - r_values[1][p_index][1 * i];
-        r_values[0][p_index][size + i] = r_bits[i] ^ r_values[1][p_index][size + i];
-        r_values[0][p_index][2 * size + i] = r_prime[i] - r_values[1][p_index][2 * size + i];
-        // r_values[0][p_index][2*size + i] = r_bits[i] - r_values[1][p_index][2*size + i];
-    }
-
-    // need to generate more random shares so that binary and arithmetic representations are different
-    ss->prg_getrandom(0, bytes, new_size, buffer);
-    memcpy(r_values[0][gamma[1]], buffer, size * bytes);
-    memcpy(r_values[0][gamma[1]] + size, buffer + size * bytes, size * bytes);
-    memcpy(r_values[0][gamma[1]] + 2 * size, buffer + 2 * size * bytes, size * bytes);
-
-    //  sending r_values[0][p_index], receiving r_values[1][gamma[0]],
-    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], r_values[1][gamma[0]], new_size, ring_size);
-
-    for (i = 0; i < numParties - 1; i++) {
-        memcpy(res_bitwise[0] + i * size, r_values[0][i] + (size), size * sizeof(T));
-        memcpy(res_bitwise[1] + i * size, r_values[1][i] + (size), size * sizeof(T));
-    }
-
-    for (i = 0; i < size; i++) {
-        // this is so we only have two parties generating shares
-        for (j = 0; j < numParties - 1; j++) {
-
-            // adding all the parties arithmetic shares together
-            res[0][i] += r_values[0][j][1 * i];
-            res[1][i] += r_values[1][j][1 * i];
-
-            res_prime[0][i] += r_values[0][j][2 * size + i];
-            res_prime[1][i] += r_values[1][j][2 * size + i];
-        }
-    }
-
-    for (i = 0; i < 2; i++) {
-        for (j = 0; j < numParties; j++) {
-            delete[] r_values[i][j];
-        }
-        delete[] r_values[i];
-    }
-    delete[] r_values;
-    delete[] buffer;
-    delete[] r_bits;
-    delete[] r_prime;
-}
-
-template <typename T>
-void Rss_edaBit_trunc_5pc(T **r, T **r_prime, T **r_km1, uint size, uint ring_size, uint m, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-    // int pid = ss->getID();
-    uint numShares = ss->getNumShares();
-    uint threshold = ss->getThreshold();
-    // struct timeval start;
-    // struct timeval end;
-    // unsigned long timer;
-
-    uint i;
-    // this is the number of shares we need to add (t+1)
-    uint new_size = (threshold + 1) * size;
-    // printf("new_size: %llu\n", new_size);
-
-    uint b2a_size = 3 * size;
-
-    T **carry = new T *[numShares];
-    T **b_2 = new T *[numShares];
-    T **r_bitwise = new T *[numShares];
-    for (i = 0; i < numShares; i++) {
-        r_bitwise[i] = new T[new_size];
-        memset(r_bitwise[i], 0, sizeof(T) * new_size);
-        // carry will hold both kth and m-1th bits, in succession
-        carry[i] = new T[b2a_size];
-        memset(carry[i], 0, sizeof(T) * b2a_size);
-
-        b_2[i] = new T[size];
-        memset(b_2[i], 0, sizeof(T) * size);
-
-        // ensuring destinations are sanitized
-        memset(r[i], 0, sizeof(T) * size);
-        memset(r_prime[i], 0, sizeof(T) * size);
-        memset(r_km1[i], 0, sizeof(T) * size);
-    }
-
-    Rss_GenerateRandomShares_trunc_5pc(r, r_prime, r_bitwise, ring_size, m, size, nodeNet);
-
-    Rss_nBitAdd_trunc_5pc(b_2, carry, r_bitwise, ring_size, m, size, nodeNet);
-
-    Rss_b2a_5pc(carry, carry, ring_size, b2a_size, nodeNet);
     for (size_t s = 0; s < numShares; s++) {
-        memcpy(r_km1[s], carry[s] + 2 * (size), size * sizeof(T));
+        // ensuring destinations are sanitized
+        memset(r[s], 0, sizeof(T) * size);
+        memset(b_2[s], 0, sizeof(T) * size);
+        memset(r_hat[s], 0, sizeof(T) * size);
+        memset(b_km1[s], 0, sizeof(T) * size);
     }
 
-    // adding m-1 and subtracting k carries
-    for (size_t i = 0; i < size; i++) {
+    if (id <= threshold + 1) {
+        uint8_t *buffer = new uint8_t[size * bytes];
+        ss->prg_getrandom(bytes, size, buffer);
+        T *r_val = new T[size];
+        memset(r_val, 0, sizeof(T) * size);
+        for (size_t i = 0; i < size; i++) {
+            memcpy(r_val + i, buffer + i * bytes, bytes);
+        }
+
+        Rss_Input_edaBit_Trunc(result, r_val, input_parties, m, size, ring_size, nodeNet, ss);
+
+        delete[] buffer; // not needed anymore
+        delete[] r_val;  // not needed anymore
+    } else {
+        // std::cout << "id " << id << " is NOT an input party" << std::endl;
+        Rss_Input_edaBit_Trunc(result, static_cast<T *>(nullptr), input_parties, m, size, ring_size, nodeNet, ss);
+    }
+
+    // first (size) elements of result are the shares over Z_2k
+    // summing all the random values shared in Z_2k
+    for (size_t in = 0; in < numInputParties; in++) {
         for (size_t s = 0; s < numShares; s++) {
-
-            r_prime[s][i] = r_prime[s][i] + carry[s][i] - ((carry[s][size + i]) << T(ring_size - m));
+            for (size_t i = 0; i < size; i++) {
+                r[s][i] += result[in][s][i];
+                r_hat[s][i] += result[in][s][2 * size + i];
+            }
         }
     }
 
-    for (i = 0; i < numShares; i++) {
-        delete[] r_bitwise[i];
-        delete[] carry[i];
-        delete[] b_2[i];
+    switch (numParties) {
+    case 3: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        T **temp_carry = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[size];
+            B_buff[s] = new T[size];
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
+            temp_carry[s] = new T[size * 3]; // 3*size for k-1 carry, mth carry, and b_k-1
+            memset(temp_carry[s], 0, sizeof(T) * size * 3);
+        }
+
+        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 0, size, ring_size, nodeNet, ss);
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                temp_carry[s][2 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+            }
+        }
+        Rss_B2A(temp_carry, temp_carry, 3 * size, ring_size, nodeNet, ss);
+
+        // getting msb (that we just converted from z2 to z2k) and moving it to b_km1
+        // can we theoretically use an assignment operator?
+        // potential problem is that this would lead to a memory leak, would need to free b_2's memory (allocated inside trunc) first, and then make sure we dont free it again at the end of trunc
+        // this is viable, since edaBit_trunc should only be called inside truncation
+        // leaving for now since we know it's correct
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+        }
+
+        // this line is missing subtracting the left-shifted MSB
+        // adding m-1 and subtracting k carries
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][size + i]) << T(ring_size - m));
+
+                // r_hat[s][i] -= b_km1[s][i] << T(ring_size - m -1);
+            }
+        }
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+            delete[] temp_carry[i];
+        }
+        delete[] A_buff;
+        delete[] B_buff;
+        delete[] temp_carry;
+        break;
     }
-    delete[] r_bitwise;
-    delete[] carry;
-    delete[] b_2;
+    case 5: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        T **temp = new T *[numShares];
+        T **temp_carry = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[size];
+            B_buff[s] = new T[size];
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
+
+            temp_carry[s] = new T[size * 5]; // 2 carries from first bitAdd, 2 carries from second bitAdd, and MSB of result
+            memset(temp_carry[s], 0, sizeof(T) * size * 5);
+            temp[s] = new T[size];
+            memset(temp[s], 0, sizeof(T) * size);
+        }
+        Rss_BitAdd_Trunc(temp, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 0, size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(A_buff[s], result[2][s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd_Trunc(b_2, temp_carry, temp, A_buff, ring_size, ring_size, m, 2 * size, size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                temp_carry[s][4 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+            }
+        }
+
+        Rss_B2A(temp_carry, temp_carry, 5 * size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+        }
+
+        // adding m-1 and subtracting k carries
+        // check if this is correct
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][2 * size + i] - ((temp_carry[s][3 * size + i]) << T(ring_size - m));
+            }
+        }
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] temp_carry[i];
+            delete[] temp[i];
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+        }
+        delete[] temp_carry;
+        delete[] temp;
+        delete[] A_buff;
+        delete[] B_buff;
+        break;
+    }
+    case 7: {
+        T **A_buff = new T *[numShares];
+        T **B_buff = new T *[numShares];
+        T **C_buff = new T *[numShares];
+        T **temp_carry = new T *[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            A_buff[s] = new T[2 * size];
+            B_buff[s] = new T[2 * size];
+
+            C_buff[s] = new T[2 * size];
+            memset(C_buff[s], 0, sizeof(T) * 2 * size);
+            temp_carry[s] = new T[size * 7]; // 7 for 2 carries per bitAdd (3), plus one for MSB of res
+            memset(temp_carry[s], 0, sizeof(T) * size * 7);
+
+            memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
+            memcpy(A_buff[s] + size, result[1][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s], result[2][s] + size, sizeof(T) * size);
+            memcpy(B_buff[s] + size, result[3][s] + size, sizeof(T) * size);
+        }
+
+        // this can theoretically be done with a Mult_and_MultSparse special function
+        Rss_BitAdd_Trunc(C_buff, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 0, 2 * size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
+            memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
+        }
+
+        Rss_BitAdd_Trunc(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 4 * size, size, ring_size, nodeNet, ss);
+        /*
+        NOTICE BEFORE PROCEEDING
+
+        THE ORDER OF THE FIRST GROUPS CARRY BITS INSERTED INTO THE CARRY BUFFER FOR 7 PARTIES ARE INCONSISTENT
+
+        the data is ordered as follows:
+
+        carry_buffer[numShares][7*size]
+        (m-1, first half of BA 1) (m-1, second half of BA 1) (k-1, first half of BA 1) (k-1, second half of BA 1) (m-1, BA 2) (k-1, BA 2)
+
+        therfore, to remove the carry bits, we need to be careful when computing the summation
+         */
+
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                temp_carry[s][6 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+            }
+        }
+
+        Rss_B2A(temp_carry, temp_carry, 7 * size, ring_size, nodeNet, ss);
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+        }
+
+        // check if this is correct
+        for (size_t s = 0; s < numShares; s++) {
+            for (size_t i = 0; i < size; i++) {
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][size + i] - ((temp_carry[s][3 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][4 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
+            }
+        }
+
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] A_buff[i];
+            delete[] B_buff[i];
+            delete[] temp_carry[i];
+            delete[] C_buff[i];
+        }
+        delete[] A_buff;
+        delete[] temp_carry;
+        delete[] B_buff;
+        delete[] C_buff;
+        break;
+    }
+    default:
+        break;
+    }
+
+    for (size_t s = 0; s < threshold + 1; s++) {
+        for (size_t i = 0; i < numShares; i++) {
+            delete[] result[s][i];
+        }
+        delete[] result[s];
+    }
+    delete[] result;
 }
 
-template <typename T>
-void Rss_GenerateRandomShares_trunc_5pc(T **res, T **res_prime, T **res_bitwise, uint ring_size, uint m, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    // printf("start\n");
-    int pid = ss->getID();
-    uint i, j;
-    uint bytes = (ring_size + 7) >> 3;
-    uint new_size = 3 * size; // DO NOT CHANGE, IT IS IRRELEVANT for n>3
-    // printf("bytes : %u \n", bytes);
-    uint p_index = pid - 1;
-    uint numParties = ss->getPeers();
-    uint numShares = ss->getNumShares();
-    uint threshold = ss->getThreshold();
-    // printf("threshold : %u \n", threshold);
-    // printf("numParties : %u \n", numParties);
-
-    int *index_map = new int[3];
-
-    uint reset_value;
-    switch (pid) {
-    case 1:
-        reset_value = 0;
-        index_map[0] = -1;
-        index_map[1] = 3;
-        index_map[2] = 5;
-        break;
-    case 2:
-        reset_value = 0;
-        index_map[0] = -1;
-        index_map[1] = -1;
-        index_map[2] = 3;
-        break;
-    case 3:
-        reset_value = 0;
-        index_map[0] = -1;
-        index_map[1] = -1;
-        index_map[2] = -1;
-        break;
-    case 4:
-        reset_value = 1;
-        index_map[0] = 5;
-        index_map[1] = -1;
-        index_map[2] = -1;
-        break;
-    case 5:
-        reset_value = 0;
-        index_map[0] = 3;
-        index_map[1] = 5;
-        index_map[2] = -1;
-        break;
-    }
-
-    bool prg_bools[4][6] = {
-        {1, 1, 0, 1, 0, 0},
-        {1, 0, 1, 0, 1, 0},
-        {0, 1, 1, 0, 0, 0},
-        {0, 0, 0, 0, 1, 1},
-    };
-
-    T **recvbuf = new T *[threshold];
-    for (i = 0; i < threshold; i++) {
-        recvbuf[i] = new T[new_size];
-        memset(recvbuf[i], 0, sizeof(T) * new_size);
-    }
-
-    // used since we have effectively double the number of values
-    // since we need to represent both arithmetic and binary shares
-    // printf("new_size : %u \n", new_size);
-
-    // generate a single random value, which happens to already be the sum of random bits *2^j
-    // [shares (0,1)][party (0,1,2)][new_size (2*size)]
-    T ***r_values = new T **[numShares];
-    for (i = 0; i < numShares; i++) {
-        r_values[i] = new T *[(threshold + 1)];
-        for (j = 0; j < (threshold + 1); j++) {
-            r_values[i][j] = new T[new_size];
-            memset(r_values[i][j], 0, sizeof(T) * new_size); // NECESSARY FOR n>3
-        }
-    }
-
-    T *r_bits = new T[size];
-    memset(r_bits, 0, sizeof(T) * size);
-    T *r_prime = new T[size];
-    memset(r_prime, 0, sizeof(T) * size);
-
-    uint8_t *r_buffer = new uint8_t[bytes * size];
-
-    uint8_t **buffer = new uint8_t *[numShares];
-    for (uint s = 0; s < numShares; s++) {
-        buffer[s] = new uint8_t[(threshold + 1) * bytes * new_size]; // we may not use all of these random bytes, but
-        ss->prg_getrandom(s, bytes, (threshold + 1) * new_size, buffer[s]);
-    }
-
-    if (pid < 4) {
-        // p1, p2, p3, choosing random values
-
-        ss->prg_getrandom(bytes, size, r_buffer);
-        // memcpy(r_bits, r_buffer, size * bytes);
-
-        for (i = 0; i < size; i++) {
-            memcpy(r_bits + i, r_buffer + i * bytes, bytes);
-
-            r_bits[i] = r_bits[i] & ss->SHIFT[ring_size];
-            r_prime[i] = (r_bits[i] >> T(m));
-
-            // printf("hi1\n");
-            for (size_t s = 1; s < numShares; s++) {
-                // memcpy(r_values[s][p_index], buffer[s], new_size * bytes);
-                memcpy(r_values[s][p_index] + 2 * i, buffer[s] + (2 * i) * bytes, bytes);
-                memcpy(r_values[s][p_index] + 2 * i + 1, buffer[s] + (2 * i + 1) * bytes, bytes);
-                memcpy(r_values[s][p_index] + 2 * i + 2, buffer[s] + (2 * i + 2) * bytes, bytes);
-            }
-
-            // r_values[0][p_index][2 * i] = T(5 + i);
-            // r_values[0][p_index][2 * i + 1] = T(5 + i);
-            r_values[0][p_index][2 * i] = r_bits[i];
-            r_values[0][p_index][2 * i + 1] = r_bits[i];
-            r_values[0][p_index][2 * i + 2] = r_bits[i];
-
-            for (size_t s = 1; s < numShares; s++) {
-                r_values[0][p_index][2 * i] -= r_values[s][p_index][2 * i];
-                r_values[0][p_index][2 * i + 1] ^= r_values[s][p_index][2 * i + 1];
-                r_values[0][p_index][2 * i + 2] -= r_values[s][p_index][2 * i + 2];
-            }
-        }
-    }
-
-    for (size_t i = 0; i < size; i++) {
-
-        int index = ((pid - 2) % (numParties - 1) + (numParties - 1)) % (numParties - 1);
-        for (size_t t = 0; t < threshold + 1; t++) {
-            if (p_index != t) {
-                // int index = (((pid - 2 - t) % ((numParties - 1))) + ((numParties - 1)) )  % ((numParties - 1) );
-
-                // printf("%i : bool_index = %i\n", t, index);
-                // loop through num_shares
-                // if we're supposed to generate, then memcpy from buffer[j]
-                for (size_t s = 0; s < numShares; s++) {
-                    if (prg_bools[index][s]) {
-                        // printf("copying: %llu\n", copying);
-                        memcpy(r_values[s][t] + (2 * i), buffer[s] + (2 * i) * bytes, bytes);
-                        memcpy(r_values[s][t] + (2 * i + 1), buffer[s] + (2 * i + 1) * bytes, bytes);
-                        memcpy(r_values[s][t] + (2 * i + 2), buffer[s] + (2 * i + 2) * bytes, bytes);
-                    }
-                }
-                // printf("subtracting\(numParties - 1)");
-                index = ((index - 1) % (numParties - 1) + (numParties - 1)) % (numParties - 1);
-            }
-        }
-    }
-
-    nodeNet.SendAndGetDataFromPeer(r_values[0][p_index], recvbuf, new_size, ring_size, ss->eda_map_mpc);
-
-    // extracting from buffer
-    for (size_t i = 0; i < size; i++) {
-        j = reset_value;
-        for (size_t t = 0; t < threshold + 1; t++) {
-
-            if (index_map[t] > 0) {
-                // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i], j, index_map[t]);
-                // printf("%u : putting %llu from recvbuff[%i] in %u\n", t, recvbuf[j][2 * i + 1], j, index_map[t]);
-                memcpy(r_values[index_map[t]][t] + 2 * i, recvbuf[j] + 2 * i, sizeof(T));
-                memcpy(r_values[index_map[t]][t] + 2 * i + 1, recvbuf[j] + 2 * i + 1, sizeof(T));
-                memcpy(r_values[index_map[t]][t] + 2 * i + 2, recvbuf[j] + 2 * i + 2, sizeof(T));
-                j++;
-            }
-        }
-    }
-
-    for (size_t i = 0; i < size; i++) {
-        for (uint p = 0; p < threshold + 1; p++) {
-            for (size_t s = 0; s < numShares; s++) {
-                res_bitwise[s][p * (size) + i] = r_values[s][p][2 * i + 1];
-            }
-        }
-    }
-
-    for (i = 0; i < size; i++) {
-        // this is so we only have t+1 parties generating shares
-        for (j = 0; j < threshold + 1; j++) {
-            // adding all the parties arithmetic shares together
-            for (size_t s = 0; s < numShares; s++) {
-                res[s][i] += r_values[s][j][2 * i];
-
-                res_prime[s][i] += r_values[s][j][2 * i + 2];
-                // res[1][i] += r_values[1][j][1 * i];
-            }
-        }
-    }
-
-    for (i = 0; i < threshold; i++) {
-        delete[] recvbuf[i];
-    }
-
-    delete[] recvbuf;
-    delete[] index_map;
-
-    for (i = 0; i < numShares; i++) {
-        for (j = 0; j < (threshold + 1); j++) {
-            delete[] r_values[i][j];
-        }
-        delete[] r_values[i];
-    }
-    for (i = 0; i < numShares; i++) {
-        delete[] buffer[i];
-    }
-    delete[] r_values;
-    delete[] buffer;
-    delete[] r_buffer;
-    delete[] r_prime;
-    delete[] r_bits;
-}
-
-#endif // _EDABIT_HPP_
+#endif // _EDABIT_HPP_r
