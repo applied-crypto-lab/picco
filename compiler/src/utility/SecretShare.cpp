@@ -469,6 +469,65 @@ std::vector<std::string> ShamirSS::getShares(long long secret) {
     return result;
 }
 
+
+// The reconstructSecret fucntion that is used for float reconstruction
+double ShamirSS::floatreconstructSecret(std::vector<std::vector<std::string>> y, int size) {
+
+    // Declare mpz_result as an array of mpz_t
+    mpz_t mpz_result[size];
+    for (int i = 0; i < size; i++) {
+        mpz_init(mpz_result[i]);
+    }
+
+    mpz_t temp;
+    mpz_init(temp);
+
+    for (int i = 0; i < size; i++) {
+        for (int peer = 0; peer < peers; peer++) {
+
+            // Convert string to mpz_t before using y - then use one by one
+            mpz_t mpzY;
+            mpz_init_set_str(mpzY, y[peer][i].c_str(), BASE);
+
+            modMul(temp, mpzY, lagrangeWeight[peer]);
+            modAdd(mpz_result[i], mpz_result[i], temp);
+
+            mpz_clear(mpzY); // Clear mpzY before the next iteration
+        }
+    }
+
+    // Do the flipNegative part here 
+    for (int k = 0; k < 4; k++) {
+        if (k == 1) {
+            // deal with negative results
+            mpz_t tmp;
+            mpz_init(tmp);
+            mpz_mul_ui(tmp, mpz_result[1], 2);
+            if (mpz_cmp(tmp, fieldSize) > 0)
+                mpz_sub(mpz_result[1], mpz_result[1], fieldSize);
+        }
+    }
+
+    // Get the float form of the number
+    double v = mpz_get_d(mpz_result[0]);
+    double p = mpz_get_d(mpz_result[1]);
+    double z = mpz_get_d(mpz_result[2]);
+    double s = mpz_get_d(mpz_result[3]);
+    double element = 0;
+    if (z == 1)
+        element = 0;
+    else {
+        element = v * pow(2, p);
+        if (s == 1)
+            element = -element;
+    }
+
+    return element;
+}
+
+
+
+// The reconstructSecret fucntion that is used for int reconstruction
 std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::string>> y, int size) {
 
     // Declare result as an array of mpz_t
@@ -504,7 +563,7 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
         // result[i] = mpz_get_d(mpz_result[i]); // Retrieve the value
         // mpz_clear(mpz_result[i]);              // Clear the memeory
 
-        // // Initialize temporary variable
+        // Initialize temporary variable
         mpz_t tmp;
         mpz_init(tmp);
 

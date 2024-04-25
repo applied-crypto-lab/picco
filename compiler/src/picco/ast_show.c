@@ -4578,14 +4578,20 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                     exit(0);
                 }
             }
-            stentry e = symtab_get(stab, tree->decl->u.id, IDNAME);
-            if (e == NULL) { // g-priv-two-dim-int-arr
-                ast_decl_memory_assign_int(tree, "");
-                indlev--;
-            } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) { // g-priv-one-dim-int-arr
-                ast_decl_memory_assign_int(tree, "");
-                indlev--;
-            }
+            ast_decl_memory_assign_int(tree, "");
+            /* The code below was used to check the entry and if it exists, it would not print it. This
+            code was removed when we faced a bug related to one-dim-private-global arrays. 
+            Basically, all the causes were saying to create/print the instructions and this was not! 
+            It was not found what the reason was but we removed this cause this was not relevant to what 
+            goes to the generated code. -> this bug was found while adding private global variables!*/
+            // stentry e = symtab_get(stab, tree->decl->u.id, IDNAME);
+            // if (e == NULL) { // g-priv-two-dim-int-arr
+            //     ast_decl_memory_assign_int(tree, "");
+            //     indlev--;
+            // } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) { // g-priv-one-dim-int-arr
+            //     ast_decl_memory_assign_int(tree, "");
+            //     indlev--;
+            // }
         } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
@@ -4597,14 +4603,15 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
                     exit(0);
                 }
             }
-            stentry e = symtab_get(stab, tree->decl->u.id->name, IDNAME);
-            if (e == NULL) {
-                ast_decl_memory_assign_float(tree, "");
-                indlev--;
-            } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) {
-                ast_decl_memory_assign_float(tree, "");
-                indlev--;
-            }
+            ast_decl_memory_assign_float(tree, "");
+            // stentry e = symtab_get(stab, tree->decl->u.id->name, IDNAME);
+            // if (e == NULL) {
+            //     ast_decl_memory_assign_float(tree, "");
+            //     indlev--;
+            // } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) {
+            //     ast_decl_memory_assign_float(tree, "");
+            //     indlev--;
+            // }
         }
         break;
     }
@@ -4612,8 +4619,6 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
 
 void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     indent();
-    // str_printf(global_string, "%d, %d, %d", is_priv, gf, is_init_decl);
-    // str_printf(global_string, "%s, ", tree->decl->u.id->name);
     if (tree->decl->type == DIDENT) {
         if (gf == 1) {
             indent_global_string(global_string);

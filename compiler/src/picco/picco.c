@@ -655,6 +655,15 @@ int main(int argc, char *argv[]) {
     // If mode is true -> -m
     // If mode is false -> -d
 
+    // This can be used to print the ast tree
+    // str aa = Str("");
+    // ast_stmt_print(aa, ast);
+    // printf("\n\n");
+
+    // This can be used to print the symbol table
+    // scope_show(stab);
+    // printf("\n\n");
+
     // Open the file that will include the generated code inside ast_show
     // Get the global_priv_variables declaration and call ast_show to print the original main
     char *global_priv_var = ast_show(ast, output_filename);
