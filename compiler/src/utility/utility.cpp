@@ -419,13 +419,15 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 if (secrecy == 1) {
                     if (j < result.size()) { // Check if j is within the bounds of result
                         // deal with negative results
+                        // try {
+                        //     ss->flipNegative(result[j]);
+                        // } catch (const std::exception& e) {
+                        //     throw std::runtime_error("[Int] Failed to flip negative: " + std::string(e.what()));
+                        // }
                         try {
-                            ss->flipNegative(result[j]);
-                        } catch (const std::exception& e) {
-                            throw std::runtime_error("[Int] Failed to flip negative: " + std::string(e.what()));
-                        }
-                        try {
-                            value = std::to_string(result[j]); // The reconstructSecret returns long long so we need to convert it to str before outputting
+                            std::ostringstream ss; // The reconstructSecret returns long long so we need to convert it to str before 
+                            ss << result[j];
+                            value = ss.str();
                         } catch (const std::exception& e) {
                             throw std::runtime_error("[Int] Failed to convert result to string: " + std::string(e.what()));
                         }
@@ -513,34 +515,35 @@ void produceOutputs(std::ifstream inputFiles[], std::ofstream outputFiles[], std
                 }
                 if (secrecy == 1) {
                     try {
-                        result = ss->reconstructSecret(shares, 4);
+                        element = ss->floatreconstructSecret(shares, 4);
                     } catch (const std::runtime_error &e) {
                         throw std::runtime_error("[reconstructSecret, private float] Error in reconstructing secret for [private float]: " + std::string(e.what()));
                     }
                 }
-                for (int k = 0; k < 4; k++) {
-                    if (k == 1) {
-                        // deal with negative results
-                        try {
-                            ss->flipNegative(result[1]);
-                        } catch (const std::exception& e) {
-                            throw std::runtime_error("[Private Float] Failed to flip negative: " + std::string(e.what()));
-                        }
-                    }
-                }
+                // The code below was removed and used inside floatreconstructSecret for float numbers
+                // for (int k = 0; k < 4; k++) {
+                //     if (k == 1) {
+                //         // deal with negative results
+                //         try {
+                //             ss->flipNegative(result[1]);
+                //         } catch (const std::exception& e) {
+                //             throw std::runtime_error("[Private Float] Failed to flip negative: " + std::string(e.what()));
+                //         }
+                //     }
+                // }
                 // p (result[1]): Exponent part.
                 // v (result[0]): Mantissa.
                 // z (result[2]): Indicator for special cases. if set, val=0
                 // s (result[3]): Sign indicator.
-                if (result[2] != 1) {
-                    try {
-                        element = result[0] * pow(2, result[1]);
-                    } catch (const std::exception& e) {
-                        throw std::runtime_error("[Private Float] Pow function failed to calculate element: " + std::string(e.what()));
-                    }
-                    if (result[3] == 1)
-                        element = -element;
-                }
+                // if (result[2] != 1) {
+                //     try {
+                //         element = result[0] * pow(2, result[1]);
+                //     } catch (const std::exception& e) {
+                //         throw std::runtime_error("[Private Float] Pow function failed to calculate element: " + std::string(e.what()));
+                //     }
+                //     if (result[3] == 1)
+                //         element = -element;
+                // }
                 if (j == 0) {
                     if (size1 == 0)
                         outputFiles[0] << name + "=";

@@ -23,6 +23,9 @@
 #include <cstdio>
 #include <string>
 #include <sys/types.h>
+#include <cassert>
+
+#define assertm(exp, msg) assert(((void)msg, exp))
 
 // this is a suite of bit-level utilities, primarily used for certain RSS operations, as well as the seed generation algorithm
 
@@ -30,6 +33,10 @@
 template <typename T>
 inline __attribute__((always_inline)) T GET_BIT(T X, T N) {
     return (((X) >> (N)) & T(1));
+}
+template <typename T>
+inline __attribute__((always_inline)) T GET_LSB(T X) {
+    return (X & T(1));
 }
 
 // sets the Nth bit of X (from right to left) to B

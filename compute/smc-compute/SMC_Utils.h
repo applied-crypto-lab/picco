@@ -43,7 +43,7 @@ typedef mpz_t priv_int;
 #define MPZ_CAST(X) (mpz_t *)(X)
 #endif
 #if __RSS__
-#include "rss/RSS_types.hpp" // header generated dynamically by the compiler according to the ring size
+#include "rss/RSS_types.hpp"        // header generated dynamically by the compiler according to the ring size
 #define MPZ_CAST(X) (priv_int *)(X) // check how to up-cast from 1D to 2D
 
 #include "rss/RSSHeaders.hpp"
@@ -58,7 +58,7 @@ public:
     // Share a secret between
     int smc_open(priv_int var, int threadID);
     float smc_open(priv_int *var, int threadID);
-   #if __RSS__ 
+#if __RSS__
     void smc_open(priv_int result, priv_int *var, int size, int threadID);
 #endif
     // Methods for input and output
@@ -558,7 +558,7 @@ public:
     void smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, int threadID);
 
     std::map<std::string, std::vector<int>> shamir_seeds_coefs; // mapping of keys (str) to polynomial coefficients
-    std::map<std::vector<int>, uint8_t *> rss_share_seeds;
+    std::map<std::vector<int>, std::string> rss_share_seeds;
 
     int id;
 
@@ -568,13 +568,18 @@ public:
 
     std::vector<int> extract_share_WITH_ACCESS(int binary_rep, int peers, int id);
     std::vector<int> extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id);
+    std::vector<int> extract_share_WITHOUT_ACCESS_new(int binary_rep, int peers, int id, int threshold);
     void getCombinations(std::vector<int> &elements, int reqLen, std::vector<int> &pos, int depth, int margin, std::vector<std::vector<int>> &result);
     std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 #if __RSS__
-    void smc_test_rss(priv_int* A, int* B, int size, int threadID);
+    void smc_test_rss(priv_int *A, int *B, int size, int threadID);
 
     uint getNumShares();
+    void offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri); 
+    __m128i *offline_prg_keyschedule(uint8_t *src);
+    void prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key);
+
 #endif
 
 private:
@@ -594,6 +599,5 @@ private:
 
 using std::ostream;
 using std::vector;
-
 
 #endif /* SMC_UTILS_H_ */

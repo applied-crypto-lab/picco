@@ -18,9 +18,21 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "Mult.h"
+#include "Open.h"
 
 // This protocol performs the optimized multiplication proposed by Blanton, Kang, and Yuan (ACNS 2020)
-void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+
+    // for (size_t i = 0; i < size; i++) {
+    //         gmp_printf("A[%i]: %Zu\n", i, A[i]);
+    //         gmp_printf("B[%i]: %Zu\n", i, B[i]);
+    //     // int tmp = Open_int(A[i], threadID, net, ss);
+    //     // std::cout << "A " << i << " " << tmp << std::endl;
+    // }
+    // for (size_t i = 0; i < size; i++) {
+    //     // int tmp = Open_int(B[i], threadID, net, ss);
+    //     // std::cout << "B " << i << " " << tmp << std::endl;
+    // }
 
     int peers = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -50,8 +62,8 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
         mpz_init(temp[i]);
     }
     // start computation
-    ss->modMul(temp, A, B, size); // step 1
-    ss->PRG(rand_buff, size, 0);  // step 2
+    ss->modMul(temp, A, B, size);                 // step 1
+    ss->PRG_thread(rand_buff, size, 0, threadID); // step 2
     for (int i = 0; i < size; i++) {
         // putting the [c]_p into last position of rand_buff
         mpz_set(rand_buff[threshold][i], temp[i]);
@@ -62,7 +74,7 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
     // sending contents of buffer[0,...,t], recieving into buffer[t+1,...,n]
     net.multicastToPeers_Mult(ss->getSendToIDs(), ss->getRecvFromIDs(), buffer, size, threadID);
 
-    ss->PRG(buffer, size, threshold); // step 5, reusing buffer
+    ss->PRG_thread(buffer, size, threshold, threadID); // step 5, reusing buffer
 
     ss->reconstructSecretMult(C, buffer, size); // step 5
 
@@ -85,5 +97,4 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
         mpz_clear(temp[i]);
     }
     free(temp);
-
 }

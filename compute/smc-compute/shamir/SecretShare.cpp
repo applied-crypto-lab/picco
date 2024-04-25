@@ -19,10 +19,19 @@
 */
 
 #include "SecretShare.h"
+#include "NodeNetwork.h"
 
 using std::cout;
 using std::endl;
+gmp_randstate_t *SecretShare::rstatesMult;
+gmp_randstate_t **SecretShare::rstates_thread_mult;
+int *SecretShare::rand_isFirst_thread_mult = NULL;
 
+gmp_randstate_t *SecretShare::rstates;
+gmp_randstate_t **SecretShare::rstates_thread;
+int *SecretShare::rand_isFirst_thread = NULL;
+
+pthread_mutex_t SecretShare::mutex;
 /*
  * the constructor receives:
  * p - the number of computational parties or peers,
@@ -40,7 +49,9 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
 
     polynomials = _polynomials; // doesnt even really need to be a map
     numThreads = _numThreads;
-
+    // for (size_t i = 0; i < 2 * threshold; i++) {
+    //     print_hexa(keys[i], KEYSIZE);
+    // }
     mpz_init(fieldSize);
     mpz_set(fieldSize, mod);
     // gmp_printf("fieldSize %Zu\n", fieldSize);
@@ -58,6 +69,13 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
         else
             recvFromIDs[i] = myID - threshold + i;
     }
+
+    mult_keys = new unsigned char *[2 * threshold];
+    for (size_t i = 0; i < 2 * threshold; i++) {
+        mult_keys[i] = new unsigned char[KEYSIZE];
+        memcpy(mult_keys[i], keys[i], KEYSIZE);
+    }
+    // mult_keys = keys;
 
     for (int i = 0; i < threshold; i++) {
         multIndices[i] = sendToIDs[i];
@@ -98,12 +116,20 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     // initialize PRGs for (non-)interactive random generation
     pthread_mutex_init(&mutex, NULL);
     rand_isFirst_thread = (int *)malloc(sizeof(int) * numThreads);
+    rand_isFirst_thread_mult = (int *)malloc(sizeof(int) * numThreads);
     for (int i = 0; i < numThreads; i++) {
         rand_isFirst_thread[i] = 0;
+        rand_isFirst_thread_mult[i] = 0;
     }
+
     rstates_thread = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * polynomials.size());
     for (int i = 0; i < polynomials.size(); i++) {
         rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
+    }
+
+    rstates_thread_mult = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * (2 * threshold));
+    for (int i = 0; i < 2 * threshold; i++) {
+        rstates_thread_mult[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
     }
 
     std::map<std::string, vector<int>>::iterator it;
@@ -162,6 +188,28 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     free(temp1);
     free(temp2);
     mpz_clear(zero);
+    mpz_clear(seed);
+}
+
+void SecretShare::randInit_thread_mult(int threadID) {
+    // std::cout << "RAND INIT THREAD MULT threadID = " << threadID << std::endl;
+    if (threadID == -1) {
+        return;
+    }
+    if (rand_isFirst_thread_mult[threadID] == 0) {
+        for (size_t i = 0; i < 2 * threshold; i++) {
+            print_hexa(mult_keys[i], KEYSIZE);
+        }
+        mpz_t seed;
+        mpz_init(seed);
+        for (int threadID = 0; threadID < numThreads; threadID++) {
+            for (int i = 0; i < 2 * threshold; i++) {
+                gmp_randinit_default(rstates_thread_mult[i][threadID]);
+                mpz_import(seed, KEYSIZE, 1, sizeof(mult_keys[i][0]), 0, 0, mult_keys[i]);
+                gmp_randseed(rstates_thread_mult[i][threadID], seed);
+            }
+        }
+    }
 }
 
 void SecretShare::randInit_thread(int threadID) {
@@ -1055,6 +1103,25 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
     mpz_clear(coefficient);
     for (int i = 0; i < size; i++) {
         mpz_urandomm(temp[i], rstate_0, fieldSize); // step 5, the "or" condition
+    }
+}
+
+// start_ind dictates which half of the array to take from
+// if 0, the first half. if t, the second half
+void SecretShare::PRG_thread(mpz_t **output, uint size, uint start_ind, int threadID) {
+    if (threadID == -1) {
+        printf("SINGLE THREADED PRG\n");
+        PRG(output, size, start_ind);
+    } else {
+        if (rand_isFirst_thread_mult[threadID] == 0) {
+            randInit_thread_mult(threadID);
+            rand_isFirst_thread_mult[threadID] = 1;
+        }
+        for (int i = 0; i < threshold; i++) {
+            for (int j = 0; j < size; j++) {
+                mpz_urandomm(output[i][j], rstates_thread_mult[i + start_ind][threadID], fieldSize);
+            }
+        }
     }
 }
 

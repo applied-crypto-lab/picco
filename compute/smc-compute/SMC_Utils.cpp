@@ -18,6 +18,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "SMC_Utils.h"
+#include "bit_utils.hpp"
+#include <iomanip>
 #include <string>
 
 // Constructors
@@ -41,18 +43,20 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     std::cout << "Creating the NodeNetwork\n";
     NodeNetwork *nodeNet = new NodeNetwork(nodeConfig, privatekey_filename, num_threads);
     net = *nodeNet; // dereferencing, net is "copy initialized"
+
     seedSetup(seed_map, numOfPeers, threshold);
 
     std::cout << "Creating SecretShare\n";
 #if __SHAMIR__
 
     net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
-    printf("SHAMIR\n");
+    printf("Technique: SHAMIR\n");
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
-    printf("RSS\n");
+    printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
+    // printf("RSS_constructor end\n");
 
 #endif
 
@@ -1735,20 +1739,17 @@ void SMC_Utils::smc_test_op(priv_int *a, priv_int *b, int alen, int blen, priv_i
 #endif
 }
 
+std::string uint8PtrToString(const uint8_t *data, size_t length) {
+    return std::string(data, data + length);
+}
+
 // seed_map - contains binary encodings of access sets T (as defined in Baccarini et al., "Multi-Party Replicated Secret Sharing over a Ring with Applications to Privacy-Preserving Machine Learning," 2023)
 // 2*KEYSIZE - 16 bytes for
 void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) {
-    
-    // allocated using new, other wise the memory is automatically freed when the function goes out of scope
-    uint8_t *RandomData_send = new uint8_t[2 * KEYSIZE];
-    uint8_t *RandomData_recv = new uint8_t[2 * KEYSIZE];
-    memset(RandomData_recv, 0, sizeof(uint8_t) * 2 * KEYSIZE);
-    memset(RandomData_send, 0, sizeof(uint8_t) * 2 * KEYSIZE);
-    // needs to be freed at some point
-
-    // uint8_t RandomData_send[2 * KEYSIZE];// this doesnt work
-    // uint8_t RandomData_recv[2 * KEYSIZE];
-
+    // this works now, since we are copying the data to a string, which is persistent in scope
+    uint8_t RandomData_send[2 * KEYSIZE];
+    uint8_t RandomData_recv[2 * KEYSIZE];
+    printf("seedSetup\n");
 #if __SHAMIR__
     std::vector<int> coefficients;
     // typedef int var_type; // this is here because I don't feel like refactoring shamirSS to use uints
@@ -1759,13 +1760,19 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 #endif
 
     std::vector<int> T_recv, send_map, recv_map; // declaring once to be reused
-
+    std::vector<int> recv_map_original;
     // its fine to reuse vectors when inserting into the final mapping
     FILE *fp = fopen("/dev/urandom", "r"); // used for pulling good randomness for seeds
     try {
         for (auto &seed : seed_map) {
+
             send_map = extract_share_WITH_ACCESS(seed, peers, id);
-            recv_map = extract_share_WITHOUT_ACCESS(seed, peers, id); // equivalent to T_mine in the current iteration
+            recv_map_original = extract_share_WITHOUT_ACCESS(seed, peers, id);       // equivalent to T_mine in the current iteration
+            recv_map = extract_share_WITHOUT_ACCESS_new(seed, peers, id, threshold); // equivalent to T_mine in the current iteration
+            // std::cout << "seed : " << seed << endl;
+            // std::cout << "send_map          : " << send_map << endl;
+            // std::cout << "recv_map_original : " << recv_map << endl;
+            // std::cout << "recv_new          : " << recv_map << endl;
 
             if (fread(RandomData_send, 1, (2 * KEYSIZE), fp) != (2 * KEYSIZE))
                 throw std::runtime_error("error reading random bytes from /dev/urandom. Which OS are you using?");
@@ -1781,30 +1788,41 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
 
                 // generating the share id T corresponding to the key I just recieved
                 T_recv = extract_share_WITHOUT_ACCESS(seed, peers, recv_map[i]);
+                std::vector<int> T_recv_test = extract_share_WITHOUT_ACCESS_new(seed, peers, recv_map[i], threshold);
                 sort(T_recv.begin(), T_recv.end());
+                sort(T_recv_test.begin(), T_recv_test.end());
 #if __SHAMIR__
                 coefficients = generateCoefficients(T_recv, threshold);
                 shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_recv), coefficients));
 
 #endif
 #if __RSS__
-                // cout << "inserting" << T_recv << " to ";
+                // cout << "inserting (original)" << T_recv << endl;
+                // cout << "inserting (new)     " << T_recv_test << endl; // SHOULDNT BE USED
                 // print_hexa_2(RandomData_recv, 2 * KEYSIZE);
-
-                rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
+                std::string result = uint8PtrToString(RandomData_recv, 2 * KEYSIZE);
+                // rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(T_recv, RandomData_recv));
+                rss_share_seeds.insert(std::pair<std::vector<int>, std::string>(T_recv, result));
 
 #endif
             }
-            sort(recv_map.begin(), recv_map.end()); // sorting now that we're done using it to know the order which we're recieving shares
+            // printf("\n");
+            sort(recv_map.begin(), recv_map.end());                   // sorting now that we're done using it to know the order which we're recieving shares
+            sort(recv_map_original.begin(), recv_map_original.end()); // sorting now that we're done using it to know the order which we're recieving shares
 #if __SHAMIR__
             coefficients = generateCoefficients(recv_map, threshold);
             shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_send), coefficients));
 
 #endif
 #if __RSS__
-            // cout << "inserting" << recv_map << " to ";
+            // cout << "inserting (recv_map_org)" << recv_map_original << endl;
+            // cout << "inserting (recv_map_new)" << recv_map << endl;
             // print_hexa_2(RandomData_send, 2 * KEYSIZE);
-            rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
+            // rss_share_seeds.insert(std::pair<std::vector<int>, uint8_t *>(recv_map, RandomData_send));
+            std::string result = uint8PtrToString(RandomData_send, 2 * KEYSIZE);
+            rss_share_seeds.insert(std::pair<std::vector<int>, std::string>(recv_map_original, result));
+
+            // printf("\n");
 #endif
         }
         fclose(fp);
@@ -1814,10 +1832,13 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
     }
 
     // used for testing
-    // for (auto& [key, value]: rss_share_seeds) {
-    //     std::cout << key << " has value " ;
-    //     print_hexa_2(value, 2*KEYSIZE);
+    // int ctr = 0;
+    // for (auto &[key, value] : rss_share_seeds) {
+    //     std::cout << key << endl;
+    //     ctr += 1;
+    //     // print_hexa_2(value, 2*KEYSIZE);
     // }
+    // std::cout << "num keys = " << ctr << std::endl;
 }
 
 // binary_rep = bianry encoding of share T generated from seed_map
@@ -1838,12 +1859,41 @@ std::vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers,
     }
     return result;
 }
+// older version, gives incorrect results for some binary representations for >=7 parties
+// replaced by "naive" approach in "new" function
 std::vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
     // iterate through bits from left to right
     std::vector<int> result;
     for (int i = peers - 1; i > 0; i--) { // scans through remaining n-1 (LSB always set)
         if (!GET_BIT(binary_rep, i)) {
             result.push_back(((id + i - 1) % peers + 1));
+        }
+    }
+    return result;
+}
+
+std::vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS_new(int binary_rep, int peers, int id, int threshold) {
+    // first getting the sendIDs
+    int tmp = 0;
+    int idx = 0;
+    std::vector<int> result(threshold);
+    for (int peer = 1; peer <= peers; peer++) {
+        // std::cout << "peer: " << peer << std::endl;
+        idx = 0;
+        for (int i = 1; i < peers; i++) { // scans through remaining n-1 (LSB always set)
+            // std::cout << "i : " << i << std::endl;
+            tmp = ((peer + i - 1) % peers + 1);
+            if (GET_BIT(binary_rep, i)) {
+                if (tmp == id) {
+                    // std::cout << "idx : " << idx << std::endl;
+                    // std::cout << "peer: " << peer << std::endl;
+                    result.at(idx) = peer;
+                    // std::cout << "result: " << result << std::endl;
+                    break;
+                } else {
+                    idx += 1;
+                }
+            }
         }
     }
     return result;
@@ -1905,60 +1955,377 @@ using std::cout;
 using std::endl;
 using std::vector;
 
+void SMC_Utils::offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri) { // ri used to be void, replaced with __m128i* to compile
+    __m128i orr, mr;
+    __m128i *r = ri;
+
+    orr = _mm_load_si128((__m128i *)src);
+    mr = orr;
+
+    mr = _mm_xor_si128(mr, r[0]);
+    mr = _mm_aesenc_si128(mr, r[1]);
+    mr = _mm_aesenc_si128(mr, r[2]);
+    mr = _mm_aesenc_si128(mr, r[3]);
+    mr = _mm_aesenc_si128(mr, r[4]);
+    mr = _mm_aesenc_si128(mr, r[5]);
+    mr = _mm_aesenc_si128(mr, r[6]);
+    mr = _mm_aesenc_si128(mr, r[7]);
+    mr = _mm_aesenc_si128(mr, r[8]);
+    mr = _mm_aesenc_si128(mr, r[9]);
+    mr = _mm_aesenclast_si128(mr, r[10]);
+    mr = _mm_xor_si128(mr, orr);
+    _mm_storeu_si128((__m128i *)dest, mr);
+}
+
+__m128i *SMC_Utils::offline_prg_keyschedule(uint8_t *src) {
+    // correctness must be checked here (modified from original just to compile, used to not have cast (__m128i*))
+    // __m128i *r = static_cast<__m128i *>(malloc(11 * sizeof(__m128i)));
+    __m128i *r = new __m128i[11]; // alternate
+    r[0] = _mm_load_si128((__m128i *)src);
+
+    KE2(r[1], r[0], 0x01)
+    KE2(r[2], r[1], 0x02)
+    KE2(r[3], r[2], 0x04)
+    KE2(r[4], r[3], 0x08)
+    KE2(r[5], r[4], 0x10)
+    KE2(r[6], r[5], 0x20)
+    KE2(r[7], r[6], 0x40)
+    KE2(r[8], r[7], 0x80)
+    KE2(r[9], r[8], 0x1b)
+    KE2(r[10], r[9], 0x36)
+    return r;
+}
+
+void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key) {
+    uint8_t res[16] = {};
+    offline_prg(res, seed, key);
+    memset(seed, 0, 16);
+    memset(destination, 0, sizeof(priv_int_t));
+    memcpy(seed, res, sizeof(priv_int_t));        // cipher becomes new seed or key
+    memcpy(destination, res, sizeof(priv_int_t)); // cipher becomes new seed or key
+}
+
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
+    size = 10; //  testing only so I dont have to keep opening rss_main.cpp
+
     uint numShares = ss->getNumShares();
+    uint totalNumShares = ss->getTotalNumShares();
+    uint ring_size = ss->ring_size;
     uint bytes = (ss->ring_size + 7) >> 3;
     printf("bytes : %u\n", bytes);
+    printf("ring_size : %u\n", ring_size);
+    printf("size : %u\n", size);
+    printf("----\n\n");
+
+    __m128i *key_prg;
+    uint8_t key_raw[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+    key_prg = offline_prg_keyschedule(key_raw);
+    uint8_t k1[] = {0x31, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34};
+    uint8_t k2[] = {0xa1, 0x34, 0x6f, 0x67, 0x10, 0x1b, 0x13, 0xa3, 0x56, 0x45, 0x90, 0xb2, 0x13, 0xe3, 0x23, 0x24};
+
+    std::vector<std::vector<int>> share_mapping;
+    int numPeers = ss->getPeers();
+
+    switch (numPeers) {
+    case 3:
+        share_mapping = {
+            {1, 2}, // p1
+            {2, 0}, // p2
+            {0, 1}, // p3
+        };
+        break;
+    case 5:
+        share_mapping = {
+            {4, 5, 6, 7, 8, 9}, // p1
+            {7, 8, 1, 9, 2, 3}, // p2
+            {9, 2, 5, 3, 6, 0}, // p3
+            {3, 6, 8, 0, 1, 4}, // p4
+            {0, 1, 2, 4, 5, 7}  // p5
+        };
+        break;
+    case 7:
+        share_mapping = {
+            {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34}, // p1
+            {25, 26, 27, 5, 28, 29, 6, 30, 7, 8, 31, 32, 9, 33, 10, 11, 34, 12, 13, 14},      // p2
+            {31, 32, 9, 19, 33, 10, 20, 11, 21, 1, 34, 12, 22, 13, 23, 2, 14, 24, 3, 4},      // p3
+            {34, 12, 22, 28, 13, 23, 29, 2, 6, 16, 14, 24, 30, 3, 7, 17, 4, 8, 18, 0},        // p4
+            {14, 24, 30, 33, 3, 7, 10, 17, 20, 26, 4, 8, 11, 18, 21, 27, 0, 1, 5, 15},        // p5
+            {4, 8, 11, 13, 18, 21, 23, 27, 29, 32, 0, 1, 2, 5, 6, 9, 15, 16, 19, 25},         // p6
+            {0, 1, 2, 3, 5, 6, 7, 9, 10, 12, 15, 16, 17, 19, 20, 22, 25, 26, 28, 31}          // p7
+        };
+        break;
+    default:
+        fprintf(stderr, "ERROR (rss_setup): invalid number of parties, only n = {3, 5, 7} is supported for RSS \n");
+        exit(1);
+    }
+
+    priv_int_t **Data1 = new priv_int_t *[totalNumShares];
+    priv_int_t **Data2 = new priv_int_t *[totalNumShares];
+    for (int i = 0; i < totalNumShares; i++) {
+        Data1[i] = new priv_int_t[size];
+        memset(Data1[i], 0, sizeof(priv_int_t) * size);
+        Data2[i] = new priv_int_t[size];
+        memset(Data2[i], 0, sizeof(priv_int_t) * size);
+    }
+
+    for (int i = 0; i < size; i++) {
+        for (size_t j = 0; j < totalNumShares - 1; j++) {
+            prg_aes_ni(Data1[j] + i, k1, key_prg);
+            // Data1[j][i] = GET_BIT(Data1[j][i], priv_int_t(0));
+            prg_aes_ni(Data2[j] + i, k2, key_prg);
+            // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
+        }
+        Data1[totalNumShares - 1][i] = i;
+        Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
+        for (size_t j = 0; j < totalNumShares - 1; j++) {
+            Data1[totalNumShares - 1][i] -= Data1[j][i];
+            Data2[totalNumShares - 1][i] -= Data2[j][i];
+            // Data1[totalNumShares - 1][i] ^= GET_BIT(Data1[j][i], priv_int_t(0)); // only want a single bit
+            // Data2[totalNumShares - 1][i] ^= GET_BIT(Data2[j][i], priv_int_t(0)); // only want a single bit
+        }
+    }
+    // for (size_t i = 0; i < size; i++) {
+    //     for (size_t s = 0; s < totalNumShares; s++) {
+    //         printf("Data1[%lu][%lu]: %u \n", i, s, Data1[s][i]);
+    //         printf("Data2[%lu][%lu]: %u \n", i, s, Data2[s][i]);
+    //     }
+    //     printf("\n");
+    // }
 
     // expected RSS initialization
+
+    priv_int result = new priv_int_t[size];
+    memset(result, 0, sizeof(priv_int_t) * size);
+
+    priv_int result_2 = new priv_int_t[size];
+    memset(result_2, 0, sizeof(priv_int_t) * size);
+
+    priv_int result_3 = new priv_int_t[size];
+    memset(result_3, 0, sizeof(priv_int_t) * size);
+
     priv_int *B_sparse = new priv_int[ss->getNumShares()];
+    priv_int *a = new priv_int[ss->getNumShares()];
+    priv_int *b = new priv_int[ss->getNumShares()];
+
     priv_int *C = new priv_int[ss->getNumShares()];
+    priv_int *D = new priv_int[ss->getNumShares()];
+    priv_int *A_bit = new priv_int[ss->getNumShares()];
+    priv_int *B_bit = new priv_int[ss->getNumShares()];
     for (int i = 0; i < ss->getNumShares(); i++) {
         B_sparse[i] = new priv_int_t[size];
         memset(B_sparse[i], 0, sizeof(priv_int_t) * size);
         C[i] = new priv_int_t[size];
         memset(C[i], 0, sizeof(priv_int_t) * size);
+        D[i] = new priv_int_t[size];
+        memset(D[i], 0, sizeof(priv_int_t) * size);
     }
 
-    priv_int result = new priv_int_t[size];
-    memset(result, 0, sizeof(priv_int_t) * size);
+    for (size_t i = 0; i < numShares; i++) {
+        a[i] = Data1[share_mapping[id - 1][i]];
+        b[i] = Data2[share_mapping[id - 1][i]];
+    }
+    // for (size_t i = 0; i < numShares; i++) {
+    //     A_bit[i] = Data1[share_mapping[id - 1][i]];
+    //     B_bit[i] = Data2[share_mapping[id - 1][i]];
+    // }
+    // Open(result_2, a, size, -1, net, ss);
+    // Open(result_3, b, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
+    //     printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    // }
 
-    smc_open(result, A, size, -1);
+    int m = 10;
+    doOperation_Trunc(C, b, ring_size, m, size, -1, net, ss);
+    Open(result_2, C, size, -1, net, ss);
+    Open(result, b, size, -1, net, ss);
+    // printf("\n");
     for (size_t i = 0; i < size; i++) {
-        printf("(open) A [%lu]: %u\n", i, result[i]);
+        if (!(result_2[i] == (result[i] >> priv_int_t(m)))) {
+            printf("trunc  ERROR\n");
+            printf("(open)  input     [%lu]: %u\n", i, result[i]);
+            print_binary(result[i], ring_size);
+            printf("(open)  trunc res [%lu]: %u\n", i, result_2[i]);
+            print_binary(result_2[i], ring_size);
+            printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
+            print_binary(result[i] >> priv_int_t(m), ring_size);
+        }
     }
 
-    ss->sparsify(B_sparse, B, size);
+    // doOperation_EQZ(b, C, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, b, size, -1, net, ss);
+    // // Open(result_3, b, size, -1, net, ss);
 
     // for (size_t i = 0; i < size; i++) {
-    //     printf("B[%lu]: %i\n", i, B[i]);
+    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     // print_binary(result[i], ring_size);
+    //     printf("(open) b   [%lu]: %u\n", i, result_2[i]);
+    //     // print_binary(result_2[i], ring_size);
+    //     if (!(result[i] == (result_2[i] == 0))) {
+    //         printf("EQZ ERROR\n");
+
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
+    // }
+    // printf("\n");
+    // // Rss_BitDec(C, a, size, ring_size, net, ss);
+    // doOperation_EQZ(a, C, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // // Open(result_3, b, size, -1, net, ss);
+
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     // print_binary(result[i], ring_size);
+    //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
+    //     // print_binary(result_2[i], ring_size);
+    //     if (!(result[i] == (result_2[i] == 0))) {
+    //         printf("EQZ ERROR\n");
+
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
     // }
 
-    for (size_t i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++) {
-            printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
-        }
-        printf("\n");
-    }
+    // Rss_BitDec(C, a, size, ring_size, net, ss);
+    // // doOperation_LT(C, a, b, ring_size, ring_size, ring_size, size, -1, net, ss);
+    // Open_Bitwise(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // // Open(result_3, b, size, -1, net, ss);
 
-    // uint8_t *buffer = new uint8_t[bytes];
-    // ss->prg_getrandom(0, bytes, size, buffer);
-    // for (int i = 0; i < size; i++) {
-    //     memcpy(result + i, buffer + i * bytes, bytes);
-    //     printf("prg(0) %u\n", result[i]);
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     if (!(result[i] == (result_2[i]))) {
+    //         printf("BitDec ERROR\n");
+
+    //         printf("(open) c   [%lu]: %u\t", i, result[i]);
+    //         print_binary(result[i], ring_size);
+    //         printf("(open) a   [%lu]: %u\t", i, result_2[i]);
+    //         print_binary(result_2[i], ring_size);
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
     // }
-    // ss->prg_getrandom(1, bytes, size, buffer);
-    // for (int i = 0; i < size; i++) {
-    //     memcpy(result + i, buffer + i * bytes, bytes);
-    //     printf("prg(1) %u\n", result[i]);
+
+    // doOperation_LT(C, b, a, ring_size, ring_size, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // Open(result_3, b, size, -1, net, ss);
+
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(open) c   [%lu]: %u\n", i, result[i]);
+    //     // printf("(open) a   [%lu]: %u\n", i, result_2[i]);
+    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     if (!(result[i] == (result_2[i] > result_3[i]))) {
+    //         printf("LT ERROR\n");
+
+    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     }
     // }
 
-    smc_open(result, B_sparse, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
-    }
+    // Rss_RandBit(C, size, ring_size, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // int ctr = 0;
+    // for (size_t i = 0; i < size; i++) {
+    //     // printf("(RandBit, open, Z_2k) r   [%lu]: %u\n", i, result[i]);
+    //     if (result[i] == 0)
+    //         ctr += 1;
+    // }
+    // std::cout << "percentage of 0's: " << 100 * float(ctr) / float(size) << "  percentage of 1's : " << 100 * float(size - ctr) / float(size) << std::endl;
 
-    Rss_Mult_Sparse_3pc(C, A, B_sparse, size, ss->ring_size, net, ss);
+    // Rss_MSB(C, a, size, ring_size, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     priv_int_t check = GET_BIT(result_2[i], ring_size - 1);
+    //     if (!(result[i] == check)) {
+    //         printf("MSB ERROR\n");
+    //     }
+    // }
+
+    // edaBit(C, D, 8, size, ring_size, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open_Bitwise(result_2, D, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     if (result[i] != result_2[i]) {
+    //         printf("edabit ERROR\n");
+
+    //         printf("(open, Z_2k) r   [%lu]: %u\t", i, result[i]);
+    //         print_binary(result[i], ring_size);
+    //         printf("(open, Z_2) bits [%lu]: %u\t", i, result_2[i]);
+    //         print_binary(result_2[i], ring_size);
+    //     }
+    // }
+
+    // edaBit(C, D, ring_size, size, ring_size, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open_Bitwise(result_2, D, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     if (result[i] != result_2[i]) {
+    //         printf("edabit ERROR\n");
+    //         printf("(open, Z_2k) r   [%lu]: %u\t", i, result[i]);
+    //         print_binary(result[i], ring_size);
+    //         printf("(open, Z_2) bits [%lu]: %u\t", i, result_2[i]);
+    //         print_binary(result_2[i], ring_size);
+    //     }
+    // }
+    // for (size_t s = 0; s < numShares; s++) {
+    //     for (size_t i = 0; i < size; i++) {
+    //         printf("A_bit[%lu][%lu]: %u \n", i, s, A_bit[s][i]);
+    //         printf("B_bit[%lu][%lu]: %u \n", s,i, B_bit[s][i]);
+    //     }
+    //     printf("\n");
+    // }
+
+    // Open_Bitwise(result, A_bit, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open, Z_2) A_bit [%lu]: %u\n", i, result[i]);
+    // }
+
+    // printf("\n");
+    // Rss_B2A(C, A_bit, ring_size, size, net, ss);
+
+    // smc_open(result, C, size, -1);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open, Z_k) A_bit [%lu]: %u\n", i, result[i]);
+    // }
+    // printf("\n");
+
+    // Open_Bitwise(result, B_bit, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open, Z_2) B_bit [%lu]: %u\n", i, result[i]);
+    // }
+
+    // Rss_B2A(C, B_bit, ring_size, size, net, ss);
+    // printf("\n");
+
+    // smc_open(result, C, size, -1);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open, Z_k) B_bit [%lu]: %u\n", i, result[i]);
+    // }
+
+    // ss->sparsify(B_sparse, B, size);
+
+    // for (size_t i = 0; i < size; i++) {
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         printf("B_sparse[%lu][%lu]: %u \n", i, s, B_sparse[s][i]);
+    //     }
+    // }
+    // smc_open(result, B_sparse, size, -1);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) B_sparse [%lu]: %u\n", i, result[i]);
+    // }
+    // Mult_Sparse(C, B_sparse, B_sparse, size, net, ss);
+    // Mult(C, A, B_sparse, size, net, ss);
 
     // for (size_t i = 0; i < size; i++) {
     //     for (size_t s = 0; s < numShares; s++) {
@@ -1967,19 +2334,90 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("\n");
     // }
 
-    smc_open(result, C, size, -1);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) C [%lu]: %u\n", i, result[i]);
+    // smc_open(result, C, size, -1);
+    // printf("\n");
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) C [%lu]: %u\n", i, result[i]);
+    // }
+    // printf("\n");
+
+    //    Rss_Mult_Sparse(C, A, B_sparse, size, net, ss);
+    //     // Mult(C, A, B_sparse, size, net, ss);
+    //     smc_open(result, C, size, -1);
+    //     printf("\n");
+    //     for (size_t i = 0; i < size; i++) {
+    //         printf("(open) C [%lu]: %u\n", i, result[i]);
+    //     }
+    //     printf("\n");
+
+    // vector<int> input_parties = {1 };
+    // vector<int> input_parties = {0};
+    // uint numInputParties = input_parties.size();
+
+    // priv_int_t ***res = new priv_int_t **[numInputParties];
+    // for (size_t j = 0; j < numInputParties; j++) {
+    //     res[j] = new priv_int_t *[numShares];
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         res[j][s] = new priv_int_t[size];
+    //         memset(res[j][s], 0, sizeof(priv_int_t) * size);
+    //     }
+    // }
+
+    // cant use pid_in_T because that is only for fixed vector sizes:
+    // n = 3 -> len(T) = 1
+    // n = 5 -> len(T) = 2
+    // n = 7 -> len(T) = 3
+
+    // if (std::find(input_parties.begin(), input_parties.end(), id) != input_parties.end()) {
+    //     std::cout << id << " is an input party" << std::endl;
+    //     Rss_Input_p_star(res, reinterpret_cast<priv_int_t *>(B), input_parties, size, ring_size, net, ss);
+    // } else {
+    //     std::cout << id << " is NOT an input party" << std::endl;
+    //     // priv_int placeholder = nullptr;
+    //     Rss_Input_p_star(res, static_cast<priv_int>(nullptr), input_parties, size, ring_size, net, ss);
+    // }
+
+    // for (size_t i = 0; i < numInputParties; i++) {
+    //     smc_open(result, res[i], size, -1);
+    //     for (size_t j = 0; j < size; j++) {
+    //         printf("(open) party %i's input  [%lu] %u\n", input_parties[i], j, result[j]);
+    //     }
+    //     // printf("\n");
+    // }
+
+    // std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
+    // printf("---\nsend_recv_map\n");
+    // for (auto var : send_recv_map) {
+    //     std::cout << var << std::endl;
+    // }
+
+    for (size_t i = 0; i < totalNumShares; i++) {
+        delete[] Data1[i];
+        delete[] Data2[i];
     }
 
-    for (size_t _picco_i = 0; _picco_i < numShares; _picco_i++) {
-        delete[] C[_picco_i];
-        delete[] B_sparse[_picco_i];
+    delete[] Data1;
+    delete[] Data2;
+    delete[] A_bit;
+    delete[] B_bit;
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] C[i];
+        delete[] D[i];
+        delete[] B_sparse[i];
     }
     delete[] C;
+    delete[] D;
     delete[] B_sparse;
-    // delete[] buffer;
-
     delete[] result;
+    delete[] result_2;
+
+    // for (size_t i = 0; i < numInputParties; i++) {
+    //     for (size_t s = 0; s < numShares; s++) {
+    //         delete[] res[i][s];
+    //     }
+    //     delete[] res[i];
+    // }
+    // delete[] res;
 }
 #endif

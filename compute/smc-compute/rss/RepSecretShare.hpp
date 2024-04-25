@@ -30,12 +30,13 @@
 #include <map>
 #include <regex>
 #include <stdexcept>
+#include <stdlib.h>
 #include <string>
 #include <vector>
 
 #ifdef __arm64__
 #include "../../../common/sse2neon.h" //for intrinsics (translated for ARM processors, e.g., Apple Silicon)
-#else 
+#else
 #include <wmmintrin.h> //for intrinsics for AES-NI
 #endif
 
@@ -85,7 +86,7 @@ template <typename T>
 class replicatedSecretShare {
 
 public:
-    replicatedSecretShare(int _id, int _n, int _t, uint ring_size, std::map<std::vector<int>, uint8_t *>);
+    replicatedSecretShare(int _id, int _n, int _t, uint ring_size, std::map<std::vector<int>, std::string>);
     ~replicatedSecretShare();
     uint getNumShares();
     uint getTotalNumShares();
@@ -97,7 +98,7 @@ public:
 
     __m128i *prg_keyschedule(uint8_t *src);
     void prg_aes(uint8_t *, uint8_t *, __m128i *);
-    void prg_setup(std::map<std::vector<int>, uint8_t *>);
+    void prg_setup(std::map<std::vector<int>, std::string>);
     void prg_getrandom(int keyID, uint size, uint length, uint8_t *dest);
     void prg_getrandom(uint size, uint length, uint8_t *dest);
 
@@ -181,11 +182,17 @@ public:
     std::vector<int> generateT_star(int p_star);
     int generateT_star_index(int p_star);
     void sparsify(T **result, int *x, int size);
+    void sparsify(T **result, T *x, int size);
+    void sparsify_public(T *result, int x);
 
     std::vector<std::vector<int>> generateB2A_map();
-    std::vector<std::vector<int>> generateXi_map();
+    std::vector<int> generateXi_map();
 
     std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
+
+    inline bool pid_in_T(int pid, std::vector<int> T_map);
+    inline bool chi_pid_is_T(int pid, std::vector<int> T_map);
+    std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> input_parties);
 
     T *SHIFT;
     T *ODD;
@@ -211,7 +218,7 @@ private:
 
 /* method definitions */
 template <typename T>
-replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _ring_size, std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
+replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _ring_size, std::map<std::vector<int>, std::string> rss_share_seeds) {
     id = _id;
     n = _n;
     t = _t;
@@ -261,7 +268,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
             {mod_n(id + 1, n)},
             {mod_n(id - 1, n)},
         };
-        for (auto var : T_map_mpc) {
+        for (auto &var : T_map_mpc) { // using reference so vector gets modified
             sort(var.begin(), var.end());
         }
         // we want s2 = 0 (for parties 1 and 3)
@@ -295,7 +302,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         // we can sort the T_map without fear of messing up the order of shares
         // since these partially function as the ID for each share
         // shares will always be in the correct positions regardless
-        for (auto var : T_map_mpc) {
+        for (auto &var : T_map_mpc) {
             sort(var.begin(), var.end());
         }
 
@@ -322,8 +329,8 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         open_map_mpc = {
             {mod_n(id + 1, n), mod_n(id + 2, n), mod_n(id + 3, n)},
             {mod_n(id - 1, n), mod_n(id - 2, n), mod_n(id - 3, n)},
-
         };
+
         general_map = {
             {mod_n(id + 4, n), mod_n(id + 5, n), mod_n(id + 6, n)}, // send
             {mod_n(id + 3, n), mod_n(id + 2, n), mod_n(id + 1, n)}, // recv
@@ -353,7 +360,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         };
 
         // sorting each share in T_map
-        for (auto var : T_map_mpc) {
+        for (auto &var : T_map_mpc) {
             sort(var.begin(), var.end());
         }
 
@@ -382,7 +389,7 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
         std::cerr << "ERROR: an invalid number of parties was provided. RSS only supports n = {3,5,7}\n";
         exit(1);
     }
-
+    printf("prg_setup\n");
     prg_setup(rss_share_seeds);
 }
 
@@ -390,7 +397,12 @@ replicatedSecretShare<T>::replicatedSecretShare(int _id, int _n, int _t, uint _r
 // we sorted T_map_mpc in the replicatedSecretShare constructor (above)
 // now we just need to access rss_share_seeds[T_map_mpc.at(i)] to get the corresponding value (32 random bytes, the "value")
 template <typename T>
-void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> rss_share_seeds) {
+void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, std::string> rss_share_seeds) {
+    // for (auto &[key, value] : rss_share_seeds) {
+    //     std::cout << key << " has value " << value << endl;
+    //     // print_hexa_2(value, 2*KEYSIZE);
+    // }
+
     // need to create numShares+1 keys, random containers, etc
     uint numKeys = numShares + 1;
     random_container = new uint8_t *[numKeys];
@@ -414,7 +426,7 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> r
         }
         fclose(fp);
     } catch (const std::runtime_error &ex) {
-        std::cerr << "[prg_setup] " << ex.what() << "\n";
+        std::cerr << "[generateInputSendRecvMap] " << ex.what() << "\n";
         exit(1);
     }
 
@@ -423,8 +435,16 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, uint8_t *> r
     prg_key[numKeys - 1] = prg_keyschedule(RandomData + KEYSIZE);
 
     for (size_t i = 0; i < T_map_mpc.size(); i++) {
-        memcpy(random_container[i], rss_share_seeds[T_map_mpc.at(i)], KEYSIZE);
-        prg_key[i] = prg_keyschedule(rss_share_seeds[T_map_mpc.at(i)] + KEYSIZE); // should be able to do this
+        // getting value stored at rss_share_seeds[T_map_mpc[i]]
+        std::string str = rss_share_seeds[T_map_mpc.at(i)];
+        uint8_t key[2 * KEYSIZE];
+        std::copy(str.begin(), str.end(), key);
+
+        // std::cout << T_map_mpc.at(i) << " => ";
+        // print_hexa_2(key, 2*KEYSIZE);
+
+        memcpy(random_container[i], key, KEYSIZE);
+        prg_key[i] = prg_keyschedule(key + KEYSIZE); // should be able to do this
     }
     uint8_t res[KEYSIZE] = {};
     for (size_t i = 0; i < numKeys; i++) {
@@ -1204,7 +1224,8 @@ std::vector<int> replicatedSecretShare<T>::generateT_star(int p_star) {
     case 7:
         return {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
     default:
-        break;
+        std::cerr << "ERROR: an invalid number of parties was provided. RSS only supports n = {3,5,7}\n";
+        exit(1);
     }
 }
 
@@ -1215,27 +1236,32 @@ int replicatedSecretShare<T>::generateT_star_index(int p_star) {
         std::vector<int> tmp;
         switch (n) {
         case 3:
-            tmp = {mod_n(p_star + 1, n)}; // no sorting necessary
+            // T_{p + 1}
+            // no sorting necessary
+            tmp = {mod_n(p_star + 1, n)};
             break;
         case 5:
+            // T_{p + 1, p + 2}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n)};
             // sorting for consistency
             sort(tmp.begin(), tmp.end());
             break;
         case 7:
+            // T_{p + 1, p + 2, p + 3}
             tmp = {mod_n(p_star + 1, n), mod_n(p_star + 2, n), mod_n(p_star + 3, n)};
             sort(tmp.begin(), tmp.end());
             break;
         default:
-            break;
+            std::cerr << "ERROR: an invalid number of parties was provided. RSS only supports n = {3,5,7}\n";
+            exit(1);
         }
-        cout << "tmp : " << tmp << endl;
+        // cout << "tmp : " << tmp << endl;
         for (size_t i = 0; i < T_map_mpc.size(); i++) {
             if (tmp == T_map_mpc.at(i)) {
                 return i;
             }
         }
-        cout << "index not found, returning -1" << endl;
+        // cout << "index not found (party " << id << " does not have access), returning -1" << endl;
         return -1;
         // throw std::runtime_error("index not found, there's a logic error somewhere");
     } catch (const std::runtime_error &ex) {
@@ -1318,70 +1344,85 @@ void replicatedSecretShare<T>::generatePublicCoef(T *result, int value) {
     }
 }
 
-template <typename T>
-std::vector<std::vector<int>> replicatedSecretShare<T>::generateB2A_map() {
-    switch (n) {
-    case 3:
-        return {
-            {((id < 4) ? mod_n(id - 1, n) : -1)},
-            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1)}};
-    case 5:
-        return {
-            // if my id < 4, compute as normal, otherwise set to -1
-            {((id < 4) ? mod_n(id - 1, n) : -1),
-             ((id < 4) ? mod_n(id - 2, n) : -1)},
-            // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
-            {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1),
-             (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
-        };
+// template <typename T>
+// std::vector<std::vector<int>> replicatedSecretShare<T>::generateB2A_map() {
+//     switch (n) {
+//     case 3:
+//         return {
+//             {((id < 4) ? mod_n(id - 1, n) : -1)},
+//             {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1)}};
+//     case 5:
+//         return {
+//             // if my id < 4, compute as normal, otherwise set to -1
+//             {((id < 4) ? mod_n(id - 1, n) : -1),
+//              ((id < 4) ? mod_n(id - 2, n) : -1)},
+//             // if the COMPUTED VALUE is < 4 , compute as normal, otherwise set to -1
+//             {(mod_n(id + 1, n) < 4 ? mod_n(id + 1, n) : -1),
+//              (mod_n(id + 2, n) < 4 ? mod_n(id + 2, n) : -1)},
+//         };
 
-    case 7:
-        return {
-            // if my id < 5, compute as normal, otherwise set to -1
-            {((id < 5) ? mod_n(id - 1, n) : -1),
-             ((id < 5) ? mod_n(id - 2, n) : -1),
-             ((id < 5) ? mod_n(id - 3, n) : -1)},
-            // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
-            {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
-             (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
-             (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
-        };
-    default:
-        break;
-    }
-}
+//     case 7:
+//         return {
+//             // if my id < 5, compute as normal, otherwise set to -1
+//             {((id < 5) ? mod_n(id - 1, n) : -1),
+//              ((id < 5) ? mod_n(id - 2, n) : -1),
+//              ((id < 5) ? mod_n(id - 3, n) : -1)},
+//             // if the COMPUTED VALUE is < 5 , compute as normal, otherwise set to -1
+//             {(mod_n(id + 1, n) < 5 ? mod_n(id + 1, n) : -1),
+//              (mod_n(id + 2, n) < 5 ? mod_n(id + 2, n) : -1),
+//              (mod_n(id + 3, n) < 5 ? mod_n(id + 3, n) : -1)},
+//         };
+//     default:
+//         break;
+//     }
+// }
 
 // this map is used in the updated B2A protocol
 // only parties < t+1 use this
+// returns the indices of the shares that party i needs to compute the local XOR of the input to B2A
+// this is the most optimal implementation
 template <typename T>
-std::vector<std::vector<int>> replicatedSecretShare<T>::generateXi_map() {
+std::vector<int> replicatedSecretShare<T>::generateXi_map() {
     switch (n) {
     case 3:
         switch (id) {
         case 1:
-
+            // p1 : [{2}, {3}]
+            return {0, 1};
         default:
-            break;
+            std::cerr << "ERROR: a party other than 1 called generateXi_map\n";
+            exit(1);
         }
     case 5:
         switch (id) {
         case 1:
+            // p1 :  [{2,3}, {2,4}, {2,5}, {3,4}, {3,5}]
+            return {0, 1, 2, 3, 4};
         case 2:
-
+            // p2 :  [{1,3}, {1,4}, {1,5}, {4,5}]
+            return {2, 3, 4, 5};
         default:
-            break;
+            std::cerr << "ERROR: a party other than 1,2 called generateXi_map\n";
+            exit(1);
         }
     case 7:
         switch (id) {
         case 1:
+            // p1 : [(2, 3, 4), (2, 3, 5), (2, 3, 6), (2, 3, 7), (2, 4, 6), (2, 4, 7), (2, 5, 6), (2, 5, 7), (2, 6, 7), (4, 6, 7), (3, 5, 7)]
+            return {0, 1, 2, 3, 5, 6, 7, 8, 9, 14, 18};
         case 2:
+            // p2 : [(3, 4, 5), (3, 4, 6), (3, 4, 7), (1, 3, 4), (3, 5, 6), (1, 3, 5), (3, 6, 7), (1, 3, 6), (1, 3, 7), (1, 5, 7), (1, 6, 7)]
+            return {0, 1, 2, 3, 4, 6, 7, 8, 9, 18, 19};
         case 3:
-
+            // p3 : [(4, 5, 6), (4, 5, 7), (1, 4, 5), (2, 4, 5), (1, 4, 6), (1, 4, 7), (1, 2, 4), (5, 6, 7), (1, 5, 6), (1, 2, 5), (1, 2, 6), (1, 2, 7)]
+            return {0, 1, 2, 3, 5, 7, 9, 10, 11, 15, 18, 19};
         default:
-            break;
+            std::cerr << "ERROR: a party other than 1,2,3 called generateXi_map\n";
+            exit(1);
         }
     default:
-        break;
+        std::cerr << "ERROR: an invalid number of parties was provided. RSS only supports n = {3,5,7}\n";
+        exit(1);
     }
 }
 
@@ -1410,9 +1451,11 @@ std::vector<std::vector<int>> replicatedSecretShare<T>::generate_MultSparse_map(
 
     case 7:
         return {
+            // if my id > 3, compute as normal, otherwise set to -1
             {((_id > 3) ? mod_n(_id - 1, _n) : -1),
              ((_id > 3) ? mod_n(_id - 2, _n) : -1),
              ((_id > 3) ? mod_n(_id - 3, _n) : -1)},
+            // if the COMPUTED VALUE is > 3 , compute as normal, otherwise set to -1
             {(mod_n(_id + 1, _n) > 3 ? mod_n(_id + 1, _n) : -1),
              (mod_n(_id + 2, _n) > 3 ? mod_n(_id + 2, _n) : -1),
              (mod_n(_id + 3, _n) > 3 ? mod_n(_id + 3, _n) : -1)},
@@ -1465,16 +1508,174 @@ template <typename T>
 void ss_batch_free_operator(T ****op, int size) {
 }
 
+// takes an array of public values and creates sparse
+// only useful for testing correctness
+// in actual protocols where we deal with sparse shares, already secret-shared values would be sparsify'd, and not all parties would have access to the nonzero share
 template <typename T>
 void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
-    int idx = generateT_star_index(3);
-    cout << "idx : " << idx << endl;
+    // using this function for convenience, the argument here is fixed to 'n' since we fix T_hat to always be the lexicographically first share
+    // using n as an argument is a shortcut to guarantee we get the indeces of the following T_hat's
+    // e.g.,
+    // n = 3 -> T_hat_{1}
+    // n = 5 -> T_hat_{1,2}
+    // n = 7 -> T_hat_{1,2,3}
+    static const int idx = generateT_star_index(n); // only needs to be done once ever
+    // cout << "idx : " << idx << endl;
     if (idx >= 0) {
-
-        // for (size_t i = 0; i < numShares; i++) {
         for (size_t j = 0; j < size; j++)
-            result[idx][j] += T(x[j]);
+            result[idx][j] = T(x[j]);
+    }
+}
+template <typename T>
+void replicatedSecretShare<T>::sparsify(T **result, T *x, int size) {
+    // using this function for convenience, the argument here is fixed to 'n' since we fix T_hat to always be the lexicographically first share
+    // using n as an argument is a shortcut to guarantee we get the indeces of the following T_hat's
+    // e.g.,
+    // n = 3 -> T_hat_{1}
+    // n = 5 -> T_hat_{1,2}
+    // n = 7 -> T_hat_{1,2,3}
+    static const int idx = generateT_star_index(n); // only needs to be done once, ever
+    // cout << "idx : " << idx << endl;
+    if (idx >= 0) {
+        for (size_t j = 0; j < size; j++)
+            result[idx][j] = x[j];
+    }
+}
+
+// the destination result is allocated to be of dimension [numShares]
+template <typename T>
+void replicatedSecretShare<T>::sparsify_public(T *result, int x ) {
+    static const int idx = generateT_star_index(1); // will always be party 1's "first" share, other parties (with access) are set accordingly
+    if (idx >= 0) {
+        result[idx] = x;
+    }
+}
+// general-use "is pid in share T?"
+template <typename T>
+inline bool replicatedSecretShare<T>::pid_in_T(int pid, std::vector<int> T_map) {
+    switch (n) {
+    case 3:
+        return (pid == T_map[0]);
+    case 5:
+        return (pid == T_map[0] or pid == T_map[1]);
+    case 7:
+        return (pid == T_map[0] or pid == T_map[1] or pid == T_map[2]);
+    default:
+        throw std::runtime_error("Invalid number of parties");
+        return false;
+    }
+}
+
+// checks if \chi(p) == T?
+template <typename T>
+inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> T_map) {
+    switch (n) {
+    case 5: {
+        return ((mod_n(pid + 1, n) == T_map[0]) and (mod_n(pid + 2, n) == T_map[1])) or
+               ((mod_n(pid + 1, n) == T_map[1]) and (mod_n(pid + 2, n) == T_map[0]));
+    }
+    case 7: {
+        int chi_0 = mod_n(pid + 1, n);
+        int chi_1 = mod_n(pid + 2, n);
+        int chi_2 = mod_n(pid + 3, n);
+
+        return ((chi_0 == T_map[0] or chi_0 == T_map[1] or chi_0 == T_map[2]) and (chi_1 == T_map[0] or chi_1 == T_map[1] or chi_1 == T_map[2]) and
+                (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
+    }
+    default:
+        return false;
+    }
+}
+
+/*
+* generates the send-recv mapping for Input_p_star
+* guarantees there's no "deadlocks", meaning parties will never encounter a scenario where two (or more) parties are waiting to receive from another party in the same round
+* An example "deadlock" would be;:
+    p2 sends to [ 1,  3] (in order)
+    p3 sends to [ 1,  2] (in order)
+    p1 receives from [ (2, 3), -1 ] (same round)
+    p2 receives from [-1,  3]
+    p3 receives from [-1,  2]
+* This configuration is problematic has p2 and p3 sending to p1 in the same round
+* The optimal setup would be as follows:
+    p2 sends to [ 3,  1] (in order)
+    p3 sends to [ 1,  2] (in order)
+    p1 receives from [ 3,  2]
+    p2 receives from [-1,  3]
+    p3 receives from [ 2, -1]
+* note, the following case CAN occur (and is NOT a deadlock)
+    p2 sends to [1, 3] (in order)
+    p1 receives from [2, -1]
+    p3 receives from [-1, 2]
+* Since p3 is not receiving in the "first round", they immediately jump to the "second round" and start waiting to receive from p2
+* This is NOT considered a deadlock, because it does not incur any additional communication cost
+*/
+template <typename T>
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap(std::vector<int> input_parties) {
+    try {
+
+        if (input_parties.size() > n) {
+            throw std::runtime_error("Cannot have more than n input parties");
+        }
+
+        uint numInputParties = input_parties.size();
+        uint dim = std::max(numInputParties, uint(t));
+        // uint dim = (numInputParties);
+        // std::cout << "dim : " << dim << std::endl;
+        std::vector<std::vector<int>> send_recv_map(2, vector<int>(dim, -1));
+        // for (auto var : send_recv_map) {
+        //     std::cout << var << std::endl;
         // }
+        // alternate S-R mapping implementation using pairs instead of 2d vectors
+        // DO NOT DELETE, may use in future (replace 2d vectors with pairs for better readability)
+        // std::pair<std::vector<int>, std::vector<int>> s_r_pair(vector<int>(numInputParties, -1), vector<int>(numInputParties, -1));
+        // std::cout<<s_r_pair.first<<endl;
+        // std::cout<<s_r_pair.second<<endl;
+        std::vector<int> T_star;
+
+        for (auto p_star : input_parties) {
+            if (p_star > n || p_star < 1) {
+                throw std::runtime_error("Non-existent input party supplied :  " + std::to_string(p_star));
+            }
+            T_star = generateT_star(p_star);
+            if (!pid_in_T(id, T_star)) {
+                // id IS entitled to share T_star, so continue
+                int last_pid = T_star.back();
+                std::vector<int> send_ids = generateT_star(last_pid);
+                // std::cout << send_ids << std::endl;
+                // id is the one responsible for sending shares, and therefore needs to populate the sendIDs in the send_recv_map
+                if (id == p_star) {
+                    send_recv_map[0] = send_ids;
+                } else {
+                    // otherwise, i am a party entitled to receive this share, and need to set one of my recv_id's according to my position in send_ids
+                    // looping through the send_ids of p_star
+                    for (size_t i = 0; i < send_ids.size(); i++) {
+                        if (id == send_ids[i]) {
+                            send_recv_map[1][i] = p_star;
+                        }
+                    }
+                }
+            }
+        }
+        // deleting placeholder -1's
+        // this is necessary for the edge case where the number of input parties is LESS than the threshold
+        // e.g., if p1 is an input party, then T_star = {2,3} (which 4 and 5 are entitled to)
+        // the algorithm originally produced this mapping
+        // 1 sends to [4, 5]
+        // 4 receives from [1]
+        // 5 receives from [-1]
+        // this is obviously incorrect, since 5 never gets the share it was entitled to
+        // the first solution we attempted is to initalize send_recv_map based on max(numInputParties, threshold)
+        // the logic here is that an input party will need to communicate the computed share to exactly (threshold) number of parties
+        // but this introduces a problem in send/recv, since in send/recv, the data p5 receives from p1 will be written out-of-bounds of the recv_buffer (which is allocated based on the number of input parties, as to not waste memory)
+        // The below solution just removes the "-1" placeholders that were introduced above to ensure the recv indices were placed appropriately
+        // The complecity is linear in std::max(numInputParties, uint(t)), which is very fast
+        send_recv_map[1].erase(std::remove(send_recv_map[1].begin(), send_recv_map[1].end(), -1), send_recv_map[1].end());
+        send_recv_map[0].erase(std::remove(send_recv_map[0].begin(), send_recv_map[0].end(), -1), send_recv_map[0].end());
+        return send_recv_map;
+    } catch (const std::runtime_error &ex) {
+        std::cerr << "[generateInputSendRecvMap] " << ex.what() << "\n";
+        exit(1);
     }
 }
 

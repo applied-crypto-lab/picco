@@ -105,6 +105,8 @@ int 	is_priv_float_struct_field_appear = 0;
 int 	thread_id = -1;  
 int	    num_threads = 0;
 int 	modulus = 0; 
+int     global_variables_c_restrict_flag = 0;
+int     pointer_flag = 0;
  
 struct_node_stack struct_table = NULL;
  
@@ -403,7 +405,7 @@ string_literal:
  */
 
 /*  ISO/IEC 9899:1999 6.5.1 */
-primary_expression:
+primary_expression: // This is where var name, const value and string literal gets checked 
     IDENTIFIER
     {
       symbol id = Symbol($1); 
@@ -1096,7 +1098,7 @@ assignment_operator:
 ;
 
 /*  ISO/IEC 9899:1999 6.5.17 */
-expression:			
+expression:	// This is where each expression gets handled 
     assignment_expression
     {
       $$ = $1;
@@ -1133,7 +1135,7 @@ declaration:
         $$ = Declaration($1, NULL);
       isTypedef = 0;
       $$->gflag = 0;
-
+      global_variables_c_restrict_flag = 0;
   }
   |
   declaration_specifiers init_declarator_list ';'
@@ -1144,11 +1146,13 @@ declaration:
       isTypedef = 0;
       set_pointer_flag($1, $2);
       $$->gflag = 0;
+      global_variables_c_restrict_flag = 0;
     }
   | threadprivate_directive // OpenMP Version 2.5 ISO/IEC 9899:1999 addition
     {
         $$ = OmpStmt(OmpConstruct(DCTHREADPRIVATE, $1, NULL));
         $$->gflag = 0;
+        global_variables_c_restrict_flag = 0;
     }
 
 ;
@@ -1409,18 +1413,22 @@ pointer:
     '*'
     {
         $$ = Pointer();
+        pointer_flag = 1;
     }
     | '*' type_qualifier
     {
         $$ = Speclist_right(Pointer(), $2);
+        pointer_flag = 1;
     }
     | '*' pointer
     {
         $$ = Speclist_right(Pointer(), $2);
+        pointer_flag = 1;
     }
     | '*' type_qualifier pointer
     {
         $$ = Speclist_right( Pointer(), Speclist_left($2, $3) );
+        pointer_flag = 1;
     }
 ;
 
@@ -1704,7 +1712,7 @@ statement:
       $$ = $1;
       $$->flag = $1->flag;
     }
-  | expression_statement
+  | expression_statement // this is where expressions gets handled 
     {
       $$ = $1;
       $$->flag = $1->flag;
@@ -1855,11 +1863,11 @@ block_item:
 
 /*  ISO/IEC 9899:1999 6.8.3 */
 expression_statement:
-    ';'
+    ';' // handles empty expressions
     {
       $$ = Expression(NULL);
     }
-  | expression ';'
+  | expression ';' // handles expressions with a given value
     {
       $$ = Expression($1);
       $$->l = $1->l;
@@ -1890,7 +1898,7 @@ selection_statement:
     {
         $$ = If($3, $6, $8);
         if(($3->flag == PRI && $6->flag == PUB) || ($3->flag == PRI && $8->flag == PUB))
-           parse_error(1, "Public variableassignment is not allowed within a private condition.\n");
+           parse_error(1, "Public variable assignment is not allowed within a private condition.\n");
         if($3->flag == PRI)
             contain_priv_if_flag = 1; 
         if($6->flag == PUB || $8->flag == PUB)
@@ -2059,6 +2067,7 @@ smc_statement:
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
                 secrecy = 2; 
+                
         /* search for the symtab to find the size of variable */
         stentry e1 = symtab_get(stab, e->key, IDNAME);
         astspec spec1;
@@ -2075,6 +2084,7 @@ smc_statement:
         str arg_str2 = Str("");
         get_arraysize($7, arg_str2);
         fprintf(var_file, "I:%d,%s,%s,%s,%s", secrecy, e1->key->name, SPEC_symbols[spec1->subtype], str_string(arg_str1), str_string(arg_str2));
+
         if(spec1->subtype == SPEC_int)
                 fprintf(var_file, ",%d\n", spec1->size);
         else if(spec1->subtype == SPEC_float)
@@ -2083,30 +2093,33 @@ smc_statement:
 	$3->thread_id = thread_id; 
         $$ = Smc(SINPUT, e->spec, $3, $5, $7, NULL);
     }
-    /*for two-dimensional array*/
+/*for two-dimensional array*/
     | SMCINPUT '(' postfix_expression ',' primary_expression ',' expression ',' expression')' ';'
     {
         int secrecy = 1; 
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
                 secrecy = 2; 
+
         stentry e1 = symtab_get(stab, e->key, IDNAME);
         astspec spec1;
         if(e1->spec->type == SPEC)
             spec1 = e1->spec;
         else if(e1->spec->type == SPECLIST)
             spec1 = e1->spec->u.next;
+
         /*for party*/
         str arg_str1 = Str("");
         ast_expr_print(arg_str1, $5);
+
         /*for arraysize*/
         str arg_str2 = Str("");
         get_arraysize($7, arg_str2);
 
         str arg_str3 = Str("");
         get_arraysize($9, arg_str3);
-
         fprintf(var_file, "I:%d,%s,%s,%s,%s,%s", secrecy, e1->key->name, SPEC_symbols[spec1->subtype], str_string(arg_str1), str_string(arg_str2), str_string(arg_str3));
+        
         /*for element size*/
        if(spec1->subtype == SPEC_int)
                 fprintf(var_file, ",%d\n", spec1->size);
@@ -2236,11 +2249,13 @@ translation_unit:
     {
 	$$ = pastree = $1;  
     $$->gflag = 1; // pastree is the generated AST, this does have a gflag that is defaulted to 0 or global-public
+    global_variables_c_restrict_flag = 1;
     }
   | translation_unit external_declaration
     {
       $$ = pastree = BlockList($1, $2); 
       $$->gflag = 1;
+      global_variables_c_restrict_flag = 1;
     }
 ;
 
@@ -2254,6 +2269,7 @@ external_declaration:
     {
       $$ = $1; 
       $$->gflag = 1; 
+      global_variables_c_restrict_flag = 1;
     }
     /* Actually, although not in the grammar, we support 1 more option
      * here:  Verbatim
@@ -3184,7 +3200,7 @@ reduction_operator:
     }
 ;
 
-variable_list:
+variable_list: // This is the section that handles if a variable is used in a different location than its scope 
     IDENTIFIER
     {
         if (checkDecls)
@@ -3206,7 +3222,7 @@ variable_list:
  * "static" specifier. The original variable is also marked as
  * threadprivate.
  */
-thrprv_variable_list:
+thrprv_variable_list: // This is the section that handles if a variable is used in a different location than its scope 
     IDENTIFIER
     {
         if (checkDecls)
@@ -3738,6 +3754,13 @@ struct_field get_struct_field_info(astexpr e)
         return field;
 }
 
+/*
+* This function is responsible for setting attributes for an identifier in a symbol table
+* symbol id: Represents the identifier symbol.
+* astexpr expr: Represents an abstract syntax tree node for an expression associated with the identifier.
+* int is_su_field: Indicates whether the identifier is a field within a struct or union (1 if true, 0 otherwise).
+*/
+
 void set_identifier_attributes(symbol id, astexpr expr, int is_su_field)
 {
       stentry entry;
@@ -3993,7 +4016,19 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
         e->flag = PUB;
         e->index = -1; 
     }
- 
+
+    // e: Represents the entire expression being assigned to variable i.
+    // e1: Represents the left operand of the addition operation, which is 1.
+    // e2: Represents the right operand of the addition operation, which is 3.
+    // this takes care of a+b 
+    // Check if the expression is a constant or a constant expression
+    // if (global_variables_c_restrict_flag == 1) { // this needs to prevent the assignments below only in global scope and I realize that it prevents it inside main too, so commented it out to be able to merge this code to main, and I will on 4/19 or 4/22 mon
+    //     if (e1 != NULL && e2 != NULL) { // i + i
+    //         parse_error(-1, "Initializer element is not a constant or a constant expression 1.\n");
+    //     } else if (e1 == NULL && e2 != NULL) { // 2 + i
+    //         parse_error(-1, "Initializer element is not a constant or a constant expression 3.\n");
+    //     }
+    // }
    //COMPUTE THE MODULUS FOR DIFFERENT OPERATIONS AND DIFFERENT TYPES OF PRIVATE VARIABLES
 } 
 
@@ -4099,6 +4134,7 @@ int set_security_flag_spec(astspec spec){
         return PRI;
 }
 
+
 void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
     stentry entry;
     astexpr e = e2;
@@ -4170,6 +4206,7 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
     // for identifier
     else
         e1->arraysize = NULL;
+    
 }
 void security_check_for_condition(astexpr e){
     int flag  = 0;

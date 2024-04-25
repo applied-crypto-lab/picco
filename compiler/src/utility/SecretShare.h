@@ -94,6 +94,7 @@ public:
     // ShamirSS needs implementations (modification of existing functions)
     virtual std::vector<std::string> getShares(long long) = 0;
     virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>>, int) = 0;
+    virtual double floatreconstructSecret(std::vector<std::vector<std::string>>, int) = 0;
     virtual void flipNegative(long long &) = 0;
 
     // virtual void getShares(mpz_t *, mpz_t){};
@@ -123,6 +124,7 @@ public:
 
     std::vector<std::string> getShares(long long);
     std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>>, int);
+    double floatreconstructSecret(std::vector<std::vector<std::string>>, int);
 
     void flipNegative(long long &);
 
@@ -204,6 +206,7 @@ public:
     // new string-based version
     std::vector<std::string> getShares(long long input);
     std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>> input, int size);
+    double floatreconstructSecret(std::vector<std::vector<std::string>>, int);
 
     // AES prg functions
     void offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri);
@@ -401,6 +404,14 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
         result.push_back((long long)(accumulator));
     }
     return result;
+}
+
+
+// TODO: float implementation for RSS reconstruction is not done yet! 
+template <typename T>
+double RSS<T>::floatreconstructSecret(std::vector<std::vector<std::string>> input, int size) {
+    double element = 0.0;
+    return element;
 }
 
 // check this works
