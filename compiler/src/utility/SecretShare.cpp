@@ -509,10 +509,10 @@ double ShamirSS::floatreconstructSecret(std::vector<std::vector<std::string>> y,
     }
 
     // Get the float form of the number
-    double v = mpz_get_d(mpz_result[0]);
-    double p = mpz_get_d(mpz_result[1]);
-    double z = mpz_get_d(mpz_result[2]);
-    double s = mpz_get_d(mpz_result[3]);
+    long v = mpz_get_si(mpz_result[0]);
+    long p = mpz_get_si(mpz_result[1]);
+    long z = mpz_get_si(mpz_result[2]);
+    long s = mpz_get_si(mpz_result[3]);
     double element = 0;
     if (z == 1)
         element = 0;
@@ -583,23 +583,4 @@ std::vector<long long> ShamirSS::reconstructSecret(std::vector<std::vector<std::
     }
     mpz_clear(temp);
     return result;
-}
-
-// check this works
-void ShamirSS::flipNegative(long long &x) {
-
-    // Init the variables
-    mpz_t tmp, tmp_x;
-    mpz_init(tmp);
-    mpz_init(tmp_x);
-
-    mpz_set_si(tmp_x, x);
-    mpz_mul_ui(tmp, tmp_x, 2);
-    if (mpz_cmp(tmp, fieldSize) > 0)
-        mpz_sub(tmp_x, tmp_x, fieldSize);
-    x = mpz_get_si(tmp_x);
-
-    // Clear the memory
-    mpz_clear(tmp);
-    mpz_clear(tmp_x);
 }
