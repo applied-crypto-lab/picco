@@ -25,39 +25,102 @@
 #include "Mult.hpp"
 
 template <typename T>
-void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
-    int m = ceil(log2(L));
+    uint m = ceil(log2(L)); // rounding up to the nearest integer
+    uint numPows = size * m;
 
     T **a_bits = new T *[numShares];
     T **prods = new T *[numShares];
-
     for (size_t i = 0; i < numShares; i++) {
-        prods[i] = new T[size * m];
-        memset(prods[i], 0, sizeof(T) * size * m);
+        prods[i] = new T[numPows];
+        memset(prods[i], 0, sizeof(T) * numPows);
         a_bits[i] = new T[size];
         memset(a_bits[i], 0, sizeof(T) * size);
     }
 
+    vector<T> pows(m, T(0));
+    // computing all of the 2^2^j powers once
+    for (size_t j = 0; j < m; j++) {
+        pows[j] = T(1) << (T(1) << T(j));
+    }
+
     // we have to bit decompose all of a's bits (can't do a subset, right?)
-    Rss_BitDec(a_bits, a, size, ring_size, net, ss);
+    Rss_BitDec(a_bits, a, size, ring_size, nodeNet, ss);
     // a_bits consists of all the bits of [a] packed into a single value (as it normaly is)
 
-    T bit;
+    priv_int res_check = new priv_int_t[numPows];
+
+    // extracting all the individual bits of a_bits
     for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            for (size_t j = 0; j < m; j++) {
-                bit = GET_BIT(a_bits[s][i], T(j));
-                prods[s][i * m + j] = (T(1) << (T(1) << T(i))) * bit + T(1) - bit;
+        for (size_t j = 0; j < m; j++) {
+            for (size_t i = 0; i < size; i++) {
+                prods[s][j * size + i] = GET_BIT(a_bits[s][i], T(j));
             }
         }
     }
 
+    // reusing prods
+    Rss_B2A(prods, prods, numPows, ring_size, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t j = 0; j < m; j++) {
+            for (size_t i = 0; i < size; i++) {
+                prods[s][j * size + i] = pows[j] * prods[s][j * size + i] + T(1) - prods[s][j * size + i];
+            }
+        }
+    }
+
+    uint new_m;
+
+    // allocating buffers and moving prods into the buffers
+    T **A_buff = new T *[numShares];
+    T **B_buff = new T *[numShares];
+    T **C_buff = new T *[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        A_buff[s] = new T[numPows >> 1]; // only need half of numPows to start
+        B_buff[s] = new T[numPows >> 1];
+        C_buff[s] = new T[numPows >> 1];
+    }
+
+    // performing the multiplication as a tree
+    while (m > 1) {
+        new_m = m >> 1;         // m/2 (rounded down)
+        numPows = size * new_m; // updating numPows
+
+        for (size_t s = 0; s < numShares; s++) {
+            memcpy(A_buff[s], prods[s], sizeof(T) * numPows);
+            memcpy(B_buff[s], prods[s] + numPows, sizeof(T) * numPows);
+        }
+        // performing mult, stores the result in prods
+        Mult(prods, A_buff, B_buff, numPows, nodeNet, ss);
+
+        // if there was an odd number of inputs, move it into the new_m'th position in the buffers for the next round
+        if (m & 1) { // if m is ODD
+            // printf("m is ODD\n");
+            for (size_t s = 0; s < numShares; s++) {
+                memcpy(prods[s] + numPows, prods[s] + 2 * numPows, sizeof(T) * size);
+            }
+
+            new_m += 1;
+        }
+        m = new_m;
+    }
+
+    // moving the result of the tree-mult into res
+    for (size_t s = 0; s < numShares; s++) {
+        memcpy(result[s], prods[s], sizeof(T) * size);
+    }
+
     for (size_t i = 0; i < numShares; i++) {
+        delete[] A_buff[i];
+        delete[] B_buff[i];
         delete[] a_bits[i];
         delete[] prods[i];
     }
+    delete[] A_buff;
+    delete[] B_buff;
     delete[] a_bits;
     delete[] prods;
 }
