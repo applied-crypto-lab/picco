@@ -40,6 +40,11 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
         memset(a_bits[i], 0, sizeof(T) * size);
     }
 
+    T *ai = new T[numShares];
+    memset(ai, 0, sizeof(T) * numShares);
+    ss->sparsify_public(ai, T(1));
+
+
     vector<T> pows(m, T(0));
     // computing all of the 2^2^j powers once
     for (size_t j = 0; j < m; j++) {
@@ -47,10 +52,18 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
     }
 
     // we have to bit decompose all of a's bits (can't do a subset, right?)
-    Rss_BitDec(a_bits, a, size, ring_size, nodeNet, ss);
+    // need to check if we can do bitDec on the m LSB's of a (need to add new argument to BitDec)
+    Rss_BitDec(a_bits, a, m, size, ring_size, nodeNet, ss);
     // a_bits consists of all the bits of [a] packed into a single value (as it normaly is)
 
-    priv_int res_check = new priv_int_t[numPows];
+    // priv_int res_check = new priv_int_t[numPows];
+    // memset(res_check, 0, sizeof(priv_int_t) * numPows);
+    // Open_Bitwise(res_check, a_bits, size, ring_size, -1, nodeNet, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("a_bits[%i] %llu\n", i, res_check[i]);
+    //     print_binary(res_check[i], ring_size) ;
+    // }
+
 
     // extracting all the individual bits of a_bits
     for (size_t s = 0; s < numShares; s++) {
@@ -60,17 +73,32 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
             }
         }
     }
-
     // reusing prods
     Rss_B2A(prods, prods, numPows, ring_size, nodeNet, ss);
 
+    
+    // Open(res_check, prods, numPows,  -1, nodeNet, ss);
+    // for (size_t i = 0; i < numPows; i++) {
+    //     printf("a_bits[%i] %llu\n", i, res_check[i]);
+    //     // print_binary(res_check[i], ring_size) ;
+    // }
+
+    size_t p_idx;
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < m; j++) {
             for (size_t i = 0; i < size; i++) {
-                prods[s][j * size + i] = pows[j] * prods[s][j * size + i] + T(1) - prods[s][j * size + i];
+                p_idx = j * size + i;
+                prods[s][p_idx] = pows[j] * prods[s][p_idx] + ai[s] - prods[s][p_idx];
             }
         }
     }
+    
+    // Open(res_check, prods, numPows,  -1, nodeNet, ss);
+    // for (size_t i = 0; i < numPows; i++) {
+    //     printf("prods[%i] %llu\n", i, res_check[i]);
+    //     // print_binary(res_check[i], ring_size) ;
+    // }
+
 
     uint new_m;
 
@@ -113,6 +141,7 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
         memcpy(result[s], prods[s], sizeof(T) * size);
     }
 
+    delete[] ai;
     for (size_t i = 0; i < numShares; i++) {
         delete[] A_buff[i];
         delete[] B_buff[i];

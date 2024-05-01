@@ -33,7 +33,7 @@
 // not implementing the functionality explicitly, since theres only a few floating point protocols where it's used
 // better to do the allocations/B2A there
 template <typename T>
-void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     static uint numShares = ss->getNumShares();
 
@@ -56,7 +56,7 @@ void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, 
 
     // only need ring_size bit-length values for both parts of computation
     // first protection and b2a
-    edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
+    edaBit(edaBit_r, edaBit_b_2, bitlength, size, ring_size, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
@@ -66,7 +66,7 @@ void Rss_BitDec(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, 
 
     Open(c, sum, size, -1, nodeNet, ss);
 
-    Rss_BitAdd(res, c, edaBit_b_2, size, ring_size, nodeNet, ss);
+    Rss_BitAdd(res, c, edaBit_b_2, size, bitlength, nodeNet, ss);
 
     delete[] ai;
     delete[] c;
