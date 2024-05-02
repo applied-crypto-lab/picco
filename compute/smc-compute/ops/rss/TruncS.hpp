@@ -24,6 +24,15 @@
 #include "../../rss/RepSecretShare.hpp"
 
 template <typename T>
-void doOperation_TruncS(T **result, T **A, int K, T **M, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+void doOperation_TruncS(T **result, T **A, int bitlength, T **m, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
+// this is a modification of Dalskov et al.'s private truncation protocol
+// M = bitlength 
+// call pow2 on [bitlength - m], where m is private
+// call LT on ([m], ell) to get a bit
+// multiply [A]*[2^(M-m)]
+// call public truncation by M bits
+// use the bit from LT (which determined if the number of bits we truncated exceeded the bitlength of the input) to set the output to either zero, or the actual result of the truncation
+
+}
 
 #endif // _TRUNCS_HPP_
