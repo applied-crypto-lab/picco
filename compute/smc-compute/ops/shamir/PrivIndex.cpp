@@ -180,11 +180,8 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     // std::cout << "Time PRandM: " << time_diff(&tv1,&tv2) << std::endl;
 
     /*** Lookup: LINE 2: 1 - AllOr ***/
-    // printf("AllOr(0, %d)\n", K);
-    AllOr(U1, 0, K, B, size, threadID, net, ss);
-    // printf("end\n");
+    AllOr(U1, K, B, size, threadID, net, ss);
     gettimeofday(&tv3, NULL);
-    // std::cout << "Time AllOr: " << time_diff(&tv2,&tv3) << std::endl;
 
     for (int i = 0; i < size; i++)
         for (int j = 0; j < b_size; j++)
@@ -385,21 +382,21 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
     mpz_clear(const1);
 }
 
-void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, int threadID, NodeNetwork net,  SecretShare *ss) {
-    // AllOr: LINE 1
+void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, NodeNetwork net,  SecretShare *ss) {
+    // LINE 1
     mpz_t const1;
     mpz_init_set_ui(const1, 1);
-    if (size == 1) {
+    if (k == 1) {
         for (int i = 0; i < batch_size; i++) {
-            mpz_set(result[i][0], array[i][begin]);
-            ss->modSub(result[i][1], const1, array[i][begin]);
+            mpz_set(result[i][0], array[i][0]);
+            ss->modSub(result[i][1], const1, array[i][0]);
         }
         return;
     }
 
     // initialization
     int b_size = 2;
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < k; i++)
         b_size *= 2;
     mpz_t *buff = (mpz_t *)malloc(sizeof(mpz_t) * b_size * batch_size);
     mpz_t *u1 = (mpz_t *)malloc(sizeof(mpz_t) * b_size * batch_size);
@@ -418,9 +415,9 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
     // gettimeofday(&tv1, NULL);
 
     // make structure
-    //  AllOr: LINE 3, 4, 5
+    //  LINE 3, 4, 5
     int round = 0;
-    int nS = size - 1;
+    int nS = k - 1;
     int sizeLen = 2;
     while (nS > 1) {
         round++;
@@ -429,7 +426,7 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
     }
     int *sizeArray = (int *)malloc(sizeof(int) * sizeLen);
     int len = 1;
-    sizeArray[0] = size; // divide and get unit size
+    sizeArray[0] = k; // divide and get unit size
     for (int x = 0; x <= round; x++) {
         for (int i = len - 1; i >= 0; i--) {
             int val = sizeArray[i];
@@ -444,7 +441,7 @@ void AllOr(mpz_t **array, int begin, int size, mpz_t **result, int batch_size, i
     int oPos = 0;
     int iPos = 0;
     // merge & multiply
-    //  AllOr: LINE 6, 7
+    //  LINE 6, 7
     // first Round, (first Round had block which size is 0)
     {
         for (int n = 0; n < batch_size; n++) {
