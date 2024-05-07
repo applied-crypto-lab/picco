@@ -111,7 +111,7 @@ template <typename T>
 void Rss_CircleOpL(T **d, uint size, uint r_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     T i, j, l, y, z, op_r; // used for loops
-    uint numShares = ss->getNumShares();
+    static uint numShares = ss->getNumShares();
 
     if (r_size > 1) {
         // just three nested for-loops
