@@ -77,7 +77,7 @@ void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, Node
 
     for (size_t s = 0; s < numShares; s++) {
         for (i = 0; i < size; i++) {
-            result[s][i] = 1 ^ result[s][i]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
+            result[s][i] = (T(1) & ai[s]) ^ result[s][i]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
         }
     }
 
