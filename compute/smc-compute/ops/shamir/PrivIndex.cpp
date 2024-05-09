@@ -425,6 +425,8 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
         nS /= 2;
         sizeLen *= 2;
     }
+    // round is one fewer than the actual number of rounds, because the first one is computed separately
+
     int *sizeArray = (int *)malloc(sizeof(int) * sizeLen);
     int len = 1;
     sizeArray[0] = k; // divide and get unit size
