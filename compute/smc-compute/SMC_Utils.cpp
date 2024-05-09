@@ -2006,7 +2006,7 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    size = 10; //  testing only so I dont have to keep opening rss_main.cpp
+    size = 1; //  testing only so I dont have to keep opening rss_main.cpp
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2075,15 +2075,18 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             prg_aes_ni(Data2[j] + i, k2, key_prg);
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
-        Data1[totalNumShares - 1][i] = i;
-        Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
+        Data1[totalNumShares - 1][i] = 6 + i;
+        // Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
+        // Data2[totalNumShares - 1][i] = 1 + i;
+        Data2[totalNumShares - 1][i] = 1 + i;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
-            Data2[totalNumShares - 1][i] -= Data2[j][i];
+            Data2[totalNumShares - 1][i] ^= Data2[j][i];
             // Data1[totalNumShares - 1][i] ^= GET_BIT(Data1[j][i], priv_int_t(0)); // only want a single bit
             // Data2[totalNumShares - 1][i] ^= GET_BIT(Data2[j][i], priv_int_t(0)); // only want a single bit
         }
     }
+
     // for (size_t i = 0; i < size; i++) {
     //     for (size_t s = 0; s < totalNumShares; s++) {
     //         printf("Data1[%lu][%lu]: %u \n", i, s, Data1[s][i]);
@@ -2124,6 +2127,15 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         a[i] = Data1[share_mapping[id - 1][i]];
         b[i] = Data2[share_mapping[id - 1][i]];
     }
+
+    // Mult_Bitwise(C, b, b, size, net, ss);
+    // Open_Bitwise(result, C, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) [b*b]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
+    // return;
+
     // for (size_t i = 0; i < numShares; i++) {
     //     A_bit[i] = Data1[share_mapping[id - 1][i]];
     //     B_bit[i] = Data2[share_mapping[id - 1][i]];
@@ -2136,42 +2148,33 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("(open) b   [%lu]: %u\n", i, result_3[i]);
     // }
 
-    int m = 10;
-    doOperation_Trunc(C, b, ring_size, m, size, -1, net, ss);
-    Open(result_2, C, size, -1, net, ss);
-    Open(result, b, size, -1, net, ss);
-    // printf("\n");
-    for (size_t i = 0; i < size; i++) {
-        if (!(result_2[i] == (result[i] >> priv_int_t(m)))) {
-            printf("trunc  ERROR\n");
-            printf("(open)  input     [%lu]: %u\n", i, result[i]);
-            print_binary(result[i], ring_size);
-            printf("(open)  trunc res [%lu]: %u\n", i, result_2[i]);
-            print_binary(result_2[i], ring_size);
-            printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
-            print_binary(result[i] >> priv_int_t(m), ring_size);
-        }
-    }
-
-    // doOperation_EQZ(b, C, ring_size, size, -1, net, ss);
-    // Open(result, C, size, -1, net, ss);
-    // Open(result_2, b, size, -1, net, ss);
-    // // Open(result_3, b, size, -1, net, ss);
-
+    // int m = 10;
+    // doOperation_Trunc(C, b, ring_size, m, size, -1, net, ss);
+    // Open(result_2, C, size, -1, net, ss);
+    // Open(result, b, size, -1, net, ss);
+    // // printf("\n");
     // for (size_t i = 0; i < size; i++) {
-    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
-    //     printf("(open) c   [%lu]: %u\n", i, result[i]);
-    //     // print_binary(result[i], ring_size);
-    //     printf("(open) b   [%lu]: %u\n", i, result_2[i]);
-    //     // print_binary(result_2[i], ring_size);
-    //     if (!(result[i] == (result_2[i] == 0))) {
-    //         printf("EQZ ERROR\n");
-
-    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     if (!(result_2[i] == (result[i] >> priv_int_t(m)))) {
+    //         printf("trunc  ERROR\n");
+    //         printf("(open)  input     [%lu]: %u\n", i, result[i]);
+    //         print_binary(result[i], ring_size);
+    //         printf("(open)  trunc res [%lu]: %u\n", i, result_2[i]);
+    //         print_binary(result_2[i], ring_size);
+    //         printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
+    //         print_binary(result[i] >> priv_int_t(m), ring_size);
     //     }
     // }
+
+    doOperation_Pow2(C, a, ring_size, size, -1, net, ss);
+    Open(result, C, size, -1, net, ss);
+    Open(result_2, a, size, -1, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) [2^a]   [%lu]: %u\n", i, result[i]);
+        print_binary(result[i], ring_size);
+        printf("(expected)     [%lu]: %u\n", i, (1 << result_2[i]));
+        print_binary((1 << result_2[i]), ring_size);
+    }
+
     // printf("\n");
     // // Rss_BitDec(C, a, size, ring_size, net, ss);
     // doOperation_EQZ(a, C, ring_size, size, -1, net, ss);
@@ -2193,24 +2196,19 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     }
     // }
 
-    // Rss_BitDec(C, a, size, ring_size, net, ss);
-    // // doOperation_LT(C, a, b, ring_size, ring_size, ring_size, size, -1, net, ss);
-    // Open_Bitwise(result, C, size, -1, net, ss);
-    // Open(result_2, a, size, -1, net, ss);
-    // // Open(result_3, b, size, -1, net, ss);
+    // uint m = ceil(log2(ring_size)); // rounding up to the nearest integer
 
+    // Rss_BitDec(C, a, m, size, ring_size, net, ss);
+    // Open_Bitwise(result, C, size, m, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
-    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
     //     if (!(result[i] == (result_2[i]))) {
     //         printf("BitDec ERROR\n");
-
     //         printf("(open) c   [%lu]: %u\t", i, result[i]);
     //         print_binary(result[i], ring_size);
     //         printf("(open) a   [%lu]: %u\t", i, result_2[i]);
     //         print_binary(result_2[i], ring_size);
-    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
     //     }
     // }
 
