@@ -499,6 +499,7 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
     }
 
     sizeLen /= 2;
+    int uL, vL;
 
     // other Round
     for (int x = 0; x < round; x++) {
@@ -506,8 +507,8 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
         iPos = 0;
         for (int n = 0; n < batch_size; n++) {
             for (int i = 0; i < sizeLen; i += 2) {
-                int uL = sizeArray[i];
-                int vL = sizeArray[i + 1];
+                uL = sizeArray[i];
+                vL = sizeArray[i + 1];
                 for (int v = 0; v < vL; v++)
                     for (int u = 0; u < uL; u++) {
                         mpz_set(u1[oPos], buff[iPos + u]);
