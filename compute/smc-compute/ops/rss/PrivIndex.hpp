@@ -37,7 +37,6 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     // T *ai = new T[numShares];
     // memset(ai, 0, sizeof(T) * numShares);
     vector<T> ai(numShares, 0);
-
     ss->sparsify_public(ai, 1);
 
     if (k == 1) {
@@ -169,7 +168,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     }
     // oPos is the total number of bits (for the ENTIRE BATCH)
     // we need to convert this value to the total number of uint8_t's we're interested in
-    uint oPos_num_uints = (oPos >> 3);
+    // uint oPos_num_uints = (oPos >> 3);
+    uint oPos_num_uints = (oPos + 7) >> 3;
 
     // ss->modAdd(add_b, u1, v1, oPos);
     for (size_t s = 0; s < numShares; s++) {
@@ -281,7 +281,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
                 }
             }
         }
-        oPos_num_uints = (oPos >> 3);
+        // oPos_num_uints = (oPos >> 3);
+oPos_num_uints = (oPos + 7) >> 3;
 
         // ss->modAdd(add_b, u1, v1, oPos);
         for (size_t s = 0; s < numShares; s++) {
@@ -308,6 +309,7 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
 
     // oPos at this point should be equal to 2^k
     oPos /= size;
+    std::cout << "oPos : "<< oPos << std::endl;
     for (size_t s = 0; s < numShares; s++) {
         for (int x = 0; x < size; x++) {
             for (int i = 0; i < oPos; i++) {
@@ -317,7 +319,7 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
                 // std::cout << "u8_idx_0  : " <<u8_idx_0<< std::endl;
                 // std::cout << "res_idx   : " << i * size + x<< std::endl;
                 // check these indices
-                result[s][i * size + x] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
+                result[s][x * oPos + i] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
                 // result[s][x * oPos + i] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
                 // mpz_set(result[x][i], buff[x * oPos + i]);
             }
