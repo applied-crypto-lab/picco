@@ -23,8 +23,9 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 
-// input array is bits shared over Z2 (packed into a single T)
-// array [numShares][size]
+
+// input array is bits shared over Z2 (packed into a single T), this is generated from edaBit
+// array [numShares][size] 
 // result [numShares][size*(2^k)] (interpreted as (size) blocks of dimension (2^k), which is the k-ary OR of all bits and their complements)
 // we maintain the original code from the Shamir implementaiton as a reference for each operation (in RSS)
 // reminder, when operating in Z2 in RSS, +/- is equivalent to bitwise XOR (^)
@@ -33,8 +34,10 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
 
     static uint numShares = ss->getNumShares();
     // uint ring_size = ss->ring_size;
-    T *ai = new T[numShares];
-    memset(ai, 0, sizeof(T) * numShares);
+    // T *ai = new T[numShares];
+    // memset(ai, 0, sizeof(T) * numShares);
+    vector<T> ai(numShares, 0);
+
     ss->sparsify_public(ai, 1);
 
     if (k == 1) {
@@ -50,6 +53,12 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     // this rounds up to the nearest (whole) multiple of 8
     uint num_bits = (1 << k) * size; // exact number of bits in the output
     uint num_uints = (num_bits + 7) >> 3;
+    std::cout << "AO size : " << size << std::endl;
+    std::cout << "AO k : " << k << std::endl;
+    std::cout << "AO threadID : " << threadID << std::endl;
+
+    std::cout << "AO num_bits : " << num_bits << std::endl;
+    std::cout << "AO num_uints : " << num_uints << std::endl;
 
     // assertm(num_uints == result_size, "AllOr: result_size does not match num_uints (may lead to segfault)");
 
@@ -58,19 +67,18 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     uint8_t **v1 = new uint8_t *[numShares];
     uint8_t **add_b = new uint8_t *[numShares];
     uint8_t **mul_b = new uint8_t *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        buff[i] = new uint8_t[num_uints];
-        memset(buff[i], 0, sizeof(uint8_t) * num_uints);
-        u1[i] = new uint8_t[num_uints];
-        memset(u1[i], 0, sizeof(uint8_t) * num_uints);
-        v1[i] = new uint8_t[num_uints];
-        memset(v1[i], 0, sizeof(uint8_t) * num_uints);
-        add_b[i] = new uint8_t[num_uints];
-        memset(add_b[i], 0, sizeof(uint8_t) * num_uints);
-        mul_b[i] = new uint8_t[num_uints];
-        memset(mul_b[i], 0, sizeof(uint8_t) * num_uints);
+    for (size_t s = 0; s < numShares; s++) {
+        buff[s] = new uint8_t[num_uints];
+        memset(buff[s], 0, sizeof(uint8_t) * num_uints);
+        u1[s] = new uint8_t[num_uints];
+        memset(u1[s], 0, sizeof(uint8_t) * num_uints);
+        v1[s] = new uint8_t[num_uints];
+        memset(v1[s], 0, sizeof(uint8_t) * num_uints);
+        add_b[s] = new uint8_t[num_uints];
+        memset(add_b[s], 0, sizeof(uint8_t) * num_uints);
+        mul_b[s] = new uint8_t[num_uints];
+        memset(mul_b[s], 0, sizeof(uint8_t) * num_uints);
     }
-
     int round = 0;
     int nS = k - 1;
     int sizeLen = 2;
@@ -81,9 +89,9 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     }
 
     // making sure everything matches what python version generated
-    // std::cout << "round : " << round << std::endl;
-    // std::cout << "nS : " << nS << std::endl;
-    // std::cout << "sizeLen : " << sizeLen << std::endl;
+    std::cout << "round : " << round << std::endl;
+    std::cout << "nS : " << nS << std::endl;
+    std::cout << "sizeLen : " << sizeLen << std::endl;
 
     vector<int> sizeArray(sizeLen, 0);
     //  int *sizeArray = (int *)malloc(sizeof(int) * sizeLen);
@@ -179,6 +187,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
             u1[s][i] = add_b[s][i] ^ mul_b[s][i];
         }
     }
+
+
     uint oPos2 = 0;
     for (size_t s = 0; s < numShares; s++) {
         // resetting counters for each share
@@ -294,6 +304,7 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
         for (int n = 0; n < sizeLen; n++)
             sizeArray[n] = sizeArray[n * 2] * sizeArray[n * 2 + 1];
     }
+// /* 
 
     // oPos at this point should be equal to 2^k
     oPos /= size;
@@ -302,28 +313,32 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
             for (int i = 0; i < oPos; i++) {
                 bit_idx_0 = uint8_t((x * oPos + i) & 7);
                 u8_idx_0 = (x * oPos + i) >> 3;
-
+                // std::cout << "bit_idx_0 : " <<+bit_idx_0<< std::endl;
+                // std::cout << "u8_idx_0  : " <<u8_idx_0<< std::endl;
+                // std::cout << "res_idx   : " << i * size + x<< std::endl;
                 // check these indices
                 result[s][i * size + x] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
                 // result[s][x * oPos + i] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
                 // mpz_set(result[x][i], buff[x * oPos + i]);
             }
         }
-    }
+    } 
+    // */
 
-    for (size_t i = 0; i < numShares; i++) {
-        delete[] buff[i];
-        delete[] u1[i];
-        delete[] v1[i];
-        delete[] add_b[i];
-        delete[] mul_b[i];
+    // delete[] ai;
+
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] buff[s];
+        delete[] u1[s];
+        delete[] v1[s];
+        delete[] add_b[s];
+        delete[] mul_b[s];
     }
     delete[] buff;
     delete[] u1;
     delete[] v1;
     delete[] add_b;
     delete[] mul_b;
-    delete[] ai;
 }
 
 template <typename T>
