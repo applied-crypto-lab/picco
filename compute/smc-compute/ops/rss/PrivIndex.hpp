@@ -81,9 +81,9 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     }
 
     // making sure everything matches what python version generated
-    std::cout << "round : " << round << std::endl;
-    std::cout << "nS : " << nS << std::endl;
-    std::cout << "sizeLen : " << sizeLen << std::endl;
+    // std::cout << "round : " << round << std::endl;
+    // std::cout << "nS : " << nS << std::endl;
+    // std::cout << "sizeLen : " << sizeLen << std::endl;
 
     vector<int> sizeArray(sizeLen, 0);
     //  int *sizeArray = (int *)malloc(sizeof(int) * sizeLen);
