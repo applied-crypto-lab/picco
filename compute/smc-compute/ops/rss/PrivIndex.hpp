@@ -25,7 +25,7 @@
 
 // input array is bits shared over Z2 (packed into a single T)
 // array [numShares][size]
-// result [numShares][size*(2^k)] (interpreted as 2^k blocks of dimension "size")
+// result [numShares][size*(2^k)] (interpreted as (size) blocks of dimension (2^k), which is the k-ary OR of all bits and their complements)
 // we maintain the original code from the Shamir implementaiton as a reference for each operation (in RSS)
 // reminder, when operating in Z2 in RSS, +/- is equivalent to bitwise XOR (^)
 template <typename T>
@@ -40,8 +40,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
     if (k == 1) {
         for (size_t s = 0; s < numShares; s++) {
             for (int i = 0; i < size; i++) {
-                result[s][i] = GET_BIT(array[s][i], T(0));
-                result[s][size + i] = (T(1) & ai[s]) ^ GET_BIT(array[s][i], T(0));
+                result[s][2 * i] = GET_BIT(array[s][i], T(0));
+                result[s][2 * i + 1] = (T(1) & ai[s]) ^ GET_BIT(array[s][i], T(0));
             }
         }
         return;
@@ -304,7 +304,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
                 u8_idx_0 = (x * oPos + i) >> 3;
 
                 // check these indices
-                result[s][i * size + x] = GET_BIT(buff[s][u8_idx_0], bit_idx_0); 
+                result[s][i * size + x] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
+                // result[s][x * oPos + i] = GET_BIT(buff[s][u8_idx_0], bit_idx_0);
                 // mpz_set(result[x][i], buff[x * oPos + i]);
             }
         }
