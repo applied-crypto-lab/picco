@@ -953,12 +953,12 @@ void SMC_Utils::smc_privindex_read(priv_int index, priv_int ***array, priv_int *
 
 // one-dimension private integer singular write
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
-    doOperation_PrivIndex_Write((priv_int *)index, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+    doOperation_PrivIndex_Write(MPZ_CAST(index), array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
 }
 
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, priv_int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
 
-    doOperation_PrivIndex_Write((priv_int *)index, array, (priv_int *)value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+    doOperation_PrivIndex_Write(MPZ_CAST(index), array, MPZ_CAST(value), dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
 }
 
 // two-dimension private integer singular write
@@ -2006,7 +2006,7 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    size = 1; //  testing only so I dont have to keep opening rss_main.cpp
+    size = 5; //  testing only so I dont have to keep opening rss_main.cpp
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2078,7 +2078,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         Data1[totalNumShares - 1][i] = 6 + i;
         // Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
         // Data2[totalNumShares - 1][i] = 1 + i;
-        Data2[totalNumShares - 1][i] = 1 + i;
+        Data2[totalNumShares - 1][i] = i;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
             Data2[totalNumShares - 1][i] ^= Data2[j][i];
@@ -2128,6 +2128,43 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         b[i] = Data2[share_mapping[id - 1][i]];
     }
 
+    uint k = 3;
+    uint num_bits = (1 << k) * size; // exact number of bits in the output
+    // uint num_uints = (num_bits + 7) >> 3;
+    std::cout << "k : " << k << std::endl;
+    std::cout << "num_bits : " << num_bits << std::endl;
+    // std::cout << "num_uints : " << num_uints << std::endl;
+
+    priv_int_t **ao_res = new priv_int_t *[numShares];
+    for (size_t i = 0; i < numShares; i++)
+        ao_res[i] = new priv_int_t[num_bits];
+
+    AllOr(b, k, ao_res, size, -1, net, ss);
+
+    priv_int_t *res_8 = new priv_int_t[num_bits];
+    memset(res_8, 0, sizeof(priv_int_t) * num_bits);
+
+    Open_Bitwise(res_8, ao_res, num_bits, -1, net, ss);
+    Open_Bitwise(result, b, size, -1, net, ss);
+
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) b   [%lu]: %u\t", i, result[i]);
+        print_binary(result[i], ring_size);
+    }
+
+    for (size_t i = 0; i < num_bits; i++) {
+        printf("(open) ao_res   [%lu]: %u\t", i, res_8[i]);
+        print_binary(res_8[i], 8);
+        if (((i+1) % (1 << k)) == 0) {
+            printf("\n");
+        }
+    }
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] ao_res[i];
+    }
+    delete[] ao_res;
+    
     // Mult_Bitwise(C, b, b, size, net, ss);
     // Open_Bitwise(result, C, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
@@ -2165,15 +2202,15 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     }
     // }
 
-    doOperation_Pow2(C, a, ring_size, size, -1, net, ss);
-    Open(result, C, size, -1, net, ss);
-    Open(result_2, a, size, -1, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) [2^a]   [%lu]: %u\n", i, result[i]);
-        print_binary(result[i], ring_size);
-        printf("(expected)     [%lu]: %u\n", i, (1 << result_2[i]));
-        print_binary((1 << result_2[i]), ring_size);
-    }
+    // doOperation_Pow2(C, a, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) [2^a]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    //     printf("(expected)     [%lu]: %u\n", i, (1 << result_2[i]));
+    //     print_binary((1 << result_2[i]), ring_size);
+    // }
 
     // printf("\n");
     // // Rss_BitDec(C, a, size, ring_size, net, ss);
