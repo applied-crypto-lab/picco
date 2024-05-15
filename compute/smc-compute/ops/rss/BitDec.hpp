@@ -37,11 +37,12 @@ void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeN
 
     static uint numShares = ss->getNumShares();
 
+    T *c = new T[size];
+
     T **edaBit_r = new T *[numShares];
     T **edaBit_b_2 = new T *[numShares];
     T **sum = new T *[numShares];
 
-    T *c = new T[size];
 
     for (size_t i = 0; i < numShares; i++) {
         sum[i] = new T[size];
