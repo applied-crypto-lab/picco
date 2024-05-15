@@ -219,7 +219,8 @@ void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 //         memset(recvbuf[i], 0, sizeof(T) * size);
 //     }
 
-//     int pid = nodeNet.getID();
+//         static int pid = ss->getID();
+
 //     T *v = new T[size];
 //     T *v_a = new T[size];
 
@@ -302,7 +303,8 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitleng
         memset(recvbuf[i], 0, sizeof(T) * size);
     }
 
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
+
     T *v = new T[size];
     T *v_a = new T[size];
 
@@ -377,7 +379,7 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     T *v = new T[size];
     memset(v, 0, sizeof(T) * size);
@@ -460,7 +462,7 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -543,7 +545,7 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -616,7 +618,7 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     // printf("size: %u\n", size);
 
@@ -695,7 +697,7 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 //     uint numShares = ss->getNumShares();
 //     uint numParties = ss->getPeers();
 //     // uint threshold = ss->getThreshold();
-//     int pid = nodeNet.getID();
+//         static int pid = ss->getID();
 
 //     T **send_buf = new T *[numParties];
 //     T **recv_buf = new T *[numParties];
@@ -861,7 +863,7 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -961,7 +963,7 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -1061,7 +1063,7 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
 //     uint numShares = ss->getNumShares();
 //     uint numParties = ss->getPeers();
 //     // uint threshold = ss->getThreshold();
-//     int pid = nodeNet.getID();
+//         static int pid = ss->getID();
 
 //     // printf("numShares = %u\n",numShares);
 //     // printf("bytes = %u\n",bytes);
@@ -1425,7 +1427,7 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -1524,7 +1526,7 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
 
     uint8_t *v = new uint8_t[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
