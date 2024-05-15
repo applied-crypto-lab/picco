@@ -336,6 +336,20 @@ void AllOr(T **array, int k, T **result, int size, int threadID, NodeNetwork nod
 
 template <typename T>
 void doOperation_PrivIndex_Write(T **index, T **array, int *values, int dim, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    static uint numShares = ss->getNumShares();
+
+    T **val = new T *[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        val[s] = new T[size];
+        memset(val[s], 0, sizeof(T) * size);
+    }
+    ss->sparsify(val, values, size);
+    doOperation_PrivIndex_Write(index, array, val, dim, size, out_cond, priv_cond, counter, threadID, 0, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] val[s];
+    }
+    delete[] val;
 }
 
 // array : [numShares][dim]
@@ -457,15 +471,19 @@ void doOperation_PrivIndex_Read(T **index, T **array, T **result, int m, int siz
 template <typename T>
 void compute_private_conditions(T **private_conditions, T *out_cond, T **priv_cond, int counter, int size) {
 }
+
 template <typename T>
 void doOperation_PrivIndex_int(T *index, T **array, T *result, int dim, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
+
 template <typename T>
 void doOperation_PrivIndex_float(T *index, T ***array, T **result, int dim, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
+
 template <typename T>
 void doOperation_PrivIndex_int_arr(T *index, T ***array, T *result, int dim1, int dim2, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
+
 template <typename T>
 void doOperation_PrivIndex_float_arr(T *index, T ****array, T **result, int dim1, int dim2, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
@@ -590,10 +608,43 @@ void doOperation_PrivIndex_Write(T **index, T **array, T **value, int m, int siz
     delete[] sum;
     delete[] ao_res;
 }
+
 template <typename T>
 void doOperation_PrivIndex_Write_2d(T **index, T ***array, int *values, int dim1, int dim2, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    static uint numShares = ss->getNumShares();
+
+    T **val = new T *[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        val[s] = new T[size];
+        memset(val[s], 0, sizeof(T) * size);
+    }
+    ss->sparsify(val, values, size);
+    doOperation_PrivIndex_Write_2d(index, array, val, dim1, dim2, size, out_cond, priv_cond, counter, threadID, 0, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] val[s];
+    }
+    delete[] val;
 }
+
 template <typename T>
 void doOperation_PrivIndex_Write_2d(T **index, T ***array, T **values, int dim1, int dim2, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    static uint numShares = ss->getNumShares();
+    T **array_tmp = new T *[numShares];
+
+    for (size_t s = 0; s < numShares; s++) {
+        array_tmp[s] = new T[dim1 * dim2];
+        for (size_t i = 0; i < dim1; i++) {
+            memcpy(array_tmp[s] + i * dim2, array[s][i], sizeof(T) * dim2); // check this
+        }
+    }
+
+    doOperation_PrivIndex_Write(index, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] array_tmp[s];
+    }
+    delete[] array_tmp;
 }
+
 #endif // _PRIVINDEX_HPP_
