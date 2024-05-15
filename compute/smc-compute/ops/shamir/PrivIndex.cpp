@@ -110,6 +110,12 @@ void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result,
     ss_batch_free_operator(&array_tmp, 4 * dim1 * dim2);
 }
 
+
+// this is a Batxh array read of a SINGLE ARRAY, where the inputs are of dimension
+// array : [dim]
+// index : [size]
+// result : [size]
+// NOTE: modifications are required in the protocol (as well as on the compiler side, and ShamirOps) to support a batch read of a BATCH OF ARRAYS
 void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m, int size, int threadID, int type, NodeNetwork net, SecretShare *ss) {
     int logm = ceil(log2(m));
     int dtype_offset = (type == 0) ? 1 : 4;
@@ -127,7 +133,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
     mpz_t **U1 = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     int nb;
-    int b_size = pow(2, logm);
+    int pow_logm = pow(2, logm);
     unsigned long int C1;
 
     // initialization
@@ -143,8 +149,8 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
         U1[i] = (mpz_t *)malloc(sizeof(mpz_t) * (logm + 1));
         for (int j = 0; j < logm + 1; j++)
             mpz_init(U1[i][j]);
-        B[i] = (mpz_t *)malloc(sizeof(mpz_t) * b_size);
-        for (int j = 0; j < b_size; j++)
+        B[i] = (mpz_t *)malloc(sizeof(mpz_t) * pow_logm);
+        for (int j = 0; j < pow_logm; j++)
             mpz_init(B[i][j]);
     }
     for (int i = 0; i < peers; i++) {
@@ -184,7 +190,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
     // gettimeofday(&tv3, NULL);
 
     for (int i = 0; i < size; i++)
-        for (int j = 0; j < b_size; j++)
+        for (int j = 0; j < pow_logm; j++)
             ss->modSub(B[i][j], const1, B[i][j]);
 
     /*** Lookup: LINE 3: c = Output(j + 2^log_n*r' + r) ***/
@@ -205,9 +211,13 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
     for (int i = 0; i < size; i++) {
         C1 = mpz_get_ui(C[i]);
         for (int j = 0; j < m; j++) {
-            nb = (C1 - j) % b_size;
+            nb = (C1 - j) % pow_logm;
             // printf("nb %d C1 %d j %d b_size %d \n", nb, C1, j, b_size);
             for (int k = 0; k < dtype_offset; k++) {
+                
+                // the way the index for array is computed is correct in the context of this implementaiton
+                // it is NOT used for a batch of multiple arrays
+
                 mpz_mul(temp, B[i][nb], array[j * dtype_offset + k]);
                 // gmp_printf("B[%d][%d] %Zd array[%d] %Zd", i, nb, B[i][nb], j*m+k, array[j*m+k]);
                 mpz_add(result[i * dtype_offset + k], result[i * dtype_offset + k], temp);
@@ -233,7 +243,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
         for (int j = 0; j < logm + 1; ++j)
             mpz_clear(U1[i][j]);
         free(U1[i]);
-        for (int j = 0; j < b_size; ++j)
+        for (int j = 0; j < pow_logm; ++j)
             mpz_clear(B[i][j]);
         free(B[i]);
     }
@@ -266,14 +276,14 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
 
 void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, SecretShare *ss) {
     int K = ceil(log2(dim));
-    int m = (type == 0) ? 1 : 4;
+    int dtype_offset = (type == 0) ? 1 : 4;
     mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
     mpz_t **U1 = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * m * size * dim);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * m * size * dim);
-    mpz_t *temp3 = (mpz_t *)malloc(sizeof(mpz_t) * m * size * dim);
-    mpz_t *temp4 = (mpz_t *)malloc(sizeof(mpz_t) * m * dim);
-    mpz_t *temp5 = (mpz_t *)malloc(sizeof(mpz_t) * m * dim);
+    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * size * dim);
+    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * size * dim);
+    mpz_t *temp3 = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * size * dim);
+    mpz_t *temp4 = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * dim);
+    mpz_t *temp5 = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * dim);
     mpz_t const1;
     mpz_init_set_ui(const1, 1);
 
@@ -281,12 +291,12 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
     int **bitArray = (int **)malloc(sizeof(int *) * dim);
     for (int i = 0; i < dim; i++)
         bitArray[i] = (int *)malloc(sizeof(int) * K);
-    for (int i = 0; i < m * size * dim; i++) {
+    for (int i = 0; i < dtype_offset * size * dim; i++) {
         mpz_init(temp1[i]);
         mpz_init(temp2[i]);
         mpz_init(temp3[i]);
     }
-    for (int i = 0; i < m * dim; i++) {
+    for (int i = 0; i < dtype_offset * dim; i++) {
         mpz_init(temp4[i]);
         mpz_init(temp5[i]);
     }
@@ -329,35 +339,35 @@ void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, mpz_t *value, int d
     Mult(temp1, temp1, temp2, size * dim, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
-            for (int k = 0; k < m; k++) {
-                mpz_set(temp2[i * dim * m + j * m + k], value[i * m + k]);
-                mpz_set(temp3[i * dim * m + j * m + k], temp1[i * dim + j]);
+            for (int k = 0; k < dtype_offset; k++) {
+                mpz_set(temp2[i * dim * dtype_offset + j * dtype_offset + k], value[i * dtype_offset + k]);
+                mpz_set(temp3[i * dim * dtype_offset + j * dtype_offset + k], temp1[i * dim + j]);
             }
         }
     }
-    Mult(temp2, temp2, temp3, m * size * dim, threadID, net, ss);
+    Mult(temp2, temp2, temp3, dtype_offset * size * dim, threadID, net, ss);
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < dim; j++) {
-            for (int k = 0; k < m; k++) {
-                ss->modAdd(temp4[j * m + k], temp4[j * m + k], temp2[i * dim * m + j * m + k]);
-                ss->modAdd(temp5[j * m + k], temp5[j * m + k], temp1[i * dim + j]);
+            for (int k = 0; k < dtype_offset; k++) {
+                ss->modAdd(temp4[j * dtype_offset + k], temp4[j * dtype_offset + k], temp2[i * dim * dtype_offset + j * dtype_offset + k]);
+                ss->modAdd(temp5[j * dtype_offset + k], temp5[j * dtype_offset + k], temp1[i * dim + j]);
             }
         }
     }
-    ss->modSub(temp5, const1, temp5, m * dim);
-    Mult(temp5, temp5, array, m * dim, threadID, net, ss);
-    ss->modAdd(array, temp4, temp5, m * dim);
+    ss->modSub(temp5, const1, temp5, dtype_offset * dim);
+    Mult(temp5, temp5, array, dtype_offset * dim, threadID, net, ss);
+    ss->modAdd(array, temp4, temp5, dtype_offset * dim);
 
     // free memory
     for (int i = 0; i < dim; i++)
         free(bitArray[i]);
     free(bitArray);
-    for (int i = 0; i < m * size * dim; i++) {
+    for (int i = 0; i < dtype_offset * size * dim; i++) {
         mpz_clear(temp1[i]);
         mpz_clear(temp2[i]);
         mpz_clear(temp3[i]);
     }
-    for (int i = 0; i < m * dim; i++) {
+    for (int i = 0; i < dtype_offset * dim; i++) {
         mpz_clear(temp4[i]);
         mpz_clear(temp5[i]);
     }
