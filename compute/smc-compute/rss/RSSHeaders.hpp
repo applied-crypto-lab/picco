@@ -28,7 +28,6 @@
 #include "../ops/rss/PrivIndex.hpp"
 #include "../ops/rss/SDiv.hpp"
 #include "../ops/rss/Trunc.hpp"
-#include "../ops/rss/TruncPr.hpp"
 #include "../ops/rss/TruncS.hpp"
 #include "NodeConfiguration.h"
 #include "NodeNetwork.h"
