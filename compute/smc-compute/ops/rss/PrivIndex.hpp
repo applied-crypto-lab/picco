@@ -29,7 +29,7 @@
 // we maintain the original code from the Shamir implementaiton as a reference for each operation (in RSS)
 // reminder, when operating in Z2 in RSS, +/- is equivalent to bitwise XOR (^)
 template <typename T>
-void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     static uint numShares = ss->getNumShares();
     // uint ring_size = ss->ring_size;
@@ -169,8 +169,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
         }
     }
 
-    // Mult(mul_b, u1, v1, oPos, threadID, net, ss);
-    Mult_Byte(mul_b, u1, v1, oPos_num_uints, net, ss);
+    // Mult(mul_b, u1, v1, oPos, threadID, nodeNet, ss);
+    Mult_Byte(mul_b, u1, v1, oPos_num_uints, nodeNet, ss);
 
     // ss->modSub(u1, add_b, mul_b, oPos);
     for (size_t s = 0; s < numShares; s++) {
@@ -281,8 +281,8 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
             }
         }
 
-        // Mult(mul_b, u1, v1, oPos, threadID, net, ss);
-        Mult_Byte(mul_b, u1, v1, oPos_num_uints, net, ss);
+        // Mult(mul_b, u1, v1, oPos, threadID, nodeNet, ss);
+        Mult_Byte(mul_b, u1, v1, oPos_num_uints, nodeNet, ss);
 
         // ss->modSub(buff, add_b, mul_b, oPos);
         for (size_t s = 0; s < numShares; s++) {
@@ -334,37 +334,90 @@ void AllOr(T **array, int k, uint8_t **result, int size, int threadID, NodeNetwo
 }
 
 template <typename T>
-void doOperation_PrivIndex_Write(T **index, T **array, int *values, int dim, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_Write(T **index, T **array, int *values, int dim, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 
 // array : [numShares][size * dim]
 // index : [numShares][size]
+// dim = m in protocol specification
 template <typename T>
-void doOperation_PrivIndex_Read(T **index, T **array, T **result, int dim, int size, int threadID, int type, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_Read(T **index, T **array, T **result, int dim, int size, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    static uint numShares = ss->getNumShares();
+    uint ring_size = ss->ring_size;
+    uint total_size = dim * size;
+    uint logm = ceil(log2(dim));
+
+    T **edaBit_r = new T *[numShares];
+    T **edaBit_b_2 = new T *[numShares];
+    T **sum = new T *[numShares];
+
+    T *c = new T[size];
+
+    for (size_t i = 0; i < numShares; i++) {
+        sum[i] = new T[size];
+
+        edaBit_r[i] = new T[size];
+        edaBit_b_2[i] = new T[size];
+    }
+
+    edaBit(edaBit_r, edaBit_b_2, logm, size, ring_size, nodeNet, ss);
+
+    uint num_bits = (1 << logm) * size; // exact number of bits in the output
+    uint8_t **ao_res = new uint8_t *[numShares];
+    for (size_t i = 0; i < numShares; i++)
+        ao_res[i] = new uint8_t[num_bits];
+
+    AllOr(edaBit_b_2, logm, ao_res, size, -1, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            sum[s][i] = (index[s][i] + edaBit_r[s][i]);
+        }
+    }
+
+    Open(c, sum, size, -1, nodeNet, ss);
+
+    for (size_t i = 0; i < size; i++) {
+        c[i] = c[i] & ss->SHIFT[logm];
+    }
+
+    delete[] c;
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] ao_res[i];
+        delete[] edaBit_r[i];
+        delete[] edaBit_b_2[i];
+        delete[] sum[i];
+    }
+    delete[] edaBit_r;
+    delete[] edaBit_b_2;
+    delete[] sum;
+    delete[] ao_res;
 }
 
 template <typename T>
 void compute_private_conditions(T **private_conditions, T *out_cond, T **priv_cond, int counter, int size) {
 }
 template <typename T>
-void doOperation_PrivIndex_int(T *index, T **array, T *result, int dim, int type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_int(T *index, T **array, T *result, int dim, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
-void doOperation_PrivIndex_float(T *index, T ***array, T **result, int dim, int type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_float(T *index, T ***array, T **result, int dim, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
-void doOperation_PrivIndex_int_arr(T *index, T ***array, T *result, int dim1, int dim2, int type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_int_arr(T *index, T ***array, T *result, int dim1, int dim2, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
-void doOperation_PrivIndex_float_arr(T *index, T ****array, T **result, int dim1, int dim2, int type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_float_arr(T *index, T ****array, T **result, int dim1, int dim2, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
-void doOperation_PrivIndex_Write(T **index, T **array, T **value, int dim, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_Write(T **index, T **array, T **value, int dim, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
-void doOperation_PrivIndex_Write_2d(T **index, T ***array, int *values, int dim1, int dim2, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_Write_2d(T **index, T ***array, int *values, int dim1, int dim2, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
-void doOperation_PrivIndex_Write_2d(T **index, T ***array, T **values, int dim1, int dim2, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void doOperation_PrivIndex_Write_2d(T **index, T ***array, T **values, int dim1, int dim2, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 #endif // _PRIVINDEX_HPP_
