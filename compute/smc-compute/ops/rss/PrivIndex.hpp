@@ -420,8 +420,6 @@ void doOperation_PrivIndex_Read(T **index, T **array, T **result, int m, int siz
 
             for (int j = 0; j < m; j++) {
                 nb = (c[i] - j) % pow_logm;
-                // printf("nb %d C1 %d j %d pow_logm %d \n", nb, C1, j, pow_logm);
-                // B_buff[s][i * m + nb] = ao_res[s][i * m + nb];
 
                 // not supporting floating point (for now)
                 for (int k = 0; k < dtype_offset; k++) {
@@ -471,6 +469,14 @@ void doOperation_PrivIndex_int_arr(T *index, T ***array, T *result, int dim1, in
 template <typename T>
 void doOperation_PrivIndex_float_arr(T *index, T ****array, T **result, int dim1, int dim2, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
+
+// array : [numShares][dim]
+// index : [numShares][size]
+// value : [numShares][size]
+// this algorithm can theoretically be done in a more efficient manner involving prefixes/trees/etc
+// the array can be updated up to size times, down to 0 times (depending on indexes)
+// array_i will equal the value where its last bit (comuted in AllOR) is 1
+// currently array updates are performed sequentiallly
 template <typename T>
 void doOperation_PrivIndex_Write(T **index, T **array, T **value, int m, int size, T *out_cond, T **priv_cond, int counter, int threadID, int type, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -545,14 +551,9 @@ void doOperation_PrivIndex_Write(T **index, T **array, T **value, int m, int siz
     for (int i = 0; i < size; i++) {
         idx = 0;
         for (size_t s = 0; s < numShares; s++) {
-            // A_buff will contain (size) copies of array
-            // memcpy(A_buff[s] + i * dtype_offset * m, array[s], sizeof(T) * dtype_offset * m);
-
             for (int j = 0; j < m; j++) {
 
                 nb = (c[i] - j) % pow_logm;
-                // printf("nb %d C1 %d j %d pow_logm %d \n", nb, C1, j, pow_logm);
-                // B_buff[s][i * m + nb] = ao_res[s][i * m + nb];
 
                 // not supporting floating point (for now)
                 for (int k = 0; k < dtype_offset; k++) {
