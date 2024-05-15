@@ -62,17 +62,6 @@ void doOperation_PrivIndex_float(mpz_t index, mpz_t **array, mpz_t *result, int 
 
     ss_batch_free_operator(&index_tmp, 1);
     ss_batch_free_operator(&array_tmp, 4 * dim);
-
-    // mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_t *result_tmp = (mpz_t *)malloc(sizeof(mpz_t));
-    // mpz_init_set(index_tmp[0], index);
-    // mpz_init(result_tmp[0]);
-
-    // doOperation_PrivIndex_Read(index_tmp, array, result_tmp, dim, 1, threadID, 0);
-    // mpz_set(result, result_tmp[0]);
-
-    // ss_batch_free_operator(&index_tmp, 1);
-    // ss_batch_free_operator(&result_tmp, 1);
 }
 
 void doOperation_PrivIndex_int_arr(mpz_t index, mpz_t **array, mpz_t result, int dim1, int dim2, int type, int threadID, NodeNetwork net, SecretShare *ss) {
@@ -110,7 +99,6 @@ void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result,
     ss_batch_free_operator(&array_tmp, 4 * dim1 * dim2);
 }
 
-
 // this is a Batxh array read of a SINGLE ARRAY, where the inputs are of dimension
 // array : [dim]
 // index : [size]
@@ -118,8 +106,9 @@ void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result,
 // NOTE: modifications are required in the protocol (as well as on the compiler side, and ShamirOps) to support a batch read of a BATCH OF ARRAYS
 void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m, int size, int threadID, int type, NodeNetwork net, SecretShare *ss) {
     int logm = ceil(log2(m));
-    int dtype_offset = (type == 0) ? 1 : 4;
-    //	printf("dim %d, size %d, threadID %d, K %d, m %d \n", dim, size, threadID, K, m);
+    // used for floating-point values, which are packed into a single 1D array 
+    // s.t. the dimension of array is now array[4*m] in blocks of 4
+    int dtype_offset = (type == 0) ? 1 : 4; 
 
     mpz_t const1, const2, constK, pow2K, temp;
     mpz_t *S = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -172,8 +161,6 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
     for (int i = 0; i < dtype_offset * size; i++)
         mpz_init_set_ui(result[i], 0);
 
-    // struct timeval tv1, tv2, tv3, tv4, tv5;
-    // gettimeofday(&tv1, NULL);
     // start computation
     /*** Lookup: LINE 1: PRandM(log_n, log_n) ***/
     PRandM(logm, size, U, threadID, net, ss);
@@ -182,12 +169,9 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
             mpz_set(U1[i][j], U[j][i]);
         mpz_set(r[i], U1[i][logm]);
     }
-    // gettimeofday(&tv2, NULL);
-    // std::cout << "Time PRandM: " << time_diff(&tv1,&tv2) << std::endl;
 
     /*** Lookup: LINE 2: 1 - AllOr ***/
     AllOr(U1, logm, B, size, threadID, net, ss);
-    // gettimeofday(&tv3, NULL);
 
     for (int i = 0; i < size; i++)
         for (int j = 0; j < pow_logm; j++)
@@ -199,13 +183,10 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
     ss->modMul(S, S, pow2K, size);
     ss->modAdd(C, index, r, size);
     ss->modAdd(C, C, S, size);
-    // net.broadcastToPeers(C, size, resultShares, threadID);
-    // ss->reconstructSecret(C, resultShares, size);
+
     Open(C, C, size, threadID, net, ss);
     /*** Lookup: LINE 4: c' = c mod 2^log_n ***/
     ss->mod(C, C, pow2K, size);
-    // gettimeofday(&tv4, NULL);
-    // std::cout << "Time PRandInt: " << time_diff(&tv3,&tv4) << std::endl;
 
     /*** Lookup: LINE 5, 6: b = b_(c'- i mod 2^log_n) * array_i ***/
     for (int i = 0; i < size; i++) {
@@ -214,12 +195,11 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
             nb = (C1 - j) % pow_logm;
             // printf("nb %d C1 %d j %d b_size %d \n", nb, C1, j, b_size);
             for (int k = 0; k < dtype_offset; k++) {
-                
+
                 // the way the index for array is computed is correct in the context of this implementaiton
                 // it is NOT used for a batch of multiple arrays
 
                 mpz_mul(temp, B[i][nb], array[j * dtype_offset + k]);
-                // gmp_printf("B[%d][%d] %Zd array[%d] %Zd", i, nb, B[i][nb], j*m+k, array[j*m+k]);
                 mpz_add(result[i * dtype_offset + k], result[i * dtype_offset + k], temp);
             }
         }
@@ -228,8 +208,6 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m
     ss->getShares(shares, result, dtype_offset * size);
     net.multicastToPeers(shares, buffer, dtype_offset * size, threadID);
     ss->reconstructSecret(result, buffer, dtype_offset * size);
-    // gettimeofday(&tv5, NULL);
-    // std::cout << "Time DotProduct: " << time_diff(&tv4,&tv5) << std::endl;
 
     // free the memory
     mpz_clear(const1);
@@ -422,9 +400,6 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
         mpz_init(mul_b[i]);
     }
 
-    // struct timeval tv1, tv2;
-    // gettimeofday(&tv1, NULL);
-
     // make structure
     //  LINE 3, 4, 5
     int round = 0;
@@ -531,7 +506,7 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
         ss->modAdd(add_b, u1, v1, oPos);
         // rou, net, ssnd
         Mult(mul_b, u1, v1, oPos, threadID, net, ss);
-        // std::cout << "	2Mul->do: " << oPos << std::endl;
+
         ss->modSub(buff, add_b, mul_b, oPos);
         sizeLen /= 2;
         for (int n = 0; n < sizeLen; n++)
@@ -543,9 +518,6 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
         for (int i = 0; i < oPos; i++)
             mpz_set(result[x][i], buff[x * oPos + i]);
 
-    // gettimeofday(&tv2, NULL);
-    // std::cout << "	Time round: " << time_diff(&tv1,&tv2) << std::endl;
-
     // Free the memory
     mpz_clear(const1);
     free(buff);
@@ -556,26 +528,12 @@ void AllOr(mpz_t **array, int k, mpz_t **result, int batch_size, int threadID, N
     free(sizeArray);
 }
 
-double time_diff(struct timeval *t1, struct timeval *t2) {
-    double elapsed;
-
-    if (t1->tv_usec > t2->tv_usec) {
-        t2->tv_usec += 1000000;
-        t2->tv_sec--;
-    }
-
-    elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
-
-    return elapsed;
-}
-
 // needed to convert integer inputs to mpz_t
 void doOperation_PrivIndex_Write(mpz_t *index, mpz_t *array, int *values, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(val[i], values[i]);
-    // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
     doOperation_PrivIndex_Write(index, array, val, dim, size, out_cond, priv_cond, counter, threadID, 0, net, ss);
     ss_batch_free_operator(&val, size);
 }
@@ -585,7 +543,6 @@ void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, int *values, in
     mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(val[i], values[i]);
-    // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
     doOperation_PrivIndex_Write_2d(index, array, val, dim1, dim2, size, out_cond, priv_cond, counter, threadID, 0, net, ss);
     ss_batch_free_operator(&val, size);
 }
@@ -596,25 +553,7 @@ void doOperation_PrivIndex_Write_2d(mpz_t *index, mpz_t **array, mpz_t *values, 
         for (int j = 0; j < dim2; j++)
             mpz_init_set(array_tmp[i * dim2 + j], array[i][j]);
 
-    // mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    // for (int i = 0; i < size; i++)
-    //     mpz_init_set_si(val[i], values[i]);
-    // smc_privindex_write(indices, array, len_sig, len_exp, val, dim, size, out_cond, priv_cond, counter, type, threadID);
     doOperation_PrivIndex_Write(index, array_tmp, values, dim1 * dim2, size, out_cond, priv_cond, counter, threadID, 0, net, ss);
-    // ss_batch_free_operator(&val, size);
 
     ss_batch_free_operator(&array_tmp, dim1 * dim2);
 }
-
-// void doOperation_PrivIndex_Write_int_mpz(mpz_t *index, mpz_t *array, mpz_t value, int dim, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, int threadID, int type, NodeNetwork net,  SecretShare *ss){
-//     mpz_t *index_tmp = (mpz_t *)malloc(sizeof(mpz_t));
-//     mpz_t *value_tmp = (mpz_t *)malloc(sizeof(mpz_t));
-//     mpz_init_set(index_tmp[0], index);
-//     mpz_init_set(value_tmp[0], value);
-
-//     doOperation_PrivIndex_Write(index_tmp, array, value_tmp, dim, 1, out_cond, priv_cond, counter, threadID, 0);
-
-//     ss_batch_free_operator(&index_tmp, 1);
-//     ss_batch_free_operator(&value_tmp, 1);
-
-// }
