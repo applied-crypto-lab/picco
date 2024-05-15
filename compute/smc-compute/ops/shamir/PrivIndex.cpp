@@ -110,9 +110,9 @@ void doOperation_PrivIndex_float_arr(mpz_t index, mpz_t ***array, mpz_t *result,
     ss_batch_free_operator(&array_tmp, 4 * dim1 * dim2);
 }
 
-void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int dim, int size, int threadID, int type, NodeNetwork net, SecretShare *ss) {
-    int K = ceil(log2(dim));
-    int m = (type == 0) ? 1 : 4;
+void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int m, int size, int threadID, int type, NodeNetwork net, SecretShare *ss) {
+    int logm = ceil(log2(m));
+    int dtype_offset = (type == 0) ? 1 : 4;
     //	printf("dim %d, size %d, threadID %d, K %d, m %d \n", dim, size, threadID, K, m);
 
     mpz_t const1, const2, constK, pow2K, temp;
@@ -123,25 +123,25 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **shares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
-    mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
+    mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (logm + 1));
     mpz_t **U1 = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     int nb;
-    int b_size = pow(2, K);
+    int b_size = pow(2, logm);
     unsigned long int C1;
 
     // initialization
     mpz_init_set_ui(const1, 1);
     mpz_init_set_ui(const2, 2);
-    mpz_init_set_ui(constK, K);
+    mpz_init_set_ui(constK, logm);
     mpz_init(pow2K);
     mpz_init(temp);
     for (int i = 0; i < size; i++) {
         mpz_init_set_ui(S[i], 0);
         mpz_init_set_ui(r[i], 0);
         mpz_init_set_ui(C[i], 0);
-        U1[i] = (mpz_t *)malloc(sizeof(mpz_t) * (K + 1));
-        for (int j = 0; j < K + 1; j++)
+        U1[i] = (mpz_t *)malloc(sizeof(mpz_t) * (logm + 1));
+        for (int j = 0; j < logm + 1; j++)
             mpz_init(U1[i][j]);
         B[i] = (mpz_t *)malloc(sizeof(mpz_t) * b_size);
         for (int j = 0; j < b_size; j++)
@@ -151,36 +151,36 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
         resultShares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; j++)
             mpz_init(resultShares[i][j]);
-        shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * m * size);
-        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * m * size);
-        for (int j = 0; j < m * size; j++) {
+        shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * size);
+        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * dtype_offset * size);
+        for (int j = 0; j < dtype_offset * size; j++) {
             mpz_init(shares[i][j]);
             mpz_init(buffer[i][j]);
         }
     }
-    for (int i = 0; i < K + 1; i++) {
+    for (int i = 0; i < logm + 1; i++) {
         U[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; j++)
             mpz_init(U[i][j]);
     }
-    for (int i = 0; i < m * size; i++)
+    for (int i = 0; i < dtype_offset * size; i++)
         mpz_init_set_ui(result[i], 0);
 
     // struct timeval tv1, tv2, tv3, tv4, tv5;
     // gettimeofday(&tv1, NULL);
     // start computation
     /*** Lookup: LINE 1: PRandM(log_n, log_n) ***/
-    PRandM(K, size, U, threadID, net, ss);
+    PRandM(logm, size, U, threadID, net, ss);
     for (int i = 0; i < size; i++) {
-        for (int j = 0; j < K + 1; j++)
+        for (int j = 0; j < logm + 1; j++)
             mpz_set(U1[i][j], U[j][i]);
-        mpz_set(r[i], U1[i][K]);
+        mpz_set(r[i], U1[i][logm]);
     }
     // gettimeofday(&tv2, NULL);
     // std::cout << "Time PRandM: " << time_diff(&tv1,&tv2) << std::endl;
 
     /*** Lookup: LINE 2: 1 - AllOr ***/
-    AllOr(U1, K, B, size, threadID, net, ss);
+    AllOr(U1, logm, B, size, threadID, net, ss);
     // gettimeofday(&tv3, NULL);
 
     for (int i = 0; i < size; i++)
@@ -188,7 +188,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
             ss->modSub(B[i][j], const1, B[i][j]);
 
     /*** Lookup: LINE 3: c = Output(j + 2^log_n*r' + r) ***/
-    PRandInt(K, K, size, S, threadID, ss);
+    PRandInt(logm, logm, size, S, threadID, ss);
     ss->modPow(pow2K, const2, constK);
     ss->modMul(S, S, pow2K, size);
     ss->modAdd(C, index, r, size);
@@ -204,20 +204,20 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     /*** Lookup: LINE 5, 6: b = b_(c'- i mod 2^log_n) * array_i ***/
     for (int i = 0; i < size; i++) {
         C1 = mpz_get_ui(C[i]);
-        for (int j = 0; j < dim; j++) {
+        for (int j = 0; j < m; j++) {
             nb = (C1 - j) % b_size;
             // printf("nb %d C1 %d j %d b_size %d \n", nb, C1, j, b_size);
-            for (int k = 0; k < m; k++) {
-                mpz_mul(temp, B[i][nb], array[j * m + k]);
+            for (int k = 0; k < dtype_offset; k++) {
+                mpz_mul(temp, B[i][nb], array[j * dtype_offset + k]);
                 // gmp_printf("B[%d][%d] %Zd array[%d] %Zd", i, nb, B[i][nb], j*m+k, array[j*m+k]);
-                mpz_add(result[i * m + k], result[i * m + k], temp);
+                mpz_add(result[i * dtype_offset + k], result[i * dtype_offset + k], temp);
             }
         }
     }
 
-    ss->getShares(shares, result, m * size);
-    net.multicastToPeers(shares, buffer, m * size, threadID);
-    ss->reconstructSecret(result, buffer, m * size);
+    ss->getShares(shares, result, dtype_offset * size);
+    net.multicastToPeers(shares, buffer, dtype_offset * size, threadID);
+    ss->reconstructSecret(result, buffer, dtype_offset * size);
     // gettimeofday(&tv5, NULL);
     // std::cout << "Time DotProduct: " << time_diff(&tv4,&tv5) << std::endl;
 
@@ -230,7 +230,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
         mpz_clear(S[i]);
         mpz_clear(r[i]);
         mpz_clear(C[i]);
-        for (int j = 0; j < K + 1; ++j)
+        for (int j = 0; j < logm + 1; ++j)
             mpz_clear(U1[i][j]);
         free(U1[i]);
         for (int j = 0; j < b_size; ++j)
@@ -246,7 +246,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
         for (int j = 0; j < size; j++)
             mpz_clear(resultShares[i][j]);
         free(resultShares[i]);
-        for (int j = 0; j < m * size; j++) {
+        for (int j = 0; j < dtype_offset * size; j++) {
             mpz_clear(shares[i][j]);
             mpz_clear(buffer[i][j]);
         }
@@ -256,7 +256,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     free(resultShares);
     free(shares);
     free(buffer);
-    for (int i = 0; i < K + 1; ++i) {
+    for (int i = 0; i < logm + 1; ++i) {
         for (int j = 0; j < size; ++j)
             mpz_clear(U[i][j]);
         free(U[i]);
