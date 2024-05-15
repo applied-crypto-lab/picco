@@ -166,8 +166,8 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     for (int i = 0; i < m * size; i++)
         mpz_init_set_ui(result[i], 0);
 
-    struct timeval tv1, tv2, tv3, tv4, tv5;
-    gettimeofday(&tv1, NULL);
+    // struct timeval tv1, tv2, tv3, tv4, tv5;
+    // gettimeofday(&tv1, NULL);
     // start computation
     /*** Lookup: LINE 1: PRandM(log_n, log_n) ***/
     PRandM(K, size, U, threadID, net, ss);
@@ -176,12 +176,12 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
             mpz_set(U1[i][j], U[j][i]);
         mpz_set(r[i], U1[i][K]);
     }
-    gettimeofday(&tv2, NULL);
+    // gettimeofday(&tv2, NULL);
     // std::cout << "Time PRandM: " << time_diff(&tv1,&tv2) << std::endl;
 
     /*** Lookup: LINE 2: 1 - AllOr ***/
     AllOr(U1, K, B, size, threadID, net, ss);
-    gettimeofday(&tv3, NULL);
+    // gettimeofday(&tv3, NULL);
 
     for (int i = 0; i < size; i++)
         for (int j = 0; j < b_size; j++)
@@ -198,7 +198,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     Open(C, C, size, threadID, net, ss);
     /*** Lookup: LINE 4: c' = c mod 2^log_n ***/
     ss->mod(C, C, pow2K, size);
-    gettimeofday(&tv4, NULL);
+    // gettimeofday(&tv4, NULL);
     // std::cout << "Time PRandInt: " << time_diff(&tv3,&tv4) << std::endl;
 
     /*** Lookup: LINE 5, 6: b = b_(c'- i mod 2^log_n) * array_i ***/
@@ -218,7 +218,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     ss->getShares(shares, result, m * size);
     net.multicastToPeers(shares, buffer, m * size, threadID);
     ss->reconstructSecret(result, buffer, m * size);
-    gettimeofday(&tv5, NULL);
+    // gettimeofday(&tv5, NULL);
     // std::cout << "Time DotProduct: " << time_diff(&tv4,&tv5) << std::endl;
 
     // free the memory
