@@ -1110,7 +1110,6 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
 // if 0, the first half. if t, the second half
 void SecretShare::PRG_thread(mpz_t **output, uint size, uint start_ind, int threadID) {
     if (threadID == -1) {
-        printf("SINGLE THREADED PRG\n");
         PRG(output, size, start_ind);
     } else {
         if (rand_isFirst_thread_mult[threadID] == 0) {
