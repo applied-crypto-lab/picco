@@ -469,11 +469,31 @@ void doOperation_PrivIndex_Read(T **index, T **array, T **result, int m, int siz
 }
 
 template <typename T>
-void compute_private_conditions(T **private_conditions, T *out_cond, T **priv_cond, int counter, int size) {
-}
-
-template <typename T>
 void doOperation_PrivIndex_int(T *index, T **array, T *result, int dim, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    static uint numShares = ss->getNumShares();
+    T **index_tmp = new T *[numShares];
+    T **result_tmp = new T *[numShares];
+
+    for (size_t s = 0; s < numShares; s++) {
+        // array_tmp[s] = new T[dim1 * dim2];
+        index_tmp[s] = new T[1];
+        result_tmp[s] = new T[1];
+        index_tmp[s][0] = index[s];
+    }
+
+    doOperation_PrivIndex_Read(index_tmp, array, result_tmp, dim, 1, threadID, 0, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        result[s] = result_tmp[s][0];
+    }
+
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] index_tmp[s];
+        delete[] result_tmp[s];
+    }
+    delete[] index_tmp;
+    delete[] result_tmp;
 }
 
 template <typename T>
@@ -482,6 +502,37 @@ void doOperation_PrivIndex_float(T *index, T ***array, T **result, int dim, int 
 
 template <typename T>
 void doOperation_PrivIndex_int_arr(T *index, T ***array, T *result, int dim1, int dim2, int type, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    static uint numShares = ss->getNumShares();
+    T **array_tmp = new T *[numShares];
+    T **index_tmp = new T *[numShares];
+    T **result_tmp = new T *[numShares];
+
+    for (size_t s = 0; s < numShares; s++) {
+        index_tmp[s] = new T[1];
+        result_tmp[s] = new T[1];
+        index_tmp[s][0] = index[s];
+
+        array_tmp[s] = new T[dim1 * dim2];
+        for (size_t i = 0; i < dim1; i++) {
+            memcpy(array_tmp[s] + i * dim2, array[s][i], sizeof(T) * dim2); // check this
+        }
+    }
+   
+
+    doOperation_PrivIndex_Read(index_tmp, array_tmp, result_tmp, dim1 * dim2, 1, threadID, 0, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        result[s] = result_tmp[s][0];
+    }
+
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] array_tmp[s];
+        delete[] index_tmp[s];
+        delete[] result_tmp[s];
+    }
+    delete[] array_tmp;
+    delete[] index_tmp;
+    delete[] result_tmp;
 }
 
 template <typename T>
