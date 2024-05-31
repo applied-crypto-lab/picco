@@ -302,11 +302,21 @@ public:
 
     // Logical operators
     void smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    void smc_land(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID);
-    void smc_xor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    void smc_xor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID);
+    void smc_land(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // void smc_lxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // void smc_lxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
     void smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    void smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID);
+    void smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+
+//bitwise operators
+void smc_band(priv_int *a, priv_int *b, int size, priv_int *result,int alen, int blen, int resultlen, std::string type, int threadID) ;
+void smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result,int alen, int blen, int resultlen, std::string type, int threadID) ;
+void smc_bor(priv_int *a, priv_int *b, int size, priv_int *result,int alen, int blen, int resultlen, std::string type, int threadID) ;
+void smc_band(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) ;
+void smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) ;
+void smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) ;
+
+
 
     // Shift operators
     void smc_shl(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
