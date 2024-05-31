@@ -22,12 +22,9 @@
 
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.2 page 7
-void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
-    int peers = ss->getPeers();
+void doOperation_Mod2M(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
-    mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t *U = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
     // initialization
@@ -43,16 +40,9 @@ void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
             mpz_init(R[i][j]);
     }
 
-    for (int i = 0; i < peers; i++) {
-        resultShares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; j++)
-            mpz_init(resultShares[i][j]);
-    }
-
     for (int i = 0; i < size; i++) {
         mpz_init(U[i]);
         mpz_init(C[i]);
-        mpz_init_set(shares[i], shares1[i]);
     }
 
     ss->modPow(pow2M, const2, constM);
@@ -65,8 +55,7 @@ void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     ss->modAdd(C, C, shares, size);
     ss->modAdd(C, C, R[M], size);
     ss->modAdd(C, C, pow2K1, size);
-    // net.broadcastToPeers(C, size, resultShares, threadID);
-    // ss->reconstructSecret(C, resultShares, size);
+    
     Open(C, C, size, threadID, net, ss);
 
     ss->mod(C, C, pow2M, size);
@@ -83,21 +72,12 @@ void doOperation_Mod2M(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     }
     free(R);
 
-    for (int i = 0; i < peers; i++) {
-        for (int j = 0; j < size; j++)
-            mpz_clear(resultShares[i][j]);
-        free(resultShares[i]);
-    }
-    free(resultShares);
-
     for (int i = 0; i < size; i++) {
         mpz_clear(U[i]);
         mpz_clear(C[i]);
-        mpz_clear(shares[i]);
     }
     free(U);
     free(C);
-    free(shares);
 
     mpz_clear(const2);
     mpz_clear(constK1);

@@ -19,8 +19,7 @@
 */
 #include "Trunc.h"
 
-void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
-    mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * size);
+void doOperation_Trunc(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t const2, power, const2M, constInv2M;
     // initialization
     mpz_init(const2M);
@@ -29,26 +28,25 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int M, int size, in
     mpz_init_set_ui(power, M);
     ss->modPow(const2M, const2, power);
     ss->modInv(constInv2M, const2M);
-    // initialization
-    for (int i = 0; i < size; i++)
-        mpz_init_set(shares[i], shares1[i]);
+
     // start computation
-    doOperation_Mod2M(result, shares, K, M, size, threadID, net, ss);
+    if (M > 1) {
+        doOperation_Mod2M(result, shares, K, M, size, threadID, net, ss);
+    } else {
+        // special case, significantly cheaper than mod2m
+        doOperation_Mod2(result, shares, K, size, threadID, net, ss);
+    }
     ss->modSub(result, shares, result, size);
     ss->modMul(result, result, constInv2M, size);
 
     // free memory
-    for (int i = 0; i < size; i++)
-        mpz_clear(shares[i]);
-    free(shares);
-
     mpz_clear(const2);
     mpz_clear(power);
     mpz_clear(const2M);
     mpz_clear(constInv2M);
 }
 
-void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_Trunc(mpz_t *result, mpz_t *shares, int K, int *M, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     int same = 1;
     for (int i = 1; i < size; i++)
         if (M[i] != M[0])
@@ -59,13 +57,13 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, i
                 mpz_set_ui(result[i], 0); // set to zero when the number of bits we are shifting by is greater than K (the bitlength of K)
             }
         } else {
-            doOperation_Trunc(result, shares1, K, M[0], size, threadID, net, ss);
+            doOperation_Trunc(result, shares, K, M[0], size, threadID, net, ss);
         }
 
     } else {
         // this is a very rare edge case, where each piece of data in shares1 is shifted by a different number of bits (stored in M)
         // we then do everything sequentially
-        mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        // mpz_t *shares = (mpz_t *)malloc(sizeof(mpz_t) * size);
         mpz_t const2, power, const2M, constInv2M;
         // initialization
         mpz_init(const2M);
@@ -80,18 +78,25 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares1, int K, int *M, int size, i
                 mpz_init_set_ui(power, M[i]);
                 ss->modInv(constInv2M, const2M);
                 // initialization
-                mpz_init_set(shares[i], shares1[i]);
+                // mpz_init_set(shares[i], shares1[i]);
                 // start computation
                 doOperation_Mod2M((mpz_t *)&result[i], (mpz_t *)&shares[i], K, M[i], size, threadID, net, ss);
+                if (M[i] > 1) {
+                    doOperation_Mod2M((mpz_t *)&result[i], (mpz_t *)&shares[i], K, M[i], size, threadID, net, ss);
+                } else {
+                    // special case, significantly cheaper than mod2m
+                    doOperation_Mod2((mpz_t *)&result[i], (mpz_t *)&shares[i], K, size, threadID, net, ss);
+                }
+
                 ss->modSub(result[i], shares[i], result[i]);
                 ss->modMul(result[i], result[i], constInv2M);
             }
         }
 
         // free memory
-        for (int i = 0; i < size; i++)
-            mpz_clear(shares[i]);
-        free(shares);
+        // for (int i = 0; i < size; i++)
+        //     mpz_clear(shares[i]);
+        // free(shares);
 
         mpz_clear(const2);
         mpz_clear(power);
