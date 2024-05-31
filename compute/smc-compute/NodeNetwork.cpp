@@ -1259,7 +1259,7 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 
 // sends one piece of data to recvFromIds
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
-    std::cout << "multicast threadID : "<<threadID << std::endl;
+    // std::cout << "multicast threadID : "<<threadID << std::endl;
     test_flags[threadID]++;
     int id = getID();
     int peers = config->getPeerCount();
