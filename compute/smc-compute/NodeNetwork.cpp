@@ -409,6 +409,53 @@ void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, in
     }
 }
 
+/*
+    This function attempts to write size amount of bytes to the peer.
+    If the size is greater than the allowed packet size, then the amount that's sent goes to what we can do.
+    The function returns how much was sent, and must be called multiple times until the entire length is written.
+
+    It is recommended to keep a pointer of what's been sent so far, and sending the remaining bytes as the size.
+    This is to prevent the blocking of sending and receiving, optimizing what can be done in a period of time. 
+*/
+int NodeNetwork::sendDataToPeer_NoBlock(int id, int size, void *data) {
+    //Clamp the value between 0 and MAX_BUFFER_SIZE
+    if (size < 1) {
+        return 0;
+    }
+    if (size > MAX_BUFFER_SIZE) {
+        size = MAX_BUFFER_SIZE;
+    }
+
+    //Find corresponding socket and write to it
+    int sockfd = peer2sock.find(id)->second;
+
+    
+    //If written returns -1, this means EAGAIN or EWOULDBLOCK.
+    //  This is handled within multicast, which goes on to doing something else in the meantime.
+    return send(sockfd, data, size, MSG_DONTWAIT);
+}
+
+
+
+
+/*
+    The size of the data is already known to begin with since we're the ones sending it.
+    This results in the same idea from the above sendDataToPeer, where it is advised to keep
+        a pointer of what has been read up to.
+*/
+int NodeNetwork::getDataFromPeer_NoBlock(int id, int size, void *buffer) {
+    //Clamp the value between 0 and MAX_BUFFER_SIZE
+    if (size < 1) {
+        return 0;
+    }
+    if (size > MAX_BUFFER_SIZE) {
+        size = MAX_BUFFER_SIZE;
+    }
+
+    int sockfd = peer2sock.find(id)->second;
+    return recv(sockfd, buffer, size, MSG_DONTWAIT);
+}
+
 /* unlike what the name suggests, this function sends different data to each peer and receives different data from each peer */
 void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer, int size) {
     int peers = config->getPeerCount();
@@ -1288,20 +1335,65 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 }
 
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
-    // compute the maximum size of data that can be communicated
-    int count = 0, rounds = 0;
+    int* remainingRead = (int *) malloc(sizeof(int *) * (size + 1));
+    int* remainingWrite = (int *) malloc(sizeof(int *) * (size + 1));
+    for (int i = 1; i <= size; i++) {
+        remainingRead[i] = size;
+        remainingWrite[i] = size;
+    }
+
     int idx = 0;
-    getRounds(size, &count, &rounds);
-    // gmp_printf("send data: %Zu\n", data[0]);
-    for (uint k = 0; k <= rounds; k++) {
-        for (uint i = 0; i < threshold; i++) {
-            sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size);
+    int receivedFull = 0;
+    while (receivedFull != threshold + 1) {
+
+        //Write if needed
+        for (int i = 0; i < threshold; i++) {
+            if (remainingWrite[i] < 0) {
+                continue;
+            }
+
+            int bytes = sendDataToPeer_NoBlock(sendtoIDs[i], remainingWrite[i], data);
+            std::cerr << "Sent " << bytes << "bytes\n";
+            if (bytes > 0) {
+                remainingWrite[i] -= bytes;
+            }
         }
-        for (uint i = 0; i < threshold; i++) {
-            idx = threshold - i - 1;
-            getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size);
+
+        //Read if needed
+        for (int i = 0; i < threshold; i++) {
+            if (remainingRead[i] <= 0) {
+                continue;
+            }
+
+            int bytes = getDataFromPeer_NoBlock(RecvFromIDs[i], remainingRead[i], buffer[i]);
+            std::cerr << "Received " << bytes << "bytes\n";
+            if (bytes > 0) {
+                remainingRead[i] -= bytes;
+
+                if (remainingRead[i] <= 0) {
+                    receivedFull++;
+                }
+            }
         }
     }
+
+
+
+
+    // compute the maximum size of data that can be communicated
+    // int count = 0, rounds = 0;
+    // int idx = 0;
+    // getRounds(size, &count, &rounds);
+
+    // for (uint k = 0; k <= rounds; k++) {
+    //     for (uint i = 0; i < threshold; i++) {
+    //         sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size);
+    //     }
+    //     for (uint i = 0; i < threshold; i++) {
+    //         idx = threshold - i - 1;
+    //         getDataFromPeer(RecvFromIDs[idx], buffer[idx], k * count, count, size);
+    //     }
+    // }
 }
 
 //////////////////////////////////////////////////////////////////////

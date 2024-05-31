@@ -57,13 +57,20 @@ public:
     void sendDataToPeer(int, int, unsigned char *);
     void sendDataToPeer(int, int, mpz_t *);
     void sendDataToPeer(int, int, long long *);
+    
+    int sendDataToPeer_NoBlock(int, int, void*);
+    
     void sendModeToPeers(int);
     // Get round data from a specific peer
+
     void getDataFromPeer(int, mpz_t *, int, int, int);
     void getDataFromPeer(int, int, int *);
     void getDataFromPeer(int, int, unsigned char *);
     void getDataFromPeer(int, int, mpz_t *);
     void getDataFromPeer(int, int, long long *);
+
+    int getDataFromPeer_NoBlock(int, int, void *);
+
     // Broadcast identical data to peers
     void broadcastToPeers(mpz_t *, int, mpz_t **);
     void broadcastToPeers(long long *, int, long long **);
