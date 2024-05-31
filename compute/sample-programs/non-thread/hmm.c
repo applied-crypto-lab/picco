@@ -38,7 +38,7 @@ void main() {
    ]
    // recursion step
    for (k = 1; k < T; k++) {
-      // compute the product of delta and a elements in parallel
+     // compute the product of delta and a elements in parallel
       for (j = 0; j < N; j++) [
          for (i = 0; i < N; i++) [
             temp[i][j] = delta[k-1][i]*a[i][j];
