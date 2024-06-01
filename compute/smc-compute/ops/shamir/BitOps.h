@@ -20,12 +20,14 @@
 #ifndef BITOPS_SHAMIR_H_
 #define BITOPS_SHAMIR_H_
 
-#include "Mult.h"
 #include "BitDec.h"
+#include "Mult.h"
 #include "Operation.h"
 
 void LogicalAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss);
 void LogicalOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss);
+void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss);
+void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss);
 void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss);
 
 #endif /* BITOPS_SHAMIR_H_ */

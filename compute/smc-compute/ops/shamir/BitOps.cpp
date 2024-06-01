@@ -37,6 +37,12 @@ void LogicalOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int result
     free(C);
 }
 
+void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+}
+
+void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+}
+
 // work in progress, need to test once compiler/ is consistent with compute/
 void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     int M = std::max(alen, blen);

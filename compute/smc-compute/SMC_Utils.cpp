@@ -866,7 +866,7 @@ void SMC_Utils::smc_band(priv_int *a, priv_int *b, int size, priv_int *result,in
     // BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 void SMC_Utils::smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result,int alen, int blen, int resultlen, std::string type, int threadID) {
-    // BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
 void SMC_Utils::smc_bor(priv_int *a, priv_int *b, int size, priv_int *result,int alen, int blen, int resultlen, std::string type, int threadID) {
@@ -881,7 +881,7 @@ void SMC_Utils::smc_band(priv_int a, priv_int b, priv_int result, int alen, int 
 }
 
 void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
 void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
