@@ -47,7 +47,7 @@ void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, No
     mpf_mul(num2, num2, num1);
     mpz_set_f(temp, num2);
     ss->modMul(alpha, temp, one);
-    doOperation_Norm(c, v, b, k, 0, size, threadID, net, ss);
+    doOperation_Norm(c, v, b, k, size, threadID, net, ss);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
     Mult(c, c, v, size, threadID, net, ss);

@@ -22,7 +22,7 @@
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.5, page 14
-void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t one, two, temp;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);
