@@ -17,3 +17,18 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef _APPRCR_HPP_
+#define _APPRCR_HPP_
+
+#include "../../NodeNetwork.h"
+#include "../../rss/RepSecretShare.hpp"
+#include "Norm.hpp"
+#include "Trunc.hpp"
+
+template<typename T>
+void doOperation_IntAppRcr(T**w, T**b, int k, int size, int threadID, NodeNetwork net,  replicatedSecretShare<T> *ss) {
+
+}
+
+
+#endif // _APPRCR_HPP_

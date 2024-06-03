@@ -17,3 +17,22 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef _NORM_HPP_
+#define _NORM_HPP_
+
+
+#include "../../NodeNetwork.h"
+#include "../../rss/RepSecretShare.hpp"
+#include "BitDec.hpp"
+#include "PreOR.hpp"
+#include "Mult.hpp"
+#include "MSB.hpp"
+#include "LT.hpp"
+
+template <typename T>
+void doOperation_Norm(T **c, T **vp, T **b, int k, int size, uint ring_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+
+
+
+}
+#endif // _NORM_HPP_
