@@ -18,6 +18,8 @@
 #include "../ops/rss/FLRound.hpp"
 #include "../ops/rss/Input.hpp"
 #include "../ops/rss/Int2FL.hpp"
+#include "../ops/rss/Norm.hpp"
+#include "../ops/rss/AppRcr.hpp"
 #include "../ops/rss/IntDiv.hpp"
 #include "../ops/rss/LT.hpp"
 #include "../ops/rss/Mult.hpp"
