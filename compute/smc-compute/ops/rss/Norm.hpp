@@ -73,14 +73,19 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
             x[s][i] = b[s][i] - 2 * prod[s][i];
         }
     }
+
     priv_int result = new priv_int_t[size];
     memset(result, 0, sizeof(priv_int_t) * size);
+
     Open(result, b_msb, size, threadID, net, ss);
+
     for (size_t i = 0; i < size; i++) {
         printf("(open) [b_msb]   [%lu]: %u\n", i, result[i]);
         print_binary(result[i], ring_size);
     }
+
     Open(result, x, size, threadID, net, ss);
+
     for (size_t i = 0; i < size; i++) {
         printf("(open) [abs b]   [%lu]: %u\n", i, result[i]);
         print_binary(result[i], ring_size);
@@ -140,11 +145,15 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
 
     // reverting the absolute value (?)
+    // ******************************************************************************
+    // WE MAY NEED TO CHOP OFF THE LEADING ring_size - bitlength bits
+    // in order to preserve correctness for truncaiton in subsequent truncation
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             v[s][i] = vp[s][i] - 2 * C_buff[s][size + i];
         }
     }
+    // ******************************************************************************
 
     for (size_t s = 0; s < numShares; s++) {
         memcpy(c[s], C_buff[s], sizeof(T) * size);
@@ -167,8 +176,7 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     delete[] prod;
     delete[] x_bits;
     delete[] z;
-    delete[] vp;
-    
+
     delete[] A_buff;
     delete[] B_buff;
 }
