@@ -1334,106 +1334,124 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 
 /*
     Multicast in this sense means that we are sending different data to different places.
-        Think of it as a bunch of unicast calls, rather than a broadcast to n different peers (the usual one we see).
     
     The function uses noblock to achieve less wait times in between each communication.
     The main focus of this is to open the shares, 
 
 */
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
+    int amount, rounds;
+    getRounds(size, &amount, &rounds);
+
+    printf("Size %i -> amount: %i for %i rounds\n", size, amount, rounds);
+    if (amount > size)
+        amount = size;
+    else
+        amount = amount;
     int bits = config->getBits();
     int numb = 8 * sizeof(char);
     int unit_size = (bits + numb - 1) / numb;
-    int buffer_size = unit_size * 5; //Originally read_amount
+    int buffer_size = unit_size * amount;
 
-    gmp_printf("Data to be sent: %Zd\n", *data);
 
-    //Keep track of how much of the data is left to write from the original size
-    int remainingRead[size];
-    int remainingWrite[size];
-    for (int i = 0; i < size + 1; i++) {
-        remainingRead[i] = buffer_size;
-        remainingWrite[i] = buffer_size;
-    }
-    std::cerr << "INITIAL remaining read and write: " << remainingRead[0] << std::endl;
+    //For debugging purposes, prints out all the data
+    gmp_printf("Data to be sent:\n");
+    for (int i = 0; i < size; i++) 
+        gmp_printf("[%i] = %Zd\n", i, *data);
+    gmp_printf("------------------------------------\n");
 
     //Loop through each of the IDs, encrypt the data
-    unsigned char *encryptedData[threshold];
+    //TODO only one encryption needed
+    //TODO free
+    unsigned char **encryptedData = (unsigned char **) malloc(sizeof(unsigned char **) * (threshold + 1));
+
+    char *encryptedBuf = (char *) malloc(sizeof(char *) * buffer_size);
+    
     for (int i = 0; i < threshold; i++) {
-        char *encryptedBuf = (char *)malloc(sizeof(char) * buffer_size);
-        memset(encryptedBuf, 0, buffer_size);
+        //Clear previous memory
+        memset(encryptedBuf, 0, buffer_size);    
 
-        //Export does not currently work. Size variable is the cause
-        char *p = encryptedBuf;
-        for (int i = 0; i < size; i++) {
-            mpz_export(p, NULL, -1, 1, -1, 0, data[i]);
-            p += unit_size;
-        }
-
-        printf("Exported: %s\n", encryptedBuf);
+        mpz_export(encryptedBuf, NULL, -1, 1, -1, 0, *data);
 
         EVP_CIPHER_CTX *en_temp = peer2enlist.find(sendtoIDs[i])->second;
         unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)encryptedBuf, &buffer_size);
-        gmp_printf("%Zd with %d=> %s\n", data, sendtoIDs[i], encrypted);
+        // gmp_printf("%Zd => %s\n", data, encrypted);
 
         encryptedData[i] = encrypted;
     }
-    std::cerr << "Encrypted\n";
+    free(encryptedBuf);
 
-    //Only stop looping once we have received everything.
-    //  This stems from the idea that receives are caused by the sends, meaning
-    //  that the sends already took place.
-    int idx = 0;
-    int receivedFull = 0;
-    while (receivedFull != threshold) {
+    //Holds all the data received until we have everything to convert to mpz_t
+    unsigned char **tempBuffer = (unsigned char **)malloc(sizeof(unsigned char *) * (threshold + 1));
+    for (int i = 0; i < (threshold + 1); i++)
+        //Everything gets written over, so no need to calloc
+        tempBuffer[i] = (unsigned char *)malloc(sizeof(unsigned char) * size);
+
+
+    //Holds <index, bytes remaining to...> for respective name
+    std::vector<std::pair<int, int>> toWrite;
+    std::vector<std::pair<int, int>> toReceive;
+    
+    for (int i = 0; i < size; i++) {
+        toWrite.push_back({i, buffer_size});
+        toReceive.push_back({i, buffer_size});
+    }
+    
+    //Only stop looping once we send everything
+    //  AND once we receive enough shares completely
+    int bytes, i, received = 0;
+    while (received < threshold || !toWrite.empty()) {
 
         //Write if needed
-        for (int i = 0; i < threshold; i++) {
-            if (remainingWrite[i] <= 0) {
-                continue;
-            }
-
-            //TODO: encrypted data just put here for the moment. move over to buffer after decryption once loop is figured out.
-            std::cout << "remaining write for " << i << ": " << remainingWrite[i] << std::endl;
-            int bytes = sendDataToPeer_NoBlock(sendtoIDs[i], remainingWrite[i], encryptedData[i]);
-            std::cout << "Sent " << bytes << " bytes\n";
+        for (i = 0; i < toWrite.size(); i++) {
+            
+            //Send it through the noblock to avoid waiting
+            bytes = sendDataToPeer_NoBlock(sendtoIDs[i], toWrite[i].second, encryptedData[i]);
             if (bytes > 0) {
-                remainingWrite[i] -= bytes;
+                toWrite[i].second -= bytes;
+
+                if (toWrite[i].second <= 0) {
+                    toWrite.erase(toWrite.begin() + i);
+                }
             }
         }
 
         //Read if needed
-        for (int i = 0; i < threshold; i++) {
-            if (remainingRead[i] <= 0) {
-                continue;
-            }
-            std::cout << "remaining read for " << i << ": " << remainingRead[i] << std::endl;
+        //  Only need to look at those not received yet
+        for (i = 0; i < toReceive.size(); i++) {
 
-            unsigned char *temp = (unsigned char *)malloc(sizeof(char) * buffer_size);
-            memset(temp, 0, size);
-            int bytes = getDataFromPeer_NoBlock(RecvFromIDs[i], remainingRead[i], temp);
-
+            //See if there's anything to read
+            bytes = getDataFromPeer_NoBlock(RecvFromIDs[i], toReceive[i].second, tempBuffer[i]);
+            
             if (bytes > 0) {
-                std::cout << "Received " << bytes << " bytes\n";
-                remainingRead[i] -= bytes;
+                toReceive[i].second -= bytes;
                 
-                if (remainingRead[i] <= 0) {
-                    std::cerr << "Received full " << temp << "\n";
-                    receivedFull++;
+                if (toReceive[i].second <= 0) {
+                    received++;
+                    toReceive.erase(toReceive.begin() + i);
 
                     // Now that we have the full data for this part, decrypt it then add it to the buffer
                     EVP_CIPHER_CTX *de_temp = peer2delist.find(RecvFromIDs[i])->second;
-                    char *decrypted = (char *)aes_decrypt(de_temp, encryptedData[i], &buffer_size);
-                    printf("Decrypted: %s\n", decrypted);
-                    for (int i = 0; i < size; i++) {
-                        mpz_import(data[i], unit_size, -1, 1, -1, 0, decrypted);
-                        decrypted += unit_size;
-                    }
-                    gmp_printf("converted: %Zd\n", data);
+                    char *decrypted = (char *)aes_decrypt(de_temp, tempBuffer[i], &buffer_size);
+
+                    //TODO: Verify that this is in the correct position (should be)
+                    //TODO: Also discuss batch work, what'd be the best approach 
+
+                    for (int j = 0; j < size; j++)
+                        mpz_import(buffer[i][j], unit_size, -1, 1, -1, 0, decrypted);
+
+                    gmp_printf("Got: %Zd\n", buffer[i][0]);
                 }
             }
         }
     }
+
+    for (int i = 0; i < (threshold + 1); i++) {
+        free(tempBuffer[i]);
+        free(encryptedData[i]);
+    }
+    free(tempBuffer);
+    free(encryptedData);
 }
 
 //////////////////////////////////////////////////////////////////////
