@@ -44,7 +44,6 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, T(1));
 
-
     vector<T> pows(m, T(0));
     // computing all of the 2^2^j powers once
     for (size_t j = 0; j < m; j++) {
@@ -64,6 +63,7 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
             }
         }
     }
+
     // reusing prods
     Rss_B2A(prods, prods, numPows, ring_size, nodeNet, ss);
 
