@@ -23,6 +23,12 @@
 #include "../../rss/RepSecretShare.hpp"
 #include "Mult.hpp"
 #include "Open.hpp"
+#include "bit_utils.hpp"
+
+template <typename T>
+void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, uint numShares) ;
+
+
 
 // performs a "reverse" parallel prefix, i.e. a_8, a_8 | a_7, a_8 | a_7 | a_6, ...
 // directly on bits
@@ -31,7 +37,7 @@
 // stores the result in input
 // follows similar logic to that in BitAdd implementation
 template <typename T>
-void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     T i, j, l, y, z, op_r; // used for loops
     static uint numShares = ss->getNumShares();
@@ -131,7 +137,7 @@ void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork *no
                         // input[s][l] = SET_BIT(input[s][l], mask2, GET_BIT(u[s][t_index], mask1m8));
                         // input[1][l] = SET_BIT(input[1][l], mask2, GET_BIT(u[1][t_index], mask1m8));
 
-                        temp = GET_BIT(input[s][l], mask1) ^ GET_BIT(input[s][l], mask2) ^ GET_BIT(u[s][t_index], mask1m8);
+                        temp = GET_BIT(input[s][l], mask1) ^ GET_BIT(input[s][l], mask2) ^ GET_BIT(static_cast<T>(u[s][t_index]), mask1m8);
 
                         // simplified from needing two separate loops
                         result[s][l] = SET_BIT(input[s][l], mask2, temp);
