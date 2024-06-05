@@ -34,13 +34,18 @@ void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, 
 // directly on bits
 // there isn't a functionality that requires the "normal" ordered parallel prefix, so we don't implement it here
 // we should probably have it compute the "normal" ordered parallel prefix, but have the bits of the input reversed
-// stores the result in input
 // follows similar logic to that in BitAdd implementation
+// although, there isn't a protocol which directly uses it
 template <typename T>
-void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    T i, j, l, y, z, op_r; // used for loops
     static uint numShares = ss->getNumShares();
+
+    for (size_t s = 0; s < numShares; s++) {
+        memcpy(result[s], input[s], sizeof(T) * size);
+    }
+    
+    T i, j, l, y, z, op_r; // used for loops
     uint r_size = ring_size;
     uint idx_1, idx_2;
     if (r_size > 1) {
@@ -107,7 +112,7 @@ void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nod
             num = ((op_r + 7) >> 3) * size;
 
             // extracting terms into buffer
-            CarryBufferPreOR(buffer, input, index_array, size, op_r, numShares);
+            CarryBufferPreOR(buffer, result, index_array, size, op_r, numShares);
 
             for (j = 0; j < size; ++j) {
                 for (size_t s = 0; s < numShares; s++) {
@@ -137,10 +142,10 @@ void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nod
                         // input[s][l] = SET_BIT(input[s][l], mask2, GET_BIT(u[s][t_index], mask1m8));
                         // input[1][l] = SET_BIT(input[1][l], mask2, GET_BIT(u[1][t_index], mask1m8));
 
-                        temp = GET_BIT(input[s][l], mask1) ^ GET_BIT(input[s][l], mask2) ^ GET_BIT(static_cast<T>(u[s][t_index]), mask1m8);
+                        temp = GET_BIT(result[s][l], mask1) ^ GET_BIT(result[s][l], mask2) ^ GET_BIT(static_cast<T>(u[s][t_index]), mask1m8);
 
                         // simplified from needing two separate loops
-                        result[s][l] = SET_BIT(input[s][l], mask2, temp);
+                        result[s][l] = SET_BIT(result[s][l], mask2, temp);
                         // input[3][l] = SET_BIT(input[3][l], mask2, (GET_BIT(u[1][t_index], mask2m8) ^ GET_BIT(input[3][l], mask2)));
                     }
                 }

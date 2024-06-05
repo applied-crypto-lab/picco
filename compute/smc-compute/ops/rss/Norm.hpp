@@ -33,6 +33,11 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
 
     uint numShares = ss->getNumShares();
 
+    // std::cout << "numShares  = " << numShares << std::endl;
+    // std::cout << "ring_size = " << ring_size << std::endl;
+    // std::cout << "bitlen = " << bitlength << std::endl;
+    // std::cout << "size = " << size << std::endl;
+
     T **b_bits = new T *[numShares];
     for (size_t i = 0; i < numShares; i++) {
         b_bits[i] = new T[size];
@@ -44,19 +49,25 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     T **x_bits = new T *[numShares];
     T **prod = new T *[numShares];
     T **z = new T *[numShares];
+    T **z_res = new T *[numShares];
     T **vp = new T *[numShares];
     for (size_t i = 0; i < numShares; i++) {
         b_msb[i] = new T[size];
         x[i] = new T[size];
+
         x_bits[i] = new T[size];
         memset(x_bits[i], 0, sizeof(T) * size);
+
         prod[i] = new T[size];
         memset(prod[i], 0, sizeof(T) * size);
+
         vp[i] = new T[size];
         memset(vp[i], 0, sizeof(T) * size);
 
+        z_res[i] = new T[size * bitlength];
+        memset(z_res[i], 0, sizeof(T) * bitlength * size);
         z[i] = new T[size * bitlength];
-        memset(vp[i], 0, sizeof(T) * bitlength * size);
+        memset(z[i], 0, sizeof(T) * bitlength * size);
     }
 
     T *ai = new T[numShares];
@@ -74,33 +85,62 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         }
     }
 
-    priv_int result = new priv_int_t[size];
-    memset(result, 0, sizeof(priv_int_t) * size);
+    // T *result = new T[size];
+    // memset(result, 0, sizeof(T) * size);
 
-    Open(result, b_msb, size, threadID, net, ss);
+    // Open(result, b_msb, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[b_msb]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
 
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) [b_msb]   [%lu]: %u\n", i, result[i]);
-        print_binary(result[i], ring_size);
-    }
+    // Open(result, x, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[abs b]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
 
-    Open(result, x, size, threadID, net, ss);
-
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) [abs b]   [%lu]: %u\n", i, result[i]);
-        print_binary(result[i], ring_size);
-    }
-
+    // printf("bitdec\n");
     Rss_BitDec(x_bits, x, bitlength, size, ring_size, net, ss);
+
+    // sanitizing?
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            x_bits[s][i] = x_bits[s][i] & ss->SHIFT[bitlength];
+        }
+    }
+
+    // memset(result, 0, sizeof(T) * size);
+    // Open_Bitwise(result, x_bits, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[bitDec]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
 
     // santiziing since we're dealing with bits
     for (size_t s = 0; s < numShares; s++) {
         memset(prod[s], 0, sizeof(T) * size);
     }
+
+    // printf("PreOR\n");
     // commputing the "reverse" prefixOR
     //  i.e., a_8, a_8 | a_7, a_8 | a_7 | a_6, ... (subscripts denote the bit position)
     // reusing prod
-    Rss_PreOR(prod, x, size, bitlength, net, ss);
+    Rss_PreOR(prod, x_bits, size, bitlength, net, ss);
+
+    // // sanitizing?
+    // for (size_t s = 0; s < numShares; s++) {
+    //     for (size_t i = 0; i < size; i++) {
+    //         prod[s][i] = prod[s][i] & ss->SHIFT[bitlength];
+    //     }
+    // }
+
+    // memset(result, 0, sizeof(T) * size);
+    // Open_Bitwise(result, prod, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[preOR]  prod [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < bitlength - 1; j++) {
@@ -113,16 +153,32 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         }
     }
 
+    // printf("B2A\n");
     // reusing z
-    Rss_B2A(z, z, bitlength * size, ring_size, net, ss);
+    Rss_B2A(z_res, z, bitlength * size, ring_size, net, ss);
+
+    // T *result2 = new T[bitlength * size];
+    // memset(result2, 0, sizeof(T) * bitlength*size);
+    // Open_Bitwise(result, z, bitlength*size, threadID, net, ss);
+    // for (size_t i = 0; i < bitlength*size; i++) {
+    //     printf("[z2k]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < bitlength; j++) {
             for (size_t i = 0; i < size; i++) {
-                vp[s][i] += (1 << (bitlength - j - 1)) * GET_BIT(z[s][i], T(j));
+                vp[s][i] += (1 << (bitlength - j - 1)) * z_res[s][j * size + i];
             }
         }
     }
+
+    // memset(result, 0, sizeof(T) * size);
+    // Open(result, vp, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[v_prime]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
 
     T **A_buff = new T *[numShares];
     T **B_buff = new T *[numShares];
@@ -159,6 +215,22 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         memcpy(c[s], C_buff[s], sizeof(T) * size);
     }
 
+    // printf("\n");
+    // memset(result, 0, sizeof(T) * size);
+    // Open(result, c, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[c]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
+
+    // printf("\n");
+    // memset(result, 0, sizeof(T) * size);
+    // Open(result, v, size, threadID, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("[v]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
+
     delete[] ai;
     for (size_t i = 0; i < numShares; i++) {
         delete[] b_bits[i];
@@ -166,18 +238,22 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         delete[] x[i];
         delete[] x_bits[i];
         delete[] z[i];
+        delete[] z_res[i];
         delete[] vp[i];
 
         delete[] A_buff[i];
         delete[] B_buff[i];
+        delete[] C_buff[i];
     }
     delete[] b_bits;
     delete[] x;
     delete[] prod;
     delete[] x_bits;
     delete[] z;
+    delete[] z_res;
 
     delete[] A_buff;
     delete[] B_buff;
+    delete[] C_buff;
 }
 #endif // _NORM_HPP_
