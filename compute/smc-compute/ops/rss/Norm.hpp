@@ -31,7 +31,7 @@
 template <typename T>
 void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
 
-    uint numShares = ss->getNumShares();
+    static uint numShares = ss->getNumShares();
 
     // std::cout << "numShares  = " << numShares << std::endl;
     // std::cout << "ring_size = " << ring_size << std::endl;
@@ -194,7 +194,7 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         memcpy(B_buff[s], vp[s], sizeof(T) * size);
         memcpy(B_buff[s] + size, vp[s], sizeof(T) * size);
 
-        memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+        memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing 
     }
 
     // performing (x*v) and (b_msb * v) in a batch, in that order

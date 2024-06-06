@@ -23,13 +23,14 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 #include "Norm.hpp"
+#include "Mult.hpp"
 #include "Trunc.hpp"
 
 template <typename T>
 void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     assertm(ring_size > 2 * bitlength, "The ring size must be at least 2*bitlength");
 
-    uint numShares = ss->getNumShares();
+    static uint numShares = ss->getNumShares();
     // long double alpha = (2.9142 * (long double)(1 << bitlength)); // check this
     T alpha = T(2.9142 * (1 << bitlength)); // check this
 
@@ -47,6 +48,7 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
         d[i] = new T[size];
         memset(d[i], 0, sizeof(T) * size);
     }
+
     T *ai = new T[numShares];
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, T(1));
