@@ -22,6 +22,9 @@
 
 
 void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+//     Open_print(b, "b", size, threadID, net, ss);
+// printf("k = %i\n",k);
+
     mpz_t one, two, temp, alpha;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);
@@ -52,6 +55,8 @@ void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, No
     ss->modSub(c, alpha, c, size);
     Mult(c, c, v, size, threadID, net, ss);
     doOperation_TruncPr(w, c, 2 * k, k, size, threadID, net, ss);
+    
+    // Open_print(w, "w", size, threadID, net, ss);
     // free the memory
     for (int i = 0; i < size; ++i) {
         mpz_clear(c[i]);

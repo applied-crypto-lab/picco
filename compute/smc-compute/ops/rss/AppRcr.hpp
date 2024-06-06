@@ -30,7 +30,8 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     assertm(ring_size > 2 * bitlength, "The ring size must be at least 2*bitlength");
 
     uint numShares = ss->getNumShares();
-    T alpha = T(2.9142 * double(1 << bitlength)); // check this
+    // long double alpha = (2.9142 * (long double)(1 << bitlength)); // check this
+    T alpha = T(2.9142 * (1 << bitlength)); // check this
 
     T **c = new T *[numShares];
     T **v = new T *[numShares];
@@ -57,6 +58,7 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
+            // d[s][i] = (ai[s] * T(alpha)) - 2 * c[s][i];
             d[s][i] = (ai[s] * alpha) - 2 * c[s][i];
         }
     }
@@ -82,7 +84,6 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     //     print_binary(result[i], ring_size);
     // }
 
-
     // check if we need to modify anything for bitlength < k?
     // the "K" argument is unused by RSS
     doOperation_Trunc(w, vv, bitlength, bitlength, size, threadID, net, ss);
@@ -93,8 +94,6 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     //     printf("[post trunc] [w] [%lu]: %u\n", i, result[i]);
     //     print_binary(result[i], ring_size);
     // }
-
-
 
     for (size_t i = 0; i < numShares; i++) {
         delete[] c[i];

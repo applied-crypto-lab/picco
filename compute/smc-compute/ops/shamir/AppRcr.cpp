@@ -21,7 +21,8 @@
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.4, page 14
-void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+
     mpz_t one, two, temp, alpha;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);
@@ -49,12 +50,12 @@ void doOperation_AppRcr(mpz_t *w, mpz_t *b, int k, int f, int size, int threadID
     mpz_set_f(temp, num2);
     ss->modMul(alpha, temp, one);
     // finish the rest of computation
-    doOperation_Norm(c, v, b, k,  size, threadID, net, ss);
+    doOperation_Norm(c, v, b, k, size, threadID, net, ss);
     // original version, f was an argument to norm but was unused
     // doOperation_Norm(c, v, b, k, f, size, threadID, net, ss);
     ss->modMul(c, c, two, size);
     ss->modSub(c, alpha, c, size);
-    Mult(c, c, v, size, threadID, net,ss);
+    Mult(c, c, v, size, threadID, net, ss);
     doOperation_TruncPr(w, c, 2 * k, 2 * (k - f), size, threadID, net, ss);
 
     // free the memory
