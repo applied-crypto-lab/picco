@@ -162,7 +162,8 @@ enum yytokentype {
     OMPIX_WORKERS = 353,
     OMPIX_LOCAL = 354,
     OMPIX_GLOBAL = 355,
-    OMPIX_TIED = 356
+    OMPIX_TIED = 356,
+    CHAR = 365
 };
 #endif
 /* Tokens.  */
@@ -265,6 +266,7 @@ enum yytokentype {
 #define OMPIX_LOCAL 354
 #define OMPIX_GLOBAL 355
 #define OMPIX_TIED 356
+#define CHAR 365 
 
 /* Copy the first part of user declarations.  */
 #line 1 "parser.y"

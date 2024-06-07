@@ -44,6 +44,7 @@ control_sequence_stack batch_stack = NULL;
 control_sequence_stack private_selection_stack = NULL;
 struct_node_stack sns = NULL;
 FILE *output = NULL;
+int temp_var_index = 0;
 str global_string; /* The string that will hold global private variables*/
 int gf = 0; /* A global flag that will be updated based on the tree->gflag. 1-Global, 0-Regular*/
 int is_priv = 0; /* A global flag that will be updated based on the varible. 1-Private, 0-Public*/
@@ -3189,15 +3190,22 @@ void ast_expr_show(astexpr tree) {
     case FUNCCALL:
         arg_str = Str("");
         ast_expr_print(arg_str, tree->left);
-
-        if (!strcmp(str_string(arg_str), "smcopen"))
-            fprintf(output, "%s", "__s->smc_open");
-        else
-            ast_expr_show(tree->left);
-
-        fprintf(output, "(");
-        if (tree->right)
-            ast_expr_show(tree->right);
+        if(tree->right != NULL && tree->right->type == CASTEXPR) { // If it is casting 
+            ast_expr_show(tree->right); // call the casting code 
+            ast_expr_show(tree->left); // prints the name of the function that is called
+            if (tree->right->ftype == 1) // based on the type of the variable, send the var to the function
+                fprintf(output, "(_picco_ftmp%d", temp_var_index);
+            else 
+                fprintf(output, "(_picco_tmp%d", temp_var_index);
+        } else { // any other function call that is not casting
+            if (!strcmp(str_string(arg_str), "smcopen"))
+                fprintf(output, "%s", "__s->smc_open");
+            else
+                ast_expr_show(tree->left); // prints the name of the function
+            fprintf(output, "(");
+            if (tree->right)
+                ast_expr_show(tree->right);
+        }
 
         if (!strcmp(str_string(arg_str), "smcopen"))
             fprintf(output, ", %d)", tree->thread_id);
@@ -3220,15 +3228,10 @@ void ast_expr_show(astexpr tree) {
         // if it does contain any public field, we will use its original name
         // otherwise, we will add suffix at the end.
         // if tree->left->u.sym->struct_type == NULL -------> it is the struct declared by openMP constructs
-        // fprintf(output, "111"); // This does not print the name correctly (Issue#2)
         if (tree->left->u.sym->struct_type == NULL || struct_node_get_flag(sns, tree->left->u.sym->struct_type->name->name)) {
             ast_expr_show(tree->left);
             fprintf(output, "->%s", tree->u.sym->name);
         } 
-        // else if (tree->left->u.sym->struct_type != NULL) { // the issue is that this line says it is null so it dosen't get printed
-        //     ast_expr_show(tree->left);
-        //     fprintf(output, "->%s", tree->u.sym->name);
-        // }
         break;
     case BRACEDINIT:
         if (tree->left->type != COMMALIST)
@@ -3262,6 +3265,7 @@ void ast_expr_show(astexpr tree) {
                     fprintf(output, "__s->smc_int2fl(");
                     ast_priv_cast_helper_show(tree->left);
                     fprintf(output, "_picco_ftmp%d, %d, %d, %d, %d);\n", tree->index, tree->left->size, tree->size, tree->sizeexp, tree->thread_id);
+                    temp_var_index = tree->index;
                 }
                 /* FL2FL */
                 else {
@@ -3269,6 +3273,7 @@ void ast_expr_show(astexpr tree) {
                     fprintf(output, "__s->smc_fl2fl(");
                     ast_priv_cast_helper_show(tree->left);
                     fprintf(output, "_picco_ftmp%d, %d, %d, %d, %d, %d);\n", tree->index, tree->left->size, tree->left->sizeexp, tree->size, tree->sizeexp, tree->thread_id);
+                    temp_var_index = tree->index;
                 }
             }
             /* conversion to int */
@@ -3280,6 +3285,7 @@ void ast_expr_show(astexpr tree) {
                     fprintf(output, "__s->smc_int2int(");
                     ast_priv_cast_helper_show(tree->left);
                     fprintf(output, "_picco_tmp%d, %d, %d, %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
+                    temp_var_index = tree->index;
                 }
                 /* FL2Int */
                 else {
@@ -3287,8 +3293,9 @@ void ast_expr_show(astexpr tree) {
                     fprintf(output, "__s->smc_fl2int(");
                     ast_priv_cast_helper_show(tree->left);
                     fprintf(output, "_picco_tmp%d, %d, %d, %d, %d);\n", tree->index, tree->left->size, tree->left->sizeexp, tree->size, tree->thread_id);
+                    temp_var_index = tree->index;
                 }
-            }
+            } 
         } else {
             fprintf(output, "(");
             ast_decl_show(tree->u.dtype);
@@ -3436,10 +3443,19 @@ void ast_expr_show(astexpr tree) {
                 if (tree->right->index <= 0)
                     ast_expr_show(tree->right);
                 else {
-                    if (tree->ftype == 1)
+                    // if (tree->ftype == 1)
+                    //     fprintf(output, "_picco_ftmp%d", tree->right->index);
+                    // else if (tree->ftype == 0)
+                    //     fprintf(output, "_picco_tmp%d", tree->right->index);
+                    if (tree->right->ftype == 1 && tree->left->ftype == 1){//tree->ftype == 1)
                         fprintf(output, "_picco_ftmp%d", tree->right->index);
-                    else if (tree->ftype == 0)
+                    } else if (tree->right->ftype == 0 && tree->left->ftype == 0) {
                         fprintf(output, "_picco_tmp%d", tree->right->index);
+                    } else if (tree->left->ftype == 1) {
+                        fprintf(output, "_picco_ftmp%d", tree->right->index);
+                    } else if (tree->left->ftype == 0) {
+                        fprintf(output, "_picco_tmp%d", tree->right->index);
+                    }
                 }
                 fprintf(output, ", ");
             }
@@ -3553,14 +3569,12 @@ void ast_expr_show(astexpr tree) {
             if (tree->left->ftype == 1) {
                 if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
                     str_printf(global_string, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print it to the global_string 
-                    // printf("%d, %d, %d, %d, \"float\", %d\n", tree->left->size, tree->left->size, tree->left->thread_id); // Print it to the terminal 
                 } else {
                     fprintf(output, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print to output stream
                 }
             } else if (tree->left->ftype == 0) {
                 if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
                     str_printf(global_string, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print it to the global_string 
-                    // printf("%d, %d, \"int\", %d\n", tree->left->size, tree->left->size, tree->left->thread_id); // Print it to the terminal 
                 } else {
                     fprintf(output, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print to output stream
                 }
@@ -4380,7 +4394,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
 void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gflag) {
     /* printing global private declarations into a string */
     switch (tree->type) {
-    case DECLARATOR: // The array issue is cause of this table push, I am 50 percent sure
+    case DECLARATOR: 
         if(gflag != 1) { // Don't change this, this table is used to keep track and clear the vars after it is done
             ltable_push(spec, tree, current->tablelist->head);
         }
@@ -5548,24 +5562,24 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
             indent();
             ast_assignment_prefix_show(tree);
             if (tree->opid != ASS_eq) {
-                if (tree->right->ftype == 1) {
+                if (tree->right->ftype == 1) { // float
                     if (is_init_decl == 1) // If it is a declaration and we are setting a op of two globals private values to a new global private value, print this inside global_string
                         str_printf(global_string, "(%s, %s, %s, %d, %d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
                     else 
                         fprintf(output, "(%s, %s, %s, %d, %d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                } else {
+                } else { // int
                     if (is_init_decl == 1)
                         str_printf(global_string, "(%s, %s, %s, %d, %d, %d, \"int\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->right->size, tree->left->size, tree->right->thread_id);
                     else
                         fprintf(output, "(%s, %s, %s, %d, %d, %d, \"int\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->right->size, tree->left->size, tree->right->thread_id);
                 }
-            } else {
-                if (tree->right->ftype == 1) {
+            } else { // smc_set 
+                if (tree->right->ftype == 1) { // float
                     if (is_init_decl == 1)
                         str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
                     else 
                         fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                } else {
+                } else { // int
                     if (is_init_decl == 1)
                         str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
                     else 
@@ -5709,7 +5723,7 @@ void ast_assignment_prefix_show(astexpr tree) {
         if (is_init_decl ==1) // if there is a global variable that gets init by a op of two globals, then move that declaration down 
             str_printf(global_string, "__s->smc_set");
         else 
-            fprintf(output, "__s->smc_set");
+            fprintf(output, "__s->smc_set"); // this is where the set is handled for castings
         break;
     case ASS_add:
         fprintf(output, "__s->smc_add");

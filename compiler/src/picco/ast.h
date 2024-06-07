@@ -418,7 +418,7 @@ struct aststmt_ { // statments that are declaration   // this is where the flag 
     int is_stmt_for_sng; /*Indicates if the stmt is a declaration stmt for sng*/
     int subtype;
     int flag;       /* Indicates if the statement contains priv assign */
-    int gflag;    /* gflag or global flag is used to keep track of private or public global variables. */
+    int gflag;    /* (0->non-global, 1->global) -> gflag or global flag is used to keep track of private or public global variables. */
     aststmt parent; /* Set *after* AST construction */
     aststmt body;   /* Most have a body (COMPOUND has ONLY body) */
     aststmt openmp_parent_stmt;
