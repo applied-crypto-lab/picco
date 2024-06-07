@@ -451,7 +451,7 @@ int NodeNetwork::getDataFromPeer_NoBlock(int id, int size, unsigned char *buffer
     }
 
     int sockfd = peer2sock.find(id)->second;
-    return recv(sockfd, buffer, size * 5, MSG_DONTWAIT);
+    return recv(sockfd, buffer, size, MSG_DONTWAIT);
 }
 
 /* unlike what the name suggests, this function sends different data to each peer and receives different data from each peer */
@@ -1346,112 +1346,211 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     printf("Size %i -> amount: %i for %i rounds\n", size, amount, rounds);
     if (amount > size)
         amount = size;
-    else
-        amount = amount;
+
     int bits = config->getBits();
     int numb = 8 * sizeof(char);
     int unit_size = (bits + numb - 1) / numb;
     int buffer_size = unit_size * amount;
 
+    /*
+    while not everything's received OR sent
+        encrypt all that we're going to send, from data <---
 
+        For each mpz_t in data:
+            send it to the associated socket
+            if we wrote everything remove it from the list
+            *if we only wrote part of it ???
+        For each socket:
+            retreieve the data
+            append it to the temporary buffer
+            if we dont have all of the data keep it in the temporary buffer's specific index, continue
+            decrypt it
+            *mpz_import
+            write onto buffer [party we received from][next position in size we haven't read] 
+
+
+
+            Round   4      -1   
+        data[0] = 4321 | ____ | __ |
+            [1] = 8765 | 4100 | xx |
+            [2] = 1553 | 6384 | xx |
+
+
+        TODO
+        research more into socket reading/writing sockets (sockets vs ports)
+            ^ for encryption, too
+        MAX_BUFFER_SIZE ?
+        https://stackoverflow.com/questions/2811006/what-is-a-good-buffer-size-for-socket-programming
+        https://www.evanjones.ca/read-write-buffer-size.html
+        https://stackoverflow.com/questions/2862071/how-large-should-my-recv-buffer-be-when-calling-recv-in-the-socket-library
+
+        large data behavior
+
+        aes EVP research into the size
+        
+
+    */
+
+    printf("Buffer size: %i\nUnit Size: %i\nAmount: %i\n", buffer_size, unit_size, amount);
     //For debugging purposes, prints out all the data
     gmp_printf("Data to be sent:\n");
     for (int i = 0; i < size; i++) 
-        gmp_printf("[%i] = %Zd\n", i, *data);
+        gmp_printf("[%i] = %Zd\n", i, data[i]);
     gmp_printf("------------------------------------\n");
-
-    //Loop through each of the IDs, encrypt the data
-    //TODO only one encryption needed
-    //TODO free
-    unsigned char **encryptedData = (unsigned char **) malloc(sizeof(unsigned char **) * (threshold + 1));
-
-    char *encryptedBuf = (char *) malloc(sizeof(char *) * buffer_size);
     
+    //Holds all the current batch's data until we have everything to convert to mpz_t
+    unsigned char **tempBuffer = (unsigned char **)malloc(sizeof(unsigned char **) * threshold);
+    for (int i = 0; i < threshold; i++)
+        tempBuffer[i] = (unsigned char *)calloc(sizeof(unsigned char), buffer_size);
+
+    //TODO: improve complexity by making vectors
+    std::pair<unsigned char *, int> toWrite[threshold][size];
+    std::pair<unsigned char *, int> toRead[threshold][size];
+
     for (int i = 0; i < threshold; i++) {
-        //Clear previous memory
-        memset(encryptedBuf, 0, buffer_size);    
-
-        mpz_export(encryptedBuf, NULL, -1, 1, -1, 0, *data);
-
-        EVP_CIPHER_CTX *en_temp = peer2enlist.find(sendtoIDs[i])->second;
-        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)encryptedBuf, &buffer_size);
-        // gmp_printf("%Zd => %s\n", data, encrypted);
-
-        encryptedData[i] = encrypted;
+        for (int j = 0; j < size; j++) {
+            toWrite[i][j] = { nullptr, buffer_size};
+            toRead[i][j] = { tempBuffer[i], buffer_size};
+        }
     }
-    free(encryptedBuf);
 
-    //Holds all the data received until we have everything to convert to mpz_t
-    unsigned char **tempBuffer = (unsigned char **)malloc(sizeof(unsigned char *) * (threshold + 1));
-    for (int i = 0; i < (threshold + 1); i++)
-        //Everything gets written over, so no need to calloc
-        tempBuffer[i] = (unsigned char *)malloc(sizeof(unsigned char) * size);
+    // Holds the encryption keys for the current batch. 
+    //  The work is done within the function once and remembered here until it's not needed
+    unsigned char **encryptedData = (unsigned char **) calloc(sizeof(unsigned char **), threshold);
+    unsigned char *tempEncryption = (unsigned char *)calloc(sizeof(char), buffer_size);
+    unsigned char *encrypted;
 
+    int encryptedSizes[threshold];
+    size_t exportedCount[threshold];
 
-    //Holds <index, bytes remaining to...> for respective name
-    std::vector<std::pair<int, int>> toWrite;
-    std::vector<std::pair<int, int>> toReceive;
-    
-    for (int i = 0; i < size; i++) {
-        toWrite.push_back({i, buffer_size});
-        toReceive.push_back({i, buffer_size});
+    //Associated with the toRead and toWrite structures above.
+    int *currentBatchMap_Write = (int *)malloc(sizeof(int) * threshold);
+    int *currentBatchMap_Read = (int *)malloc(sizeof(int) * threshold);
+    for (int i = 0; i < threshold; i++) {
+        currentBatchMap_Write[i] = 0;
+        currentBatchMap_Read[i] = 0;
     }
+
+    /*
+    Keeps track of the current position of the batch size the peer is in.
+        We attempt to send the next piece of data for each peer at once,
+        not all of the data at the same time.
+    This in turn reduces the congestion and keeps ordering of what's been sent and received.
+        If one falls behind another, it's not the end of the world.
+    */
+    int currentPos;
+
+    //How many peers have sent all (size) operations back to us
+    int finishedReading = 0, finishedWriting = 0;
     
     //Only stop looping once we send everything
     //  AND once we receive enough shares completely
-    int bytes, i, received = 0;
-    while (received < threshold || !toWrite.empty()) {
+    int peer, bytes;
+    while (finishedReading < threshold || finishedWriting < threshold) {
 
-        //Write if needed
-        for (i = 0; i < toWrite.size(); i++) {
-            
-            //Send it through the noblock to avoid waiting
-            bytes = sendDataToPeer_NoBlock(sendtoIDs[i], toWrite[i].second, encryptedData[i]);
+        //Writing
+        for (peer = threshold - 1; peer >= 0; peer--) {
+            currentPos = currentBatchMap_Write[peer];
+            if (currentPos == size)
+                continue;
+
+            auto *currentWrite = &toWrite[peer][currentPos];
+
+            //Have not encrypted it yet, we need to
+            if (currentWrite->first == nullptr) {
+                mpz_export(tempEncryption, &exportedCount[peer], -1, 1, -1, 0, data[currentPos]);
+
+                //Grab the cipher, encrypt the data using it
+                EVP_CIPHER_CTX *en_temp = peer2enlist.find(sendtoIDs[peer])->second;
+                int *encryptedSize = &toRead[peer][currentPos].second;
+                
+                encrypted = aes_encrypt(en_temp, tempEncryption, encryptedSize);
+
+                //Free the current one, assign the new.
+                //  Reason is because they can be different sizes
+                if (encryptedData[peer] != nullptr)
+                    free(encryptedData[peer]);
+
+                //Update the encrypted pointers
+                if (encryptedData[peer] == nullptr)
+                    free(encryptedData[peer]);
+                encryptedData[peer] = encrypted;
+
+                currentWrite->first = encrypted;
+                currentWrite->second = *encryptedSize;
+
+                //The corresponding read has to be readSize
+                toRead[peer][currentPos].second = *encryptedSize;
+
+                //Need to have a copy of the original for decryption keepsake
+                encryptedSizes[peer] = *encryptedSize;
+            }
+            //See if we can write
+            bytes = sendDataToPeer_NoBlock(sendtoIDs[peer], currentWrite->second, currentWrite->first);
             if (bytes > 0) {
-                toWrite[i].second -= bytes;
+                currentWrite->second -= bytes;
+                currentWrite->first += bytes;
 
-                if (toWrite[i].second <= 0) {
-                    toWrite.erase(toWrite.begin() + i);
+                //Onto the next batch
+                if (currentWrite->second == 0) {
+                    currentBatchMap_Write[peer]++;
+
+                    //Unless we're done
+                    if (currentBatchMap_Write[peer] == size)
+                        finishedWriting++;
                 }
             }
         }
 
-        //Read if needed
-        //  Only need to look at those not received yet
-        for (i = 0; i < toReceive.size(); i++) {
+        //Reading
+        for (peer = threshold - 1; peer >= 0; peer--) {
+            currentPos = currentBatchMap_Read[peer];
+            if (currentPos == size)
+                continue;
 
-            //See if there's anything to read
-            bytes = getDataFromPeer_NoBlock(RecvFromIDs[i], toReceive[i].second, tempBuffer[i]);
+            auto *currentRead = &toRead[peer][currentPos];
             
+            //See if there's anything to read
+            // printf("Attempting read from %p (%i bytes)\n", currentRead->first, currentRead->second);
+            bytes = getDataFromPeer_NoBlock(RecvFromIDs[peer], currentRead->second, currentRead->first);
             if (bytes > 0) {
-                toReceive[i].second -= bytes;
-                
-                if (toReceive[i].second <= 0) {
-                    received++;
-                    toReceive.erase(toReceive.begin() + i);
+                currentRead->second -= bytes;
+                currentRead->first += bytes;
 
+                //Read all of it
+                if (currentRead->second == 0) {
+                    
                     // Now that we have the full data for this part, decrypt it then add it to the buffer
-                    EVP_CIPHER_CTX *de_temp = peer2delist.find(RecvFromIDs[i])->second;
-                    char *decrypted = (char *)aes_decrypt(de_temp, tempBuffer[i], &buffer_size);
+                    EVP_CIPHER_CTX *de_temp = peer2delist.find(RecvFromIDs[peer])->second;
+                    tempEncryption = aes_decrypt(de_temp, tempBuffer[peer], &encryptedSizes[peer]);
 
-                    //TODO: Verify that this is in the correct position (should be)
-                    //TODO: Also discuss batch work, what'd be the best approach 
+                    //Buffer is structured [threshold][size]
+                    mpz_import(buffer[peer][currentPos], exportedCount[peer], -1, 1, -1, 0, tempEncryption);
 
-                    for (int j = 0; j < size; j++)
-                        mpz_import(buffer[i][j], unit_size, -1, 1, -1, 0, decrypted);
-
-                    gmp_printf("Got: %Zd\n", buffer[i][0]);
+                    currentBatchMap_Read[peer]++;
+                    if (currentBatchMap_Read[peer] == size)
+                        finishedReading++;
                 }
             }
         }
     }
 
-    for (int i = 0; i < (threshold + 1); i++) {
+    gmp_printf("Data received:\n");
+    for (int i = 0; i < size; i++) 
+        gmp_printf("[%i] = %Zd\n", i, buffer[0][i]);
+    gmp_printf("------------------------------------\n");
+
+
+    //Free everything
+    for (int i = 0; i < threshold; i++) {
         free(tempBuffer[i]);
         free(encryptedData[i]);
     }
     free(tempBuffer);
     free(encryptedData);
+    free(tempEncryption);
+    free(currentBatchMap_Write);
+    free(currentBatchMap_Read);
 }
 
 //////////////////////////////////////////////////////////////////////
