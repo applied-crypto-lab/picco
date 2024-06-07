@@ -22,8 +22,8 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
-#include "Norm.hpp"
 #include "Mult.hpp"
+#include "Norm.hpp"
 #include "Trunc.hpp"
 
 template <typename T>
@@ -58,6 +58,18 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     // printf("\n");
     // printf("Norm End\n");
 
+    T *res_check = new T[2 * size];
+    T *res_check2 = new T[2 * size];
+    Open(res_check, c, size, threadID, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        printf("[c]   [%lu]: %u\n", i, res_check[i]);
+    }
+
+    Open(res_check, v, size, threadID, net, ss);
+    for (size_t i = 0; i < size; i++) {
+        printf("[v]   [%lu]: %u\n", i, res_check[i]);
+    }
+
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             // d[s][i] = (ai[s] * T(alpha)) - 2 * c[s][i];
@@ -89,6 +101,17 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     // check if we need to modify anything for bitlength < k?
     // the "K" argument is unused by RSS
     doOperation_Trunc(w, vv, bitlength, bitlength, size, threadID, net, ss);
+
+    Open(res_check, w, size, threadID, net, ss);
+    Open(res_check2, vv, size, threadID, net, ss);
+
+    for (size_t i = 0; i < size; i++) {
+        if (!(res_check[i] == (res_check2[i] >> T(bitlength)))) {
+            printf("appRCR trunc  ERROR\n");
+            // printf("%i [post trunc x]   [%lu]: %u\t", th, i, res_check[i]);
+            // print_binary(res_check[i], ring_size);
+        }
+    }
 
     // printf("\n");
     // Open(result, w, size, threadID, net, ss);
