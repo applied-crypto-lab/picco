@@ -1985,7 +1985,7 @@ std::vector<int> SMC_Utils::generateCoefficients(std::vector<int> T_set, int thr
     return coefficients;
 }
 
-std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
+// std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 #if __RSS__
 uint SMC_Utils::getNumShares() {
@@ -2046,8 +2046,8 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    size = 5;          //  testing only so I dont have to keep opening rss_main.cpp
-    uint bitlength = 20;
+    size = 5; //  testing only so I dont have to keep opening rss_main.cpp
+    // uint bitlength = 20;
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2108,6 +2108,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         Data2[i] = new priv_int_t[size];
         memset(Data2[i], 0, sizeof(priv_int_t) * size);
     }
+    uint bitlength = 8;
 
     for (int i = 0; i < size; i++) {
         for (size_t j = 0; j < totalNumShares - 1; j++) {
@@ -2117,14 +2118,15 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
         // Data1[totalNumShares - 1][i] = ( (-1) * i ) & ss->SHIFT[bitlength];
-        Data1[totalNumShares - 1][i] = ( (-1) * i ) ;
+        Data1[totalNumShares - 1][i] = 10* ( i + 1 ) + 1;
+        // Data1[totalNumShares - 1][i] = ((-1) * i);
         // Data1[totalNumShares - 1][i] = 6 + i;
         // Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
         // Data2[totalNumShares - 1][i] = 1 + i;
-        Data2[totalNumShares - 1][i] = i;
+        Data2[totalNumShares - 1][i] =2;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
-            Data2[totalNumShares - 1][i] ^= Data2[j][i];
+            Data2[totalNumShares - 1][i] -= Data2[j][i];
             // Data1[totalNumShares - 1][i] ^= GET_BIT(Data1[j][i], priv_int_t(0)); // only want a single bit
             // Data2[totalNumShares - 1][i] ^= GET_BIT(Data2[j][i], priv_int_t(0)); // only want a single bit
         }
@@ -2171,16 +2173,27 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         b[i] = Data2[share_mapping[id - 1][i]];
     }
 
-    doOperation_Norm(C, A, a, 32, size, ring_size, -1, net, ss);
+    doOperation_IntDiv(C, a, b,  bitlength, size, -1, net, ss);
+    // doOperation_IntAppRcr(C, a, bitlength, size, ring_size, -1, net, ss);
+    // doOperation_Norm(C, D, a, bitlength, size, ring_size, -1, net, ss);
 
     // Open(result, C, size, -1, net, ss);
-    // Open(result, C, size, -1, net, ss);
+    Open(result, C, size, -1, net, ss);
     Open(result_2, a, size, -1, net, ss);
+    Open(result_3, b, size, -1, net, ss);
+
+    printf("\n");
     for (size_t i = 0; i < size; i++) {
-        // printf("(open) [test abs]   [%lu]: %u\n", i, result[i]);
-        // print_binary(result[i], 20);
-        printf("(input)     [%lu]: %i\n", i, (int)result_2[i]);
-        print_binary(( result_2[i]), bitlength);
+        // printf("(input a)     [%lu]: %i\n", i, (int)result_2[i]);
+        // // print_binary((result_2[i]), ring_size);
+
+        // printf("(input b)     [%lu]: %i\n", i, (int)result_3[i]);
+        // // print_binary((result_3[i]), ring_size);
+
+        printf("(a / b)     [%lu]: %i / %i = %i\t", i, (int)result_2[i], (int)result_3[i], (int)result[i]);
+        printf("(off by) %i\n",(int)result[i] - (int)result_2[i]/ (int)result_3[i]);
+        // print_binary(result[i], ring_size);
+        // printf("\n");
     }
 
     // uint k = 3;
@@ -2254,7 +2267,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //         print_binary(result_2[i], ring_size);
     //         printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
     //         print_binary(result[i] >> priv_int_t(m), ring_size);
-    //     }  
+    //     }
     // }
 
     // printf("\n");
@@ -2303,12 +2316,12 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     // printf("(open) c   [%lu]: %u\n", i, result[i]);
     //     // printf("(open) a   [%lu]: %u\n", i, result_2[i]);
     //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
-    //     if (!(result[i] == (result_2[i] > result_3[i]))) {
+    //     if (!(result[i] == ((int)result_2[i] > (int)result_3[i]))) {
     //         printf("LT ERROR\n");
 
-    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //         printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
     //     }
     // }
 

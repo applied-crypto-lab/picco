@@ -259,7 +259,6 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     ss->modAdd(x, x, alpha, size);
     Mult(y, y, x, size, threadID, net, ss);
     doOperation_TruncPr(result, y, 2 * k + lambda, k + lambda, size, threadID, net, ss);
-    // Open_print(result, "result 1", size, threadID, net, ss);
 
     /**********************************************************/
     // There is no documentation as to why this is needed, or where it came from
@@ -282,9 +281,6 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     ss->copy(c, result, size);
     Mult(result, result, sign, size, threadID, net, ss);
     /**********************************************************/
-
-    // printf("\n");
-    // Open_print(result, "result 2", size, threadID, net, ss);
 
     // free the memory
     mpz_clear(const1);

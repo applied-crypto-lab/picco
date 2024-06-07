@@ -183,13 +183,13 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
         B_buff[s] = new T[2 * size];
         C_buff[s] = new T[2 * size];
 
-        memcpy(A_buff[s], btmp[s], sizeof(T) * size);
-        memcpy(A_buff[s] + size, atmp[s], sizeof(T) * size);
+        // memcpy(A_buff[s], btmp[s], sizeof(T) * size);
+        // memcpy(A_buff[s] + size, atmp[s], sizeof(T) * size);
 
-        memcpy(B_buff[s], w[s], sizeof(T) * size);
-        memcpy(B_buff[s] + size, w[s], sizeof(T) * size);
+        // memcpy(B_buff[s], w[s], sizeof(T) * size);
+        // memcpy(B_buff[s] + size, w[s], sizeof(T) * size);
 
-        memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing
+        // memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing
     }
 
     // performing x = (b * w) and y = (a * w) in a batch, in that order
@@ -208,6 +208,11 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     //     print_binary(res_check[i], 2 * bitlength);
     // }
 
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            x[s][i] = (ai[s] * alpha) - x[s][i];
+        }
+    }
     // both need to be truncated by ell bits
     // doOperation_Trunc(C_buff, C_buff, bitlength, bitlength , 2 * size, threadID, net, ss);
     doOperation_Trunc(y, y, bitlength, bitlength - lambda, size, threadID, net, ss);
@@ -218,11 +223,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     //     memcpy(y[s], C_buff[s] + size, sizeof(T) * size);
     // }
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            x[s][i] = (ai[s] * alpha) - x[s][i];
-        }
-    }
+
 
     // for (size_t s = 0; s < numShares; s++) {
     //     for (size_t i = 0; i < size; i++) {
@@ -313,7 +314,12 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     for (size_t s = 0; s < numShares; s++) {
         memcpy(c[s], result[s], sizeof(T) * size);
     }
-
+    for (size_t s = 0; s < numShares; s++) {
+        memset(temp1[s], 0, sizeof(T) * size);
+        memset(temp2[s], 0, sizeof(T) * size);
+        memset(temp3[s], 0, sizeof(T) * size);
+        memset(temp4[s], 0, sizeof(T) * size);
+    }
     Mult(temp1, c, btmp, size, threadID, net, ss);
 
     // Open(res_check, temp1, size, threadID, net, ss);
@@ -351,7 +357,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     for (size_t s = 0; s < numShares; s++) {
         memset(temp1[s], 0, sizeof(T) * size);
         memset(temp2[s], 0, sizeof(T) * size);
-        // memset(temp3[s], 0, sizeof(T) * size);
+        memset(temp3[s], 0, sizeof(T) * size);
         memset(temp4[s], 0, sizeof(T) * size);
     }
 
@@ -365,7 +371,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            temp2[s][i] = atmp[s][i] - temp1[s][i];
+            temp2[s][i] = atmp[s][i] - temp2[s][i];
         }
     }
     for (size_t s = 0; s < numShares; s++) {

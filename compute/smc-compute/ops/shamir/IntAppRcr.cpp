@@ -56,7 +56,6 @@ void doOperation_IntAppRcr(mpz_t *w, mpz_t *b, int k, int size, int threadID, No
     Mult(c, c, v, size, threadID, net, ss);
     doOperation_TruncPr(w, c, 2 * k, k, size, threadID, net, ss);
     
-    // Open_print(w, "w", size, threadID, net, ss);
     // free the memory
     for (int i = 0; i < size; ++i) {
         mpz_clear(c[i]);
