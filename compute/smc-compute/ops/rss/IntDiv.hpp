@@ -55,45 +55,23 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
 
     static uint numShares = ss->getNumShares();
 
-    T *res_check = new T[3 * size];
-
     T **A_buff = new T *[numShares];
     T **B_buff = new T *[numShares];
     T **C_buff = new T *[numShares];
+    T **atmp = new T *[numShares];
+    T **btmp = new T *[numShares];
+    T **sign = new T *[numShares];
     for (size_t s = 0; s < numShares; s++) {
         A_buff[s] = new T[3 * size];
         B_buff[s] = new T[3 * size];
         C_buff[s] = new T[3 * size];
-    }
 
-    T **atmp = new T *[numShares];
-    T **btmp = new T *[numShares];
-    T **x = new T *[numShares];
-    T **y = new T *[numShares];
-    T **w = new T *[numShares];
-    T **c = new T *[numShares];
-    T **lt = new T *[numShares];
-    T **temp0 = new T *[numShares];
-    T **sign = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        lt[i] = new T[2 * size];
-        memset(lt[i], 0, sizeof(T) * 2 * size);
-        atmp[i] = new T[size];
-        memset(atmp[i], 0, sizeof(T) * size);
-        btmp[i] = new T[size];
-        memset(btmp[i], 0, sizeof(T) * size);
-        x[i] = new T[size];
-        memset(x[i], 0, sizeof(T) * size);
-        y[i] = new T[size];
-        memset(y[i], 0, sizeof(T) * size);
-        temp0[i] = new T[size];
-        memset(temp0[i], 0, sizeof(T) * size);
-        c[i] = new T[size];
-        memset(c[i], 0, sizeof(T) * size);
-        w[i] = new T[size];
-        memset(w[i], 0, sizeof(T) * size);
-        sign[i] = new T[size];
-        memset(sign[i], 0, sizeof(T) * size);
+        atmp[s] = new T[size];
+        memset(atmp[s], 0, sizeof(T) * size);
+        btmp[s] = new T[size];
+        memset(btmp[s], 0, sizeof(T) * size);
+        sign[s] = new T[size];
+        memset(sign[s], 0, sizeof(T) * size);
     }
 
     T *ai = new T[numShares];
@@ -123,8 +101,6 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     for (size_t s = 0; s < numShares; s++) {
         memcpy(A_buff[s] + 2 * size, A_buff[s], sizeof(T) * size);
         // B_buff already contains a and b, which was used for the MSB calculation
-        // memcpy(B_buff[s], a[s], sizeof(T) * size);
-        // memcpy(B_buff[s] + size, b[s], sizeof(T) * size);
         memcpy(B_buff[s] + 2 * size, A_buff[s] + size, sizeof(T) * size);
     }
 
@@ -136,71 +112,25 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
         memcpy(sign[s], C_buff[s] + 2 * size, sizeof(T) * size);
     }
 
-    /*     Mult(c, a, temp0, size, threadID, net, ss);
-        for (size_t s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                atmp[s][i] = a[s][i] - 2 * c[s][i];
-            }
-        }
-        for (size_t s = 0; s < numShares; s++) {
-            memcpy(temp0[s], temp0[s] + size, sizeof(T) * size);
-        }
-        for (size_t s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                temp2[s][i] = ai[s] * 1 - 2 * temp0[s][i];
-            }
-        }
-        Mult(sign, temp3, temp2, size, threadID, net, ss);
-        Mult(temp4, b, temp0, size, threadID, net, ss);
-        for (size_t s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                btmp[s][i] = b[s][i] - 2 * temp4[s][i];
-                // temp1[s][i] = b[s][i] - temp4[s][i];
-                // btmp[s][i] = temp1[s][i] - temp4[s][i];
-            }
-        }
-     */
-    doOperation_IntAppRcr(w, btmp, bitlength, size, ring_size, threadID, net, ss);
+    doOperation_IntAppRcr(B_buff, btmp, bitlength, size, ring_size, threadID, net, ss); // B_buff contains w
 
     // computing y = atmp*w and x = btmp*w in parallel, in this order
     for (size_t s = 0; s < numShares; s++) {
         memcpy(A_buff[s], atmp[s], sizeof(T) * size);
-        memcpy(A_buff[s] + size, btmp[s], sizeof(T) * size);
-        memcpy(B_buff[s], w[s], sizeof(T) * size);
-        memcpy(B_buff[s] + size, w[s], sizeof(T) * size);
+        memcpy(A_buff[s] + size, btmp[s], sizeof(T) * size);   // atmp, btmp
+        memcpy(B_buff[s] + size, B_buff[s], sizeof(T) * size); // w, w
 
         // clearing destination
         memset(C_buff[s], 0, sizeof(T) * 3 * size);
     }
     Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
 
-    // performing x = (b * w) and y = (a * w) in a batch, in that order
-    // Mult(y, atmp, w, size, threadID, net, ss);
-    // Mult(x, btmp, w, size, threadID, net, ss);
-
-    Open(res_check, atmp, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        printf("[atmp]   [%lu]: %u\t", i, res_check[i]);
-        print_binary(res_check[i], 2 * bitlength);
-    }
-    printf("\n");
-    Open(res_check, btmp, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        printf("[btmp]   [%lu]: %u\t", i, res_check[i]);
-        print_binary(res_check[i], 2 * bitlength);
-    }
-    printf("\n");
-    Open(res_check, sign, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        printf("[sign]   [%lu]: %u\t", i, res_check[i]);
-        print_binary(res_check[i], 2 * bitlength);
-    }
-    // fine up to here
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             C_buff[s][i + size] = (ai[s] * alpha) - C_buff[s][i + size];
         }
     }
+
     // both need to be truncated by ell bits
     // doOperation_Trunc(C_buff, C_buff, bitlength, bitlength , 2 * size, threadID, net, ss);
     doOperation_Trunc(C_buff, C_buff, bitlength, bitlength - lambda, size, threadID, net, ss);
@@ -225,181 +155,81 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
         // computing y*(alpha + x) and  x*x, in this order
         Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
         doOperation_Trunc(C_buff, C_buff, bitlength, bitlength, 2 * size, threadID, net, ss);
-
-        // for (size_t s = 0; s < numShares; s++) {
-        //     for (size_t i = 0; i < size; i++) {
-        //         temp1[s][i] = (ai[s] * alpha) + x[s][i]; // alpha + x
-        //     }
-        // }
-
-        // Mult(temp2, y, temp1, size, threadID, net, ss);
-        // for (size_t s = 0; s < numShares; s++) {
-        //     memset(temp1[s], 0, sizeof(T) * size);
-        // }
-        // Mult(temp1, x, x, size, threadID, net, ss);
-
-        // doOperation_Trunc(x, temp1, bitlength, bitlength, size, threadID, net, ss);
-        // doOperation_Trunc(y, temp2, bitlength, bitlength, size, threadID, net, ss);
     }
+
     for (size_t s = 0; s < numShares; s++) {
-        memcpy(y[s], C_buff[s], sizeof(T) * size);
+        memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
     }
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            x[s][i] = (ai[s] * alpha) + C_buff[s][i + size]; // alpha + x
+            B_buff[s][i] = (ai[s] * alpha) + C_buff[s][i + size]; // alpha +
         }
     }
     for (size_t s = 0; s < numShares; s++) {
-        memset(C_buff[s], 0, sizeof(T)  * size);
+        memset(C_buff[s], 0, sizeof(T) * size);
     }
-    Mult(C_buff, x, y, size, threadID, net, ss);
-    doOperation_Trunc(result, C_buff, bitlength, bitlength + lambda, size, threadID, net, ss);
-
-    // for (size_t s = 0; s < numShares; s++) {
-    //     for (size_t i = 0; i < size; i++) {
-    //         x[s][i] = (ai[s] * alpha) + x[s][i]; // alpha + x
-    //     }
-    // }
-    // Mult(temp1, x, y, size, threadID, net, ss);
-    // doOperation_Trunc(result, temp1, bitlength, bitlength + lambda, size, threadID, net, ss);
+    Mult(C_buff, B_buff, A_buff, size, threadID, net, ss);
+    doOperation_Trunc(A_buff, C_buff, bitlength, bitlength + lambda, size, threadID, net, ss);
 
     // correction (?) that is present in shamir
     for (size_t s = 0; s < numShares; s++) {
-        memcpy(c[s], result[s], sizeof(T) * size);
+        memset(C_buff[s], 0, sizeof(T) * size);
     }
-    for (size_t s = 0; s < numShares; s++) {
-        memset(temp0[s], 0, sizeof(T) * size);
-        // memset(temp2[s], 0, sizeof(T) * size);
-        // memset(temp3[s], 0, sizeof(T) * size);
-        // memset(temp4[s], 0, sizeof(T) * size);
-    }
-    Mult(temp0, c, btmp, size, threadID, net, ss);
-
-    // Open(res_check, temp0, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[mult1]   [%lu]: %u\t", i, res_check[i]);
-    //     print_binary(res_check[i], ring_size);
-    // }
+    Mult(C_buff, A_buff, btmp, size, threadID, net, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            temp0[s][i] = atmp[s][i] - temp0[s][i];
+            C_buff[s][i] = atmp[s][i] - C_buff[s][i];
         }
     }
 
-    // Open(res_check, temp2, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[a - mult]   [%lu]: %u\t", i, res_check[i]);
-    //     print_binary(res_check[i], ring_size);
-    // }
-
-    Rss_MSB(temp0, temp0, size, ring_size, net, ss);
-
-    // Open(res_check, temp3, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[msb of prior]   [%lu]: %u\t", i, res_check[i]);
-    //     print_binary(res_check[i], ring_size);
-    // }
+    Rss_MSB(C_buff, C_buff, size, ring_size, net, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             // temp3[s][i] = ai[s] * 1 - 2 * temp3[s][i];
-            c[s][i] = c[s][i] + ai[s] * 1 - 2 * temp0[s][i];
+            A_buff[s][i] = A_buff[s][i] + ai[s] * 1 - 2 * C_buff[s][i];
         }
     }
     for (size_t s = 0; s < numShares; s++) {
-        memset(temp0[s], 0, sizeof(T) * size);
-        // memset(temp2[s], 0, sizeof(T) * size);
-        // memset(temp3[s], 0, sizeof(T) * size);
-        // memset(temp4[s], 0, sizeof(T) * size);
+        memset(C_buff[s], 0, sizeof(T) * size);
     }
 
-    // Open(res_check, c, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[mid adjust]   [%lu]: %u\t", i, res_check[i]);
-    //     print_binary(res_check[i], ring_size);
-    // }
-
-    Mult(temp0, c, btmp, size, threadID, net, ss);
+    Mult(C_buff, A_buff, btmp, size, threadID, net, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            temp0[s][i] = atmp[s][i] - temp0[s][i];
+            C_buff[s][i] = atmp[s][i] - C_buff[s][i];
         }
     }
 
-    // Rss_MSB(temp3, temp2, size, ring_size, net, ss);
-    Rss_MSB(temp0, temp0, size, ring_size, net, ss);
+    Rss_MSB(C_buff, C_buff, size, ring_size, net, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            c[s][i] = c[s][i] - temp0[s][i];
+            A_buff[s][i] = A_buff[s][i] - C_buff[s][i];
         }
     }
 
     for (size_t s = 0; s < numShares; s++) {
         memset(result[s], 0, sizeof(T) * size);
     }
-    Mult(result, sign, c, size, threadID, net, ss);
-
-    // Open(res_check, temp4, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[post sign mult]   [%lu]: %u\t", i, res_check[i]);
-    //     print_binary(res_check[i], ring_size);
-    // }
-
-    // for (size_t s = 0; s < numShares; s++) {
-    //     memcpy(result[s], temp1[s], sizeof(T) * size);
-    // }
-
-    /*     for (int th = 0; th < theta - 1; th++) {
-            for (size_t s = 0; s < numShares; s++) {
-
-                memcpy(A_buff[s], C_buff[s], sizeof(T) * size);               // x
-                memcpy(A_buff[s] + size, C_buff[s] + size, sizeof(T) * size); // y
-                memcpy(B_buff[s], C_buff[s], sizeof(T) * size);               // x
-
-                for (size_t s = 0; s < numShares; s++) {
-                    for (size_t i = 0; i < size; i++) {
-                        B_buff[s][i + size] = (ai[s] * alpha) + C_buff[s][i]; // alpha + x
-                    }
-                }
-            }
-            for (size_t s = 0; s < numShares; s++) {
-                memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing after we already inserted everything into the respective buffers
-            }
-            // computing x*x and y*(alpha + x), in this order
-            Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
-            doOperation_Trunc(C_buff, C_buff, bitlength, bitlength, 2 * size, threadID, net, ss);
-        }
-    for (size_t s = 0; s < numShares; s++) {
-        memcpy(y[s], C_buff[s] + size, sizeof(T) * size);
-    }
-
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            x[s][i] = (ai[s] * alpha) + C_buff[s][i]; // alpha + x
-        }
-    }
-
-    Mult(C_buff, x, y, size, threadID, net, ss);
-    doOperation_Trunc(result, C_buff, bitlength, bitlength, size, threadID, net, ss);
-     */
+    Mult(result, sign, A_buff, size, threadID, net, ss);
 
     // cleanup
     for (size_t i = 0; i < numShares; i++) {
-        delete[] x[i];
-        delete[] y[i];
-        delete[] w[i];
+        delete[] atmp[i];
+        delete[] btmp[i];
+        delete[] sign[i];
 
         delete[] A_buff[i];
         delete[] B_buff[i];
         delete[] C_buff[i];
     }
-    delete[] x;
-    delete[] y;
-    delete[] w;
+    delete[] atmp;
+    delete[] btmp;
+    delete[] sign;
 
     delete[] A_buff;
     delete[] B_buff;
