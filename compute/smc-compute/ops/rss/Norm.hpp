@@ -33,11 +33,6 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
 
     static uint numShares = ss->getNumShares();
 
-    // std::cout << "numShares  = " << numShares << std::endl;
-    // std::cout << "ring_size = " << ring_size << std::endl;
-    // std::cout << "bitlen = " << bitlength << std::endl;
-    // std::cout << "size = " << size << std::endl;
-
     T **b_bits = new T *[numShares];
     for (size_t i = 0; i < numShares; i++) {
         b_bits[i] = new T[size];
@@ -74,34 +69,7 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, T(1));
 
-    Rss_MSB(b_msb, b, size, ring_size, net, ss);
-
-    Mult(prod, b, b_msb, size, threadID, net, ss);
-    // computing the absolute value of b
-
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            x[s][i] = b[s][i] - 2 * prod[s][i];
-        }
-    }
-
-    // T *result = new T[size];
-    // memset(result, 0, sizeof(T) * size);
-
-    // Open(result, b_msb, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[b_msb]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
-
-    // Open(result, x, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[abs b]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
-
-    // printf("bitdec\n");
-    Rss_BitDec(x_bits, x, bitlength, size, ring_size, net, ss);
+    Rss_BitDec(x_bits, b, bitlength, size, ring_size, net, ss);
 
     // sanitizing?
     for (size_t s = 0; s < numShares; s++) {
@@ -110,37 +78,15 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         }
     }
 
-    // memset(result, 0, sizeof(T) * size);
-    // Open_Bitwise(result, x_bits, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[bitDec]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
-
     // santiziing since we're dealing with bits
     for (size_t s = 0; s < numShares; s++) {
         memset(prod[s], 0, sizeof(T) * size);
     }
 
-    // printf("PreOR\n");
     // commputing the "reverse" prefixOR
     //  i.e., a_8, a_8 | a_7, a_8 | a_7 | a_6, ... (subscripts denote the bit position)
     // reusing prod
     Rss_PreOR(prod, x_bits, size, bitlength, net, ss);
-
-    // // sanitizing?
-    // for (size_t s = 0; s < numShares; s++) {
-    //     for (size_t i = 0; i < size; i++) {
-    //         prod[s][i] = prod[s][i] & ss->SHIFT[bitlength];
-    //     }
-    // }
-
-    // memset(result, 0, sizeof(T) * size);
-    // Open_Bitwise(result, prod, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[preOR]  prod [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < bitlength - 1; j++) {
@@ -157,14 +103,6 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     // reusing z
     Rss_B2A(z_res, z, bitlength * size, ring_size, net, ss);
 
-    // T *result2 = new T[bitlength * size];
-    // memset(result2, 0, sizeof(T) * bitlength*size);
-    // Open_Bitwise(result, z, bitlength*size, threadID, net, ss);
-    // for (size_t i = 0; i < bitlength*size; i++) {
-    //     printf("[z2k]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
-
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < bitlength; j++) {
             for (size_t i = 0; i < size; i++) {
@@ -172,13 +110,6 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
             }
         }
     }
-
-    // memset(result, 0, sizeof(T) * size);
-    // Open(result, vp, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[v_prime]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
 
     T **A_buff = new T *[numShares];
     T **B_buff = new T *[numShares];
@@ -200,36 +131,10 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     // performing (x*v) and (b_msb * v) in a batch, in that order
     Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
 
-    // reverting the absolute value (?)
-    // ******************************************************************************
-    // WE MAY NEED TO CHOP OFF THE LEADING ring_size - bitlength bits
-    // in order to preserve correctness for truncaiton in subsequent truncation
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            v[s][i] = vp[s][i] - 2 * C_buff[s][size + i];
-        }
-    }
-    // ******************************************************************************
-
     for (size_t s = 0; s < numShares; s++) {
         memcpy(c[s], C_buff[s], sizeof(T) * size);
+        memcpy(v[s], vp[s], sizeof(T) * size);
     }
-
-    // printf("\n");
-    // memset(result, 0, sizeof(T) * size);
-    // Open(result, c, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[c]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
-
-    // printf("\n");
-    // memset(result, 0, sizeof(T) * size);
-    // Open(result, v, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[v]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
 
     delete[] ai;
     for (size_t i = 0; i < numShares; i++) {

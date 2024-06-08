@@ -55,70 +55,18 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
 
     // check that v is well-formed when b is negative
     doOperation_Norm(c, v, b, bitlength, size, ring_size, threadID, net, ss);
-    // printf("\n");
-    // printf("Norm End\n");
-
-    T *res_check = new T[2 * size];
-    T *res_check2 = new T[2 * size];
-    Open(res_check, c, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        printf("[c]   [%lu]: %u\n", i, res_check[i]);
-    }
-
-    Open(res_check, v, size, threadID, net, ss);
-    for (size_t i = 0; i < size; i++) {
-        printf("[v]   [%lu]: %u\n", i, res_check[i]);
-    }
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            // d[s][i] = (ai[s] * T(alpha)) - 2 * c[s][i];
             d[s][i] = (ai[s] * alpha) - 2 * c[s][i];
         }
     }
 
-    // T *result = new T[size];
-    // memset(result, 0, sizeof(T) * size);
-
-    // printf("\n");
-
-    // Open(result, d, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[d]  [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
-
-    // printf("\n");
-    // printf("Mult\n");
     Mult(vv, d, v, size, threadID, net, ss);
-
-    // Open(result, vv, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[pre trunc] [w] [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
 
     // check if we need to modify anything for bitlength < k?
     // the "K" argument is unused by RSS
     doOperation_Trunc(w, vv, bitlength, bitlength, size, threadID, net, ss);
-
-    Open(res_check, w, size, threadID, net, ss);
-    Open(res_check2, vv, size, threadID, net, ss);
-
-    for (size_t i = 0; i < size; i++) {
-        if (!(res_check[i] == (res_check2[i] >> T(bitlength)))) {
-            printf("appRCR trunc  ERROR\n");
-            // printf("%i [post trunc x]   [%lu]: %u\t", th, i, res_check[i]);
-            // print_binary(res_check[i], ring_size);
-        }
-    }
-
-    // printf("\n");
-    // Open(result, w, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("[post trunc] [w] [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    // }
 
     for (size_t i = 0; i < numShares; i++) {
         delete[] c[i];

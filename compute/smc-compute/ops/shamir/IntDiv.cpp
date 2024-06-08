@@ -275,7 +275,13 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     doOperation_LTZ(lt, temp, k, size, threadID, net, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
-    ss->modSub(temp, const1, temp, size);
+    ss->modSub(temp, const1, temp, size); // ????? why is this here ??? we effectively just add zero, 
+    // since we first do temp = 2*lt
+    // then temp = 1 - temp
+    // then temp = 1 - temp AGAIN
+    // which works out to temp = 1 - (1 - temp) = 1 - (1 - 2*lt) = 2*lt
+    // even moreso confusing, we multiply by the inverse of 2, which just cancels the 2 we multiplied by above 
+
     ss->modMul(temp, temp, inv2, size);
     ss->modSub(c, c, temp, size);
     ss->copy(c, result, size);
