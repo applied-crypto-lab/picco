@@ -47,7 +47,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     // main protocol
     // bitlength is computed by the compiler as the max of (alen, blen) ?
     int theta = ceil(log2(double(bitlength) / 3.5));
-    int lambda = 8; //??? what is this from???
+    int lambda = 8; // lambda adjusts the resolution of y in the algorithm, which reduces the error in the algorithm
     // compute lambda dynamically? it cannot be larger than bitlength
     // this may be what is referrred to as "incresaing the resolution of y" that is stated in the paper
     T alpha = (1 << bitlength);
@@ -96,9 +96,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
             A_buff[s][i] = ai[s] * 1 - 2 * A_buff[s][i];
             A_buff[s][i + size] = ai[s] * 1 - 2 * A_buff[s][i + size];
         }
-    }
 
-    for (size_t s = 0; s < numShares; s++) {
         memcpy(A_buff[s] + 2 * size, A_buff[s], sizeof(T) * size);
         // B_buff already contains a and b, which was used for the MSB calculation
         memcpy(B_buff[s] + 2 * size, A_buff[s] + size, sizeof(T) * size);
@@ -159,16 +157,14 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
 
     for (size_t s = 0; s < numShares; s++) {
         memcpy(A_buff[s], C_buff[s], sizeof(T) * size);
-    }
 
-    for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            B_buff[s][i] = (ai[s] * alpha) + C_buff[s][i + size]; // alpha +
+            B_buff[s][i] = (ai[s] * alpha) + C_buff[s][i + size]; // alpha + x
         }
-    }
-    for (size_t s = 0; s < numShares; s++) {
+
         memset(C_buff[s], 0, sizeof(T) * size);
     }
+
     Mult(C_buff, B_buff, A_buff, size, threadID, net, ss);
     doOperation_Trunc(A_buff, C_buff, bitlength, bitlength + lambda, size, threadID, net, ss);
 
@@ -191,8 +187,6 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
             // temp3[s][i] = ai[s] * 1 - 2 * temp3[s][i];
             A_buff[s][i] = A_buff[s][i] + ai[s] * 1 - 2 * C_buff[s][i];
         }
-    }
-    for (size_t s = 0; s < numShares; s++) {
         memset(C_buff[s], 0, sizeof(T) * size);
     }
 
@@ -210,9 +204,6 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
         for (size_t i = 0; i < size; i++) {
             A_buff[s][i] = A_buff[s][i] - C_buff[s][i];
         }
-    }
-
-    for (size_t s = 0; s < numShares; s++) {
         memset(result[s], 0, sizeof(T) * size);
     }
     Mult(result, sign, A_buff, size, threadID, net, ss);
