@@ -77,14 +77,23 @@ int **NodeNetwork::finished_socks = NULL;
 int *NodeNetwork::read_socks = NULL;
 int NodeNetwork::mode = 0;              // -1 -- non-thread, 0 -- thread
 int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed modes so far
+
+const int numb = sizeof(char) * 8;
+int peers;
+int bits;
+int unit_size; 
 /************************************************************/
+
 
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
 
     // here number of peers is n-1 instead of n
-    int peers = config->getPeerCount();
+    peers = config->getPeerCount();
+    bits = config->getBits();
+    unit_size = (bits + numb - 1) / numb;
+    
     // allocate space for prgSeeds
     threshold = peers / 2;
     prgSeeds = new unsigned char *[2 * threshold];
@@ -97,8 +106,8 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     connectToPeers();
 
     numOfThreads = num_threads; // it should be read from parsing
-    int numb = 8 * sizeof(char);
-    int temp_buffer_size = MAX_BUFFER_SIZE / (peers + 1) / ((config->getBits() + numb - 1) / numb);
+
+    int temp_buffer_size = MAX_BUFFER_SIZE / (peers + 1) / ((bits + numb - 1) / numb);
 
     /************************* MUTEX and COND VAR INITIALIZATION *******************/
     socket_conditional_variables = (pthread_cond_t *)malloc(sizeof(pthread_cond_t) * numOfThreads);
@@ -205,15 +214,7 @@ unsigned char **NodeNetwork::getPRGseeds() {
 void NodeNetwork::closeAllConnections() {
 }
 
-const int numb = sizeof(char) * 8;
-int bits = -1, unit_size; 
 int getBufferSize(int start, int *amount, int size) {
-    //Avoid redoing the computation
-    if (bits == -1) {
-        bits = config->getBits();
-        unit_size = (bits + numb - 1) / numb;
-    }
-
     if (start + *amount > size)
         *amount = size - start;
 
@@ -336,7 +337,6 @@ void NodeNetwork::getDataFromPeer(int id, int size, T *buffer) {
 
 /* unlike what the name suggests, this function sends different data to each peer and receives different data from each peer */
 void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer, int size) {
-    int peers = config->getPeerCount();
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     // int sendIdx = 0, getIdx = 0;
@@ -362,7 +362,6 @@ void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer,
 /* the function sends different data to each peer and receives data from each peer */
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     int id = getID();
-    int peers = config->getPeerCount();
     // struct timeval tv1, tv2;
 
     // int sendIdx = 0, getIdx = 0;
@@ -388,7 +387,6 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
 /* this function sends identical data (stored in variable 'data') to all other peers and receives data from all of them as well (stored in variable 'buffers') */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
     int id = getID();
-    int peers = config->getPeerCount();
 
     int rounds = 0, count = 0;
     getRounds(size, &count, &rounds);
@@ -415,7 +413,6 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
 /* this function sends identical data to all other peers and receives data from all of them */
 void NodeNetwork::broadcastToPeers(long long *data, int size, long long **result) {
     // int id = getID();
-    int peers = config->getPeerCount();
     mpz_t **buffers = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     mpz_t *data1 = (mpz_t *)malloc(size * sizeof(mpz_t));
 
@@ -437,7 +434,6 @@ void NodeNetwork::broadcastToPeers(long long *data, int size, long long **result
 }
 
 void NodeNetwork::connectToPeers() {
-    int peers = config->getPeerCount();
     for (int i = 1; i <= peers + 1; i++) {
         if (config->getID() == i) {
             if (i != (peers + 1))
@@ -461,7 +457,6 @@ void *NodeNetwork::managerWork() {
     printf("Starting thread manager...\n");
     fd_set socketDescriptorSet;
     int fdmax = 0, nReady = 0, index = 0, threadID;
-    int peers = config->getPeerCount();
     FD_ZERO(&socketDescriptorSet);
     std::map<int, int>::iterator it;
 
@@ -582,27 +577,64 @@ void NodeNetwork::restoreDataToBuffer(int socketID, int peerID, int threadID, in
     return;
 }
 
+void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size, int threadID) {
+    try {
+        int *info = (int *)malloc(sizeof(int) * 3);
+        info[0] = start;
+        info[1] = amount;
+        info[2] = size;
+
+        int buffer_size = getBufferSize(start, &amount, size);
+
+        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
+        char *pointer = buffer;
+        memset(buffer, 0, buffer_size);
+        for (int i = start; i < start + amount; i++) {
+            mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
+            pointer += unit_size;
+        }
+
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
+
+        sendDataToPeer(id, 1, &threadID);
+        sendDataToPeer(id, 3, info);
+        sendDataToPeer(id, buffer_size, encrypted);
+        free(buffer);
+        free(info);
+        // free(encrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
+}
+
 void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
     // int id = config->getID();
     int *info = (int *)malloc(sizeof(int) * 3);
     getDataFromPeer(peerID, 3, info);
+
     pthread_mutex_lock(&buffer_mutex);
     while (comm_flags[peerID - 1][threadID] == 0) {
         pthread_cond_wait(&buffer_conditional_variables[threadID], &buffer_mutex);
     }
     pthread_mutex_unlock(&buffer_mutex);
+
+
     getDataFromPeer(peerID, buffer_handlers[peerID - 1][threadID], info[0], info[1], info[2]);
 
     if (info[0] + info[1] >= info[2]) {
         comm_flags[peerID - 1][threadID] = 0;
     }
+
     read_socks[threadID]++;
     if (read_socks[threadID] == config->getPeerCount()) {
         pthread_mutex_lock(&socket_mutex);
+
         while (unit_flags[threadID] == 1)
             pthread_cond_wait(&flag_conditional_variables[threadID], &socket_mutex);
         unit_flags[threadID] = 1;
         pthread_cond_signal(&socket_conditional_variables[threadID]);
+
         pthread_mutex_unlock(&socket_mutex);
         read_socks[threadID] = 0;
     }
@@ -611,7 +643,6 @@ void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
 }
 
 void NodeNetwork::sendModeToPeers(int id) {
-    int peers = config->getPeerCount();
     int msg = -2;
     for (int j = 1; j <= peers + 1; j++) {
         if (id == j)
@@ -625,7 +656,6 @@ void NodeNetwork::sendModeToPeers(int id) {
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
-    int peers = config->getPeerCount();
     // struct timeval tv1, tv2;
     if (size == 0)
         return;
@@ -695,7 +725,6 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
     if (size == 0)
         return;
     int id = getID();
-    int peers = config->getPeerCount();
     if (threadID == -1) {
         if (mode != -1) {
             sendModeToPeers(id);
@@ -748,44 +777,6 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
             for (int j = 0; j < size; j++)
                 mpz_set(buffers[id - 1][j], data[j]);
         }
-    }
-}
-
-void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size, int threadID) {
-    try {
-        int read_amount = 0;
-        if (start + amount > size)
-            read_amount = size - start;
-        else
-            read_amount = amount;
-        int bits = config->getBits();
-        int numb = 8 * sizeof(char);
-        int unit_size = (bits + numb - 1) / numb;
-        int buffer_size = unit_size * read_amount;
-        int *info = (int *)malloc(sizeof(int) * 3);
-        info[0] = start;
-        info[1] = amount;
-        info[2] = size;
-
-        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
-        char *pointer = buffer;
-        memset(buffer, 0, buffer_size);
-        for (int i = start; i < start + read_amount; i++) {
-            mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
-            pointer += unit_size;
-        }
-
-        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
-        sendDataToPeer(id, 1, &threadID);
-        sendDataToPeer(id, 3, info);
-        sendDataToPeer(id, 1, &buffer_size);
-        sendDataToPeer(id, buffer_size, encrypted);
-        free(buffer);
-        free(info);
-        // free(encrypted);
-    } catch (std::exception &e) {
-        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
     }
 }
 
@@ -1007,7 +998,6 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     }
 
     // populate the prgSeeds array which stores keys for parties myid-threshold through myid-1
-    int peers = config->getPeerCount();
     // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties
     int threshold = peers / 2;
     int myid = getID();
@@ -1041,10 +1031,6 @@ void NodeNetwork::init_keys(int peer, int nRead) {
 // }
 
 void NodeNetwork::getRounds(int size, int *count, int *rounds) {
-    int bits = config->getBits();
-    int peers = config->getPeerCount();
-    int numb = 8 * sizeof(char);
-    int unit_size = (bits + numb - 1) / numb;
     *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
     if (size % (*count) != 0)
         *rounds = size / (*count);
@@ -1114,7 +1100,6 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
-    int peers = config->getPeerCount();
     if (size == 0)
         return;
     if (threadID == -1) {
@@ -1183,7 +1168,6 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     std::cout << "multicast threadID : "<<threadID << std::endl;
     test_flags[threadID]++;
     int id = getID();
-    int peers = config->getPeerCount();
     if (size == 0)
         return;
     if (threadID == -1) {
@@ -1232,7 +1216,6 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 #if __RSS__
 
 void NodeNetwork::getRounds_RSS(int size, uint *count, uint *rounds, uint ring_size) {
-    int peers = config->getPeerCount();
     int unit_size = (ring_size + 7) >> 3;
     *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
     if (size % (*count) != 0)
@@ -1378,7 +1361,6 @@ void NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int amoun
 
 void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size) {
     int id = getID();
-    int peers = config->getPeerCount();
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
     for (int k = 0; k <= rounds; k++) {
@@ -1464,20 +1446,20 @@ void NodeNetwork::sendDataToPeer_bit(int id, uint8_t *data, int start, int amoun
 
 void NodeNetwork::getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size) {
     try {
-        int write_amount = 0;
+        int length = 0;
         if (start + amount > size)
-            write_amount = size - start;
+            length = size - start;
         else
-            write_amount = amount;
-        int unit_size = 1;
-        int length = unit_size * write_amount;
-
+            length = amount;
+        
         char *buffer = (char *)malloc(sizeof(char) * length);
         getDataFromPeer(id, length, (unsigned char *)buffer);
+
         EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
         char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
         memset(&data[start], 0, sizeof(uint8_t) * write_amount);
         memcpy(&data[start], decrypted, unit_size * write_amount);
+
         free(buffer);
         free(decrypted);
 
@@ -1488,9 +1470,7 @@ void NodeNetwork::getDataFromPeer_bit(int id, uint8_t *data, int start, int amou
 
 void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
     // size means number of bytes
-    int peers = config->getPeerCount();
-    int unit_size = 1;
-    *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
+    *count = MAX_BUFFER_SIZE / (peers + 1);
     if (size % (*count) != 0)
         *rounds = size / (*count);
     else
