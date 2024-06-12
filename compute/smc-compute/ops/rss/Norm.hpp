@@ -45,7 +45,6 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     T **prod = new T *[numShares];
     T **z = new T *[numShares];
     T **z_res = new T *[numShares];
-    T **vp = new T *[numShares];
     for (size_t i = 0; i < numShares; i++) {
         b_msb[i] = new T[size];
         x[i] = new T[size];
@@ -55,9 +54,6 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
 
         prod[i] = new T[size];
         memset(prod[i], 0, sizeof(T) * size);
-
-        vp[i] = new T[size];
-        memset(vp[i], 0, sizeof(T) * size);
 
         z_res[i] = new T[size * bitlength];
         memset(z_res[i], 0, sizeof(T) * bitlength * size);
@@ -99,42 +95,20 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         }
     }
 
-    // printf("B2A\n");
     // reusing z
     Rss_B2A(z_res, z, bitlength * size, ring_size, net, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < bitlength; j++) {
             for (size_t i = 0; i < size; i++) {
-                vp[s][i] += (1 << (bitlength - j - 1)) * z_res[s][j * size + i];
+                v[s][i] += (1 << (bitlength - j - 1)) * z_res[s][j * size + i];
             }
         }
     }
 
-    T **A_buff = new T *[numShares];
-    T **B_buff = new T *[numShares];
-    T **C_buff = new T *[numShares];
-    for (size_t s = 0; s < numShares; s++) {
-        A_buff[s] = new T[2 * size];
-        B_buff[s] = new T[2 * size];
-        C_buff[s] = new T[2 * size];
-
-        memcpy(A_buff[s], x[s], sizeof(T) * size);
-        memcpy(A_buff[s] + size, b_msb[s], sizeof(T) * size);
-
-        memcpy(B_buff[s], vp[s], sizeof(T) * size);
-        memcpy(B_buff[s] + size, vp[s], sizeof(T) * size);
-
-        memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing 
-    }
-
     // performing (x*v) and (b_msb * v) in a batch, in that order
-    Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
-
-    for (size_t s = 0; s < numShares; s++) {
-        memcpy(c[s], C_buff[s], sizeof(T) * size);
-        memcpy(v[s], vp[s], sizeof(T) * size);
-    }
+    // Mult(C_buff, A_buff, B_buff, size, threadID, net, ss);
+    Mult(c, b, v, size, threadID, net, ss);
 
     delete[] ai;
     for (size_t i = 0; i < numShares; i++) {
@@ -144,11 +118,7 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         delete[] x_bits[i];
         delete[] z[i];
         delete[] z_res[i];
-        delete[] vp[i];
 
-        delete[] A_buff[i];
-        delete[] B_buff[i];
-        delete[] C_buff[i];
     }
     delete[] b_bits;
     delete[] x;
@@ -157,8 +127,5 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     delete[] z;
     delete[] z_res;
 
-    delete[] A_buff;
-    delete[] B_buff;
-    delete[] C_buff;
 }
 #endif // _NORM_HPP_
