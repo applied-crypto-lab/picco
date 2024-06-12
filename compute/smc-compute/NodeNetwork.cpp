@@ -1327,7 +1327,6 @@ void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount
         }
         EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
         unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
-        sendDataToPeer(id, 1, &buffer_size);
         sendDataToPeer(id, buffer_size, encrypted);
         free(buffer);
         free(encrypted);
@@ -1359,8 +1358,8 @@ void NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int amoun
         else
             write_amount = amount;
         int unit_size = (ring_size + 7) >> 3;
-        int length = 0;
-        getDataFromPeer(id, 1, &length);
+        int length = unit_size * write_amount;
+
         char *buffer = (char *)malloc(sizeof(char) * length);
         getDataFromPeer(id, length, (unsigned char *)buffer);
         EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
@@ -1450,12 +1449,12 @@ void NodeNetwork::sendDataToPeer_bit(int id, uint8_t *data, int start, int amoun
         int buffer_size = unit_size * read_amount;
         char *buffer = (char *)malloc(sizeof(char) * buffer_size);
         char *pointer = buffer;
+
         memset(buffer, 0, buffer_size);
         memcpy(pointer, &data[start], unit_size * read_amount);
 
         EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
         unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
-        sendDataToPeer(id, 1, &buffer_size);
         sendDataToPeer(id, buffer_size, encrypted);
         free(buffer);
         free(encrypted);
@@ -1472,8 +1471,8 @@ void NodeNetwork::getDataFromPeer_bit(int id, uint8_t *data, int start, int amou
         else
             write_amount = amount;
         int unit_size = 1;
-        int length = 0;
-        getDataFromPeer(id, 1, &length);
+        int length = unit_size * write_amount;
+
         char *buffer = (char *)malloc(sizeof(char) * length);
         getDataFromPeer(id, length, (unsigned char *)buffer);
         EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
