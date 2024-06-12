@@ -205,35 +205,29 @@ unsigned char **NodeNetwork::getPRGseeds() {
 void NodeNetwork::closeAllConnections() {
 }
 
-void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size) {
-    try {
-        int read_amount = 0;
-        if (start + amount > size)
-            read_amount = size - start;
-        else
-            read_amount = amount;
-        int bits = config->getBits();
-        int numb = 8 * sizeof(char);
-        int unit_size = (bits + numb - 1) / numb;
-        int buffer_size = unit_size * read_amount;
-        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
-        char *pointer = buffer;
-        memset(buffer, 0, buffer_size);
-        for (int i = start; i < start + read_amount; i++) {
-            mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
-            pointer += unit_size;
-        }
-        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
-        sendDataToPeer(id, 1, &buffer_size);
-        sendDataToPeer(id, buffer_size, encrypted);
-        free(buffer);
-        free(encrypted);
-    } catch (std::exception &e) {
-        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+const int numb = sizeof(char) * 8;
+int bits = -1, unit_size; 
+int getBufferSize(int start, int *amount, int size) {
+    //Avoid redoing the computation
+    if (bits == -1) {
+        bits = config->getBits();
+        unit_size = (bits + numb - 1) / numb;
     }
+
+    if (start + *amount > size)
+        *amount = size - start;
+
+    return unit_size * *amount;
 }
 
+//Block size is the next interval of 16 (block size)
+int getBlockSize(int buffer_size) {
+    return ((buffer_size / 16) + 1) * 16;
+}
+
+/*
+    MPZ Only
+*/
 void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
@@ -241,20 +235,33 @@ void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
         sendDataToPeer(id, data, k * count, count, size);
 }
 
-void NodeNetwork::sendDataToPeer(int id, int size, long long *data) {
-    int count = 0, rounds = 0;
-    getRounds(size, &count, &rounds);
-    mpz_t *data1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init_set_ui(data1[i], data[i]);
-    for (int k = 0; k <= rounds; k++)
-        sendDataToPeer(id, data1, k * count, count, size);
+//Subroutine of function above
+void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size) {
+    try {
+        int buffer_size = getBufferSize(start, &amount, size);
+        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
 
-    // free the memory
-    for (int i = 0; i < size; i++)
-        mpz_clear(data1[i]);
-    free(data1);
+        char *pointer = buffer;
+        memset(buffer, 0, buffer_size);
+
+        for (int i = start; i < start + amount; i++) {
+            mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
+            pointer += unit_size;
+        }
+
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
+        sendDataToPeer(id, buffer_size, encrypted);
+
+        free(buffer);
+        free(encrypted);
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
 }
+
+
+
 
 void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
     int count = 0, rounds = 0;
@@ -263,151 +270,69 @@ void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
         getDataFromPeer(id, buffer, k * count, count, size);
 }
 
-void NodeNetwork::getDataFromPeer(int id, int size, long long *buffer) {
-    int count = 0, rounds = 0;
-    mpz_t *buffer1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
-        mpz_init(buffer1[i]);
-    getRounds(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++)
-        getDataFromPeer(id, buffer1, k * count, count, size);
-
-    for (int i = 0; i < size; i++) {
-        buffer[i] = mpz_get_ui(buffer1[i]);
-    }
-    for (int i = 0; i < size; i++)
-        mpz_clear(buffer1[i]);
-    free(buffer1);
-}
-
-void NodeNetwork::sendDataToPeer(int id, int size, unsigned char *data) {
-    try {
-        // int on = 1;
-        unsigned char *p = data;
-        int bytes_read = sizeof(unsigned char) * size;
-        int sockfd = peer2sock.find(id)->second;
-        fd_set fds;
-        while (bytes_read > 0) {
-            int bytes_written = send(sockfd, p, sizeof(unsigned char) * bytes_read, MSG_DONTWAIT);
-            if (bytes_written < 0) {
-                FD_ZERO(&fds);
-                FD_SET(sockfd, &fds);
-                int n = select(sockfd + 1, NULL, &fds, NULL, NULL);
-                if (n > 0)
-                    continue;
-            } else {
-                bytes_read -= bytes_written;
-                p += bytes_written;
-            }
-        }
-    } catch (std::exception &e) {
-        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
-    try {
-        int *p = data;
-        int bytes_read = sizeof(int) * size;
-        int sockfd = peer2sock.find(id)->second;
-        fd_set fds;
-        while (bytes_read > 0) {
-            int bytes_written = send(sockfd, p, bytes_read, MSG_DONTWAIT);
-            if (bytes_written < 0) {
-                FD_ZERO(&fds);
-                FD_SET(sockfd, &fds);
-                int n = select(sockfd + 1, NULL, &fds, NULL, NULL);
-                if (n > 0)
-                    continue;
-            } else {
-                bytes_read -= bytes_written;
-                p += (bytes_written / sizeof(int));
-            }
-        }
-    } catch (std::exception &e) {
-        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::getDataFromPeer(int id, int size, int *buffer) {
-    try {
-        int length = 0, bytes = 0;
-        int *tmp_buffer = (int *)malloc(sizeof(int) * size);
-        fd_set fds;
-        std::map<int, int>::iterator it;
-        int sockfd = peer2sock.find(id)->second;
-        while (length < sizeof(int) * size) {
-            bytes = recv(sockfd, tmp_buffer, sizeof(int) * (size - length / sizeof(int)), MSG_DONTWAIT);
-            if (bytes < 0) {
-                FD_ZERO(&fds);
-                FD_SET(sockfd, &fds);
-                int n = select(sockfd + 1, &fds, NULL, NULL, NULL);
-                if (n > 0)
-                    continue;
-            } else {
-                memcpy(&buffer[length / sizeof(int)], tmp_buffer, bytes);
-                length += bytes;
-            }
-        }
-        free(tmp_buffer);
-    } catch (std::exception &e) {
-        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::getDataFromPeer(int id, int size, unsigned char *buffer) {
-    try {
-        int length = 0, bytes = 0;
-        unsigned char *tmp_buffer = (unsigned char *)malloc(sizeof(unsigned char) * size);
-        fd_set fds;
-        int sockfd = peer2sock.find(id)->second;
-        while (length < sizeof(unsigned char) * size) {
-            bytes = recv(sockfd, tmp_buffer, sizeof(unsigned char) * (size - length / sizeof(unsigned char)), MSG_DONTWAIT);
-            if (bytes < 0) {
-                FD_ZERO(&fds);
-                FD_SET(sockfd, &fds);
-                int n = select(sockfd + 1, &fds, NULL, NULL, NULL);
-                if (n > 0)
-                    continue;
-            } else {
-                memcpy(&buffer[length / sizeof(unsigned char)], tmp_buffer, bytes);
-                length += bytes;
-            }
-        }
-        free(tmp_buffer);
-    } catch (std::exception &e) {
-        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
-    }
-}
-
+//Subroutine of function above
 void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, int size) {
     try {
-        int write_amount = 0;
-        if (start + amount > size)
-            write_amount = size - start;
-        else
-            write_amount = amount;
+        int buffer_size = getBufferSize(start, &amount, size);
+        int blockSize = getBlockSize(buffer_size);
 
-        int bits = config->getBits();
-        int numb = 8 * sizeof(char);
-        int unit_size = (bits + numb - 1) / numb;
-        int length;
-        getDataFromPeer(id, 1, &length);
-        char *buffer = (char *)malloc(sizeof(char) * length);
-        getDataFromPeer(id, length, (unsigned char *)buffer);
+        char *buffer = (char *)malloc(sizeof(char) * blockSize);
+        getDataFromPeer(id, blockSize, (unsigned char *)buffer);
+
         EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-        char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
-        // char *tmp = decrypted;
-        for (int i = start; i < start + write_amount; i++) {
+        char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &blockSize);
+
+        for (int i = start; i < start + amount; i++) {
             mpz_import(data[i], unit_size, -1, 1, -1, 0, decrypted);
             decrypted += unit_size;
         }
+
         free(buffer);
-        // free(tmp);
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
     }
 }
+
+
+/*
+    PRIMITIVE TYPES TEMPLATED
+*/
+template <typename T>
+void NodeNetwork::sendDataToPeer(int id, int size, T *data) {
+    try {
+        //Find corresponding socket
+        int sockfd = peer2sock.find(id)->second;
+        
+        int bytesWrote = 0, bytes;
+        while (bytesWrote < size) {
+            //If written returns -1, this means EAGAIN or EWOULDBLOCK.
+            bytes = send(sockfd, data + bytesWrote, (size - bytesWrote) * sizeof(T), MSG_DONTWAIT);
+            if (bytes > 0) {
+                bytesWrote += bytes / sizeof(T);
+            }
+        }
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+template <typename T>
+void NodeNetwork::getDataFromPeer(int id, int size, T *buffer) {
+    try {
+        int sockfd = peer2sock.find(id)->second;
+
+        int bytesRead = 0, bytes;
+        while (bytesRead < size) {
+            bytes = recv(sockfd, buffer + bytesRead, (size - bytesRead) * sizeof(T), MSG_DONTWAIT);
+            if (bytes > 0) {
+                bytesRead += bytes / sizeof(T);
+            }
+        }
+    } catch (std::exception &e) {
+        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+    }
+}
+
 
 /* unlike what the name suggests, this function sends different data to each peer and receives different data from each peer */
 void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer, int size) {
@@ -444,20 +369,16 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     getRounds(size, &count, &rounds);
-    for (int i = 1; i <= peers + 1; i++) {
-        if (id == i) {
-            for (int k = 0; k <= rounds; k++) {
-                for (int j = 1; j <= peers + 1; j++) {
-                    if (id == j)
-                        continue;
-                    sendDataToPeer(j, data[j - 1], k * count, count, size);
-                }
-                for (int j = 1; j <= peers + 1; j++) {
-                    if (id == j)
-                        continue;
-                    getDataFromPeer(j, buffers[j - 1], k * count, count, size);
-                }
-            }
+    for (int k = 0; k <= rounds; k++) {
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            sendDataToPeer(j, data[j - 1], k * count, count, size);
+        }
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            getDataFromPeer(j, buffers[j - 1], k * count, count, size);
         }
     }
     for (int i = 0; i < size; i++)
