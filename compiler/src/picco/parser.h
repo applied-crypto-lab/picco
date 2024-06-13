@@ -146,7 +146,9 @@ enum yytokentype {
     SIZEOF = 362,
     PMALLOC = 363,
     PFREE = 364,
-    CHAR = 365
+    CHAR = 365,
+    SHORT = 366,
+    LONG = 367
 };
 #endif
 /* Tokens.  */
@@ -258,6 +260,8 @@ enum yytokentype {
 #define PMALLOC 363
 #define PFREE 364
 #define CHAR 365
+#define SHORT 366
+#define LONG 367
 
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE

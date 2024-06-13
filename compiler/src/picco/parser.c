@@ -2853,8 +2853,8 @@ yyreduce:
 #line 711 "parser.y"
     {
         decrease_index((yyvsp[(1) - (4)].expr));
-        (yyval.expr) = BinaryOperator(BOP_xor, (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr));
-        set_security_flag_expr((yyval.expr), (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr), BOP_xor);
+        (yyval.expr) = BinaryOperator(BOP_bxor, (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr));
+        set_security_flag_expr((yyval.expr), (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr), BOP_bxor);
     } break;
 
     case 66:

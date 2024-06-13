@@ -304,7 +304,11 @@ static void ast_expr_prn(astexpr tree) {
         ast_expr_prn(tree->right);
         break;
     case UOP:
-        str_printf(bf, "%s", UOP_symbols[tree->opid]);
+        if (tree->opid == UOP_bnot) { 
+            ast_expr_prn(tree->left); // this is where the name of the UOP operand gets printed 
+            break; // I added this to get the name and handle the rest of the code for NOT inside ast_show
+        }
+        str_printf(bf, "%s", UOP_symbols[tree->opid]); // this is where the UOP signs gets printed. Ex: ~
         if (tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
             str_printf(bf, "(");
         if (tree->opid == UOP_sizeoftype || tree->opid == UOP_typetrick)

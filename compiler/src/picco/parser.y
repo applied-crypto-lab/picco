@@ -108,6 +108,7 @@ int	    num_threads = 0;
 int 	modulus = 0; 
 int     global_variables_c_restrict_flag = 0;
 int     pointer_flag = 0;
+int     declis = 0;
  
 struct_node_stack struct_table = NULL;
  
@@ -319,7 +320,7 @@ FILE 	*var_file;
 %token <name> OMPIX_SCOPE OMPIX_NODES OMPIX_WORKERS OMPIX_LOCAL OMPIX_GLOBAL
 %token <name> OMPIX_TIED
 %token <name> FLOAT STRUCT UNION TYPEDEF PTR_OP TYPE_NAME SIZEOF
-%token <name> PMALLOC PFREE CHAR
+%token <name> PMALLOC PFREE CHAR SHORT LONG
 
 /* Non-terminals */
 %type <xcon>   ompix_construct
@@ -415,7 +416,7 @@ primary_expression: // This is where var name, const value and string literal ge
     
       if (checkDecls)
       {
-        check_uknown_var($1); // this is where the checking for unkown vars happen for all identifiers
+        check_uknown_var($1); // this is where the checking for unknown vars happen for all identifiers
         
         if ((e = symtab_get(stab, id, IDNAME)) != NULL) /* could be enum name */
           if (istp(e) && threadmode)
@@ -653,6 +654,10 @@ unary_operator:
     {
         $$ = UOP_neg; 
     }
+    |'~'
+    {
+        $$ = UOP_bnot; 
+    }
     | '!'
     {
         $$ = UOP_lnot; 
@@ -685,7 +690,6 @@ type_name:
 cast_expression:
     unary_expression
     {
-        printf("unary_expression case\n");
         $$ = $1;
 	    $$->thread_id = thread_id; 
         // printf("\n\n *******6 \n");
@@ -698,17 +702,15 @@ cast_expression:
     }
     | '(' type_name ')'
     {
-        printf("type_name case\n"); // Here is tmp/ftmp that can be changed
         if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
             tmp_index++; 
         if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
             tmp_float_index++;  
-            num_index = num_index > tmp_index? num_index: tmp_index;
-            num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
-        } 
+        num_index = num_index > tmp_index? num_index: tmp_index;
+        num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
+    } 
     cast_expression
     {
-        printf("type_name and cast_expression case \n");
         $$ = CastedExpr($2, $5);
         $$->thread_id = thread_id; 
         if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_int)
@@ -719,23 +721,16 @@ cast_expression:
 
         if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
         {
-            printf("\n\n Cast Private\n\n");
             $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
             tmp_index--;
             $$->index = tmp_index; 
-            $$->flag = PRI; // old
-            // $$->flag = $5->flag; // new
-            printf("2 Flag %d\n", $5->flag);
+            $$->flag = PRI; 
             //FL2INT
             if($5->ftype == 1)
                 modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+kappa_nu);
-
-        } else {
-            printf("\n\n Cast Public\n\n");
         }
         if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
         {
-            printf("\n\n Cast Private\n\n");
             $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
             $$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;  
             tmp_float_index--;
@@ -774,7 +769,6 @@ multiplicative_expression:
     {
       decrease_index($1); 
       $$ = BinaryOperator(BOP_mul, $1, $4);
-      printf("\n\n *******7 \n\n");
       $$->ftype = $4->ftype; 
       set_security_flag_expr($$, $1, $4, BOP_mul); // thisisone
       set_bitlength_expr($$, $1, $4); 
@@ -787,7 +781,6 @@ multiplicative_expression:
     {
       decrease_index($1);
       $$ = BinaryOperator(BOP_div, $1, $4);
-      printf("\n\n *******8 \n\n");
       $$->ftype = $4->ftype; 
       set_security_flag_expr($$, $1, $4, BOP_div); // thisisone
       set_bitlength_expr($$, $1, $4); 
@@ -800,7 +793,6 @@ multiplicative_expression:
     {
       decrease_index($1);
       $$ = BinaryOperator(BOP_mod, $1, $4);
-      printf("\n\n *******9 \n\n");
       $$->ftype = $4->ftype; 
       set_security_flag_expr($$, $1, $4, BOP_mod); // thisisone
       set_bitlength_expr($$, $1, $4); 
@@ -823,7 +815,6 @@ additive_expression:
       
       decrease_index($1);
       $$ = BinaryOperator(BOP_add, $1, $4);
-      printf("\n\n *******10 ");
     //   printf("\nName: %s ", $4->u.str);
     //   printf("\n$1 Type: %d ", $1->ftype);
     //   printf("\n$4 Type: %d ", $4->ftype);
@@ -858,7 +849,6 @@ additive_expression:
     {
       decrease_index($1);
       $$ = BinaryOperator(BOP_sub, $1, $4);
-      printf("\n\n *******11 \n\n");
       $$->ftype = $4->ftype; 
       set_security_flag_expr($$, $1, $4, BOP_sub); // thisisone
       set_bitlength_expr($$, $1, $4); 
@@ -883,7 +873,6 @@ shift_expression:
         if ($1->ftype == 1 || $4->ftype ==1) {
             parse_error(1, "Invalid operands to binary << (use an int or cast if needed)\n");
         }
-        printf("\n\n *******12 \n\n");
         $$->ftype = $1->ftype; 
         set_security_flag_expr($$, $1, $4, BOP_shl); // thisisone
         set_bitlength_expr($$, $1, $4); 
@@ -899,7 +888,6 @@ shift_expression:
         if ($1->ftype == 1 || $4->ftype ==1) {
             parse_error(1, "Invalid operands to binary >> (use an int or cast if needed)\n");
         }
-        printf("\n\n *******13 \n\n");
         $$->ftype = $1->ftype; 
         set_security_flag_expr($$, $1, $4, BOP_shr); // thisisone
         set_bitlength_expr($$, $1, $4); 
@@ -1035,8 +1023,8 @@ exclusive_OR_expression:
     AND_expression
     {
         decrease_index($1);
-        $$ = BinaryOperator(BOP_xor, $1, $4);
-        set_security_flag_expr($$, $1, $4, BOP_xor); // thisisone
+        $$ = BinaryOperator(BOP_bxor, $1, $4);
+        set_security_flag_expr($$, $1, $4, BOP_bxor); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -1138,7 +1126,6 @@ assignment_expression:
     }
   | unary_expression assignment_operator assignment_expression
     {
-      printf("\n\n *******15 \n\n");
     //   printf("arr is assignment_expression\n");
     //   printf("1 Name: %s \n", $1->u.str);
     //   printf("2 Name: %d \n", $2);
@@ -1284,6 +1271,11 @@ init_declarator_list:
     init_declarator
     {
       $$ = $1;
+      // this is where the first time initilization takes place
+    //   printf("one and only init-declaration %s\n", $1); 
+    //   declis = 6;
+    //   set_security_flag_expr($$, $1, NULL, -1);
+    //   declis = 0;
     }
   | init_declarator_list ',' init_declarator
     {
@@ -1318,6 +1310,11 @@ init_declarator:
         }
       }
       $$ = $1;
+    //   // this is where the first time initilization takes place
+    //   printf("init-declaration-1 %s\n", $1); 
+    //   declis = 6;
+    // //   set_security_flag_expr($$, $1, NULL, -1);
+    //   declis = 0;
     }
   | declarator '=' 
     {
@@ -1340,6 +1337,7 @@ init_declarator:
     initializer
     {
       $$ = InitDecl($1, $4);
+	
     }
 ;
 
@@ -1349,15 +1347,26 @@ init_declarator:
 type_specifier:
   INT
     {
-      $$ = Declspec(SPEC_int, 32);
+      $$ = Declspec(SPEC_int, INT_SIZE); // 32
     }
   | CHAR
     {
-      $$ = Declspec(SPEC_int, 8);
+      $$ = Declspec(SPEC_int, CHAR_SIZE); // 8
+      parse_warning("Replacing type 'char' with 'int<%d>'.\n", CHAR_SIZE);
+    }
+  | SHORT
+    {
+      $$ = Declspec(SPEC_int, SHORT_SIZE); // 16
+      parse_warning("Replacing type 'short' with 'int<%d>'.\n", SHORT_SIZE);
+    }
+  | LONG
+    {
+      $$ = Declspec(SPEC_int, LONG_SIZE); // 64
+      parse_warning("Replacing type 'long' with 'int<%d>'.\n", LONG_SIZE);
     }
   | FLOAT
     {
-      $$ = DeclspecFloat(SPEC_float, 32, 9); 
+      $$ = DeclspecFloat(SPEC_float, FLOAT_MAN_SIZE, FLOAT_EXP_SIZE); // MAN-32, EXP-9
     }
   | VOID
     {
@@ -1376,11 +1385,11 @@ type_specifier:
 type_qualifier:
     PRIVATE
     {
-      $$ = Declspec(SPEC_private, 0);
+        $$ = Declspec(SPEC_private, 0);
     }
   | PUBLIC
     {
-      $$ = Declspec(SPEC_public, 0);
+        $$ = Declspec(SPEC_public, 0);
     }
 ;
 
@@ -1591,26 +1600,32 @@ direct_abstract_declarator:
     }
     | '[' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(NULL, NULL, NULL);
     }
     | direct_abstract_declarator '[' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl($1, NULL, NULL);
     }
     | '[' assignment_expression ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(NULL, NULL, $2);
     }
     | direct_abstract_declarator '[' assignment_expression ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl($1, NULL, $3);
     }
     | '[' '*' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(NULL, Declspec(SPEC_star, 0), NULL);
     }
     | direct_abstract_declarator '[' '*' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl($1, Declspec(SPEC_star, 0), NULL);
     }
     | '(' ')'
@@ -1675,9 +1690,10 @@ direct_declarator:
     IDENTIFIER
     {
       
-      if (symtab_get(stab, Symbol($1), IDENT) != NULL) { // Handles only variable redifination 
-        parse_error(1, "Redefinition of '%s'.\n", $1);
-      }
+    //   astexpr e = symtab_get(stab, Symbol($1), IDENT);
+    //   if (e != NULL && stab->scopelevel > 0) { // Handles only variable redifination  
+    //     parse_error(1, "Redefinition of '%s'.\n", $1);
+    //   }
       $$ = IdentifierDecl( Symbol($1) ); 
     }
   | '(' declarator ')'
@@ -1690,10 +1706,12 @@ direct_declarator:
     }
   | direct_declarator '[' ']'
     {
+      global_variables_c_restrict_flag = 0;
       $$ = ArrayDecl($1, NULL, NULL);
     }
   | direct_declarator '[' assignment_expression ']' // array with variable length
     {
+      global_variables_c_restrict_flag = 0;
       $$ = ArrayDecl($1, NULL, $3);
     }
   | direct_declarator '(' ')'
@@ -2193,7 +2211,8 @@ smc_statement:
 	
 	$3->thread_id = thread_id; 
         $$ = Smc(SINPUT, e->spec, $3, $5, $7, NULL);
-\    }
+        global_variables_c_restrict_flag = 0;
+    }
 /*for two-dimensional array*/
     | SMCINPUT '(' postfix_expression ',' primary_expression ',' expression ',' expression')' ';'
     {
@@ -2229,10 +2248,11 @@ smc_statement:
                 fprintf(var_file, ",%d,%d\n", spec1->size, spec1->sizeexp);
 	$3->thread_id = thread_id; 
         $$ = Smc(SINPUT, e->spec, $3, $5, $7, $9);
+        global_variables_c_restrict_flag = 0;
     }
    | SMCOUTPUT '(' postfix_expression ',' primary_expression ')' ';'
     {
-
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1; /* PRI = 1, PUB = 2 */
         stentry e = get_entry_from_expr($3);
         /* the varible is public type */
@@ -2257,10 +2277,11 @@ smc_statement:
                fprintf(var_file, ",%d,%d\n", spec1->size, spec1->sizeexp);
 	$3->thread_id = thread_id;
         $$ = Smc(SOUTPUT, e->spec, $3, $5, NULL, NULL);
+        global_variables_c_restrict_flag = 0;
     }
  | SMCOUTPUT '(' postfix_expression ',' primary_expression ',' expression ')' ';'
     {
-    
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1;
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
@@ -2289,9 +2310,11 @@ smc_statement:
 	$3->thread_id = thread_id; 
 	
 	$$ = Smc(SOUTPUT, e->spec, $3, $5, $7, NULL);
+    global_variables_c_restrict_flag = 0;
     }
   | SMCOUTPUT '(' postfix_expression ',' primary_expression ',' expression ',' expression')' ';'
     {
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1;
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
@@ -2320,6 +2343,7 @@ smc_statement:
                fprintf(var_file, ",%d,%d\n", spec1->size, spec1->sizeexp);
 	$3->thread_id = thread_id; 
         $$ = Smc(SOUTPUT, e->spec, $3, $5, $7, $9);
+        global_variables_c_restrict_flag = 0;
     }
  ;
 
@@ -2431,11 +2455,11 @@ normal_function_definition:
 
       if(is_priv_int_ptr_appear == 1)
       {
-	$$->is_priv_int_ptr_appear = 1; 
-	is_priv_int_ptr_appear = 0;  
+        $$->is_priv_int_ptr_appear = 1; 
+        is_priv_int_ptr_appear = 0;  
+      } else {
+	    $$->is_priv_int_ptr_appear = 0; 
       }
-      else 
-	$$->is_priv_int_ptr_appear = 0; 
 
       if(is_priv_float_ptr_appear == 1)
       {
@@ -2538,11 +2562,11 @@ normal_function_definition:
       
       if(is_priv_int_ptr_appear == 1)
       {
-	$$->is_priv_int_ptr_appear = 1; 
-	is_priv_int_ptr_appear = 0;  
+        $$->is_priv_int_ptr_appear = 1; 
+        is_priv_int_ptr_appear = 0;  
+      } else {
+	    $$->is_priv_int_ptr_appear = 0; 
       }
-      else 
-	$$->is_priv_int_ptr_appear = 0; 
 
       if(is_priv_float_ptr_appear == 1)
       {
@@ -3560,12 +3584,14 @@ ox_variable_size_elem:
     {
         if (checkDecls) check_uknown_var($4);
         /* Use extern to differentiate */
+        global_variables_c_restrict_flag = 0;
             $$ = ArrayDecl(IdentifierDecl( Symbol($1) ), StClassSpec(SPEC_extern),
         Identifier(Symbol($4)));
         symtab_put(stab, Symbol($1), IDNAME);
     }
     | IDENTIFIER '[' assignment_expression ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(IdentifierDecl( Symbol($1) ), NULL, $3);
         symtab_put(stab, Symbol($1), IDNAME);
     }
@@ -3664,11 +3690,10 @@ void yyerror(char *s)
  */
 void check_uknown_var(char *name)
 {
-  symbol s = Symbol(name);
-  if (symtab_get(stab, s, IDNAME) == NULL &&
-      symtab_get(stab, s, LABELNAME) == NULL &&
-      symtab_get(stab, s, FUNCNAME) == NULL)
-    parse_error(-1, "Unknown identifier `%s'.\n", name);
+    symbol s = Symbol(name);
+    if (symtab_get(stab, s, IDNAME) == NULL && symtab_get(stab, s, LABELNAME) == NULL && symtab_get(stab, s, FUNCNAME) == NULL) {
+        parse_error(-1, "Unknown identifier `%s'.\n", name);
+    }
 }
 
 void check_for_main_and_declare(astspec s, astdecl d)
@@ -3976,10 +4001,12 @@ void set_pointer_flag(astspec spec, astdecl decl)
     if(check_decl_for_pointer(d1) == 1)
         is_pointer = 1;
         
-    if(is_int == 1 && is_private == 1 && is_pointer == 1)
+    if(is_int == 1 && is_private == 1 && is_pointer == 1) {
         is_priv_int_ptr_appear = 1;
-    if(is_float == 1 && is_private == 1 && is_pointer == 1)
+    }
+    if(is_float == 1 && is_private == 1 && is_pointer == 1) {
         is_priv_float_ptr_appear = 1;
+    }
 }
 
 void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
@@ -4153,7 +4180,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, "Security type mismatch in assignment.\n");
+		parse_error(-1, "Security type mismatch in assignment 1.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){
@@ -4185,7 +4212,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                     flag2 = 1;
             }
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "A: Security type mismatch in assignment.\n");
+                parse_error(-1, "A: Security type mismatch in assignment 2.\n");
             decl = decl->u.next;
         }
         
@@ -4195,7 +4222,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                 flag2 = 1;
             
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "B: Security type mismatch in assignment.\n");
+                parse_error(-1, "B: Security type mismatch in assignment 3.\n");
         }
     
     }
@@ -4205,7 +4232,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
             if(decl->u.expr->flag == PRI)
                 flag2 = 1;
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "C: Security type mismatch in assignment.\n");
+                parse_error(-1, "C: Security type mismatch in assignment 4.\n");
         }
     }
   
@@ -4213,8 +4240,9 @@ void security_check_for_declaration(astspec spec, astdecl decl){
 
 void set_security_flag_stmt(aststmt s, aststmt s1, aststmt s2){
     if(s->type = STATEMENTLIST){
-        if((s1->flag == PUB) || (s2->flag == PUB))
+        if((s1->flag == PUB) || (s2->flag == PUB)) {
            s->flag = PUB;
+        }
     }
 }
 
@@ -4304,10 +4332,12 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
 	e1->sizeexp = spec->sizeexp; 
     }
     // if e2 is an array, we further store its size
-    if(isarray){
+    if(isarray){ // only true for static allocated arrays with name[len] not for dynamic allocated using pmalloc
+        global_variables_c_restrict_flag = 0;
         d = decl->decl;
         // for one dimension array
         if(e2->type == IDENT){
+            global_variables_c_restrict_flag = 0;
 		    //e1->arraysize = d->u.expr;
 	        e1->arraysize = ast_expr_copy(d->u.expr);
             //set the arraytype
@@ -4316,11 +4346,13 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
         }
             // for two dimension array
         else if (e2->type == ARRAYIDX){
+            global_variables_c_restrict_flag = 0;
             //e1->arraysize = decl->decl->u.expr; 
             //e2->arraysize = decl->decl->decl->u.expr; 
             e1->arraysize = ast_expr_copy(decl->decl->u.expr);
             e2->arraysize = ast_expr_copy(decl->decl->decl->u.expr);
         }
+        global_variables_c_restrict_flag = 0;
     }
     // for identifier
     else
@@ -4399,6 +4431,7 @@ astdecl fix_known_typename(astspec s)
 
 void get_arraysize(astexpr op, str arg_str)
 {
+    global_variables_c_restrict_flag = 0;
     stentry e;
     if(op->type != CONSTVAL)
     {
@@ -4431,11 +4464,17 @@ int check_func_param(astexpr funcname, astexpr arglist){
         // Get the type spec of the parameter
         spec = (decl->decl)->spec;
         
-        // Compare the type 
-        if (!compare_specs(spec, arglist->right->flag)) {
-            parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
+        // Compare the security type 
+        if (set_security_flag_spec(spec) != arglist->right->flag) { // If sec type does not match
+            parse_error(1, "Security type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
             return 0; 
         }
+
+        // // Compare the type 
+        // if (decl->u.expr->ftype != arglist->right->ftype) { // If type does not match
+        //     parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
+        //     return 0; 
+        // }
         
         // Move to the next argument and the next parameter
         arglist = arglist->left;

@@ -54,6 +54,7 @@ int is_init_decl = 0; /* This flag is used to indicated if we are at declaration
 int global_batch_flag = 0;
 int declared = 0;
 int enterfunc = 0;
+int new_tree_index_for_auto_cast = 0; // this index is used by the new casting code because the index of tree in this case is -1 
 int is_return_void = 0;
 str arg_str;
 
@@ -2868,6 +2869,9 @@ void ast_expr_refer_struct_field(astexpr tree, int private_if_index) {
     free(var_right);
 }
 
+
+// This is the function that takes care of the lists mentioned in 
+// pointers paper for keeping the ptr array indexes
 void ast_expr_ptr_dereference(astexpr tree, int private_if_index) {
     char *input_index = (char *)malloc(sizeof(char) * buffer_size);
     char *output_result = (char *)malloc(sizeof(char) * buffer_size);
@@ -2928,7 +2932,7 @@ void ast_expr_ptr_dereference(astexpr tree, int private_if_index) {
 }
 
 /*by ghada*/
-void ast_expr_pmalloc_show(astexpr tree) {
+void ast_expr_pmalloc_show(astexpr tree) { // This is where the pmalloc picco_temp functionality gets updated 
     /*The implementation depends on the data type of the private data
      *         we have three cases:
      *          case 1: private int
@@ -2939,7 +2943,7 @@ void ast_expr_pmalloc_show(astexpr tree) {
     case SPEC:
         if (tree->u.dtype->spec->subtype == SPEC_int) {
             indent();
-            fprintf(output, "_picco_temp_ = malloc(");
+            fprintf(output, "_picco_temp_ = malloc("); // size of arr of int is arr_len*int(priv_int)
             ast_expr_show(tree->left);
             fprintf(output, "*sizeof(priv_int));\n");
             indent();
@@ -2948,11 +2952,11 @@ void ast_expr_pmalloc_show(astexpr tree) {
             fprintf(output, "; _picco_i++)\n");
             indlev++;
             indent();
-            fprintf(output, "ss_init(_picco_temp_[_picco_i]);\n");
+            fprintf(output, "ss_init(((priv_int *)_picco_temp_)[_picco_i]);\n"); // elements of arr are single int
             indlev--;
         } else if (tree->u.dtype->spec->subtype == SPEC_float) {
             indent();
-            fprintf(output, "_picco_temp_ = malloc(");
+            fprintf(output, "_picco_temp_ = malloc("); // size of arr of float is arr_len*float(priv_int*)
             ast_expr_show(tree->left);
             fprintf(output, "*sizeof(priv_int*));\n");
             indent();
@@ -2961,15 +2965,15 @@ void ast_expr_pmalloc_show(astexpr tree) {
             fprintf(output, "; _picco_i++){\n");
             indlev++;
             indent();
-            indent();
-            fprintf(output, "_picco_temp_[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+            indent(); // size of elements of arr of float is 4*float(priv_int*)
+            fprintf(output, "((priv_int **)_picco_temp_)[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
             indent();
             indent();
             fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
             indlev++;
             indent();
             indent();
-            fprintf(output, "ss_init(_picco_temp_[_picco_i][_picco_j]);\n");
+            fprintf(output, "ss_init(((priv_int **)_picco_temp_)[_picco_i][_picco_j]);\n");
             indlev--;
             indlev--;
             indent();
@@ -3203,8 +3207,14 @@ void ast_expr_show(astexpr tree) {
             else
                 ast_expr_show(tree->left); // prints the name of the function
             fprintf(output, "(");
-            if (tree->right)
+            if (tree->right) {
+                printf("%d\n", tree->right->type);
+                if (tree->right->type == COMMALIST) {
+                    astexpr e = symtab_get(stab, tree->left, FUNCNAME);
+                    
+                }
                 ast_expr_show(tree->right);
+            }
         }
 
         if (!strcmp(str_string(arg_str), "smcopen"))
@@ -3327,7 +3337,12 @@ void ast_expr_show(astexpr tree) {
             ast_expr_show(tree->left);
             fprintf(output, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
             indent();
-        } else
+        } else if (tree->flag == PRI && tree->opid == UOP_bnot) {
+            fprintf(output, "__s->smc_newnewneweqeq(");
+            ast_expr_show(tree->left);
+            fprintf(output, ", 0, _picco_tmp%d, %d, -1, %d, \"int\", %d);\n", tree->index, tree->left->size, tree->size, tree->thread_id);
+            indent();
+        } else 
             ast_expr_show(tree->left);
         if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
             fprintf(output, ")");
@@ -3405,8 +3420,8 @@ void ast_expr_show(astexpr tree) {
             case BOP_band:
                 ast_smc_show("__s->smc_band", tree);
                 break;
-            case BOP_xor:
-                ast_smc_show("__s->smc_xor", tree);
+            case BOP_bxor:
+                ast_smc_show("__s->smc_bxor", tree);
                 break;
             case BOP_bor:
                 ast_smc_show("__s->smc_bor", tree);
@@ -3514,6 +3529,19 @@ void ast_expr_show(astexpr tree) {
         }
         break;
     case ASS:
+        // This call is used for assignment in two line cause the temp variables was originally only for fucntion calls. 
+        if (declared == 0) {
+            ast_temporary_variable_declaration();
+            // declared = 1;
+        } 
+        // This call is used for the new cast op
+        if ((tree->left->flag == PRI && tree->right->flag == PRI) && (tmp_index < 1 || tmp_float_index < 1)) {
+            fprintf(output, "\n");
+            tmp_index = 1;
+            tmp_float_index = 1;
+            ast_tmp_decl_show("_picco_", 1, tmp_index);
+            ast_float_tmp_decl_show("_picco_f", 1, tmp_float_index);
+        }
         /* for simple pri to pri assignment */
         if (tree->left->flag == PRI && tree->right->flag == PRI) {
             if (tree->right->index == 0) {
@@ -3588,9 +3616,9 @@ void ast_expr_show(astexpr tree) {
                     fprintf(output, " %s (struct %s*)_picco_temp_", ASS_symbols[tree->opid], tree->right->u.dtype->spec->name->name);
                 } else {
                     char *type = (char *)malloc(sizeof(char) * buffer_size);
-                    if (tree->left->u.sym->type == 2)
+                    if (tree->left->u.sym->type == 2) {
                         sprintf(type, "struct");
-                    else {
+                    } else {
                         if (tree->left->ftype == 0)
                             sprintf(type, "int");
                         if (tree->left->ftype == 1)
@@ -3598,7 +3626,15 @@ void ast_expr_show(astexpr tree) {
                     }
                     fprintf(output, "__s->smc_set_%s_ptr(", type);
                     ast_expr_show(tree->left);
-                    fprintf(output, ", (struct %s*)_picco_temp_, \"%s\", %d)", tree->right->u.dtype->spec->name->name, type, tree->right->thread_id);
+                    if (tree->left->u.sym->type == 2)
+                        fprintf(output, ", (struct %s*)_picco_temp_, \"%s\", %d)", tree->right->u.dtype->spec->name->name, type, tree->right->thread_id);
+                    else {
+                        if (tree->left->ftype == 0)
+                            fprintf(output, ", (priv_int *)_picco_temp_, \"%s\", %d)", type, tree->right->thread_id);
+                        if (tree->left->ftype == 1)
+                            fprintf(output, ", (priv_int **)_picco_temp_, \"%s\", %d)", type, tree->right->thread_id);
+                    }
+
                     free(type);
                 }
             } else {
@@ -5476,6 +5512,17 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
             ast_expr_print(rightop, name);
         } else {
             ast_expr_print(rightop, tree->right);
+            if (tree->right->type == UOP && tree->right->opid == UOP_bnot) { // This is where bitwise NOT is handled  
+                int tree_index = 1;
+                if (tree->index > 0) {
+                    tree_index = tree->index;
+                }
+                if (tree->right->ftype == 1)
+                    fprintf(output, "__s->smc_bnot(%s, %d, _picco_ftmp%d, %d, \"float\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->size, tree->right->thread_id);
+                else if (tree->right->ftype == 0) {
+                    fprintf(output, "__s->smc_bnot(%s, %d, _picco_tmp%d, %d, \"int\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->size, tree->right->thread_id);
+                }
+            }
         }
     }
     // if right side is an arithmetic operation
@@ -5559,9 +5606,9 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                 type = "\"float\"";
             else if (tree->right->ftype == 0)
                 type = "\"int\"";
-            indent();
-            ast_assignment_prefix_show(tree);
             if (tree->opid != ASS_eq) {
+                indent();
+                ast_assignment_prefix_show(tree);
                 if (tree->right->ftype == 1) { // float
                     if (is_init_decl == 1) // If it is a declaration and we are setting a op of two globals private values to a new global private value, print this inside global_string
                         str_printf(global_string, "(%s, %s, %s, %d, %d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
@@ -5574,16 +5621,66 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                         fprintf(output, "(%s, %s, %s, %d, %d, %d, \"int\", %d)", str_string(leftop), str_string(rightop), str_string(leftop), tree->left->size, tree->right->size, tree->left->size, tree->right->thread_id);
                 }
             } else { // smc_set 
-                if (tree->right->ftype == 1) { // float
-                    if (is_init_decl == 1)
-                        str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                    else 
-                        fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                } else { // int
-                    if (is_init_decl == 1)
-                        str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
-                    else 
-                        fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                /* private auto typecasting */
+                if (tree->right->ftype != tree->left->ftype) {
+                    // the new auto casting version 
+                    fprintf(stdout, "\nAuto casting will take place for '%s'!\n", str_string(rightop)); // this is needed cause we want the statement to be printed to the user in stdout
+                    if(tree->index != 1) {
+                        new_tree_index_for_auto_cast = 1;
+                    } else {
+                        new_tree_index_for_auto_cast = tree->index;
+                    }
+                    if (tree->right->flag == PRI) { // PRI
+                        /* conversion to float */
+                        if (tree->left->ftype == 1) {
+                            /* Int2FL */
+                            fprintf(output, "__s->smc_int2fl(");
+                            fprintf(output, "%s, _picco_ftmp%d, %d, %d, %d, %d);\n  ", str_string(rightop), new_tree_index_for_auto_cast, tree->left->size, tree->size, tree->left->sizeexp, tree->thread_id);
+                        }
+                        /* conversion to int */
+                        if (tree->left->ftype == 0) {
+                            /* FL2Int */
+                            fprintf(output, "__s->smc_fl2int(");
+                            fprintf(output, "%s, _picco_tmp%d, %d, %d, %d, %d);\n   ", str_string(rightop),  new_tree_index_for_auto_cast, tree->left->size, tree->right->sizeexp, tree->size, tree->thread_id);
+                        } 
+                    }
+                    ast_assignment_prefix_show(tree); // call smc_set 
+                    if (tree->left->ftype == 1) { // float 
+                        if (is_init_decl == 1)
+                            str_printf(global_string, "(_picco_ftmp%d, %s, %d, %d, %d, %d, \"float\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->right->size, tree->left->sizeexp, tree->right->size, tree->left->sizeexp, tree->right->thread_id);
+                        else 
+                            fprintf(output, "(_picco_ftmp%d, %s, %d, %d, %d, %d, \"float\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->right->size, tree->left->sizeexp, tree->right->size, tree->left->sizeexp, tree->right->thread_id);
+                    } else { // int
+                        if (is_init_decl == 1)
+                            str_printf(global_string, "(_picco_tmp%d, %s, %d, %d, \"int\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                        else 
+                            fprintf(output, "(_picco_tmp%d, %s, %d, %d, \"int\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                    }
+                } else if (tree->right->type == UOP && tree->right->opid == UOP_bnot) { // the new NOT code that was not added to the picco originally 
+                    ast_assignment_prefix_show(tree); // call smc_set 
+                    int tree_index = 1;
+                    if (tree->index > 0) {
+                        tree_index = tree->index;
+                    }
+                    if (tree->right->ftype == 1) { // float
+                        fprintf(output, "(_picco_ftmp%d, %s, %d, %d, %d, %d, \"float\", %d)", tree_index, str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                    } else { // int
+                        fprintf(output, "(_picco_tmp%d, %s, %d, %d, \"int\", %d)", tree_index, str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                    }
+                } else { // the old version used for other stuff 
+                    indent();
+                    ast_assignment_prefix_show(tree); // call smc_set 
+                    if (tree->right->ftype == 1) { // float
+                        if (is_init_decl == 1)
+                            str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                        else 
+                            fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                    } else { // int
+                        if (is_init_decl == 1)
+                            str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                        else 
+                            fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                    }
                 }
             }
         }

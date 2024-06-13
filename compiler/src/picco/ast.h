@@ -24,6 +24,13 @@
 #ifndef __AST_H__
 #define __AST_H__
 
+#define INT_SIZE 32
+#define CHAR_SIZE 8
+#define SHORT_SIZE 16
+#define LONG_SIZE 64
+#define FLOAT_MAN_SIZE 16
+#define FLOAT_EXP_SIZE 64
+
 #include <stdio.h>
 
 /* Predefine them because they are mutually recursive & they are used in
@@ -168,7 +175,7 @@ extern char *UOP_symbols[11];
 #define BOP_lor 7
 #define BOP_band 8
 #define BOP_bor 9
-#define BOP_xor 10
+#define BOP_bxor 10
 #define BOP_add 11
 #define BOP_sub 12
 #define BOP_lt 13
