@@ -101,7 +101,7 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     for (size_t s = 0; s < numShares; s++) {
         for (size_t j = 0; j < bitlength; j++) {
             for (size_t i = 0; i < size; i++) {
-                v[s][i] += (1 << (bitlength - j - 1)) * z_res[s][j * size + i];
+                v[s][i] += (T(1) << T(bitlength - j - 1)) * z_res[s][j * size + i];
             }
         }
     }
@@ -118,7 +118,6 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
         delete[] x_bits[i];
         delete[] z[i];
         delete[] z_res[i];
-
     }
     delete[] b_bits;
     delete[] x;
@@ -126,6 +125,5 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     delete[] x_bits;
     delete[] z;
     delete[] z_res;
-
 }
 #endif // _NORM_HPP_

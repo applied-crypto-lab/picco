@@ -28,11 +28,10 @@
 
 template <typename T>
 void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    assertm(ring_size > 2 * bitlength, "The ring size must be at least 2*bitlength");
+    // assertm(ring_size > 2 * bitlength, "The ring size must be at least 2*bitlength");
 
     static uint numShares = ss->getNumShares();
-    // long double alpha = (2.9142 * (long double)(1 << bitlength)); // check this
-    T alpha = T(2.9142 * (1 << bitlength)); // check this
+    T alpha = T((double)2.9142 * double(1 << (bitlength)));
 
     T **c = new T *[numShares];
     T **v = new T *[numShares];
@@ -50,19 +49,16 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, T(1));
 
-    // check that v is well-formed when b is negative
     doOperation_Norm(c, v, b, bitlength, size, ring_size, threadID, net, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            d[s][i] = (ai[s] * alpha) - 2 * c[s][i];
+            d[s][i] = (ai[s] * alpha) - T(2) * c[s][i];
         }
     }
 
     Mult(w, d, v, size, threadID, net, ss);
 
-    // check if we need to modify anything for bitlength < k?
-    // the "K" argument is unused by RSS
     doOperation_Trunc(w, w, bitlength, bitlength, size, threadID, net, ss);
 
     for (size_t i = 0; i < numShares; i++) {

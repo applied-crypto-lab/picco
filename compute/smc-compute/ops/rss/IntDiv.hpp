@@ -26,14 +26,11 @@
 
 template <typename T>
 void doOperation_IntDiv_Pub(T *result, T *a, int b, int bitlength, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // will not be implemeneted
 }
 
 template <typename T>
 void doOperation_IntDiv_Pub(T **result, T **a, int *b, int bitlength, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-}
-
-template <typename T>
-void doOperation_IntDiv_Pub(T **result, T **a, T **b, int bitlength, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // main protocol
 }
 
@@ -152,6 +149,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
         }
         // computing y*(alpha + x) and  x*x, in this order
         Mult(C_buff, A_buff, B_buff, 2 * size, threadID, net, ss);
+
         doOperation_Trunc(C_buff, C_buff, bitlength, bitlength, 2 * size, threadID, net, ss);
     }
 
@@ -166,6 +164,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
     }
 
     Mult(C_buff, B_buff, A_buff, size, threadID, net, ss);
+
     doOperation_Trunc(A_buff, C_buff, bitlength, bitlength + lambda, size, threadID, net, ss);
 
     // correction (?) that is present in shamir
@@ -184,7 +183,6 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            // temp3[s][i] = ai[s] * 1 - 2 * temp3[s][i];
             A_buff[s][i] = A_buff[s][i] + ai[s] * 1 - 2 * C_buff[s][i];
         }
         memset(C_buff[s], 0, sizeof(T) * size);
@@ -206,6 +204,7 @@ void doOperation_IntDiv(T **result, T **a, T **b, int bitlength, int size, int t
         }
         memset(result[s], 0, sizeof(T) * size);
     }
+
     Mult(result, sign, A_buff, size, threadID, net, ss);
 
     // cleanup
