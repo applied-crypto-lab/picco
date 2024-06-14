@@ -4478,7 +4478,9 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 	if(e1->ftype == 0 && e2->ftype == 0){ // integer computation
 		int len = fmax(e1->size, e2->size); 
 		if(e1->flag == PRI || e2->flag == PRI){
-			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq || opid == BOP_eqeq || opid == BOP_neq)
+			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq   )
+				modulus = fmax(modulus, len+kappa_nu); 
+			else if ( ( opid == BOP_eqeq || opid == BOP_neq ) && len > 1)
 				modulus = fmax(modulus, len+kappa_nu); 
 			else if(opid == BOP_div)
 				modulus = fmax(modulus, 2*len+kappa_nu+8);
