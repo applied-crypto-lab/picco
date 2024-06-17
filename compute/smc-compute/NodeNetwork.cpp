@@ -43,7 +43,7 @@
 #include <sys/types.h>
 #include <vector>
 
-#define MAX_BUFFER_SIZE 229376 // in bytes
+#define MAX_BUFFER_SIZE 262144 // .25MB
 // int MAX_BUFFER_SIZE = 4194304; // ?
 
 NodeConfiguration *config;
@@ -89,6 +89,8 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
 
+    tracking = false;
+    
     // here number of peers is n-1 instead of n
     peers = config->getPeerCount();
     bits = config->getBits();
@@ -221,9 +223,41 @@ int getBufferSize(int start, int *amount, int size) {
     return unit_size * *amount;
 }
 
-//Block size is the next interval of 16 (block size)
-int getBlockSize(int buffer_size) {
-    return ((buffer_size / 16) + 1) * 16;
+
+
+void NodeNetwork::beginTracking() {
+    trackedBytes_Write = new int(0);
+    trackedUnits_Write = new int(0);
+
+    trackedBytes_Read = new int(0);
+    trackedUnits_Read = new int(0);
+
+    if (runningTotalRead == NULL || runningTotalWrite == NULL) {
+        runningTotalRead = new int(0);
+        runningTotalWrite = new int(0);
+    }
+    tracking = true;
+
+}
+
+char * separator = "-------------------------------------------";
+void NodeNetwork::endTracking(char* operation, int size) {
+    int expectedBytes = size * unit_size;
+    int expectedUnits = (expectedBytes / MAX_BUFFER_SIZE) + 1;
+
+    if (size == 0)
+        return;
+
+    printf("%s\nUnit Size: %i\tOperator %s (size: %i)\nBytes wrote:\t%i (%i unit(s))\nBytes read:\t%i (%i unit(s))\nExpected:\t%i (%i unit(s))\n", 
+    separator, unit_size, operation, size, *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read, expectedBytes, expectedUnits);
+    printRunningTotals();
+    *trackedBytes_Write = 0;
+    *trackedUnits_Write = 0; 
+    *trackedBytes_Read = 0;
+    *trackedUnits_Read = 0;
+}
+void NodeNetwork::printRunningTotals() {
+    std::cout << "[Running Totals: R=" <<  *runningTotalRead << ", W=" << *runningTotalWrite << "]\n" <<std::flush;
 }
 
 /*
@@ -240,10 +274,8 @@ void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
 void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size) {
     try {
         int buffer_size = getBufferSize(start, &amount, size);
-        char *buffer = (char *)malloc(sizeof(char) * buffer_size);
-
+        char *buffer = (char *)calloc(sizeof(char), buffer_size);
         char *pointer = buffer;
-        memset(buffer, 0, buffer_size);
 
         for (int i = start; i < start + amount; i++) {
             mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
@@ -252,6 +284,7 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
 
         EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
         unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
+        
         sendDataToPeer(id, buffer_size, encrypted);
 
         free(buffer);
@@ -260,9 +293,6 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
     }
 }
-
-
-
 
 void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
     int count = 0, rounds = 0;
@@ -275,13 +305,11 @@ void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
 void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, int size) {
     try {
         int buffer_size = getBufferSize(start, &amount, size);
-        int blockSize = getBlockSize(buffer_size);
-
-        char *buffer = (char *)malloc(sizeof(char) * blockSize);
-        getDataFromPeer(id, blockSize, (unsigned char *)buffer);
+        unsigned char *buffer = (unsigned char *)calloc(sizeof(char), buffer_size);
+        getDataFromPeer(id, buffer_size, (unsigned char *)buffer);
 
         EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-        char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &blockSize);
+        unsigned char *decrypted = (unsigned char *)aes_decrypt(de_temp, (unsigned char *)buffer, &buffer_size);
 
         for (int i = start; i < start + amount; i++) {
             mpz_import(data[i], unit_size, -1, 1, -1, 0, decrypted);
@@ -298,18 +326,27 @@ void NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int amount, in
 /*
     PRIMITIVE TYPES TEMPLATED
 */
+int sockfd, bytes, bytesWrote, bytesRead;
 template <typename T>
 void NodeNetwork::sendDataToPeer(int id, int size, T *data) {
     try {
         //Find corresponding socket
-        int sockfd = peer2sock.find(id)->second;
+        sockfd = peer2sock.find(id)->second;
         
-        int bytesWrote = 0, bytes;
+        bytesWrote = 0;
         while (bytesWrote < size) {
             //If written returns -1, this means EAGAIN or EWOULDBLOCK.
             bytes = send(sockfd, data + bytesWrote, (size - bytesWrote) * sizeof(T), MSG_DONTWAIT);
             if (bytes > 0) {
                 bytesWrote += bytes / sizeof(T);
+                
+                if (tracking) {
+                    *trackedBytes_Write += bytes;
+                    *runningTotalWrite += bytes;
+
+                    if (bytesWrote == size)
+                        *trackedUnits_Write += 1;
+                }
             }
         }
     } catch (std::exception &e) {
@@ -320,13 +357,21 @@ void NodeNetwork::sendDataToPeer(int id, int size, T *data) {
 template <typename T>
 void NodeNetwork::getDataFromPeer(int id, int size, T *buffer) {
     try {
-        int sockfd = peer2sock.find(id)->second;
+        sockfd = peer2sock.find(id)->second;
 
-        int bytesRead = 0, bytes;
+        bytesRead = 0;
         while (bytesRead < size) {
             bytes = recv(sockfd, buffer + bytesRead, (size - bytesRead) * sizeof(T), MSG_DONTWAIT);
             if (bytes > 0) {
                 bytesRead += bytes / sizeof(T);
+
+                if (tracking) {
+                    *trackedBytes_Read += bytes;
+                    *runningTotalRead += bytes;
+
+                    if (bytesRead == size)
+                        *trackedUnits_Read += 1;
+                }
             }
         }
     } catch (std::exception &e) {
@@ -390,24 +435,20 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
 
     int rounds = 0, count = 0;
     getRounds(size, &count, &rounds);
-    for (int i = 1; i <= peers + 1; i++) {
-        if (id == i) {
-            for (int k = 0; k <= rounds; k++) {
-                for (int j = 1; j <= peers + 1; j++) {
-                    if (id == j)
-                        continue;
-                    sendDataToPeer(j, data, k * count, count, size);
-                }
-                for (int j = 1; j <= peers + 1; j++) {
-                    if (id == j)
-                        continue;
-                    getDataFromPeer(j, buffers[j - 1], k * count, count, size);
-                }
-            }
-            for (int j = 0; j < size; j++)
-                mpz_set(buffers[id - 1][j], data[j]);
+    for (int k = 0; k <= rounds; k++) {
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            sendDataToPeer(j, data, k * count, count, size);
+        }
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            getDataFromPeer(j, buffers[j - 1], k * count, count, size);
         }
     }
+    for (int j = 0; j < size; j++)
+        mpz_set(buffers[id - 1][j], data[j]);
 }
 
 /* this function sends identical data to all other peers and receives data from all of them */
@@ -649,7 +690,6 @@ void NodeNetwork::sendModeToPeers(int id) {
             continue;
         sendDataToPeer(j, 1, &msg);
     }
-    // sleep(1);
 }
 
 /* the function sends different data to each peer and receive data from each peer */
@@ -756,28 +796,24 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
         comm_flags[i][threadID] = 1;
     pthread_cond_signal(&buffer_conditional_variables[threadID]);
     pthread_mutex_unlock(&buffer_mutex);
-    for (int i = 1; i <= peers + 1; i++) {
-        if (id == i) {
-            for (int k = 0; k <= rounds; k++) {
-                for (int j = 1; j <= peers + 1; j++) {
-                    if (id == j)
-                        continue;
-                    pthread_mutex_lock(&socket_mutex);
-                    sendDataToPeer(j, data, k * count, count, size, threadID);
-                    pthread_mutex_unlock(&socket_mutex);
-                }
-                pthread_mutex_lock(&socket_mutex);
-                while (unit_flags[threadID] == 0) {
-                    pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
-                }
-                unit_flags[threadID] = 0;
-                pthread_cond_signal(&flag_conditional_variables[threadID]);
-                pthread_mutex_unlock(&socket_mutex);
-            }
-            for (int j = 0; j < size; j++)
-                mpz_set(buffers[id - 1][j], data[j]);
+    for (int k = 0; k <= rounds; k++) {
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            pthread_mutex_lock(&socket_mutex);
+            sendDataToPeer(j, data, k * count, count, size, threadID);
+            pthread_mutex_unlock(&socket_mutex);
         }
+        pthread_mutex_lock(&socket_mutex);
+        while (unit_flags[threadID] == 0) {
+            pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
+        }
+        unit_flags[threadID] = 0;
+        pthread_cond_signal(&flag_conditional_variables[threadID]);
+        pthread_mutex_unlock(&socket_mutex);
     }
+    for (int j = 0; j < size; j++)
+        mpz_set(buffers[id - 1][j], data[j]);
 }
 
 void NodeNetwork::requestConnection(int numOfPeers) {
@@ -1013,9 +1049,9 @@ void NodeNetwork::init_keys(int peer, int nRead) {
     }
 
     en = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(en, EVP_aes_128_cbc(), NULL, key, iv);
+    EVP_EncryptInit_ex(en, EVP_aes_128_ctr(), NULL, key, iv);
     de = EVP_CIPHER_CTX_new();
-    EVP_DecryptInit_ex(de, EVP_aes_128_cbc(), NULL, key, iv);
+    EVP_DecryptInit_ex(de, EVP_aes_128_ctr(), NULL, key, iv);
     peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
     peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
 }
@@ -1165,7 +1201,7 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 
 // sends one piece of data to recvFromIds
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
-    std::cout << "multicast threadID : "<<threadID << std::endl;
+    // std::cout << "multicast threadID : "<<threadID << std::endl;
     test_flags[threadID]++;
     int id = getID();
     if (size == 0)
