@@ -241,23 +241,27 @@ void NodeNetwork::beginTracking() {
 }
 
 char * separator = "-------------------------------------------";
+// char * separator = "\n";
 void NodeNetwork::endTracking(char* operation, int size) {
-    int expectedBytes = size * unit_size;
-    int expectedUnits = (expectedBytes / MAX_BUFFER_SIZE) + 1;
+    // int expectedBytes = size * unit_size;
+    // int expectedUnits = (expectedBytes / MAX_BUFFER_SIZE) + 1;
 
-    if (size == 0)
-        return;
+    // if (size == 0)
+    //     return;
+    
+    printf("%s\nUnit Size: %i\tOperator %s (size: %i)\nBytes wrote: \t%i (%i unit(s))\nBytes read: \t%i (%i unit(s))\n", 
+    separator, unit_size, operation, size, *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read);
 
-    printf("%s\nUnit Size: %i\tOperator %s (size: %i)\nBytes wrote:\t%i (%i unit(s))\nBytes read:\t%i (%i unit(s))\nExpected:\t%i (%i unit(s))\n", 
-    separator, unit_size, operation, size, *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read, expectedBytes, expectedUnits);
-    printRunningTotals();
     *trackedBytes_Write = 0;
     *trackedUnits_Write = 0; 
     *trackedBytes_Read = 0;
     *trackedUnits_Read = 0;
+
+    printRunningTotals();
 }
+
 void NodeNetwork::printRunningTotals() {
-    std::cout << "[Running Totals: R=" <<  *runningTotalRead << ", W=" << *runningTotalWrite << "]\n" <<std::flush;
+    std::cout << "[Totals: Read = " <<  *runningTotalRead << ", Write = " << *runningTotalWrite << "]\n" <<std::flush;
 }
 
 /*
@@ -332,7 +336,7 @@ void NodeNetwork::sendDataToPeer(int id, int size, T *data) {
     try {
         //Find corresponding socket
         sockfd = peer2sock.find(id)->second;
-        
+
         bytesWrote = 0;
         while (bytesWrote < size) {
             //If written returns -1, this means EAGAIN or EWOULDBLOCK.
@@ -344,8 +348,9 @@ void NodeNetwork::sendDataToPeer(int id, int size, T *data) {
                     *trackedBytes_Write += bytes;
                     *runningTotalWrite += bytes;
 
-                    if (bytesWrote == size)
+                    if (bytesWrote == size) {
                         *trackedUnits_Write += 1;
+                    }
                 }
             }
         }
@@ -684,12 +689,19 @@ void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
 }
 
 void NodeNetwork::sendModeToPeers(int id) {
+    bool trackingBefore = tracking;
+    if (trackingBefore)
+        tracking = false;
+
     int msg = -2;
     for (int j = 1; j <= peers + 1; j++) {
         if (id == j)
             continue;
         sendDataToPeer(j, 1, &msg);
     }
+
+    if (trackingBefore)
+        tracking = true;
 }
 
 /* the function sends different data to each peer and receive data from each peer */
@@ -1117,7 +1129,6 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 }
 
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
-    // compute the maximum size of data that can be communicated
     int count = 0, rounds = 0;
     int idx = 0; 
     getRounds(size, &count, &rounds);

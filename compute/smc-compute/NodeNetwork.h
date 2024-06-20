@@ -51,6 +51,14 @@ public:
     NodeNetwork();
     virtual ~NodeNetwork();
 
+    int *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read;
+    int *runningTotalWrite = new int(0), *runningTotalRead = new int(0);
+    bool tracking;
+
+    void beginTracking();
+    void endTracking(char*, int);
+    void printRunningTotals();
+
     template<typename T>
     void sendDataToPeer(int, int, T *);
 
