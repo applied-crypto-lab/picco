@@ -60,15 +60,15 @@ public:
     void printRunningTotals();
 
     template<typename T>
-    void sendDataToPeer(int, int, T *);
+    int sendDataToPeer(int, int, T *);
 
-    void sendDataToPeer(int, mpz_t *, int, int, int);
+    int sendDataToPeer(int, mpz_t *, int, int, int);
     void sendDataToPeer(int, int, mpz_t *);
 
     template <typename T>
-    void getDataFromPeer(int, int, T *);
+    int getDataFromPeer(int, int, T *);
     
-    void getDataFromPeer(int, mpz_t *, int, int, int);
+    int getDataFromPeer(int, mpz_t *, int, int, int);
     void getDataFromPeer(int, int, mpz_t *);
 
     void sendModeToPeers(int);
