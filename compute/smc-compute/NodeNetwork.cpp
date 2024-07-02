@@ -89,8 +89,7 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
 
-    tracking = false;
-    
+
     // here number of peers is n-1 instead of n
     peers = config->getPeerCount();
     bits = config->getBits();
@@ -225,40 +224,6 @@ int getBufferSize(int start, int *amount, int size) {
 
 
 
-void NodeNetwork::beginTracking() {
-    trackedBytes_Write = new int(0);
-    trackedUnits_Write = new int(0);
-
-    trackedBytes_Read = new int(0);
-    trackedUnits_Read = new int(0);
-
-    if (runningTotalRead == NULL || runningTotalWrite == NULL) {
-        runningTotalRead = new int(0);
-        runningTotalWrite = new int(0);
-    }
-    tracking = true;
-
-}
-
-char * separator = "-------------------------------------------";
-void NodeNetwork::endTracking(char* operation, int size) {
-    int expectedBytes = size * unit_size;
-    int expectedUnits = (expectedBytes / MAX_BUFFER_SIZE) + 1;
-
-    if (size == 0)
-        return;
-
-    printf("%s\nUnit Size: %i\tOperator %s (size: %i)\nBytes wrote:\t%i (%i unit(s))\nBytes read:\t%i (%i unit(s))\nExpected:\t%i (%i unit(s))\n", 
-    separator, unit_size, operation, size, *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read, expectedBytes, expectedUnits);
-    printRunningTotals();
-    *trackedBytes_Write = 0;
-    *trackedUnits_Write = 0; 
-    *trackedBytes_Read = 0;
-    *trackedUnits_Read = 0;
-}
-void NodeNetwork::printRunningTotals() {
-    std::cout << "[Running Totals: R=" <<  *runningTotalRead << ", W=" << *runningTotalWrite << "]\n" <<std::flush;
-}
 
 /*
     MPZ Only
@@ -340,13 +305,6 @@ void NodeNetwork::sendDataToPeer(int id, int size, T *data) {
             if (bytes > 0) {
                 bytesWrote += bytes / sizeof(T);
                 
-                if (tracking) {
-                    *trackedBytes_Write += bytes;
-                    *runningTotalWrite += bytes;
-
-                    if (bytesWrote == size)
-                        *trackedUnits_Write += 1;
-                }
             }
         }
     } catch (std::exception &e) {
@@ -364,14 +322,6 @@ void NodeNetwork::getDataFromPeer(int id, int size, T *buffer) {
             bytes = recv(sockfd, buffer + bytesRead, (size - bytesRead) * sizeof(T), MSG_DONTWAIT);
             if (bytes > 0) {
                 bytesRead += bytes / sizeof(T);
-
-                if (tracking) {
-                    *trackedBytes_Read += bytes;
-                    *runningTotalRead += bytes;
-
-                    if (bytesRead == size)
-                        *trackedUnits_Read += 1;
-                }
             }
         }
     } catch (std::exception &e) {
