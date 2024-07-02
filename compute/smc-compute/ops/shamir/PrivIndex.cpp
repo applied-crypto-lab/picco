@@ -219,7 +219,7 @@ void doOperation_PrivIndex_Read(mpz_t *index, mpz_t *array, mpz_t *result, int d
     }
 
     ss->getShares(shares, result, m * size);
-    net.batchToPeers(shares, buffer, m * size, threadID);
+    net.multicastToPeers(shares, buffer, m * size, threadID);
     ss->reconstructSecret(result, buffer, m * size);
     gettimeofday(&tv5, NULL);
     // std::cout << "Time DotProduct: " << time_diff(&tv4,&tv5) << std::endl;

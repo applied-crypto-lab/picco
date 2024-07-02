@@ -85,8 +85,8 @@ public:
     void broadcastToPeers(long long *, int, long long **);
 
     // Send out different pieces of data to separate locations (1 -> 1, 2 -> 2...)
-    void batchToPeers(mpz_t **, mpz_t **, int);
-    void batchToPeers(long long **, long long **, int);
+    void multicastToPeers(mpz_t **, mpz_t **, int);
+    void multicastToPeers(long long **, long long **, int);
 
     // Get the ID of the compute Node
     int getID();
@@ -115,17 +115,17 @@ public:
     void getDataFromPeerToBuffer(int, int, int, int **);
     void restoreDataToBuffer(int, int, int, int **);
     void sendDataToPeer(int, mpz_t *, int, int, int, int);
-    void batchToPeers(mpz_t **, mpz_t **, int, int);
+    void multicastToPeers(mpz_t **, mpz_t **, int, int);
     void broadcastToPeers(mpz_t *, int, mpz_t **, int);
 
     // void getRandOfPeer(int id, mpz_t *rand_id, int size);
-    // void batchToPeers_Mul(mpz_t **data, int size, int threadID);
-    // void batchToPeers_Mul2(mpz_t **data, int size);
-    void batchToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size);
-    void batchToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID);
+    // void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
+    // void multicastToPeers_Mul2(mpz_t **data, int size);
+    void multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size);
+    void multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID);
 
-    void batchToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID);
-    void batchToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size);
+    void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID);
+    void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size);
 
     // getter function for retreiving PRG seeds, used for Multiplication in SHAMIR
     unsigned char **getPRGseeds();
@@ -139,7 +139,7 @@ public:
     void sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size);
     void getDataFromPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size);
     void getDataFromPeer(int id, int size, priv_int_t *buffer, uint ring_size);
-    void batchToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size);
+    void multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size);
 
     void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map);
@@ -185,7 +185,11 @@ private:
     uint threshold;
 
     //Used in batch mult and open
-    void batchToThreshold(uint*, uint*, mpz_t**, mpz_t**, int);
+    std::vector<std::pair<int, int>> toSend, toReceive;
+    std::vector<std::pair<int, int>>::iterator it;
+    int bytes;
+    void multicastToThreshold(uint*, uint*, mpz_t**, mpz_t**, int);
+    mpz_t *getDestination;
 
     // PRG seeds used in multiplication
     unsigned char **prgSeeds; // getter function works properly in SecretShare constructor

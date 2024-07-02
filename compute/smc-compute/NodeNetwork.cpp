@@ -225,15 +225,15 @@ void NodeNetwork::closeAllConnections() {
 
 
 void NodeNetwork::beginTracking() {
-    trackedBytes_Write = new int(0);
-    trackedUnits_Write = new int(0);
+    trackedBytes_Write = 0;
+    trackedUnits_Write = 0;
 
-    trackedBytes_Read = new int(0);
-    trackedUnits_Read = new int(0);
+    trackedBytes_Read = 0;
+    trackedUnits_Read = 0;
 
     if (runningTotalRead == NULL || runningTotalWrite == NULL) {
-        runningTotalRead = new int(0);
-        runningTotalWrite = new int(0);
+        runningTotalRead = 0;
+        runningTotalWrite = 0;
     }
     tracking = true;
 
@@ -269,8 +269,7 @@ void NodeNetwork::printRunningTotals() {
 */
 void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
     int start = 0, 
-        length = unit_size * size,
-        bytes;
+        length = unit_size * size;
 
     while (start < length) {
         bytes = sendDataToPeer(id, data, start, length - start);
@@ -283,21 +282,17 @@ void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
 
 int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLength) {
     try {
-        char *buffer = (char *)calloc(sizeof(char), remainingLength);
-        char *pointer = buffer;
-        
-        for (int i = start; i < (start + remainingLength) / unit_size; i++) {
-            mpz_export(pointer, NULL, -1, 1, -1, 0, data[i]);
-            pointer += unit_size;
-        }
+        unsigned char *buffer = (unsigned char *)calloc(sizeof(char), start + remainingLength);
+        // char *pointer = buffer;
+        mpz_export(buffer, NULL, -1, 1, -1, 0, *data);
 
-        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &remainingLength);
+        // EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        // unsigned char *encrypted = aes_encrypt(en_temp, buffer, &remainingLength);
         
-        int bytes = sendDataToPeer(id, encrypted, start, remainingLength);
+        bytes = sendDataToPeer(id, buffer, start, remainingLength);//sendDataToPeer(id, encrypted, start, remainingLength);
 
         free(buffer);
-        free(encrypted);
+        // free(encrypted);
 
         return bytes;
     } catch (std::exception &e) {
@@ -307,8 +302,7 @@ int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLen
 
 void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
     int start = 0, 
-        length = unit_size * size,
-        bytes;
+        length = unit_size * size;
     while (start < length) {
         bytes = getDataFromPeer(id, buffer, start, length - start);
 
@@ -318,19 +312,18 @@ void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
     }
 }
 
-int NodeNetwork::getDataFromPeer(int id, mpz_t *buffer, int start, int remainingLength) {
+int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLength) {
     try {
-        unsigned char *dataBuffer = (unsigned char *)calloc(sizeof(char), remainingLength);
-        int bytes = getDataFromPeer(id, dataBuffer, start, remainingLength);
+        unsigned char *dataBuffer = (unsigned char *)calloc(sizeof(char), start + remainingLength);
+        mpz_export(dataBuffer, NULL, -1, 1, -1, 0, *data);
+
+        bytes = getDataFromPeer(id, dataBuffer, start, remainingLength);
 
         if (bytes > 0) {
-            EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-            unsigned char *decrypted = (unsigned char *)aes_decrypt(de_temp, (unsigned char *)dataBuffer, &remainingLength);
+            // EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+            // unsigned char *decrypted = aes_decrypt(de_temp, dataBuffer, &remainingLength);
 
-            for (int i = 0; i < remainingLength / unit_size; i++) {
-                mpz_import(buffer[start + i], unit_size, -1, 1, -1, 0, decrypted);
-                decrypted += unit_size;
-            }
+            mpz_import(*data, unit_size, -1, 1, -1, 0, dataBuffer);
         }
         
         
@@ -347,7 +340,7 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *buffer, int start, int remaining
         (used for 'mode' in threaded)
 */
 void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
-    int bytes, bytesWrote = 0, totalSize = size * sizeof(int);
+    int bytesWrote = 0, totalSize = size * sizeof(int);
     
     while (bytesWrote < totalSize) {
         bytes = sendDataToPeer(id, (unsigned char*)data, bytesWrote, totalSize - bytesWrote);
@@ -358,7 +351,7 @@ void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
 }
 
 void NodeNetwork::getDataFromPeer(int id, int size, int *data) {
-    int bytes, bytesWrote = 0, totalSize = size * sizeof(int);
+    int bytesWrote = 0, totalSize = size * sizeof(int);
     while (bytesWrote < totalSize) {
         bytes = getDataFromPeer(id, (unsigned char*)data, bytesWrote, totalSize - bytesWrote);
 
@@ -389,12 +382,8 @@ int NodeNetwork::sendDataToPeer(int id, unsigned char *data, int start, int rema
         //Find corresponding socket
         int sockfd = peer2sock.find(id)->second;
 
-        if (remainingLength > MAX_BUFFER_SIZE) {
-            remainingLength = MAX_BUFFER_SIZE;
-        }
-
         //If written returns -1, this means EAGAIN or EWOULDBLOCK.
-        int bytes = send(sockfd, data + start, remainingLength, MSG_DONTWAIT);
+        bytes = send(sockfd, data + start, remainingLength, MSG_DONTWAIT);
 
         if (bytes > 0) {
             
@@ -430,11 +419,7 @@ int NodeNetwork::getDataFromPeer(int id, unsigned char *buffer, int start, int r
     try {
         int sockfd = peer2sock.find(id)->second;
 
-        if (remainingLength > MAX_BUFFER_SIZE) {
-            remainingLength = MAX_BUFFER_SIZE;
-        }
-
-        int bytes = recv(sockfd, buffer + start, remainingLength, MSG_DONTWAIT);
+        bytes = recv(sockfd, buffer + start, remainingLength, MSG_DONTWAIT);
         if (bytes > 0) {
 
             if (tracking) {
@@ -453,10 +438,10 @@ int NodeNetwork::getDataFromPeer(int id, unsigned char *buffer, int start, int r
 }
 
 /*
-    Batching refers to sending multiple unicasts to separate locations, all with their own pieces of data.
+    Multicast refers to sending multiple unicasts to separate locations, all with their own pieces of data.
         Think node i gets sent data[i], and gets back result in buffer[i].
 */
-void NodeNetwork::batchToPeers(long long **srcBuffer, long long **desBuffer, int size) {
+void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer, int size) {
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
     // int sendIdx = 0, getIdx = 0;
@@ -469,7 +454,7 @@ void NodeNetwork::batchToPeers(long long **srcBuffer, long long **desBuffer, int
         }
     }
 
-    batchToPeers(data, buffer, size);
+    multicastToPeers(data, buffer, size);
     for (int i = 0; i <= peers; i++)
         for (int j = 0; j < size; j++)
             desBuffer[i][j] = mpz_get_ui(buffer[i][j]);
@@ -479,46 +464,50 @@ void NodeNetwork::batchToPeers(long long **srcBuffer, long long **desBuffer, int
     }
 }
 
-void NodeNetwork::batchToPeers(mpz_t **data, mpz_t **buffers, int size) {
-    int totalSize = unit_size * size;
-    std::vector<std::pair<int, int*>> toWrite, toRead;
-    std::vector<std::pair<int, int*>>::iterator it;
+void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
+    toSend.clear();
+    toReceive.clear();
 
+    int totalSize = unit_size * size;
+    
     int i, id = getID();
     for (i = 1; i <= peers + 1; i++) {
         if (id == i)
             continue;
-        toWrite.push_back({i, new int(0)});
-        toRead.push_back({i, new int(0)});
+        toSend.push_back({i, 0});
+        toReceive.push_back({i, 0});
     }
 
-    int bytes, *start;
-    while (!(toWrite.empty() && toRead.empty())) {
-        for (it = toWrite.begin(); it < toWrite.end(); it++) {
+    int start;
+    while (!(toSend.empty() && toReceive.empty())) {
+        for (it = toSend.begin(); it < toSend.end(); it++) {
             i = it->first;
             start = it->second;
 
-            bytes = sendDataToPeer(i, data[i - 1], *start, totalSize - *start);
+            bytes = sendDataToPeer(i, data[i - 1], start, totalSize - start);
 
             if (bytes > 0)
-                *start += bytes;
+                start += bytes;
 
-            if (*start == totalSize) {
-                it = toWrite.erase(it);
+            if (start == totalSize) {
+                
+
+                it = toSend.erase(it);
             }
         }
         
-        for (it = toRead.begin(); it < toRead.end(); it++) {
+        for (it = toReceive.begin(); it < toReceive.end(); it++) {
             i = it->first;
             start = it->second;
 
-            bytes = getDataFromPeer(i, buffers[i - 1], *start, totalSize - *start);
+            bytes = getDataFromPeer(i, buffers[i - 1], start, totalSize - start);
 
             if (bytes > 0)
-                *start += bytes;
+                start += bytes;
             
-            if (*start == totalSize)
-                it = toRead.erase(it);
+            if (start == totalSize) {
+                it = toReceive.erase(it);
+            }
         }
     }    
     for (int i = 0; i < size; i++)
@@ -527,45 +516,47 @@ void NodeNetwork::batchToPeers(mpz_t **data, mpz_t **buffers, int size) {
 
 /* this function sends identical data (stored in variable 'data') to all other peers and receives data from all of them as well (stored in variable 'buffers') */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
+    toSend.clear();
+    toReceive.clear();
+
     int totalSize = unit_size * size;
-    std::vector<std::pair<int, int*>> toWrite, toRead;
-    std::vector<std::pair<int, int*>>::iterator it;
 
     int i, id = getID();
     for (i = 1; i <= peers + 1; i++) {
         if (id == i)
             continue;
-        toWrite.push_back({i, new int(0)});
-        toRead.push_back({i, new int(0)});
+        toSend.push_back({i, 0});
+        toReceive.push_back({i, 0});
     }
 
-    int bytes, *start;
-    while (!(toWrite.empty() && toRead.empty())) {
-        for (it = toWrite.begin(); it < toWrite.end(); it++) {
+    int start;
+    while (!(toSend.empty() && toReceive.empty())) {
+        for (it = toSend.begin(); it < toSend.end(); it++) {
             i = it->first;
             start = it->second;
 
-            bytes = sendDataToPeer(i, data, *start, totalSize - *start);
+            bytes = sendDataToPeer(i, data, start, totalSize - start);
 
             if (bytes > 0)
-                *start += bytes;
+                start += bytes;
 
-            if (*start == totalSize)
-                it = toWrite.erase(it);
+            if (start == totalSize)
+                it = toSend.erase(it);
         }
         
-        for (it = toRead.begin(); it < toRead.end(); it++) {
+        for (it = toReceive.begin(); it < toReceive.end(); it++) {
             i = it->first;
             start = it->second;
 
-            bytes = getDataFromPeer(i, buffers[i - 1], *start, totalSize - *start);
-            
+            bytes = getDataFromPeer(i, buffers[i - 1], start, totalSize - start);
+
             if (bytes > 0)
-                *start += bytes;
+                start += bytes;
             
-            if (*start == totalSize)
-                it = toRead.erase(it);
+            if (start == totalSize)
+                it = toReceive.erase(it);
         }
+        // sleep(1);
     }
     for (int j = 0; j < size; j++)
         mpz_set(buffers[id - 1][j], data[j]);
@@ -823,7 +814,7 @@ void NodeNetwork::sendModeToPeers() {
 }
 
 /* the function sends different data to each peer and receive data from each peer */
-void NodeNetwork::batchToPeers(mpz_t **data, mpz_t **buffers, int size, int threadID) {
+void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
     // struct timeval tv1, tv2;
@@ -839,7 +830,7 @@ void NodeNetwork::batchToPeers(mpz_t **data, mpz_t **buffers, int size, int thre
             numOfChangedNodes = 0;
             mode = -1;
         }
-        batchToPeers(data, buffers, size);
+        multicastToPeers(data, buffers, size);
         return;
     } else {
         if (mode != 0) {
@@ -1247,64 +1238,63 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 }
 
 //_Mult and _Open have the same pattern, just different places that the data is read into.
-void NodeNetwork::batchToThreshold(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, mpz_t **buffer, int size) {
+void NodeNetwork::multicastToThreshold(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, mpz_t **buffer, int size) {
     int totalSize = unit_size * size;
-    std::vector<std::pair<int, int*>> toWrite, toRead;
-    std::vector<std::pair<int, int*>>::iterator it;
+    //take out to nodenetwork, reset each time
 
     int i;
     for (i = 0; i < threshold; i++) {
-        toWrite.push_back({i, new int(0)});
-        toRead.push_back({i, new int(0)});
+        toSend.push_back({i, 0}); //no need to be pointer anymore
+        toReceive.push_back({i, 0});
     }
 
-    int bytes, *start;
-    while (!(toWrite.empty() && toRead.empty())) {
-        for (it = toWrite.begin(); it < toWrite.end(); it++) {
+    int start;
+    while (!(toSend.empty() && toReceive.empty())) {
+        for (it = toSend.begin(); it < toSend.end(); it++) {
             i = it->first;
             start = it->second;
 
-            bytes = sendDataToPeer(sendtoIDs[i], data[i], *start, totalSize - *start);
-            
+            bytes = sendDataToPeer(sendtoIDs[i], data[i], start, totalSize - start);
+
             if (bytes > 0)
-                *start += bytes;
+                start += bytes;
 
 
-            if (*start == totalSize) {
-                it = toWrite.erase(it);
+            if (start == totalSize) {
+                it = toSend.erase(it);
             }
         }
         
-        for (it = toRead.begin(); it < toRead.end(); it++) {
+        for (it = toReceive.begin(); it < toReceive.end(); it++) {
             i = it->first;
             start = it->second;
 
-            mpz_t *getDestination;
             if (buffer == NULL) {
                 getDestination = data[2 * threshold - i];
             } else {
                 getDestination = buffer[threshold - i - 1];
             }
-            bytes = getDataFromPeer(RecvFromIDs[threshold - i - 1], getDestination, *start, totalSize - *start);
-            
+
+            bytes = getDataFromPeer(RecvFromIDs[threshold - i - 1], getDestination, start, totalSize - start);
+
             if (bytes > 0)
-                *start += bytes;
+                start += bytes;
             
             
-            if (*start == totalSize) {
-                it = toRead.erase(it);
+            if (start == totalSize) {
+                it = toReceive.erase(it);
             }
         }
     }
 }
 
 
-void NodeNetwork::batchToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
-    batchToThreshold(sendtoIDs, RecvFromIDs, data, NULL, size);
+void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size) {
+    multicastToThreshold(sendtoIDs, RecvFromIDs, data, NULL, size);
 }
 
 // why is this needed for send/recv to work?
-void NodeNetwork::batchToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
+void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
     if (size == 0)
@@ -1319,7 +1309,7 @@ void NodeNetwork::batchToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **
             numOfChangedNodes = 0;
             mode = -1;
         }
-        batchToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
+        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
         return;
     } else {
         if (mode != 0) {
@@ -1371,7 +1361,7 @@ void NodeNetwork::batchToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **
 }
 
 // sends one piece of data to recvFromIds
-void NodeNetwork::batchToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
+void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
     // std::cout << "batch threadID : "<<threadID << std::endl;
     test_flags[threadID]++;
     int id = getID();
@@ -1387,7 +1377,7 @@ void NodeNetwork::batchToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *d
             numOfChangedNodes = 0;
             mode = -1;
         }
-        batchToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
+        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
         return;
     } else {
         if (mode != 0) {
@@ -1399,13 +1389,13 @@ void NodeNetwork::batchToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *d
     }
 }
 
-void NodeNetwork::batchToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
+void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
     mpz_t *copy = (mpz_t *)malloc(peers * sizeof(mpz_t));
 
-    for (int i = 0; i < peers; i++)
+    for (int i = 0; i < threshold + 1; i++)
         mpz_init_set(copy[i], *data);
     
-    batchToThreshold(sendtoIDs, RecvFromIDs, &copy, buffer, size);
+    multicastToThreshold(sendtoIDs, RecvFromIDs, &copy, buffer, size);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1559,7 +1549,7 @@ void NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int amoun
     }
 }
 
-void NodeNetwork::batchToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size) {
+void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size) {
     int id = getID();
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);

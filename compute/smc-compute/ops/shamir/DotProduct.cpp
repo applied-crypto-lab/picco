@@ -45,7 +45,7 @@ void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, in
     }
 
     ss->getShares(shares, data, 1);
-    net.batchToPeers(shares, buffer, 1, threadID);
+    net.multicastToPeers(shares, buffer, 1, threadID);
     ss->reconstructSecret(data, buffer, 1);
     mpz_set(result, data[0]);
 
@@ -90,7 +90,7 @@ void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size,
     }
 
     ss->getShares(shares, result, batch_size);
-    net.batchToPeers(shares, buffer, batch_size, threadID);
+    net.multicastToPeers(shares, buffer, batch_size, threadID);
     ss->reconstructSecret(result, buffer, batch_size);
 
     // free the memory
@@ -157,7 +157,7 @@ void doOperation_DotProduct_new(mpz_t *a, mpz_t *b, mpz_t result, int array_size
 
     // step 4? do we use the send/recv IDs defined in SecretShare?
     // sending contents of buffer[0,...,t], recieving into buffer[t+1,...,n]
-    net.batchToPeers_Mult(ss->getSendToIDs(), ss->getRecvFromIDs(), buffer, 1, threadID);
+    net.multicastToPeers_Mult(ss->getSendToIDs(), ss->getRecvFromIDs(), buffer, 1, threadID);
 
     ss->PRG(buffer, 1, threshold); // step 5, reusing buffer
 
