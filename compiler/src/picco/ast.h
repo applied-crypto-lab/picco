@@ -135,7 +135,7 @@ struct astexpr_ {
     astexpr left, right;
     int opid;          /* Used for operators */
     astexpr arraysize; /* Used for arrays */
-    int arraytype;     /* if expr represents an array,  arraytpe = 1 */
+    int arraytype;     /* if expr represents an array,  arraytype = 1 */
     int ftype;         /* if expr represents a floating point value ftype = 1 */
     int isptr;
     union {

@@ -59,6 +59,7 @@ void    add_declaration_links(astspec s, astdecl d, int);
 void    set_pointer_flag(astspec s, astdecl d);
 void    set_security_flag_symbol(astexpr e, symbol s, int); 
 void 	set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid);
+void 	set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid); // this needs more work 
 void 	set_security_flag_stmt(aststmt s, aststmt s1, aststmt s2);
 void    set_security_flag_func(char* funcname, astexpr e2);
 void 	set_bitlength_expr(astexpr e, astexpr e1, astexpr e2); 
@@ -430,26 +431,6 @@ primary_expression: // This is where var name, const value and string literal ge
   | CONSTANT
     {
       $$ = Constant( strdup($1) );
-    //   printf("\nvalue is here: %s", $1);
-    //   char *str = strdup($1); 
-    //   int ftype_val = 0;
-    //   for (int i = 0; str[i] != '\0'; i++) {
-    //     // printf("%c", str[i]);
-    //     if (str[i] == '.') { // number is float
-    //         // printf(". is found");
-    //         ftype_val = 1;
-    //         break;
-    //         // if ($$->ftype == 0) { // but if the type of the number is int -> tell the user 
-    //         //     printf("\n\nWarning: Float was converted to int with no rounding...\n\n");
-    //         // } -> wrong int B.6
-    //     } // else if (str[i+1] == '\0' && str[i] != '.') {
-    //     //     ftype_val = 0;
-    //     //     printf("\n\nWarning: Float was converted to int with no rounding...\n\n");
-    //     // }
-    //   }
-    //   $$->ftype = ftype_val;
-        //   if ($$->flag == PUB) 
-        //     $$->ftype = 0;
       set_security_flag_expr($$, NULL, NULL, -1);
     }
   | string_literal
@@ -505,7 +486,7 @@ postfix_expression:
     {
       /* Catch calls to "main()" (unlikely but possible) */
       if (check_func_param(Identifier(Symbol($1)), $3))
-          parse_error(1, "Too many or too few arguments to function '%s'.\n", $1);
+          parse_error(1, "Check the arguments to function '%s'.\n", $1);
       $$ = strcmp($1, "main") ?
              FunctionCall(Identifier(Symbol($1)), $3) :
              FunctionCall(Identifier(Symbol(MAIN_NEWNAME)), $3);
@@ -552,13 +533,10 @@ postfix_expression:
     }
   | '(' type_name ')' '{' initializer_list '}'
     {
-        printf("'(' typename ')' '{' initializer_list '}'");
-        
         $$ = CastedExpr($2, BracedInitializer($5));
     }
   | '(' type_name ')' '{' initializer_list ',' '}'
     {
-        printf("'(' typename ')' '{' initializer_list ',' '}'");
         $$ = CastedExpr($2, BracedInitializer($5));
     }
 
@@ -692,9 +670,6 @@ cast_expression:
     {
         $$ = $1;
 	    $$->thread_id = thread_id; 
-        // printf("\n\n *******6 \n");
-        // printf("Name: %s \n", $1->u.str);
-        // printf("Type: %d \n\n", $1->ftype);
         $$->ftype = $1->ftype;
         set_security_flag_expr($$, $1, NULL, -1);
         $$->size = $1->size;
@@ -815,13 +790,6 @@ additive_expression:
       
       decrease_index($1);
       $$ = BinaryOperator(BOP_add, $1, $4);
-    //   printf("\nName: %s ", $4->u.str);
-    //   printf("\n$1 Type: %d ", $1->ftype);
-    //   printf("\n$4 Type: %d ", $4->ftype);
-    //   printf("\n$$ Type: %d ", $$->ftype);
-    //   if ($1->ftype == 1 || $4->ftype == 1) { // if at least one operand is float
-    //     $$->ftype = 1;
-    //   } else {
     if ($1 != NULL && $4 != NULL) {
         if($4->ftype == 1) 
             $$->ftype = $4->ftype; 
@@ -836,9 +804,8 @@ additive_expression:
         $$->ftype = $1->ftype; 
         }
     }
-    //   }
-    //   printf("\n$$ Type: %d ", $$->ftype);
-      set_security_flag_expr($$, $1, $4, BOP_add); // thisisone
+      set_security_flag_expr($$, $1, $4, BOP_add); // this is one
+      set_security_flag_expr2($$, $1, $4, BOP_add); // for globals
       set_bitlength_expr($$, $1, $4); 
   }
   | additive_expression '-' // handles -
@@ -1126,10 +1093,6 @@ assignment_expression:
     }
   | unary_expression assignment_operator assignment_expression
     {
-    //   printf("arr is assignment_expression\n");
-    //   printf("1 Name: %s \n", $1->u.str);
-    //   printf("2 Name: %d \n", $2);
-    //   printf("3 Name: %s \n", $3->u.str);
 
       //do security check here
       security_check_for_assignment($1, $3);
@@ -1219,9 +1182,6 @@ declaration:
       isTypedef = 0;
       set_pointer_flag($1, $2);
       $$->gflag = 0;
-    //   printf("\ntype $1 %d, ", $1->type);
-    //   printf("type $2 %d, %d ", $2->type, $2->u.id->name);
-    //   printf("type $$ %d\n", $$->type);
     }
   | threadprivate_directive // OpenMP Version 2.5 ISO/IEC 9899:1999 addition
     {
@@ -1271,11 +1231,6 @@ init_declarator_list:
     init_declarator
     {
       $$ = $1;
-      // this is where the first time initilization takes place
-    //   printf("one and only init-declaration %s\n", $1); 
-    //   declis = 6;
-    //   set_security_flag_expr($$, $1, NULL, -1);
-    //   declis = 0;
     }
   | init_declarator_list ',' init_declarator
     {
@@ -1310,11 +1265,6 @@ init_declarator:
         }
       }
       $$ = $1;
-    //   // this is where the first time initilization takes place
-    //   printf("init-declaration-1 %s\n", $1); 
-    //   declis = 6;
-    // //   set_security_flag_expr($$, $1, NULL, -1);
-    //   declis = 0;
     }
   | declarator '=' 
     {
@@ -4082,9 +4032,6 @@ void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 {
 	if(e2 == NULL) // this check is because e could be a unary expression with only e1 
 	{
-        if (e->ftype != e1->ftype) {
-            printf("Warning: converting a floating point value to an integer can cause lose of precision.\n");	
-        }
 		e->size = e1->size; 
 		e->sizeexp = e1->sizeexp; 
     }
@@ -4116,6 +4063,29 @@ void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 				e->sizeexp = e2->sizeexp; 
 		}
 	}	
+}
+
+void set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid){
+    if (global_variables_c_restrict_flag == 1) { 
+        // if (e1 != NULL && e2 != NULL) {
+        if (e1 != NULL && e1->type == CONSTVAL && e2 != NULL && e2->type != CONSTVAL) { // 2 + i
+            parse_error(-1, "Initializer element is not a constant '%s' 1.\n", e->u.sym->name);
+        } else if (e1 != NULL && e1->type != CONSTVAL && e2 != NULL && e2->type == CONSTVAL) { // i + 2
+            parse_error(-1, "Initializer element is not a constant '%s' 2.\n", e->u.sym->name);
+        } else if (e1 != NULL && e1->type != CONSTVAL && e2 != NULL && e2->type != CONSTVAL) { // i + i
+            parse_error(-1, "Initializer element is not a constant '%s' 3.\n", e->u.sym->name);
+        } else if (e1 != NULL && e1->type != CONSTVAL) {
+            parse_error(-1, "Initializer element is not a constant '%s' 4.\n", e->u.sym->name); // 
+        } else if (e2 != NULL && e2->type != CONSTVAL) {
+            parse_error(-1, "Initializer element is not a constant '%s' 5.\n", e->u.sym->name); // 
+        } else if (e1 != NULL && e1->u.dtype->type != DARRAY && e1->type != ARRAYIDX && e1->arraytype != 1 && e1->type != CONSTVAL) { // i
+            parse_error(-1, "Initializer element is not a constant '%s' 6.\n", e->u.sym->name);
+        } else if (e1 == NULL && e2 != NULL) { // const + non-const
+            parse_error(-1, "Initializer element is not a constant 7.\n");
+        // } else if (e1 != NULL && e2 == NULL) { // non_const + const
+        //     parse_error(-1, "Initializer element is not a constant 8.\n");
+        }
+    }
 }
 
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
@@ -4167,7 +4137,6 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //     } else if (e2 != NULL && e2->type != CONSTVAL) {
     //         parse_error(-1, "Initializer element is not a constant '%s' 5.\n", e->u.sym->name); // 
     //     } else if (e1 != NULL && e1->u.dtype->type != DARRAY && e1->type != ARRAYIDX && e1->arraytype != 1 && e1->type != CONSTVAL) { // i
-    //         printf("\ntype: %d\n", e1->type);
     //         parse_error(-1, "Initializer element is not a constant '%s' 6.\n", e->u.sym->name);
     //     } else if (e1 == NULL && e2 != NULL) { // const + non-const
     //         parse_error(-1, "Initializer element is not a constant 7.\n");
@@ -4180,7 +4149,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, "Security type mismatch in assignment 1.\n");
+		parse_error(-1, "Type mismatch with respect to public/private data in assignment 1.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){
@@ -4192,13 +4161,13 @@ void security_check_for_declaration(astspec spec, astdecl decl){
     if(spec->type == SPECLIST && spec->body->subtype == SPEC_private)
         flag1 = 1;
     else if(spec->subtype == SPEC_int || spec->subtype == SPEC_float)
-	flag1 = 1; 
+	    flag1 = 1;
     else if(spec->subtype == SPEC_struct || spec->subtype == SPEC_union)
     {
-	struct_node node = struct_node_lookup(struct_table, spec->name->name); 
-	if(!node->contain_pub_field)
-		flag1 = 1;  
-    } 
+        struct_node node = struct_node_lookup(struct_table, spec->name->name); 
+        if(!node->contain_pub_field)
+            flag1 = 1;  
+    }
     
     // declarator
     if(decl->type == DLIST)
@@ -4212,7 +4181,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                     flag2 = 1;
             }
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "A: Security type mismatch in assignment 2.\n");
+                parse_error(-1, "A: Type mismatch with respect to public/private data in assignment.\n");
             decl = decl->u.next;
         }
         
@@ -4222,7 +4191,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                 flag2 = 1;
             
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "B: Security type mismatch in assignment 3.\n");
+                parse_error(-1, "B: Type mismatch with respect to public/private data in assignment.\n");
         }
     
     }
@@ -4232,7 +4201,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
             if(decl->u.expr->flag == PRI)
                 flag2 = 1;
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "C: Security type mismatch in assignment 4.\n");
+                parse_error(-1, "C: Type mismatch with respect to public/private data in assignment.\n");
         }
     }
   
@@ -4466,15 +4435,15 @@ int check_func_param(astexpr funcname, astexpr arglist){
         
         // Compare the security type 
         if (set_security_flag_spec(spec) != arglist->right->flag) { // If sec type does not match
-            parse_error(1, "Security type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
+            parse_error(1, "Type mismatch with respect to public/private data in argument list of '%s'.\n", funcname->u.sym->name);
             return 0; 
         }
 
-        // // Compare the type 
-        // if (decl->u.expr->ftype != arglist->right->ftype) { // If type does not match
-        //     parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
-        //     return 0; 
-        // }
+        // Compare the type 
+        if (decl->u.expr->ftype != arglist->right->ftype) { // If type does not match
+            parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
+            return 0; 
+        }
         
         // Move to the next argument and the next parameter
         arglist = arglist->left;
@@ -4497,7 +4466,7 @@ int check_func_param(astexpr funcname, astexpr arglist){
         }
         // for the leftmost var
         if((decl->type == DLIST && arglist->type != COMMALIST) || (decl->type == DPARAM && arglist->type == COMMALIST)){
-            parse_error(1, "Too many or too few arguments to function '%s'\n", funcname);
+            parse_error(1, "111 Too many or too few arguments to function '%s'\n", funcname);
         }
         else{
             spec = decl->spec;
