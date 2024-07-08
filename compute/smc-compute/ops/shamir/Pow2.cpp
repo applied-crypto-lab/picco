@@ -49,7 +49,7 @@ void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, No
     }
     doOperation_PrefixMult(S, S, M, size, threadID, net, ss);
     ss->copy(S[M - 1], result, size);
-    // free the memory
+    // free memory
     for (int i = 0; i < M + 1; i++) {
         for (int j = 0; j < size; j++)
             mpz_clear(S[i][j]);

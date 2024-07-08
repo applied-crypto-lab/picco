@@ -24,6 +24,5 @@
 #include "Operation.h"
 #include "Random.h"
 
-
-void doOperation_Mod2(mpz_t *A, mpz_t *result, int K, int size, int threadID,NodeNetwork net,  SecretShare *ss);
+void doOperation_Mod2( mpz_t *result, mpz_t *A, int K, int size, int threadID,NodeNetwork net,  SecretShare *ss);
 #endif /* MOD2_SHAMIR_H_ */

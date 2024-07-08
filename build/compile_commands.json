@@ -1,0 +1,252 @@
+[
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/testing.cpp.o -c /home/into4/picco/compute/testing.cpp",
+  "file": "/home/into4/picco/compute/testing.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/NodeConfiguration.cpp.o -c /home/into4/picco/compute/smc-compute/NodeConfiguration.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/NodeConfiguration.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/NodeNetwork.cpp.o -c /home/into4/picco/compute/smc-compute/NodeNetwork.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/NodeNetwork.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/SMC_Utils.cpp.o -c /home/into4/picco/compute/smc-compute/SMC_Utils.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/SMC_Utils.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/AddBitwise.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/AddBitwise.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/AddBitwise.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/AppRcr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/AppRcr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/AppRcr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/B2U.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/B2U.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/B2U.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/BitDec.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/BitDec.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/BitDec.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/BitLTC.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/BitLTC.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/BitLTC.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/BitOps.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/BitOps.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/BitOps.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/CarryBit.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/CarryBit.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/CarryBit.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/DotProduct.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/DotProduct.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/DotProduct.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/EQZ.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/EQZ.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/EQZ.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FL2Int.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FL2Int.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FL2Int.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FLAdd.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FLAdd.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FLAdd.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FLDiv.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FLDiv.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FLDiv.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FLEQZ.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FLEQZ.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FLEQZ.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FLLTZ.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FLLTZ.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FLLTZ.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FLMult.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FLMult.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FLMult.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FLRound.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FLRound.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FLRound.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FPDiv.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FPDiv.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FPDiv.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FPMult.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FPMult.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FPMult.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/FloatPtr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/FloatPtr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/FloatPtr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Int2FL.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Int2FL.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Int2FL.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/IntAppRcr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/IntAppRcr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/IntAppRcr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/IntDiv.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/IntDiv.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/IntDiv.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/IntPtr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/IntPtr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/IntPtr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Inv.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Inv.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Inv.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/LTZ.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/LTZ.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/LTZ.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Mod2.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Mod2.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Mod2.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Mod2M.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Mod2M.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Mod2M.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Mod2MS.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Mod2MS.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Mod2MS.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Mult.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Mult.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Mult.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Norm.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Norm.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Norm.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Open.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Open.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Open.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Operation.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Operation.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Operation.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Pow2.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Pow2.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Pow2.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/PreOpL.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/PreOpL.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/PreOpL.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/PreOr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/PreOr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/PreOr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/PrefixMultiplication.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/PrefixMultiplication.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/PrefixMultiplication.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/PrivIndex.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/PrivIndex.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/PrivIndex.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/PrivPtr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/PrivPtr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/PrivPtr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Random.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Random.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Random.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/SDiv.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/SDiv.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/SDiv.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/Trunc.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/Trunc.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/Trunc.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/TruncPr.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/TruncPr.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/TruncPr.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/ops/shamir/TruncS.cpp.o -c /home/into4/picco/compute/smc-compute/ops/shamir/TruncS.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/ops/shamir/TruncS.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/shamir/SecretShare.cpp.o -c /home/into4/picco/compute/smc-compute/shamir/SecretShare.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/shamir/SecretShare.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/shamir/ShamirOps.cpp.o -c /home/into4/picco/compute/smc-compute/shamir/ShamirOps.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/shamir/ShamirOps.cpp"
+},
+{
+  "directory": "/home/into4/picco/build",
+  "command": "/usr/bin/g++ -D__DEPLOYMENT__=1 -D__RSS__=0 -D__SHAMIR__=1 -I/home/into4/picco/compute/smc-compute -I/home/into4/picco/compute/smc-compute/shamir -I/home/into4/picco/compute/smc-compute/ops/shamir -maes -mavx -mavx2 -march=native -Wall -g3 -Wall -std=gnu++20 -o CMakeFiles/testing.dir/smc-compute/shamir/ShamirUtil.cpp.o -c /home/into4/picco/compute/smc-compute/shamir/ShamirUtil.cpp",
+  "file": "/home/into4/picco/compute/smc-compute/shamir/ShamirUtil.cpp"
+}
+]

@@ -5,6 +5,7 @@ public int main()
   
   smcinput(A, 1); 
   smcinput(B, 1); 
+  
   public int i;
 
   // measuring performance of a large number of multiplications

@@ -28,7 +28,7 @@ void main() {
    // initialization step
    for (i = 0; i < N; i++) [
       for (j = 0; j < T; j++) [
-	 b[i][j] = bb[i][x[j]];
+	      b[i][j] = bb[i][x[j]];
       ]
    ]
      
@@ -40,51 +40,51 @@ void main() {
    for (k = 1; k < T; k++) {
      // compute the product of delta and a elements in parallel
       for (j = 0; j < N; j++) [
-	 for (i = 0; i < N; i++) [
-	     temp[i][j] = delta[k-1][i]*a[i][j];
-	 ]		
+         for (i = 0; i < N; i++) [
+            temp[i][j] = delta[k-1][i]*a[i][j];
+         ]		
       ]
       // compute max and argmax of the products as a tree			
       for (m = N; m > 1; m = (m+1) >> 1) {
-	 for (j = 0; j < N; j++) [
-	    for (i = 0; i < m/2; i++) [
-	       if (temp[2*i][j] < temp[2*i+1][j]) {
-		  temp[i][j] = temp[2*i+1][j];
-		  max[i][j] = 2*i+1;
-	       }
-	       else {
-		  temp[i][j] = temp[2*i][j];
-		  max[i][j] = 2*i;
-	       }
-	    ]
-	    if ((m % 2) == 1) {
-	       temp[m/2][j] = temp[m-1][j];
-	       max[m/2][j] = m-1;
-	    }
-	 ]
+         for (j = 0; j < N; j++) [
+            for (i = 0; i < m/2; i++) [
+               if (temp[2*i][j] < temp[2*i+1][j]) {
+                  temp[i][j] = temp[2*i+1][j];
+                  max[i][j] = 2*i+1;
+               }
+               else {
+                  temp[i][j] = temp[2*i][j];
+                  max[i][j] = 2*i;
+               }
+            ]
+            if ((m % 2) == 1) {
+               temp[m/2][j] = temp[m-1][j];
+               max[m/2][j] = m-1;
+            }
+         ]
       }
       // copy the result
       for (j = 0; j < N; j++) [
          delta[k][j] = temp[0][j]*b[j][k];
-         psi[k][j] = max[j][0];
+         psi[k][j] = max[0][j];
       ]
    }
    
    // termination step
    for (m = N; m > 1; m = (m+1) >> 1) {
       for (i = 0; i < m/2; i++) [
-	 if (delta[T-1][2*i] < delta[T-1][2*i+1]) {
-	    delta[T-1][i] = delta[T-1][2*i+1];
-	    max[i][0] = 2*i+1;
-	 }
-	 else {
-	    delta[T-1][i] = delta[T-1][2*i];
-	    max[i][0] = 2*i;
-	 }
+         if (delta[T-1][2*i] < delta[T-1][2*i+1]) {
+            delta[T-1][i] = delta[T-1][2*i+1];
+            max[i][0] = 2*i+1;
+         }
+         else {
+            delta[T-1][i] = delta[T-1][2*i];
+            max[i][0] = 2*i;
+         }
       ]
       if ((m % 1) == 1) {
-	 delta[T-1][m/2] = delta[T-1][m-1];
-	 max[m/2][0] = m-1;
+         delta[T-1][m/2] = delta[T-1][m-1];
+         max[m/2][0] = m-1;
       }
    }
    

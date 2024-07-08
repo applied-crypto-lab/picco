@@ -83,9 +83,9 @@ void doOperation_BitLTC(mpz_t *A, mpz_t **b, mpz_t *result, int K, int size, int
         }
     }
 
-    doOperation_Mod2(temp, result, K, size, threadID, net, ss);
+    doOperation_Mod2(result, temp, K, size, threadID, net, ss);
 
-    // free the memory
+    // free memory
     for (int i = 0; i < K; i++) {
         for (int j = 0; j < size; j++)
             mpz_clear(d[i][j]);

@@ -188,6 +188,7 @@ private:
     std::vector<std::pair<int, int>> toSend, toReceive;
     std::vector<std::pair<int, int>>::iterator it;
     int bytes;
+    unsigned char *buffer, *encrypted, *decrypted;
     void multicastToThreshold(uint*, uint*, mpz_t**, mpz_t**, int);
     mpz_t *getDestination;
 

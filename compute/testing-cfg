@@ -1,0 +1,17 @@
+technique:2
+bits:118
+peers:5
+threshold:2
+inputs:1
+outputs:1
+modulus:166153499473114484112975882535043107
+I:1,A,int,1,10,32
+I:1,C,float,1,10,32,9
+O:1,A,int,1,10,32
+O:1,A,int,1,10,32
+O:1,B,int,1,10,32
+O:1,B,int,1,10,32
+O:1,B,int,1,10,32
+O:1,D,float,1,10,32,9
+O:1,a,int,1,1,32
+O:1,B,int,1,5,32
