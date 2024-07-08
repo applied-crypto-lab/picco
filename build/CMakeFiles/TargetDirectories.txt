@@ -1,4 +1,0 @@
-/home/into4/picco/build/CMakeFiles/testing.dir
-/home/into4/picco/build/CMakeFiles/clean-all.dir
-/home/into4/picco/build/CMakeFiles/edit_cache.dir
-/home/into4/picco/build/CMakeFiles/rebuild_cache.dir
