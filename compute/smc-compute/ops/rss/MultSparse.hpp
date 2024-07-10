@@ -112,7 +112,7 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
     vector<vector<int>> mul_map = ss->generate_MultSparse_map(numParties, pid);
     T *v = new T[size];
 
@@ -240,7 +240,7 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    int pid = nodeNet.getID();
+    static int pid = ss->getID();
     vector<vector<int>> mul_map = ss->generate_MultSparse_map(numParties, pid);
     // printf("mul_map:\n");
     // for (auto m : mul_map) {

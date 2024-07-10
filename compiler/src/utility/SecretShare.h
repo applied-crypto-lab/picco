@@ -95,14 +95,12 @@ public:
     virtual std::vector<std::string> getShares(long long) = 0;
     virtual std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>>, int) = 0;
     virtual double floatreconstructSecret(std::vector<std::vector<std::string>>, int) = 0;
-    virtual void flipNegative(long long &) = 0;
 
     // virtual void getShares(mpz_t *, mpz_t){};
     // virtual void getShares(mpz_t **, mpz_t *, int){};
     // virtual void reconstructSecret(mpz_t, mpz_t *){};
     // virtual void reconstructSecret(mpz_t *, mpz_t **, int){};
 
-    // virtual void flipNegative(mpz_t *, mpz_t **, int){};
 };
 
 class ShamirSS : public SecretShare {
@@ -125,8 +123,6 @@ public:
     std::vector<std::string> getShares(long long);
     std::vector<long long> reconstructSecret(std::vector<std::vector<std::string>>, int);
     double floatreconstructSecret(std::vector<std::vector<std::string>>, int);
-
-    void flipNegative(long long &);
 
     void computeLagrangeWeight();
     void computeSharingMatrix();
@@ -201,7 +197,6 @@ public:
     // depracated, to be removed
     void getShares(T *, T);
     void reconstructSecret(T *, T **, int);
-    void flipNegative(long long &);
 
     // new string-based version
     std::vector<std::string> getShares(long long input);
@@ -414,10 +409,6 @@ double RSS<T>::floatreconstructSecret(std::vector<std::vector<std::string>> inpu
     return element;
 }
 
-// check this works
-template <typename T>
-void RSS<T>::flipNegative(long long &x) {
-}
 
 template <typename T>
 void RSS<T>::offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri) { // ri used to be void, replaced with __m128i* to compile

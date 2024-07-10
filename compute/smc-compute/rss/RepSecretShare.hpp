@@ -184,6 +184,7 @@ public:
     void sparsify(T **result, int *x, int size);
     void sparsify(T **result, T *x, int size);
     void sparsify_public(T *result, int x);
+    void sparsify_public(std::vector<T> &result, int x);
 
     std::vector<std::vector<int>> generateB2A_map();
     std::vector<int> generateXi_map();
@@ -1542,9 +1543,17 @@ void replicatedSecretShare<T>::sparsify(T **result, T *x, int size) {
     }
 }
 
+template <typename T>
+void replicatedSecretShare<T>::sparsify_public(std::vector<T> &result, int x) {
+    static const int idx = generateT_star_index(1); // will always be party 1's "first" share, other parties (with access) are set accordingly
+    if (idx >= 0) {
+        result[idx] = x;
+    }
+}
+
 // the destination result is allocated to be of dimension [numShares]
 template <typename T>
-void replicatedSecretShare<T>::sparsify_public(T *result, int x ) {
+void replicatedSecretShare<T>::sparsify_public(T *result, int x) {
     static const int idx = generateT_star_index(1); // will always be party 1's "first" share, other parties (with access) are set accordingly
     if (idx >= 0) {
         result[idx] = x;

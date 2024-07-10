@@ -20,10 +20,10 @@
 #ifndef BIT_UTILS_H_
 #define BIT_UTILS_H_
 
+#include <cassert>
 #include <cstdio>
 #include <string>
 #include <sys/types.h>
-#include <cassert>
 
 #define assertm(exp, msg) assert(((void)msg, exp))
 
@@ -37,6 +37,12 @@ inline __attribute__((always_inline)) T GET_BIT(T X, T N) {
 template <typename T>
 inline __attribute__((always_inline)) T GET_LSB(T X) {
     return (X & T(1));
+}
+
+// sets the Nth bit of X (from right to left) to B, and updates X accordingly
+template <typename T>
+inline __attribute__((always_inline)) void SET_BIT_VOID(T &X, T N, T B) {
+    X = (X & ~(T(1) << N)) | (B << N);
 }
 
 // sets the Nth bit of X (from right to left) to B

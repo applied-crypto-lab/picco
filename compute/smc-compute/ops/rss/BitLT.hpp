@@ -38,6 +38,7 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
 
 template <typename T>
 void Rss_BitLT(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // commenting this line out since we should still be able to use this function for smaller ring sizes than what is used for the computation as a whole, since this is on bits
     // assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
     uint numShares = ss->getNumShares();
 

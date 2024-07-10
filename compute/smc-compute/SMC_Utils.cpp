@@ -408,7 +408,7 @@ void SMC_Utils::smc_sub(float *a, priv_int **b, int alen_sig, int alen_exp, int 
 void SMC_Utils::smc_sub(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
 }
-
+#if __SHAMIR__
 /* SMC Multiplication */
 void SMC_Utils::smc_mult(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     // double check this works (passing reference to essentiall up-cast to priv_int*)
@@ -416,7 +416,7 @@ void SMC_Utils::smc_mult(priv_int a, priv_int b, priv_int result, int alen, int 
     // replacing priv_int* with & works on
     Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net, ss);
 }
-
+#endif
 /******************************************************/
 void SMC_Utils::smc_mult(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modMul(result, a, b);
@@ -444,6 +444,7 @@ void SMC_Utils::smc_mult(priv_int *a, float b, priv_int *result, int alen_sig, i
     ss_batch_free_operator(&btmp, 4);
 }
 
+#if __SHAMIR__
 // private float * private int (needs more examinations)
 void SMC_Utils::smc_mult(priv_int *a, priv_int b, priv_int *result, int alen_sig, int alen_exp, int blen, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     priv_int b1, one;
@@ -456,6 +457,7 @@ void SMC_Utils::smc_mult(priv_int *a, priv_int b, priv_int *result, int alen_sig
     ss_clear(b1);
     ss_clear(one);
 }
+#endif
 
 void SMC_Utils::smc_mult(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modMul(result, b, a, size);
@@ -488,6 +490,7 @@ void SMC_Utils::smc_mult(priv_int **a, priv_int **b, int alen_sig, int alen_exp,
 }
 
 /* SMC Integer Division*/
+#if __SHAMIR__
 void SMC_Utils::smc_div(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), resultlen, 1, threadID, net, ss);
     // doOperation_IntDiv(result, a, b, resultlen, threadID, net, ss);
@@ -500,6 +503,7 @@ void SMC_Utils::smc_div(priv_int a, int b, priv_int result, int alen, int blen, 
 void SMC_Utils::smc_div(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), resultlen, 1, threadID, net, ss);
 }
+#endif
 
 void SMC_Utils::smc_div(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, ss);
@@ -571,6 +575,7 @@ void SMC_Utils::smc_div(float *a, priv_int **b, int alen_sig, int alen_exp, int 
 }
 
 /* All Comparisons */
+#if __SHAMIR__
 void SMC_Utils::smc_lt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
@@ -582,6 +587,7 @@ void SMC_Utils::smc_lt(priv_int a, int b, priv_int result, int alen, int blen, i
 void SMC_Utils::smc_lt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
+#endif
 
 void SMC_Utils::smc_lt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
@@ -610,6 +616,7 @@ void SMC_Utils::smc_lt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, i
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
 
+#if __SHAMIR__
 void SMC_Utils::smc_gt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
 }
@@ -621,6 +628,7 @@ void SMC_Utils::smc_gt(priv_int a, int b, priv_int result, int alen, int blen, i
 void SMC_Utils::smc_gt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
 }
+#endif
 
 void SMC_Utils::smc_gt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
@@ -649,6 +657,7 @@ void SMC_Utils::smc_gt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, i
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 }
 
+#if __SHAMIR__
 void SMC_Utils::smc_leq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
@@ -663,6 +672,7 @@ void SMC_Utils::smc_leq(int a, priv_int b, priv_int result, int alen, int blen, 
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
+#endif
 
 void SMC_Utils::smc_leq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
@@ -696,6 +706,7 @@ void SMC_Utils::smc_leq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, 
     ss->modSub(result, 1, result, size);
 }
 
+#if __SHAMIR__
 void SMC_Utils::smc_geq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
@@ -710,6 +721,7 @@ void SMC_Utils::smc_geq(int a, priv_int b, priv_int result, int alen, int blen, 
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
+#endif
 
 void SMC_Utils::smc_geq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
@@ -743,6 +755,7 @@ void SMC_Utils::smc_geq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, 
     ss->modSub(result, 1, result, size);
 }
 
+#if __SHAMIR__
 // Equality and Inequality
 void SMC_Utils::smc_eqeq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
@@ -755,6 +768,7 @@ void SMC_Utils::smc_eqeq(priv_int a, int b, priv_int result, int alen, int blen,
 void SMC_Utils::smc_eqeq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
 }
+#endif
 
 void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
@@ -791,6 +805,7 @@ void SMC_Utils::smc_eqeq(priv_int **a, priv_int **b, int alen_sig, int alen_exp,
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 }
 
+#if __SHAMIR__
 void SMC_Utils::smc_neq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
@@ -805,6 +820,7 @@ void SMC_Utils::smc_neq(int a, priv_int b, priv_int result, int alen, int blen, 
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
+#endif
 
 void SMC_Utils::smc_neq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
@@ -838,29 +854,30 @@ void SMC_Utils::smc_neq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, 
     ss->modSub(result, 1, result, size);
 }
 
-// Bitwise Operations
-void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
+void SMC_Utils::smc_xor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
+    BitXor(a, b, result, size, threadID, net, ss);
 }
 
 void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
     BitAnd(a, b, result, size, threadID, net, ss);
 }
 
+void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
+    BitOr(a, b, result, size, threadID, net, ss);
+}
+
+#if __SHAMIR__
+// Bitwise Operations
+void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
+}
+
 void SMC_Utils::smc_xor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
 }
 
-void SMC_Utils::smc_xor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
-    BitXor(a, b, result, size, threadID, net, ss);
-}
-
 void SMC_Utils::smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
-}
-
-void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
-    BitOr(a, b, result, size, threadID, net, ss);
 }
 
 void SMC_Utils::smc_shr(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
@@ -870,6 +887,7 @@ void SMC_Utils::smc_shr(priv_int a, priv_int b, priv_int result, int alen, int b
 void SMC_Utils::smc_shr(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     smc_shr(MPZ_CAST(a), (int *)&b, alen, blen, MPZ_CAST(result), resultlen, 1, type, threadID);
 }
+#endif
 
 void SMC_Utils::smc_shr(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) { // public b
@@ -891,6 +909,7 @@ void SMC_Utils::smc_shr(priv_int *a, int *b, int alen, int blen, priv_int *resul
     doOperation_Trunc(result, a, alen, b, size, threadID, net, ss);
 }
 
+#if __SHAMIR__
 // ANB: does the compiler actually ever produce code that calls this?
 void SMC_Utils::smc_shl(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     if (blen == -1) {           // b is public, but stored in an priv_int
@@ -901,6 +920,7 @@ void SMC_Utils::smc_shl(priv_int a, priv_int b, priv_int result, int alen, int b
         Mult(MPZ_CAST(result), MPZ_CAST(result), MPZ_CAST(a), 1, threadID, net, ss);
     }
 }
+#endif
 
 void SMC_Utils::smc_shl(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modPow2(result, b);
@@ -952,14 +972,15 @@ void SMC_Utils::smc_privindex_read(priv_int index, priv_int ***array, priv_int *
     doOperation_PrivIndex_float_arr(index, array, result, dim1, dim2, 0, threadID, net, ss);
 }
 
+#if __SHAMIR__
 // one-dimension private integer singular write
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
-    doOperation_PrivIndex_Write((priv_int *)index, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+    doOperation_PrivIndex_Write(MPZ_CAST(index), array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
 }
 
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, priv_int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
 
-    doOperation_PrivIndex_Write((priv_int *)index, array, (priv_int *)value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+    doOperation_PrivIndex_Write(MPZ_CAST(index), array, MPZ_CAST(value), dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
 }
 
 // two-dimension private integer singular write
@@ -971,6 +992,7 @@ void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_si
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, priv_int value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     doOperation_PrivIndex_Write_2d(MPZ_CAST(index), array, MPZ_CAST(value), dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
 }
+#endif
 
 // one-dimension private float singular write
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, float value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
@@ -2007,7 +2029,7 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
 }
 
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
-    size = 10; //  testing only so I dont have to keep opening rss_main.cpp
+    size = 5; //  testing only so I dont have to keep opening rss_main.cpp
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2076,15 +2098,18 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             prg_aes_ni(Data2[j] + i, k2, key_prg);
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
-        Data1[totalNumShares - 1][i] = i;
-        Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
+        Data1[totalNumShares - 1][i] = 6 + i;
+        // Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
+        // Data2[totalNumShares - 1][i] = 1 + i;
+        Data2[totalNumShares - 1][i] = i;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
-            Data2[totalNumShares - 1][i] -= Data2[j][i];
+            Data2[totalNumShares - 1][i] ^= Data2[j][i];
             // Data1[totalNumShares - 1][i] ^= GET_BIT(Data1[j][i], priv_int_t(0)); // only want a single bit
             // Data2[totalNumShares - 1][i] ^= GET_BIT(Data2[j][i], priv_int_t(0)); // only want a single bit
         }
     }
+
     // for (size_t i = 0; i < size; i++) {
     //     for (size_t s = 0; s < totalNumShares; s++) {
     //         printf("Data1[%lu][%lu]: %u \n", i, s, Data1[s][i]);
@@ -2125,6 +2150,52 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         a[i] = Data1[share_mapping[id - 1][i]];
         b[i] = Data2[share_mapping[id - 1][i]];
     }
+
+    uint k = 3;
+    uint num_bits = (1 << k) * size; // exact number of bits in the output
+    // uint num_uints = (num_bits + 7) >> 3;
+    std::cout << "k : " << k << std::endl;
+    std::cout << "num_bits : " << num_bits << std::endl;
+    // std::cout << "num_uints : " << num_uints << std::endl;
+
+    priv_int_t **ao_res = new priv_int_t *[numShares];
+    for (size_t i = 0; i < numShares; i++)
+        ao_res[i] = new priv_int_t[num_bits];
+
+    AllOr(b, k, ao_res, size, -1, net, ss);
+
+    priv_int_t *res_8 = new priv_int_t[num_bits];
+    memset(res_8, 0, sizeof(priv_int_t) * num_bits);
+
+    Open_Bitwise(res_8, ao_res, num_bits, -1, net, ss);
+    Open_Bitwise(result, b, size, -1, net, ss);
+
+    for (size_t i = 0; i < size; i++) {
+        printf("(open) b   [%lu]: %u\t", i, result[i]);
+        print_binary(result[i], ring_size);
+    }
+
+    for (size_t i = 0; i < num_bits; i++) {
+        printf("(open) ao_res   [%lu]: %u\t", i, res_8[i]);
+        print_binary(res_8[i], 8);
+        if (((i + 1) % (1 << k)) == 0) {
+            printf("\n");
+        }
+    }
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] ao_res[i];
+    }
+    delete[] ao_res;
+
+    // Mult_Bitwise(C, b, b, size, net, ss);
+    // Open_Bitwise(result, C, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) [b*b]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    // }
+    // return;
+
     // for (size_t i = 0; i < numShares; i++) {
     //     A_bit[i] = Data1[share_mapping[id - 1][i]];
     //     B_bit[i] = Data2[share_mapping[id - 1][i]];
@@ -2137,42 +2208,33 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     printf("(open) b   [%lu]: %u\n", i, result_3[i]);
     // }
 
-    int m = 10;
-    doOperation_Trunc(C, b, ring_size, m, size, -1, net, ss);
-    Open(result_2, C, size, -1, net, ss);
-    Open(result, b, size, -1, net, ss);
-    // printf("\n");
-    for (size_t i = 0; i < size; i++) {
-        if (!(result_2[i] == (result[i] >> priv_int_t(m)))) {
-            printf("trunc  ERROR\n");
-            printf("(open)  input     [%lu]: %u\n", i, result[i]);
-            print_binary(result[i], ring_size);
-            printf("(open)  trunc res [%lu]: %u\n", i, result_2[i]);
-            print_binary(result_2[i], ring_size);
-            printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
-            print_binary(result[i] >> priv_int_t(m), ring_size);
-        }
-    }
-
-    // doOperation_EQZ(b, C, ring_size, size, -1, net, ss);
-    // Open(result, C, size, -1, net, ss);
-    // Open(result_2, b, size, -1, net, ss);
-    // // Open(result_3, b, size, -1, net, ss);
-
+    // int m = 10;
+    // doOperation_Trunc(C, b, ring_size, m, size, -1, net, ss);
+    // Open(result_2, C, size, -1, net, ss);
+    // Open(result, b, size, -1, net, ss);
+    // // printf("\n");
     // for (size_t i = 0; i < size; i++) {
-    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
-    //     printf("(open) c   [%lu]: %u\n", i, result[i]);
-    //     // print_binary(result[i], ring_size);
-    //     printf("(open) b   [%lu]: %u\n", i, result_2[i]);
-    //     // print_binary(result_2[i], ring_size);
-    //     if (!(result[i] == (result_2[i] == 0))) {
-    //         printf("EQZ ERROR\n");
-
-    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //     if (!(result_2[i] == (result[i] >> priv_int_t(m)))) {
+    //         printf("trunc  ERROR\n");
+    //         printf("(open)  input     [%lu]: %u\n", i, result[i]);
+    //         print_binary(result[i], ring_size);
+    //         printf("(open)  trunc res [%lu]: %u\n", i, result_2[i]);
+    //         print_binary(result_2[i], ring_size);
+    //         printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
+    //         print_binary(result[i] >> priv_int_t(m), ring_size);
     //     }
     // }
+
+    // doOperation_Pow2(C, a, ring_size, size, -1, net, ss);
+    // Open(result, C, size, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     printf("(open) [2^a]   [%lu]: %u\n", i, result[i]);
+    //     print_binary(result[i], ring_size);
+    //     printf("(expected)     [%lu]: %u\n", i, (1 << result_2[i]));
+    //     print_binary((1 << result_2[i]), ring_size);
+    // }
+
     // printf("\n");
     // // Rss_BitDec(C, a, size, ring_size, net, ss);
     // doOperation_EQZ(a, C, ring_size, size, -1, net, ss);
@@ -2194,24 +2256,19 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     }
     // }
 
-    // Rss_BitDec(C, a, size, ring_size, net, ss);
-    // // doOperation_LT(C, a, b, ring_size, ring_size, ring_size, size, -1, net, ss);
-    // Open_Bitwise(result, C, size, -1, net, ss);
-    // Open(result_2, a, size, -1, net, ss);
-    // // Open(result_3, b, size, -1, net, ss);
+    // uint m = ceil(log2(ring_size)); // rounding up to the nearest integer
 
+    // Rss_BitDec(C, a, m, size, ring_size, net, ss);
+    // Open_Bitwise(result, C, size, m, -1, net, ss);
+    // Open(result_2, a, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
-    //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
+    //     printf("(open) a   [%lu]: %u\n", i, result_2[i]);
     //     if (!(result[i] == (result_2[i]))) {
     //         printf("BitDec ERROR\n");
-
     //         printf("(open) c   [%lu]: %u\t", i, result[i]);
     //         print_binary(result[i], ring_size);
     //         printf("(open) a   [%lu]: %u\t", i, result_2[i]);
     //         print_binary(result_2[i], ring_size);
-    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
     //     }
     // }
 

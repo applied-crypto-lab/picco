@@ -26,6 +26,7 @@
 #include "EdaBit.hpp"
 
 // trunation of all data by a single M
+// this protocol requires that the bitlength of the input is at least one bit shorter than the ring size, i.e. MSB(input) = 0
 template <typename T>
 void doOperation_Trunc(T **result, T **input, int K, int m, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -69,7 +70,7 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     ss->sparsify_public(ai, 1);
 
     edaBit_Trunc(edaBit_r, r_hat, b_2, b_km1, m, size, ring_size, nodeNet, ss);
-    
+
     // computing the sum of input and edabit_r
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {

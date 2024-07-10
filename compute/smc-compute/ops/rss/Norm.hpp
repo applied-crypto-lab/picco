@@ -1,7 +1,7 @@
+
 /*
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) from 2013 PICCO Team
-   ** Department of Computer Science and Engineering, University of Notre Dame
+   ** Copyright (C) from 2024 PICCO Team
    ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
    PICCO is free software: you can redistribute it and/or modify
@@ -17,13 +17,3 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef MOD2_SHAMIR_H_
-#define MOD2_SHAMIR_H_
-
-#include "Open.h"
-#include "Operation.h"
-#include "Random.h"
-
-
-void doOperation_Mod2( mpz_t *result, mpz_t *A, int K, int size, int threadID,NodeNetwork net,  SecretShare *ss);
-#endif /* MOD2_SHAMIR_H_ */

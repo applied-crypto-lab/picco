@@ -1,6 +1,8 @@
 # PICCO: A General-Purpose Compiler for Private Distributed Computation
 
-PICCO is a suite of programs for compiling general-purpose programs into their secure implementations, and running it in a distributed setting. The complete motivation, design, and analysis of PICCO can be found in our [2013 CCS paper](https://doi.org/10.1145/2508859.2516752). This work can be cited as follows:
+PICCO is a suite of programs for compiling general-purpose programs into their secure implementations, and running it in a distributed setting. The motivation and design of PICCO can be found in our [2013 CCS paper](https://doi.org/10.1145/2508859.2516752). 
+The specification for dynamic memory allocation, pointers to private data, and secure data structures can be found in our [2017 TOPS article](https://dl.acm.org/doi/abs/10.1145/3154600).
+This work can be cited as follows:
 
 ```
 @inproceedings{picco,
@@ -11,6 +13,7 @@ PICCO is a suite of programs for compiling general-purpose programs into their s
   pages = "813--826"
 }
 ```
+
 
 The source code of PICCO mainly consists of two directories: *compiler* and *compute*. The compiler directory contains the source code of the PICCO compiler whose functionality is to translate a user's program into its secure implementation. The `compute` directory contains the source code of the computational framework that will be used to securely execute the user's translated program in a distributed setting.
 
@@ -218,7 +221,6 @@ In the current implementation, not all features of C are supported in user progr
   Also, any assignment statement should store the result of the computation into an element of an array because it is not meaningful to simultaneously store multiple values from different loop iterations in a single non-array type variable.
  
 - Our current implementation does not allow code that uses private variables to be located in multiple files, e.g., in header files. Thus, all code to be translated needs to be placed in a single file.
-- Our current implementation does not allow for global private variable declaration. 
 <!-- - During program translation, the PICCO compiler places a number of temporary variables in the translated user program. Thus, if the user program contains variables with the same names, they might result in conflicts. Therefore, it is  best to avoid declaring variables with the same names in the user program. The variables created by the compiler are: 
 
   - `tmp`
@@ -242,6 +244,9 @@ The field-based protocols implemented in this software come from the following p
 - [Aliasgari et al., 2013](https://www.ndss-symposium.org/wp-content/uploads/2017/09/11_4_0.pdf)
   <!-- - Integer division -->
   - Floating-point operations (addition, subtraction, multiplication, division, comparisons, equality, rounding) and type conversion (int to float, float to int)
+- [Zhang et al., 2017](https://dl.acm.org/doi/abs/10.1145/3154600)
+  - Pointers to private data
+  - Dynamic memory management
 - [Blanton et al., 2020](https://doi.org/10.1007/978-3-030-57808-4_19)
   - Integer multiplication (from Section 5.2)
   - Array access at a private location

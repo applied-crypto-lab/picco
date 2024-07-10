@@ -21,7 +21,7 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol Pow2, page 4
-void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_Pow2(mpz_t *result, mpz_t *A, int L, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     int M = ceil(log2(L));
     mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
