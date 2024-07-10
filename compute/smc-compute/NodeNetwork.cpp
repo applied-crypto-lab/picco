@@ -649,6 +649,12 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
     // struct timeval tv1, tv2;
     if (size == 0)
         return;
+        
+    if (numOfThreads == 1) {
+        multicastToPeers(data, buffers, size);
+        return;
+    }
+
     if (threadID == -1) {
         if (mode != -1) {
             sendModeToPeers(id);
@@ -661,13 +667,13 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
         }
         multicastToPeers(data, buffers, size);
         return;
-    } else {
-        if (mode != 0) {
-            pthread_mutex_lock(&buffer_mutex);
-            pthread_cond_signal(&manager_conditional_variable);
-            pthread_mutex_unlock(&buffer_mutex);
-            mode = 0;
-        }
+    }
+
+    if (mode != 0) {
+        pthread_mutex_lock(&buffer_mutex);
+        pthread_cond_signal(&manager_conditional_variable);
+        pthread_mutex_unlock(&buffer_mutex);
+        mode = 0;
     }
 
     // int sendIdx = 0, getIdx = 0;
@@ -712,9 +718,16 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
 /* the function sends the same data to each peer and receives data from each peer */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int threadID) {
     test_flags[threadID]++;
+    int id = getID();
+
     if (size == 0)
         return;
-    int id = getID();
+
+    if (numOfThreads == 1) {
+        broadcastToPeers(data, size, buffers);
+        return;
+    } 
+
     if (threadID == -1) {
         if (mode != -1) {
             sendModeToPeers(id);
@@ -727,14 +740,15 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
         }
         broadcastToPeers(data, size, buffers);
         return;
-    } else {
-        if (mode != 0) {
-            pthread_mutex_lock(&buffer_mutex);
-            pthread_cond_signal(&manager_conditional_variable);
-            pthread_mutex_unlock(&buffer_mutex);
-            mode = 0;
-        }
     }
+
+    if (mode != 0) {
+        pthread_mutex_lock(&buffer_mutex);
+        pthread_cond_signal(&manager_conditional_variable);
+        pthread_mutex_unlock(&buffer_mutex);
+        mode = 0;
+    }
+
     // int sendIdx = 0, getIdx = 0;
     int rounds = 0, count = 0;
     getRounds(size, &count, &rounds);
@@ -1086,8 +1100,15 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
     int id = getID();
+
     if (size == 0)
         return;
+
+    if (numOfThreads == 1) {
+        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
+        return;
+    } 
+    
     if (threadID == -1) {
         if (mode != -1) {
             sendModeToPeers(id);
@@ -1100,13 +1121,13 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
         }
         multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
         return;
-    } else {
-        if (mode != 0) {
-            pthread_mutex_lock(&buffer_mutex);
-            pthread_cond_signal(&manager_conditional_variable);
-            pthread_mutex_unlock(&buffer_mutex);
-            mode = 0;
-        }
+    }
+
+    if (mode != 0) {
+        pthread_mutex_lock(&buffer_mutex);
+        pthread_cond_signal(&manager_conditional_variable);
+        pthread_mutex_unlock(&buffer_mutex);
+        mode = 0;
     }
 
     // this needs to be implemented such that multithreading can function for Shamir SS
@@ -1156,6 +1177,12 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int id = getID();
     if (size == 0)
         return;
+
+    if (numOfThreads == 1) {
+        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
+        return;
+    }  
+
     if (threadID == -1) {
         if (mode != -1) {
             sendModeToPeers(id);
@@ -1168,13 +1195,13 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
         }
         multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
         return;
-    } else {
-        if (mode != 0) {
-            pthread_mutex_lock(&buffer_mutex);
-            pthread_cond_signal(&manager_conditional_variable);
-            pthread_mutex_unlock(&buffer_mutex);
-            mode = 0;
-        }
+    } 
+
+    if (mode != 0) {
+        pthread_mutex_lock(&buffer_mutex);
+        pthread_cond_signal(&manager_conditional_variable);
+        pthread_mutex_unlock(&buffer_mutex);
+        mode = 0;
     }
 }
 
