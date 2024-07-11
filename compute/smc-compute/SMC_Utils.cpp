@@ -48,9 +48,10 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
     std::cout << "Creating SecretShare\n";
 #if __SHAMIR__
-
-    net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
-    printf("Technique: SHAMIR\n");
+    if (num_threads > 1) {
+        net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
+        printf("Technique: SHAMIR\n");
+    }
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
