@@ -55,6 +55,7 @@ astexpr Astexpr(enum exprtype type, astexpr left, astexpr right) {
     n->sizeexp = -1;
     n->arraytype = 0;
     n->arraysize = NULL;
+    n->computingarraysize = 0;
     n->thread_id = -1;
     n->ftype = 0;
     n->l = sc_original_line();

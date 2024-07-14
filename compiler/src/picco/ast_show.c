@@ -57,10 +57,7 @@ int enterfunc = 0;
 int new_tree_index_for_auto_cast = 0; // this index is used by the new casting code because the index of tree in this case is -1 
 int is_return_void = 0;
 str arg_str;
-int array_tmp_index = 0;
-int array_ftmp_index = 0;
-int array_tmp_size = 0;
-int immresulttype = 0;
+int immresulttype = 0;  /* Set the type of the resulting array for batch operations*/
 
 static void indent() {
     int i;
@@ -2472,8 +2469,8 @@ void ast_stmt_show(aststmt tree, branchnode current) {
                 lastdef = 1;
         }
         if (declared == 0 && enterfunc == 1) {
-            // array_tmp_size = tree->body->u.expr->left->arraysize;
-            if (tree->body->u.expr->left->arraytype == 1) { // if there is an expression that involve arrays
+            if (tree->body->u.expr->left != NULL && tree->body->u.expr->left->arraytype == 1) { // if there is an expression that involve arrays
+                // atoi(tree->body->u.expr->left->arraysize->u.str); // this has the array size 
                 if (tree->u.expr->left->ftype == 1)
                     array_ftmp_index++;
                 else if (tree->u.expr->left->ftype == 0) 
@@ -4745,7 +4742,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
 void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     indent();
     if (tree->decl->type == DIDENT) {
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
             if (technique_var == SHAMIR_SS) 
@@ -4760,7 +4757,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
                 fprintf(output, "__s->getNumShares()");
         }
     } else if (tree->decl->type == DARRAY) {
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
             if (technique_var == SHAMIR_SS) 
@@ -4775,23 +4772,23 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
                 fprintf(output, "__s->getNumShares()");
         }
     }
-    if (gf == 1) {
+    if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
         indent_global_string(global_string);
         str_printf(global_string, "));\n");
     } else 
         fprintf(output, "));\n");
     // init
     indent();
-    if (gf == 1) {
+    if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
         indent_global_string(global_string);
-        str_printf(global_string, "for (int _picco_i = 0; _picco_i < ");
+        str_printf(global_string, "for (int _picco_i = 0; _picco_i < ");  // this is where the struct elements gets printed and the issue I had with init
     } else 
         fprintf(output, "for (int _picco_i = 0; _picco_i < ");
     if (tree->decl->type == DIDENT) {
         if (technique_var == SHAMIR_SS) 
             ast_expr_show(tree->u.expr);
         else if (technique_var == REPLICATED_SS) {
-            if (gf == 1) {
+            if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
                 str_printf(global_string, "__s->getNumShares()");
             } else {
                 fprintf(output, "__s->getNumShares()");
@@ -4801,14 +4798,14 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         if (technique_var == SHAMIR_SS) 
             ast_expr_show(tree->decl->u.expr);
         else if (technique_var == REPLICATED_SS){
-            if (gf == 1) {
+            if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
                 str_printf(global_string, "__s->getNumShares()");
             } else {
                 fprintf(output, "__s->getNumShares()");
             }
         }
     }
-    if (gf == 1) {
+    if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
         indent_global_string(global_string);
         str_printf(global_string, "; _picco_i++)\n");
     } else 
@@ -4817,10 +4814,10 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     indent();
     if (tree->decl->type == DIDENT) {
         indent();
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS)
-                str_printf(global_string, "ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name);
+                str_printf(global_string, "11111111ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name); // this does struct init
             else if (technique_var == REPLICATED_SS) {
                 str_printf(global_string, "__s->ss_init(%s%s[_picco_i], ", prefix, tree->decl->u.id->name);
                 ast_expr_show(tree->u.expr); // This is here to print the ,name part for rss/ not needed for shamir
@@ -4838,14 +4835,14 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
     } else if (tree->decl->type == DARRAY) {
         arg_str = Str("");
         ast_expr_print(arg_str, tree->u.expr);
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "{\n");
         } else 
             fprintf(output, "{\n");
         indlev++;
         indent();
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS) {
                 str_printf(global_string, "%s%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
@@ -4864,7 +4861,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
             }
         }
         indent();
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS) {
                 str_printf(global_string, "for (int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(arg_str));
@@ -4884,7 +4881,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         }
         indent();
         indent();
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS)
@@ -4899,7 +4896,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         }
         indlev--;
         indent();
-        if (gf == 1) {
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "}\n");
         } else 
@@ -5523,14 +5520,9 @@ void ast_tmp_clear_show(char *prefix, int sidx, int eidx) {
 void ast_array_tmp_clear_show(char *prefix, int sidx, int eidx) {
     if (eidx > 0) {
         for (ind = sidx; ind <= eidx; ind++) {
-            indent();
-            fprintf(output, "for(int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-            indlev++;
-            indent();
-            fprintf(output, "ss_clear(%s%d[_picco_j]);\n", prefix, ind);
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%d);\n", prefix, ind);
+            fprintf(output, "for(int _picco_j = 0; _picco_j < %d; _picco_j++)\n", tmp_array_max_size);
+            fprintf(output, "   ss_clear(%s%d[_picco_j]);\n", prefix, ind);
+            fprintf(output, "free(%s%d);\n\n", prefix, ind);
         }
     }
 }
@@ -5539,14 +5531,11 @@ void ast_array_tmp_clear_show(char *prefix, int sidx, int eidx) {
 void ast_array_float_tmp_clear_show(char *prefix, int sidx, int eidx) {
     if (eidx > 0) {
         for (ind = sidx; ind <= eidx; ind++) {
-            indent();
-            fprintf(output, "for(int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-            indlev++;
-            indent();
-            fprintf(output, "ss_clear(%s%d[_picco_j]);\n", prefix, ind);
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%d);\n", prefix, ind);
+            fprintf(output, "for(int _picco_i = 0; _picco_i < %d; _picco_i++) { \n", tmp_array_max_size);
+            fprintf(output, "   for(int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
+            fprintf(output, "       ss_clear(%s%d[_picco_i][_picco_j]);\n", prefix, ind);
+            fprintf(output, "}\n", prefix, ind);
+            fprintf(output, "free(%s%d);\n\n", prefix, ind);
         }
     }
 }
@@ -5823,27 +5812,27 @@ void ast_temporary_variable_declaration() {
     fprintf(output, "\n");
     if (array_tmp_index >= 1) { // int
         fprintf(output, "priv_int* _picco_arr_tmp%d;\n", array_tmp_index);
-        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%d));\n", array_tmp_index, array_tmp_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", array_tmp_size);
+        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%d));\n", array_tmp_index, tmp_array_max_size);
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
         fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", array_tmp_index);
 
         fprintf(output, "priv_int* _picco_arr_tmp%d;\n", array_tmp_index+1);
-        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%d));\n", array_tmp_index+1, array_tmp_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", array_tmp_size);
+        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%d));\n", array_tmp_index+1, tmp_array_max_size);
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
         fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", array_tmp_index+1);
     }
     if (array_ftmp_index >= 1) { // float
         fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", array_ftmp_index);
-        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%d));\n", array_ftmp_index, array_tmp_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", array_tmp_size);
+        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%d));\n", array_ftmp_index, tmp_array_max_size);
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
         fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", array_ftmp_index);
         fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", array_ftmp_index);
         fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", array_ftmp_index);
         fprintf(output, "   }\n\n");
 
         fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", array_ftmp_index+1);
-        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%d));\n", array_ftmp_index+1, array_tmp_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", array_tmp_size);
+        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%d));\n", array_ftmp_index+1, tmp_array_max_size);
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
         fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", array_ftmp_index+1);
         fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", array_ftmp_index+1);
         fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", array_ftmp_index+1);
