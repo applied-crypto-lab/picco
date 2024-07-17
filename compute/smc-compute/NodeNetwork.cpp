@@ -496,14 +496,8 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     //N = 3 case, where we send to and receive from only 1 peer.
     //  No need to have extra steps indicated below-- just send, then receive.
     if (threshold == 1) {
-        sendDataToPeer(sendtoIDs[0], size, data[0]);
-
-        if (buffer == NULL)
-            getDestination = data[2 * threshold];
-        else
-            getDestination = buffer[threshold - 1];
-
-        getDataFromPeer(RecvFromIDs[threshold - 1], size, getDestination);
+        sendDataToPeer(1, size, data[0]);
+        getDataFromPeer(1, size, buffers[0]);
 
         return;
     }
