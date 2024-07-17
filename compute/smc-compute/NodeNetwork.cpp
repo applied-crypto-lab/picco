@@ -1070,9 +1070,23 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             if (priRkey == NULL)
                 throw std::runtime_error("Read Private Key for RSA");
             buffer = (unsigned char *)malloc(RSA_size(priRkey));
+
+            num_tries = 0; //Reset counter
+
             int n = read(sockfd[i], buffer, RSA_size(priRkey));
-            if (n < 0)
-                throw std::runtime_error("reading from socket");
+            while (n < 0) {
+                if (num_tries < MAX_RETRIES) {
+                    // cross platform version of sleep(), C++14 and onward
+                    std::this_thread::sleep_for(WAIT_INTERVAL);
+                    num_tries += 1;
+                } else {
+                    throw std::runtime_error("reading from socket");
+                }
+
+                //Try again
+                n = read(sockfd[i], buffer, RSA_size(priRkey));
+            }
+                
             char *decrypt = (char *)malloc(n);
             memset(decrypt, 0x00, n);
             int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
@@ -1083,9 +1097,22 @@ void NodeNetwork::requestConnection(int numOfPeers) {
 
 #else
             char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
-            // check that this is the number of bytes that are supposed to be read from the socket
-            if (read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
-                throw std::runtime_error("reading from socket");
+
+            num_tries = 0; //Reset counter
+
+            int n = read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            while (n < 0) {
+                if (num_tries < MAX_RETRIES) {
+                    // cross platform version of sleep(), C++14 and onward
+                    std::this_thread::sleep_for(WAIT_INTERVAL);
+                    num_tries += 1;
+                } else {
+                    throw std::runtime_error("reading from socket");
+                }
+
+                //Try again
+                n = read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
+            }
 #endif
 
             memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
