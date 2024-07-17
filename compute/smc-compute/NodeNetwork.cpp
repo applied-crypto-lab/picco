@@ -496,8 +496,27 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     //N = 3 case, where we send to and receive from only 1 peer.
     //  No need to have extra steps indicated below-- just send, then receive.
     if (threshold == 1) {
-        sendDataToPeer(1, size, data[0]);
-        getDataFromPeer(1, size, buffers[0]);
+        int sent = 0, got = 0;
+        while (true) {
+            //Try sending
+            if (sent < totalSize) {
+                bytes = sendDataToPeer(1, data[0], sent, totalSize - sent);
+                if (bytes > 0)
+                    sent += bytes;
+            }
+
+            //Try receiving
+            if (got < totalSize) {
+                bytes = getDataFromPeer(1, buffers[0], got, totalSize - got);
+
+                if (bytes > 0)
+                    got += bytes;
+            }
+
+            //Both are done
+            if (sent == totalSize && got == totalSize)
+                break;
+        }
 
         return;
     }
@@ -1313,22 +1332,37 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 
 //_Mult and _Open have the same pattern, just different places that the data is read into.
 void NodeNetwork::multicastToThreshold(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, mpz_t **buffer, int size) {
-    timeval before, after;
-    gettimeofday(&before, NULL);
-
     int totalSize = unit_size * size;
 
     //N = 3 case, where we send to and receive from only 1 peer.
     //  No need to have extra steps indicated below-- just send, then receive.
     if (threshold == 1) {
-        sendDataToPeer(sendtoIDs[0], size, data[0]);
 
         if (buffer == NULL)
             getDestination = data[2 * threshold];
         else
             getDestination = buffer[threshold - 1];
 
-        getDataFromPeer(RecvFromIDs[threshold - 1], size, getDestination);
+        int sent = 0, got = 0;
+        while (true) {
+            //Try sending
+            if (sent < totalSize) {
+                bytes = sendDataToPeer(sendtoIDs[0], data[0], sent, totalSize - sent);
+                if (bytes > 0)
+                    sent += bytes;
+            }
+
+            //Try receiving
+            if (got < totalSize) {
+                bytes = getDataFromPeer(RecvFromIDs[threshold - 1], getDestination, got, totalSize - got);
+                if (bytes > 0)
+                    got += bytes;
+            }
+
+            //Both are done
+            if (sent == totalSize && got == totalSize)
+                break;
+        }
 
         return;
     }
@@ -1384,10 +1418,6 @@ void NodeNetwork::multicastToThreshold(uint *sendtoIDs, uint *RecvFromIDs, mpz_t
             }
         }
     }
-
-    gettimeofday(&after, NULL);
-    double t = time_diff(&before, &after);
-    printf("Multicast to threshold took %f time\n", t);
 }
 
 
