@@ -62,6 +62,10 @@ public:
     // Share a secret between
     int smc_open(priv_int var, int threadID);
     float smc_open(priv_int *var, int threadID);
+
+#if __SHAMIR__
+    void smc_open(priv_int *result, priv_int *input, int size, int threadID);
+#endif
 #if __RSS__
     void smc_open(priv_int result, priv_int *var, int size, int threadID);
 #endif
