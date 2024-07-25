@@ -19,9 +19,9 @@
 */
 #include "SMC_Utils.h"
 #include "bit_utils.hpp"
+#include <functional>
 #include <iomanip>
 #include <string>
-
 // Constructors
 SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
     id = _id;
@@ -2106,6 +2106,8 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         fprintf(stderr, "ERROR (rss_setup): invalid number of parties, only n = {3, 5, 7} is supported for RSS \n");
         exit(1);
     }
+    uint8_t **Data1_byte = new uint8_t *[totalNumShares];
+    uint8_t **Data2_byte = new uint8_t *[totalNumShares];
 
     priv_int_t **Data1 = new priv_int_t *[totalNumShares];
     priv_int_t **Data2 = new priv_int_t *[totalNumShares];
@@ -2114,8 +2116,13 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(Data1[i], 0, sizeof(priv_int_t) * size);
         Data2[i] = new priv_int_t[size];
         memset(Data2[i], 0, sizeof(priv_int_t) * size);
+
+        Data1_byte[i] = new uint8_t[size];
+        memset(Data1_byte[i], 0, sizeof(uint8_t) * size);
+        Data2_byte[i] = new uint8_t[size];
+        memset(Data2_byte[i], 0, sizeof(uint8_t) * size);
     }
-    uint bitlength = 8;
+    uint bitlength = 12;
 
     for (int i = 0; i < size; i++) {
         for (size_t j = 0; j < totalNumShares - 1; j++) {
@@ -2126,14 +2133,18 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         }
         // Data1[totalNumShares - 1][i] = ( (-1) * i ) & ss->SHIFT[bitlength];
         Data1[totalNumShares - 1][i] = 10* ( i + 1 ) + 1;
+        // Data1[totalNumShares - 1][i] = i;
+        Data1_byte[totalNumShares - 1][i] = i;
         // Data1[totalNumShares - 1][i] = ((-1) * i);
         // Data1[totalNumShares - 1][i] = 6 + i;
         // Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
         // Data2[totalNumShares - 1][i] = 1 + i;
-        Data2[totalNumShares - 1][i] =2;
+        Data2[totalNumShares - 1][i] = 2;
+        Data2_byte[totalNumShares - 1][i] = i;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
             Data2[totalNumShares - 1][i] -= Data2[j][i];
+            // Data2[totalNumShares - 1][i] ^= Data2[j][i];
             // Data1[totalNumShares - 1][i] ^= GET_BIT(Data1[j][i], priv_int_t(0)); // only want a single bit
             // Data2[totalNumShares - 1][i] ^= GET_BIT(Data2[j][i], priv_int_t(0)); // only want a single bit
         }
@@ -2158,10 +2169,21 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     priv_int result_3 = new priv_int_t[size];
     memset(result_3, 0, sizeof(priv_int_t) * size);
 
+    uint8_t *result_byte = new uint8_t[size];
+    memset(result_byte, 0, sizeof(uint8_t) * size);
+
+    uint8_t *result_byte_2 = new uint8_t[size];
+    memset(result_byte_2, 0, sizeof(uint8_t) * size);
+    uint8_t *result_byte_3 = new uint8_t[size];
+    memset(result_byte_3, 0, sizeof(uint8_t) * size);
+
     priv_int *B_sparse = new priv_int[ss->getNumShares()];
     priv_int *a = new priv_int[ss->getNumShares()];
     priv_int *b = new priv_int[ss->getNumShares()];
+    uint8_t **a_byte = new uint8_t *[ss->getNumShares()];
+    uint8_t **b_byte = new uint8_t *[ss->getNumShares()];
 
+    uint8_t* *C_byte = new uint8_t*[ss->getNumShares()];
     priv_int *C = new priv_int[ss->getNumShares()];
     priv_int *D = new priv_int[ss->getNumShares()];
     priv_int *A_bit = new priv_int[ss->getNumShares()];
@@ -2173,18 +2195,24 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(C[i], 0, sizeof(priv_int_t) * size);
         D[i] = new priv_int_t[size];
         memset(D[i], 0, sizeof(priv_int_t) * size);
+    
+
+        C_byte[i] = new uint8_t[size];
+        memset(C[i], 0, sizeof(uint8_t) * size);
+
     }
+    
 
     for (size_t i = 0; i < numShares; i++) {
         a[i] = Data1[share_mapping[id - 1][i]];
         b[i] = Data2[share_mapping[id - 1][i]];
+        a_byte[i] = Data1_byte[share_mapping[id - 1][i]];
+        b_byte[i] = Data2_byte[share_mapping[id - 1][i]];
     }
 
+    printf("Intdiv\n");
     doOperation_IntDiv(C, a, b,  bitlength, size, -1, net, ss);
-    // doOperation_IntAppRcr(C, a, bitlength, size, ring_size, -1, net, ss);
-    // doOperation_Norm(C, D, a, bitlength, size, ring_size, -1, net, ss);
 
-    // Open(result, C, size, -1, net, ss);
     Open(result, C, size, -1, net, ss);
     Open(result_2, a, size, -1, net, ss);
     Open(result_3, b, size, -1, net, ss);
@@ -2240,13 +2268,32 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     // }
     // delete[] ao_res;
 
-    // Mult_Bitwise(C, b, b, size, net, ss);
-    // Open_Bitwise(result, C, size, -1, net, ss);
+
+    // printf("multbyte\n");
+    // Mult_Byte(C_byte, a_byte, b_byte, size, net, ss);
+    // Open_Byte(result_byte, C_byte, size, -1, net, ss);
+    // Open_Byte(result_byte_2, a_byte, size, -1, net, ss);
+    // Open_Byte(result_byte_3, b_byte, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
-    //     printf("(open) [b*b]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
+    //     if (!(result[i] == (result_3[i] & result_2[i]))) {
+    //         printf("(open) [a*b] (z2)  [%lu]: %u\n", i, result[i]);
+    //         printf("expected %u\n", result_3[i] & result_2[i]);
+    //         print_binary(result[i], ring_size);
+    //     }
     // }
-    // return;
+
+    // // Mult_Bitwise(C, a, b, size, net, ss);
+    // // Open_Bitwise(result, C, size, -1, net, ss);
+    // // Open_Bitwise(result_2, a, size, -1, net, ss);
+    // // Open_Bitwise(result_3, b, size, -1, net, ss);
+    // // for (size_t i = 0; i < size; i++) {
+    // //     if (!(result[i] == (result_3[i] & result_2[i]))) {
+    // //         printf("(open) [a*b] (z2)  [%lu]: %u\n", i, result[i]);
+    // //         printf("expected %u\n", result_3[i] & result_2[i]);
+    // //         print_binary(result[i], ring_size);
+    // //     }
+    // // }
+    // // return;
 
     // for (size_t i = 0; i < numShares; i++) {
     //     A_bit[i] = Data1[share_mapping[id - 1][i]];
