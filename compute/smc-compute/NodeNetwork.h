@@ -51,19 +51,20 @@ public:
     NodeNetwork();
     virtual ~NodeNetwork();
 
-    // Send round data to a specific peer
+    template<typename T>
+    void sendDataToPeer(int, int, T *);
+
     void sendDataToPeer(int, mpz_t *, int, int, int);
-    void sendDataToPeer(int, int, int *);
-    void sendDataToPeer(int, int, unsigned char *);
     void sendDataToPeer(int, int, mpz_t *);
-    void sendDataToPeer(int, int, long long *);
-    void sendModeToPeers(int);
-    // Get round data from a specific peer
+
+    template <typename T>
+    void getDataFromPeer(int, int, T *);
+    
     void getDataFromPeer(int, mpz_t *, int, int, int);
-    void getDataFromPeer(int, int, int *);
-    void getDataFromPeer(int, int, unsigned char *);
     void getDataFromPeer(int, int, mpz_t *);
-    void getDataFromPeer(int, int, long long *);
+
+    void sendModeToPeers(int);
+    
     // Broadcast identical data to peers
     void broadcastToPeers(mpz_t *, int, mpz_t **);
     void broadcastToPeers(long long *, int, long long **);
