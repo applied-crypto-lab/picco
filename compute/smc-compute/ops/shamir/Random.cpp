@@ -37,7 +37,7 @@ void PRandInt(int K, int M, int size, mpz_t *result, int threadID, SecretShare *
     ss->generateRandValue(bits, size, result, threadID);
 }
 
-void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net,  SecretShare *ss) {
+void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net, SecretShare *ss) {
     int peers = ss->getPeers();
     mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t *u = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -73,7 +73,7 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net,  SecretSh
 
     // MulPub (squaring [r])
     ss->modMul(v, u, u, size);
-    ss->modAdd(v, v, przs, size); //adding pseudorandom shares of zero
+    ss->modAdd(v, v, przs, size); // adding pseudorandom shares of zero
 
     net.broadcastToPeers(v, size, resultShares, threadID);
     ss->reconstructSecret(v, resultShares, size);
@@ -112,7 +112,7 @@ void PRandBit(int size, mpz_t *results, int threadID, NodeNetwork net,  SecretSh
 // result[M+1][size]
 // result[0][size],...,result[M-1][size] contains the individual bits
 // result[M][size] contains the random value itself
-void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net,  SecretShare *ss) {
+void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *tempResult = (mpz_t *)malloc(sizeof(mpz_t) * size * M);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     unsigned long pow = 1;

@@ -20,7 +20,7 @@
 #include "IntDiv.h"
 #include <math.h>
 
-void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -37,11 +37,9 @@ void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, N
     ss_batch_free_operator(&op1, 1);
     ss_batch_free_operator(&op2, 1);
     ss_batch_free_operator(&results, 1);
-
 }
 
-
-void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *btmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(btmp[i], b[i]);
@@ -49,8 +47,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, in
     ss_batch_free_operator(&btmp, size);
 }
 
-
-void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     int lambda = 8;
     mpz_t const0, const1, const2, constk;
     mpz_init_set_ui(const0, 0);
@@ -135,7 +132,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, 
     mpz_clear(constk);
 }
 
-void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -154,11 +151,12 @@ void doOperation_IntDiv(mpz_t result, mpz_t a, mpz_t b, int k, int threadID, Nod
     ss_batch_free_operator(&results, 1);
 }
 
-void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     // Set theta
     double t = k / 3.5;
     int theta = ceil(log2(t));
-    int lambda = 6;
+    int lambda = 6; // where does this come from? this is not in the original protocol specifiction
+    // this may be what is referred to as "increasing the resolution of y" on page 13 of Catrina and Saxena, 2010
     // Set alpha
     mpz_t alpha, const1, const2, inv2;
     mpz_init_set_ui(const1, 1);
@@ -230,23 +228,41 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
 
     /***********************************************/
     doOperation_IntAppRcr(w, temp, k, size, threadID, net, ss);
+    // Open_print(w, "w", size, threadID, net, ss);
+
     Mult(x, b_tmp, w, size, threadID, net, ss);
     Mult(y, a_tmp, w, size, threadID, net, ss);
     ss->modSub(x, alpha, x, size);
     doOperation_TruncPr(y, y, 2 * k, k - lambda, size, threadID, net, ss);
 
+    // Open_print(x, "x pre loop", size, threadID, net, ss);
+    // Open_print(y, "y pre loop", size, threadID, net, ss);
+
     for (int i = 0; i < theta - 1; i++) {
         ss->modAdd(temp, x, alpha, size);
         Mult(y, y, temp, size, threadID, net, ss);
         Mult(x, x, x, size, threadID, net, ss);
+
+        // printf("%u  ", i);
+        // Open_print(x, "x pre trunc", size, threadID, net, ss);
+        // printf("%u  ", i);
+        // Open_print(y, "y pre trunc", size, threadID, net, ss);
+
         doOperation_TruncPr(y, y, 2 * k + lambda, k, size, threadID, net, ss);
         doOperation_TruncPr(x, x, 2 * k, k, size, threadID, net, ss);
+
+        // printf("%u  ", i);
+        // Open_print(x, "x post trunc", size, threadID, net, ss);
+        // printf("%u  ", i);
+        // Open_print(y, "y post trunc", size, threadID, net, ss);
     }
     ss->modAdd(x, x, alpha, size);
     Mult(y, y, x, size, threadID, net, ss);
     doOperation_TruncPr(result, y, 2 * k + lambda, k + lambda, size, threadID, net, ss);
-    /******************** VERSION 1 ***************************/
+
     /**********************************************************/
+    // There is no documentation as to why this is needed, or where it came from
+    // but its "necessary" in order to produce correct outputs
     ss->copy(result, c, size);
     Mult(temp, c, b_tmp, size, threadID, net, ss);
     ss->modSub(temp, a_tmp, temp, size);
@@ -259,11 +275,19 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     doOperation_LTZ(lt, temp, k, size, threadID, net, ss);
     ss->modMul(temp, lt, const2, size);
     ss->modSub(temp, const1, temp, size); // d
-    ss->modSub(temp, const1, temp, size);
+    ss->modSub(temp, const1, temp, size); // ????? why is this here ??? we effectively just add zero, 
+    // since we first do temp = 2*lt
+    // then temp = 1 - temp
+    // then temp = 1 - temp AGAIN
+    // which works out to temp = 1 - (1 - temp) = 1 - (1 - 2*lt) = 2*lt
+    // even moreso confusing, we multiply by the inverse of 2, which just cancels the 2 we multiplied by above 
+
     ss->modMul(temp, temp, inv2, size);
     ss->modSub(c, c, temp, size);
     ss->copy(c, result, size);
     Mult(result, result, sign, size, threadID, net, ss);
+    /**********************************************************/
+
     // free the memory
     mpz_clear(const1);
     mpz_clear(const2);
@@ -294,8 +318,8 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     free(b_tmp);
 }
 
-void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net,  SecretShare *ss) {
- 
+void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeNetwork net, SecretShare *ss) {
+
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op1 = (mpz_t *)malloc(sizeof(mpz_t));
     mpz_t *op2 = (mpz_t *)malloc(sizeof(mpz_t));
@@ -312,10 +336,9 @@ void doOperation_IntDiv(mpz_t result, int a, mpz_t b, int k, int threadID, NodeN
     ss_batch_free_operator(&op1, 1);
     ss_batch_free_operator(&op2, 1);
     ss_batch_free_operator(&results, 1);
-
 }
 
-void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_IntDiv(mpz_t *result, int *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *atmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(atmp[i], a[i]);
