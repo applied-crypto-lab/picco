@@ -1467,12 +1467,10 @@ void NodeNetwork::getDataFromPeer_bit(int id, uint8_t *data, int start, int amou
         
         char *buffer = (char *)malloc(sizeof(char) * length);
         getDataFromPeer(id, length, (unsigned char *)buffer);
-
         EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
         char *decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
-        memset(&data[start], 0, sizeof(uint8_t) * write_amount);
-        memcpy(&data[start], decrypted, unit_size * write_amount);
-
+        memset(&data[start], 0, sizeof(uint8_t) * length);
+        memcpy(&data[start], decrypted, length);
         free(buffer);
         free(decrypted);
 
