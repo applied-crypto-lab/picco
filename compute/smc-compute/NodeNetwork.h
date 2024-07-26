@@ -54,6 +54,8 @@ public:
     int *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read;
     int *runningTotalWrite = new int(0), *runningTotalRead = new int(0);
     bool tracking;
+    
+    int element_size; 
 
     void beginTracking();
     void endTracking(char*, int);
@@ -131,23 +133,24 @@ public:
     unsigned char **getPRGseeds();
 
 #if __RSS__
-    void getRounds_RSS(int size, uint *count, uint *rounds, uint ring_size);
     void SendAndGetDataFromPeer(priv_int_t *, priv_int_t *, int, uint, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer(priv_int_t *, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer(priv_int_t **, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
-    void sendDataToPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size);
+
     void sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size);
-    void getDataFromPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size);
+    int sendDataToPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size);
+    
     void getDataFromPeer(int id, int size, priv_int_t *buffer, uint ring_size);
+    int getDataFromPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size);
+    
     void multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size);
 
     void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer_bit(uint8_t **SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map);
 
-    void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
-    void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
-    void getRounds_bit(int size, uint *count, uint *rounds);
+    // void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
+    // void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
 
 #endif
 
