@@ -1,0 +1,504 @@
+
+./../compiler/bin/picco -d sample-programs/non-thread/mult.c ../compiler/smc-config int_mult confs/int_mult_conf
+./../compiler/bin/picco-utility -I 1 inputs/input_data confs/int_mult_conf shares/int_mult_shares
+
+sleep 3;./../compiler/bin/picco-seed -d confs/runtime-config-mine confs/int_mult_conf 
+sleep 2; ./build/int_mult 1 confs/runtime-config-mine private01.pem 1 1 shares/int_mult_shares1  outputs/output_mult
+sleep 1; ./build/int_mult 2 confs/runtime-config-mine private02.pem 1 1 shares/int_mult_shares2  outputs/output_mult
+sleep 0; ./build/int_mult 3 confs/runtime-config-mine private03.pem 1 1 shares/int_mult_shares3  outputs/output_mult
+
+./../compiler/bin/picco-utility -O 1 outputs/output_mult confs/int_mult_conf result_1 ; cat result_1
+
+
+
+// measurement testing
+./../compiler/bin/picco -m sample-programs/non-thread/mult.c ../compiler/smc-config int_mult confs/int_mult_conf
+
+sleep 3;./../compiler/bin/picco-seed -m confs/runtime-config-mine confs/int_mult_conf 
+sleep 2; ./build/int_mult 1 confs/runtime-config-mine 
+sleep 1; ./build/int_mult 2 confs/runtime-config-mine 
+sleep 0; ./build/int_mult 3 confs/runtime-config-mine 
+
+
+./../compiler/bin/picco-seed confs/runtime-config-mine confs/int_mult_conf 
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_mult confs/int_mult_conf result_1 ; cat result_1
+
+
+sleep 6; ./../compiler/bin/picco-seed -d confs/runtime-config-mine-5 confs/int_mult_conf 
+sleep 4  ;  ./build/int_mult 1 confs/runtime-config-mine-5 private01.pem 1 1 shares/int_mult_shares1  outputs/output_mult
+sleep 3;  ./build/int_mult 2 confs/runtime-config-mine-5 private02.pem 1 1 shares/int_mult_shares2  outputs/output_mult
+sleep 2  ;  ./build/int_mult 3 confs/runtime-config-mine-5 private03.pem 1 1 shares/int_mult_shares3  outputs/output_mult
+sleep 1;  ./build/int_mult 4 confs/runtime-config-mine-5 private04.pem 1 1 shares/int_mult_shares4  outputs/output_mult
+sleep 0  ;  ./build/int_mult 5 confs/runtime-config-mine-5 private05.pem 1 1 shares/int_mult_shares5  outputs/output_mult
+
+
+
+
+
+./../compiler/bin/picco sample-programs/non-thread/eqz.c ../compiler/smc-config int_eqz confs/int_eqz_conf
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_A confs/int_eqz_conf shares/int_eqz_shares_A
+
+
+sleep 6; ./../compiler/bin/picco-seed confs/runtime-config-mine-5 confs/int_eqz_conf 
+sleep 4  ; ./int_eqz 1 confs/runtime-config-mine-5 private01.pem 1 1 shares/int_eqz_shares_A1  outputs/output_eqz
+sleep 3; ./int_eqz 2 confs/runtime-config-mine-5 private02.pem 1 1 shares/int_eqz_shares_A2  outputs/output_eqz
+sleep 2  ; ./int_eqz 3 confs/runtime-config-mine-5 private03.pem 1 1 shares/int_eqz_shares_A3  outputs/output_eqz
+sleep 1; ./int_eqz 4 confs/runtime-config-mine-5 private04.pem 1 1 shares/int_eqz_shares_A4  outputs/output_eqz
+sleep 0  ; ./int_eqz 5 confs/runtime-config-mine-5 private05.pem 1 1 shares/int_eqz_shares_A5  outputs/output_eqz
+
+./../compiler/bin/picco-utility -O 1 outputs/output_eqz confs/int_eqz_conf result_eqz_1 ; cat result_eqz_1
+
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_B confs/int_eqz_conf shares/int_eqz_shares_B
+
+// testing B
+sleep 6; ./../compiler/bin/picco-seed confs/runtime-config-mine-5 confs/int_eqz_conf 
+sleep 4  ; ./int_eqz 1 confs/runtime-config-mine-5 private01.pem 1 1 shares/int_eqz_shares_B1  outputs/output_eqz
+sleep 3; ./int_eqz 2 confs/runtime-config-mine-5 private02.pem 1 1 shares/int_eqz_shares_B2  outputs/output_eqz
+sleep 2  ; ./int_eqz 3 confs/runtime-config-mine-5 private03.pem 1 1 shares/int_eqz_shares_B3  outputs/output_eqz
+sleep 1; ./int_eqz 4 confs/runtime-config-mine-5 private04.pem 1 1 shares/int_eqz_shares_B4  outputs/output_eqz
+sleep 0  ; ./int_eqz 5 confs/runtime-config-mine-5 private05.pem 1 1 shares/int_eqz_shares_B5  outputs/output_eqz
+
+
+
+sleep 6; ./../compiler/bin/picco-seed confs/runtime-config-mine-5 confs/test_op_conf 
+sleep 4  ; ./build/compiled_program 1 confs/runtime-config-mine-5 private01.pem 1 1 shares/int_eqz_shares_B1  outputs/output_eqz
+sleep 3; ./build/compiled_program 2 confs/runtime-config-mine-5 private02.pem 1 1 shares/int_eqz_shares_B2  outputs/output_eqz
+sleep 2  ; ./build/compiled_program 3 confs/runtime-config-mine-5 private03.pem 1 1 shares/int_eqz_shares_B3  outputs/output_eqz
+sleep 1; ./build/compiled_program 4 confs/runtime-config-mine-5 private04.pem 1 1 shares/int_eqz_shares_B4  outputs/output_eqz
+sleep 0  ; ./build/compiled_program 5 confs/runtime-config-mine-5 private05.pem 1 1 shares/int_eqz_shares_B5  outputs/output_eqz
+
+
+
+
+./../compiler/bin/picco -d sample-programs/non-thread/sorted-linked-list.c ../compiler/smc-config sorted-ll confs/sorted-ll_conf
+
+./../compiler/bin/picco-utility -I 1 inputs/sort_data confs/sorted-ll_conf shares/sort_shares
+
+sleep 3; ./../compiler/bin/picco-seed confs/runtime-config-mine confs/sorted-ll_conf 
+sleep 2  ; ./build/sorted-ll 1 confs/runtime-config-mine private01.pem 1 1 shares/sort_shares1  outputs/output_sorted_ll
+sleep 1; ./build/sorted-ll 2 confs/runtime-config-mine private02.pem 1 1 shares/sort_shares2  outputs/output_sorted_ll
+sleep 0  ; ./build/sorted-ll 3 confs/runtime-config-mine private03.pem 1 1 shares/sort_shares3  outputs/output_sorted_ll
+
+./../compiler/bin/picco-utility -O 1 outputs/output_sorted_ll confs/sorted-ll_conf result_sorted_ll ; cat result_sorted_ll
+
+
+
+sleep 3; ./../compiler/bin/picco-seed confs/runtime-config-mine confs/sorted-ll_conf 
+sleep 2  ; ./build/compiled_program 1 confs/runtime-config-mine private01.pem 1 1 shares/sort_shares1  outputs/output_sorted_ll
+sleep 1; ./build/compiled_program 2 confs/runtime-config-mine private02.pem 1 1 shares/sort_shares2  outputs/output_sorted_ll
+sleep 0  ; ./build/compiled_program 3 confs/runtime-config-mine private03.pem 1 1 shares/sort_shares3  outputs/output_sorted_ll
+
+
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_A confs/test_op_conf shares/test_op_shares_
+
+sleep 3; ./../compiler/bin/picco-seed confs/runtime-config-mine confs/test_op_conf 
+sleep 2  ; ./build/compiled_program 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+sleep 1; ./build/compiled_program 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+sleep 0  ; ./build/compiled_program 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+--------------- debugging LT --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/lt_test.c ../compiler/smc-config lt_test confs/lt_test_conf
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_test confs/lt_test_conf shares/lt_test_shares_
+
+
+sleep 3; ./../compiler/bin/picco-seed confs/runtime-config-mine confs/lt_test_conf 
+sleep 2  ; ./build/compiled_program 1 confs/runtime-config-mine private01.pem 1 1 shares/lt_test_shares_1  outputs/output_test_op
+sleep 1; ./build/compiled_program 2 confs/runtime-config-mine private02.pem 1 1 shares/lt_test_shares_2  outputs/output_test_op
+sleep 0  ; ./build/compiled_program 3 confs/runtime-config-mine private03.pem 1 1 shares/lt_test_shares_3  outputs/output_test_op
+
+
+
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_BENCH confs/test_op_conf shares/test_op_shares_BENCH_
+
+sleep 3; ./../compiler/bin/picco-seed confs/runtime-config-mine confs/test_op_conf 
+sleep 2  ; ./build/compiled_program 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_BENCH_1  outputs/output_test_op
+sleep 1; ./build/compiled_program 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_BENCH_2  outputs/output_test_op
+sleep 0  ; ./build/compiled_program 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_BENCH_3  outputs/output_test_op
+
+
+./picco-seed ../../../compute/confs/runtime-config-mine-5 ../../../compute/confs/test_op_conf 
+
+./picco-utility -I 1 ../../../compute/inputs/input_data_BENCH ../../../compute/confs/test_op_conf ../../../compute/shares/test_op_shares_BENCH_
+
+
+compile threaded
+
+./../compiler/bin/picco -d sample-programs/thread/arithmetic-thread.c ../compiler/smc-config arith_thread confs/arith_thread_conf
+
+
+
+
+./../compiler/bin/picco -d sample-programs/non-thread/test_utility.c ../compiler/smc-config test_utility confs/test_utility_conf
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data confs/test_utility_conf shares/test_util_shares_
+
+sleep 3;./../compiler/bin/picco-seed -d confs/runtime-config-mine confs/test_utility_conf 
+sleep 2; ./build/test_utility 1 confs/runtime-config-mine private01.pem 1 1 shares/test_util_shares_1  outputs/test_util_out
+sleep 1; ./build/test_utility 2 confs/runtime-config-mine private02.pem 1 1 shares/test_util_shares_2  outputs/test_util_out
+sleep 0; ./build/test_utility 3 confs/runtime-config-mine private03.pem 1 1 shares/test_util_shares_3  outputs/test_util_out
+
+./../compiler/bin/picco-utility -O 1 outputs/test_util_out confs/test_utility_conf result_test_utility ; cat result_test_utility
+test_utility
+
+
+
+gdb --args build/test_utility 1 confs/runtime-config-mine private01.pem 1 1 shares/test_util_shares_1  outputs/test_util_out
+gdb --args build/test_utility 2 confs/runtime-config-mine private02.pem 1 1 shares/test_util_shares_2  outputs/test_util_out
+gdb --args build/test_utility 3 confs/runtime-config-mine private03.pem 1 1 shares/test_util_shares_3  outputs/test_util_out
+
+
+
+
+
+./../compiler/bin/picco -d sample-programs/non-thread/test_op.c ../compiler/smc-config test_op confs/test_op_conf
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_A confs/test_op_conf shares/test_op_shares_
+sleep 2  ; ./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+sleep 1; ./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+sleep 0  ; ./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf outputs/result_test_op ; cat outputs/result_test_op
+
+
+
+// THREADED TEST
+
+./../compiler/bin/picco -d sample-programs/thread/lt-thread.c ../compiler/smc-config test_op confs/test_op_conf
+
+./../compiler/bin/picco-utility -I 1 inputs/input_data_A confs/test_op_conf shares/test_op_shares_
+
+sleep 2  ; ./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+sleep 1; ./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+sleep 0  ; ./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+then,   run
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf outputs/result_test_op ; cat outputs/result_test_op
+
+
+./../compiler/bin/picco -d sample-programs/thread/lt-thread.c ../compiler/smc-config test_op test_op_conf
+
+
+./../compiler/bin/picco -d sample-programs/non-thread/search.c ../compiler/smc-config test_op confs/test_op_conf
+
+
+
+
+
+
+--------------- debugging EQZ-bit --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/eqz_bit.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/eqz_bit_data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1 ; cat result_1
+
+
+
+--------------- debugging EQZ  (2 input parties) --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/eqz.c ../compiler/smc-config test_op confs/test_op_conf
+
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/eqz-data-1 confs/test_op_conf shares/test_op_shares_A_
+./../compiler/bin/picco-utility -I 2 sample-programs/non-thread/eqz-data-2 confs/test_op_conf shares/test_op_shares_B_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 2 1 shares/test_op_shares_A_1 shares/test_op_shares_B_1 outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 2 1 shares/test_op_shares_A_2 shares/test_op_shares_B_2 outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 2 1 shares/test_op_shares_A_3 shares/test_op_shares_B_3 outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1 ; cat result_1
+
+
+--------------- debugging batch-div --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/batch-div.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/batch-div-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+gdb --args ../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+---------- debugging array-operations --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/array-operations.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/array-operations-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+gdb --args ../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+--------------- debugging mergesort-median--------------------
+./../compiler/bin/picco -d sample-programs/non-thread/mergesort-median.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/mergesort-median-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+gdb --args ../compilepr/bin/picco -d sample-programs/non-thread/mergesort-median.c ../compiler/smc-config test_op confs/test_op_conf
+
+
+
+---------- debugging MOD2m --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/test-op-2.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/test-op-2-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1 outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2 outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3 outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+--------------- debugging integer-shift --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/integer-shift.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/integer-shift-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+gdb --args ../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+
+---------- debugging test-op --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/test-op.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/test-op-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1 outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2 outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3 outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+gdb --args ../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+---------- debugging float-comparison --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/float-comparison.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/float-comparison-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+gdb --args ../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+---------- debugging float-subtraction --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/float-subtraction.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/float-subtraction-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+---------- debugging search --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/search.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/search-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+---------- debugging hmm --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/hmm.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/hmm-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+---------- debugging LR-parser --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/LR-parser.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/LR-parser-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+---------- debugging IO-test --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/IO-test.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/IO-test-data-1 confs/test_op_conf shares/test_op_shares_1_
+./../compiler/bin/picco-utility -I 2 sample-programs/non-thread/IO-test-data-2 confs/test_op_conf shares/test_op_shares_2_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 2 2 shares/test_op_shares_1_1 shares/test_op_shares_2_1 outputs/output_test_op_1_ outputs/output_test_op_2_
+./build/test_op 2 confs/runtime-config-mine private02.pem 2 2 shares/test_op_shares_1_2 shares/test_op_shares_2_2 outputs/output_test_op_1_ outputs/output_test_op_2_
+./build/test_op 3 confs/runtime-config-mine private03.pem 2 2 shares/test_op_shares_1_3 shares/test_op_shares_2_3 outputs/output_test_op_1_ outputs/output_test_op_2_
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op_1_ confs/test_op_conf result_1; cat result_1
+./../compiler/bin/picco-utility -O 2 outputs/output_test_op_2_ confs/test_op_conf result_1; cat result_1
+
+
+
+--------------- debugging arithmetic-thread --------------------
+./../compiler/bin/picco -d sample-programs/thread/arithmetic-thread.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/thread/arithmetic-thread-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+gdb --args ../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+--------------- debugging mult_thread --------------------
+./../compiler/bin/picco -d sample-programs/thread/mult_thread.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -i 1 sample-programs/thread/mult_thread-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+
+
+--------------- trunc by 1 bit --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/networking-test-mult-pub.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -i 1 sample-programs/non-thread/networking-test-mult-pub-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+
+
+---------- testing bit ops 2 --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/test-op-2.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/test-op-2-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1 outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2 outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3 outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+---------- testing int-div --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/test-op.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/test-op-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1 outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2 outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3 outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+
+
+---------- testing test_ptr --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/test_ptr.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/test-op-data confs/test_op_conf shares/test_op_shares_
+
+
+---------- debugging private-indexing --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/private-indexing.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/private-indexing-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+---------- debugging merge-sort-array-v2 --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/merge-sort-array-v2.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/merge-sort-array-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1  outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2  outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+gdb --args build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3  outputs/output_test_op
+
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+
+
+
+---------- testing float-test --------------------
+./../compiler/bin/picco -d sample-programs/non-thread/float-test.c ../compiler/smc-config test_op confs/test_op_conf
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/float-test-data confs/test_op_conf shares/test_op_shares_
+
+./build/test_op 1 confs/runtime-config-mine private01.pem 1 1 shares/test_op_shares_1 outputs/output_test_op
+./build/test_op 2 confs/runtime-config-mine private02.pem 1 1 shares/test_op_shares_2 outputs/output_test_op
+./build/test_op 3 confs/runtime-config-mine private03.pem 1 1 shares/test_op_shares_3 outputs/output_test_op
+
+./../compiler/bin/picco-utility -O 1 outputs/output_test_op confs/test_op_conf result_1; cat result_1
+

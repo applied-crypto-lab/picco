@@ -21,7 +21,14 @@
 #include "bit_utils.hpp"
 #include <functional>
 #include <iomanip>
+#include <iostream>
 #include <string>
+
+using std::cout;
+using std::endl;
+using std::string;
+using std::vector;
+
 // Constructors
 SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
     id = _id;
@@ -63,6 +70,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
+#if __SHAMIR__
     try {
         inputStreams = new std::ifstream[numOfInputPeers];
         outputStreams = new std::ofstream[numOfOutputPeers];
@@ -91,6 +99,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
         throw std::runtime_error("[SMC_Utils, constructor] " + error);
     }
 
+#endif
 #endif
 }
 
@@ -2052,6 +2061,66 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
     memcpy(destination, res, sizeof(priv_int_t)); // cipher becomes new seed or key
 }
 
+void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations) {
+    struct timeval start;
+    struct timeval end;
+    uint numShares = ss->getNumShares();
+    unsigned long timer;
+    uint numParties = ss->getPeers();
+
+    uint ring_size = ss->ring_size;
+
+    uint bytes = (ss->ring_size + 7) >> 3;
+    printf("bytes : %u\n", bytes);
+    printf("ring_size : %u\n", ring_size);
+    printf("size : %u\n", size);
+
+    priv_int *a = new priv_int[numShares];
+    priv_int *b = new priv_int[numShares];
+    priv_int *c = new priv_int[numShares];
+
+    for (int i = 0; i < numShares; i++) {
+        a[i] = new priv_int_t[size];
+        memset(a[i], 0, sizeof(priv_int_t) * size);
+        b[i] = new priv_int_t[size];
+        memset(b[i], 0, sizeof(priv_int_t) * size);
+        c[i] = new priv_int_t[size];
+        memset(a[i], 0, sizeof(priv_int_t) * size);
+    }
+
+    gettimeofday(&start, NULL); // start timer here
+    if (operation == "b2a") {
+        for (size_t j = 0; j < num_iterations; j++) {
+            Rss_B2A(c, a, size, ring_size, net, ss);
+        }
+    } else if (operation == "fl_mul") {
+
+    } else if (operation == "fl_add") {
+
+    } else if (operation == "fl_div") {
+
+    } else if (operation == "fl_cmp") {
+    }
+
+    else {
+        std::cerr << "ERROR: unknown operation " << operation << ", exiting..."<< endl;
+        exit(1);
+    }
+
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[%s_%spc] [%u, %i, %u] [%.6lf ms,  %.6lf ms/size] \n", operation.c_str(), std::to_string(numParties).c_str(), ring_size, size, num_iterations, (double)(timer * 0.001) / num_iterations, (double)(timer * 0.001 / size) / num_iterations);
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] a[i];
+        delete[] b[i];
+        delete[] c[i];
+    }
+    delete[] a;
+    delete[] b;
+    delete[] c;
+}
+
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     size = 5; //  testing only so I dont have to keep opening rss_main.cpp
     // uint bitlength = 20;
@@ -2073,7 +2142,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     std::vector<std::vector<int>> share_mapping;
     int numPeers = ss->getPeers();
-
     switch (numPeers) {
     case 3:
         share_mapping = {
@@ -2132,7 +2200,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
         // Data1[totalNumShares - 1][i] = ( (-1) * i ) & ss->SHIFT[bitlength];
-        Data1[totalNumShares - 1][i] = 10* ( i + 1 ) + 1;
+        Data1[totalNumShares - 1][i] = 10 * (i + 1) + 1;
         // Data1[totalNumShares - 1][i] = i;
         Data1_byte[totalNumShares - 1][i] = i;
         // Data1[totalNumShares - 1][i] = ((-1) * i);
@@ -2183,7 +2251,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     uint8_t **a_byte = new uint8_t *[ss->getNumShares()];
     uint8_t **b_byte = new uint8_t *[ss->getNumShares()];
 
-    uint8_t* *C_byte = new uint8_t*[ss->getNumShares()];
+    uint8_t **C_byte = new uint8_t *[ss->getNumShares()];
     priv_int *C = new priv_int[ss->getNumShares()];
     priv_int *D = new priv_int[ss->getNumShares()];
     priv_int *A_bit = new priv_int[ss->getNumShares()];
@@ -2195,13 +2263,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(C[i], 0, sizeof(priv_int_t) * size);
         D[i] = new priv_int_t[size];
         memset(D[i], 0, sizeof(priv_int_t) * size);
-    
 
         C_byte[i] = new uint8_t[size];
         memset(C[i], 0, sizeof(uint8_t) * size);
-
     }
-    
 
     for (size_t i = 0; i < numShares; i++) {
         a[i] = Data1[share_mapping[id - 1][i]];
@@ -2211,7 +2276,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     }
 
     printf("Intdiv\n");
-    doOperation_IntDiv(C, a, b,  bitlength, size, -1, net, ss);
+    doOperation_IntDiv(C, a, b, bitlength, size, -1, net, ss);
 
     Open(result, C, size, -1, net, ss);
     Open(result_2, a, size, -1, net, ss);
@@ -2226,7 +2291,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         // // print_binary((result_3[i]), ring_size);
 
         printf("(a / b)     [%lu]: %i / %i = %i\t", i, (int)result_2[i], (int)result_3[i], (int)result[i]);
-        printf("(off by) %i\n",(int)result[i] - (int)result_2[i]/ (int)result_3[i]);
+        printf("(off by) %i\n", (int)result[i] - (int)result_2[i] / (int)result_3[i]);
         // print_binary(result[i], ring_size);
         // printf("\n");
     }
@@ -2267,7 +2332,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     delete[] ao_res[i];
     // }
     // delete[] ao_res;
-
 
     // printf("multbyte\n");
     // Mult_Byte(C_byte, a_byte, b_byte, size, net, ss);

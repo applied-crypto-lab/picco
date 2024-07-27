@@ -38,27 +38,10 @@ lex.yy.c
 parser.tab.c
 parser.tab.h 
 
-int_*
-comparison/*
 .vscode
-# *.txt
-runtime-config-*
-compute/sample-programs/non-thread/eqz_mine.c
 *.x
-
-.cache/
-# share directories
-inputs/
+build/
 outputs/
 shares/
-compiled_programs/
-confs/
-compute/test_op*
-compute/build*
-compute/notes.txt
-CMakeLists.txt
-compute/steps.sh
-compute/sample-programs/non-thread/priv-global-tester-data
-compute/sample-programs/non-thread/priv-global-tester-data2
-compute/Testing
-compute/picco_script.sh
+.cache/
+# share directories

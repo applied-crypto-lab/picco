@@ -22,7 +22,12 @@
 #define NODENETWORK_H_
 
 #if __RSS__
-#include "rss/RSS_types.hpp"
+#if __RSS_32__
+#include "../include_32/RSS_types.hpp"
+#endif
+#if __RSS_64__
+#include "../include_64/RSS_types.hpp"
+#endif
 #endif
 
 #include "../../common/shared.h"
@@ -51,7 +56,7 @@ public:
     NodeNetwork();
     virtual ~NodeNetwork();
 
-    template<typename T>
+    template <typename T>
     void sendDataToPeer(int, int, T *);
 
     void sendDataToPeer(int, mpz_t *, int, int, int);
@@ -59,12 +64,12 @@ public:
 
     template <typename T>
     void getDataFromPeer(int, int, T *);
-    
+
     void getDataFromPeer(int, mpz_t *, int, int, int);
     void getDataFromPeer(int, int, mpz_t *);
 
     void sendModeToPeers(int);
-    
+
     // Broadcast identical data to peers
     void broadcastToPeers(mpz_t *, int, mpz_t **);
     void broadcastToPeers(long long *, int, long long **);

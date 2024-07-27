@@ -1,0 +1,8 @@
+technique:2
+bits:116
+peers:3
+threshold:1
+inputs:1
+outputs:1
+modulus:41538374868278621028243970633760839
+I:1,A,float,1,3,32,9
