@@ -21,7 +21,7 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
-#include "Mult.hpp"
+#include "Mult.hpp" 
 // returns a binary sharing res, where res = a ?< b (we pack 2 shares in a single bit
 // the function expects a and b to be arrays of binary values
 // a is a single value

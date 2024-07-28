@@ -16,7 +16,6 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-
 #ifndef _EDABIT_HPP_
 #define _EDABIT_HPP_
 
@@ -49,13 +48,6 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
     std::vector<int> input_parties(threshold + 1);
     std::iota(input_parties.begin(), input_parties.end(), 1);
     int numInputParties = input_parties.size();
-
-    // std::cout << "numParties : " << numParties << std::endl;
-    // std::cout << "threshold : " << threshold << std::endl;
-    // std::cout << "id : " << id << std::endl;
-    // std::cout << "numShares : " << numShares << std::endl;
-    // std::cout << "numInputParties : " << numInputParties << std::endl;
-    // std::cout << "bytes : " << bytes << std::endl;
 
     T ***result = new T **[threshold + 1];
     for (size_t s = 0; s < threshold + 1; s++) {
@@ -423,7 +415,7 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
         Rss_B2A(temp_carry, temp_carry, 5 * size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
-            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+            memcpy(b_km1[s], temp_carry[s] + 4 * (size), size * sizeof(T));
         }
 
         // adding m-1 and subtracting k carries
@@ -484,8 +476,13 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
 
         the data is ordered as follows:
 
-        carry_buffer[numShares][7*size]
-        (m-1, first half of BA 1) (m-1, second half of BA 1) (k-1, first half of BA 1) (k-1, second half of BA 1) (m-1, BA 2) (k-1, BA 2)
+        carry_buffer[numShares][7*size]:
+        0 (m-1, first half of BA 1)
+        1 (m-1, second half of BA 1)
+        2 (k-1, first half of BA 1)
+        3 (k-1, second half of BA 1)
+        4 (m-1, BA 2)
+        5 (k-1, BA 2)
 
         therfore, to remove the carry bits, we need to be careful when computing the summation
          */
@@ -499,7 +496,7 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
         Rss_B2A(temp_carry, temp_carry, 7 * size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
-            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+            memcpy(b_km1[s], temp_carry[s] + 6 * (size), size * sizeof(T));
         }
 
         // check if this is correct
@@ -540,10 +537,11 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
 // m = number of bits being truncated
 // r -  full size share (z2k)
 // r_hat - k-1-m bit share (z2k)
+// r_hat_hat - k-1-m-2 bit share (z2k)
 // b_2 - individual bits of r (z2), used for deterministic truncation
 // b_km1 - MSB of r, shares over z2k
 template <typename T>
-void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     assertm((ring_size == ss->ring_size), "checking ring_size argument == ss->ring_size");
 
@@ -626,7 +624,7 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
                 temp_carry[s][3 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
             }
         }
-        Rss_B2A(temp_carry, temp_carry, 5 * size, ring_size, nodeNet, ss);
+        Rss_B2A(temp_carry, temp_carry, 4 * size, ring_size, nodeNet, ss);
 
         // getting msb (that we just converted from z2 to z2k) and moving it to b_km1
         // can we theoretically use an assignment operator?
@@ -642,7 +640,9 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 // NOTE WE DO NOT SUBTRACT b_k-1 * 2^{k-m-1} HERE, WE DO IT INSIDE TRUNCATION
+                // compiting cr_m - cr_k-1
                 r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
+                // compiting cr_m-2 - cr_k-1
                 r_hat_hat[s][i] += temp_carry[s][size + i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m - 2));
             }
         }
@@ -668,8 +668,8 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
             memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
             memcpy(B_buff[s], result[1][s] + size, sizeof(T) * size);
 
-            temp_carry[s] = new T[size * 5]; // 2 carries from first bitAdd, 2 carries from second bitAdd, and MSB of result
-            memset(temp_carry[s], 0, sizeof(T) * size * 5);
+            temp_carry[s] = new T[size * 7]; // 2 carries from first bitAdd, 2 carries from second bitAdd, and MSB of result
+            memset(temp_carry[s], 0, sizeof(T) * size * 7);
             temp[s] = new T[size];
             memset(temp[s], 0, sizeof(T) * size);
         }
@@ -679,18 +679,18 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
             memcpy(A_buff[s], result[2][s] + size, sizeof(T) * size);
         }
 
-        Rss_BitAdd_RNTE(b_2, temp_carry, temp, A_buff, ring_size, ring_size, m, 2 * size, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_RNTE(b_2, temp_carry, temp, A_buff, ring_size, ring_size, m, 3 * size, size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
-                temp_carry[s][4 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+                temp_carry[s][6 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
             }
         }
 
-        Rss_B2A(temp_carry, temp_carry, 5 * size, ring_size, nodeNet, ss);
+        Rss_B2A(temp_carry, temp_carry, 7 * size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
-            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+            memcpy(b_km1[s], temp_carry[s] + 6 * (size), size * sizeof(T));
         }
 
         // adding m-1 and subtracting k carries
@@ -698,8 +698,11 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 // NOTE WE DO NOT SUBTRACT b_k-1 * 2^{k-m-1} HERE, WE DO IT INSIDE TRUNCATION
-                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][size + i]) << T(ring_size - m));
-                r_hat[s][i] += temp_carry[s][2 * size + i] - ((temp_carry[s][3 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][3 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
+
+                r_hat_hat[s][i] += temp_carry[s][size * i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m - 2));
+                r_hat_hat[s][i] += temp_carry[s][4 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m - 2));
             }
         }
 
@@ -726,8 +729,8 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
 
             C_buff[s] = new T[2 * size];
             memset(C_buff[s], 0, sizeof(T) * 2 * size);
-            temp_carry[s] = new T[size * 7]; // 7 for 2 carries per bitAdd (3), plus one for MSB of res
-            memset(temp_carry[s], 0, sizeof(T) * size * 7);
+            temp_carry[s] = new T[size * 9]; // 9 for 3 carries per bitAdd (2), plus one for MSB of res
+            memset(temp_carry[s], 0, sizeof(T) * size * 9);
 
             memcpy(A_buff[s], result[0][s] + size, sizeof(T) * size);
             memcpy(A_buff[s] + size, result[1][s] + size, sizeof(T) * size);
@@ -743,7 +746,7 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
             memcpy(B_buff[s], C_buff[s] + size, sizeof(T) * size);
         }
 
-        Rss_BitAdd_RNTE(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 4 * size, size, ring_size, nodeNet, ss);
+        Rss_BitAdd_RNTE(b_2, temp_carry, A_buff, B_buff, ring_size, ring_size, m, 6 * size, size, ring_size, nodeNet, ss);
         /*
         NOTICE BEFORE PROCEEDING
 
@@ -751,31 +754,43 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, T **b_km3,
 
         the data is ordered as follows:
 
-        carry_buffer[numShares][7*size]
-        (m-1, first half of BA 1) (m-1, second half of BA 1) (k-1, first half of BA 1) (k-1, second half of BA 1) (m-1, BA 2) (k-1, BA 2)
+        carry_buffer[numShares][9*size]
+        0 (m-1, first half of BA 1)
+        1 (m-1, second half of BA 1)
+        2 (m-3, first half of BA 1)
+        3 (m-3, second half of BA 1)
+        4 (k-1, first half of BA 1)
+        5 (k-1, second half of BA 1)
+        6 (m-1, BA 2)
+        7 (m-3, BA 2)
+        8 (k-1, BA 2)
 
         therfore, to remove the carry bits, we need to be careful when computing the summation
          */
 
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
-                temp_carry[s][6 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
+                temp_carry[s][8 * size + i] = GET_BIT(b_2[s][i], T(ring_size - 1));
             }
         }
 
-        Rss_B2A(temp_carry, temp_carry, 7 * size, ring_size, nodeNet, ss);
+        Rss_B2A(temp_carry, temp_carry, 9 * size, ring_size, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
-            memcpy(b_km1[s], temp_carry[s] + 2 * (size), size * sizeof(T));
+            memcpy(b_km1[s], temp_carry[s] + 8 * (size), size * sizeof(T));
         }
 
         // check if this is correct
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
                 // NOTE WE DO NOT SUBTRACT b_k-1 * 2^{k-m-1} HERE, WE DO IT INSIDE TRUNCATION
-                r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
-                r_hat[s][i] += temp_carry[s][size + i] - ((temp_carry[s][3 * size + i]) << T(ring_size - m));
-                r_hat[s][i] += temp_carry[s][4 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][0 * size + i] - ((temp_carry[s][4 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][1 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
+                r_hat[s][i] += temp_carry[s][6 * size + i] - ((temp_carry[s][8 * size + i]) << T(ring_size - m));
+
+                r_hat_hat[s][i] += temp_carry[s][2 * size + i] - ((temp_carry[s][4 * size + i]) << T(ring_size - m - 2));
+                r_hat_hat[s][i] += temp_carry[s][3 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m - 2));
+                r_hat_hat[s][i] += temp_carry[s][7 * size + i] - ((temp_carry[s][8 * size + i]) << T(ring_size - m - 2));
             }
         }
 
