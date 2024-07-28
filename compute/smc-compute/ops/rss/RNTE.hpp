@@ -23,9 +23,11 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 #include "B2A.hpp"
+#include "BitDec.hpp"
 #include "BitLT.hpp"
 #include "EQZ.hpp"
 #include "EdaBit.hpp"
+#include "Mult.hpp"
 
 // trunation of all data by a single M
 // this protocol requires that the bitlength of the input is at least one bit shorter than the ring size, i.e. MSB(input) = 0
@@ -186,20 +188,59 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
 
     T **a_p = new T *[numShares];
     T **a_pp = new T *[numShares];
+    T **a_bits = new T *[numShares];
 
-    for (size_t i = 0; i < numShares; i++) {
-        a_p[i] = new T[size];
-        memset(a_p[i], 0, sizeof(T) * size);
-        a_pp[i] = new T[size];
-        memset(a_pp[i], 0, sizeof(T) * size);
+    T **A_buff = new T *[numShares];
+    T **B_buff = new T *[numShares];
+    T **C_buff = new T *[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        A_buff[s] = new T[size];
+        memset(A_buff[s], 0, sizeof(T) * size);
+        B_buff[s] = new T[size];
+        memset(B_buff[s], 0, sizeof(T) * size);
+        C_buff[s] = new T[size];
+        memset(C_buff[s], 0, sizeof(T) * size);
+        a_p[s] = new T[size];
+        memset(a_p[s], 0, sizeof(T) * size);
+        a_pp[s] = new T[size];
+        memset(a_pp[s], 0, sizeof(T) * size);
+        a_bits[s] = new T[size];
+        memset(a_bits[s], 0, sizeof(T) * size);
     }
 
     doOperation_Trunc_RNTE(a_p, a_pp, input, K, m, size, threadID, nodeNet, ss);
 
-for (size_t i = 0; i < numShares; i++) {
+    Rss_BitDec(a_bits, a_pp, 3, size, ring_size, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            A_buff[s][i] = GET_BIT(a_bits[s][i], T(0));
+            B_buff[s][i] = GET_BIT(a_bits[s][i], T(2));
+        }
+    }
+
+    Mult_Bitwise(C_buff, A_buff, B_buff, size, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            A_buff[s][i] = GET_BIT(a_bits[s][i], T(1));
+            B_buff[s][i] = GET_BIT(a_bits[s][i], T(2));
+        }
+    }
+
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] A_buff[i];
+        delete[] B_buff[i];
+        delete[] C_buff[i];
         delete[] a_p[i];
         delete[] a_pp[i];
+        delete[] a_bits[i];
     }
+    delete[] A_buff;
+    delete[] B_buff;
+    delete[] C_buff;
+    delete[] a_bits;
     delete[] a_p;
     delete[] a_pp;
 }
