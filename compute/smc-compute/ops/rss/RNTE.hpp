@@ -28,6 +28,7 @@
 #include "EQZ.hpp"
 #include "EdaBit.hpp"
 #include "Mult.hpp"
+#include <cstdint>
 
 // trunation of all data by a single M
 // this protocol requires that the bitlength of the input is at least one bit shorter than the ring size, i.e. MSB(input) = 0
@@ -185,55 +186,90 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
 
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
+    uint num_uints = (size + 7) >> 3;
 
-    T **a_p = new T *[numShares];
     T **a_pp = new T *[numShares];
     T **a_bits = new T *[numShares];
 
-    T **A_buff = new T *[numShares];
-    T **B_buff = new T *[numShares];
-    T **C_buff = new T *[numShares];
+    uint8_t **A_buff = new T *[numShares];
+    uint8_t **B_buff = new T *[numShares];
+    uint8_t **C_buff = new T *[numShares];
     for (size_t s = 0; s < numShares; s++) {
-        A_buff[s] = new T[size];
-        memset(A_buff[s], 0, sizeof(T) * size);
-        B_buff[s] = new T[size];
-        memset(B_buff[s], 0, sizeof(T) * size);
-        C_buff[s] = new T[size];
-        memset(C_buff[s], 0, sizeof(T) * size);
-        a_p[s] = new T[size];
-        memset(a_p[s], 0, sizeof(T) * size);
+        A_buff[s] = new uint8_t[num_uints];
+        memset(A_buff[s], 0, sizeof(uint8_t) * num_uints);
+        B_buff[s] = new uint8_t[num_uints];
+        memset(B_buff[s], 0, sizeof(uint8_t) * num_uints);
+        C_buff[s] = new uint8_t[num_uints];
+        memset(C_buff[s], 0, sizeof(uint8_t) * num_uints);
+
         a_pp[s] = new T[size];
         memset(a_pp[s], 0, sizeof(T) * size);
         a_bits[s] = new T[size];
         memset(a_bits[s], 0, sizeof(T) * size);
+
+        memset(result[s], 0, sizeof(T) * size);
     }
 
-    doOperation_Trunc_RNTE(a_p, a_pp, input, K, m, size, threadID, nodeNet, ss);
+    doOperation_Trunc_RNTE(result, a_pp, input, K, m, size, threadID, nodeNet, ss);
 
     Rss_BitDec(a_bits, a_pp, 3, size, ring_size, nodeNet, ss);
 
+    uint byte_idx; // byte index of buffer vars, only increments every 8 bits
+    uint bit_idx;  // bit position in buffer (0 to 7 then loops around)
     for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            A_buff[s][i] = GET_BIT(a_bits[s][i], T(0));
-            B_buff[s][i] = GET_BIT(a_bits[s][i], T(2));
+        for (uint i = 0; i < size; i++) {
+            bit_idx = i & 7;
+            byte_idx = i >> 3;
+            A_buff[s][byte_idx] = SET_BIT(A_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(a_bits[s][i], uint8_t(0)));
+            B_buff[s][byte_idx] = SET_BIT(B_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(a_bits[s][i], uint8_t(2)));
         }
     }
 
-    Mult_Bitwise(C_buff, A_buff, B_buff, size, nodeNet, ss);
+    Mult_Byte(C_buff, A_buff, B_buff, num_uints, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            A_buff[s][i] = GET_BIT(a_bits[s][i], T(1));
-            B_buff[s][i] = GET_BIT(a_bits[s][i], T(2));
+        for (uint i = 0; i < num_uints; i++) {
+            A_buff[s][byte_idx] = B_buff[s][i] ^ A_buff[s][i] ^ C_buff[s][i];
+        }
+
+        memset(B_buff[s], 0, sizeof(uint8_t) * num_uints);
+        memset(C_buff[s], 0, sizeof(uint8_t) * num_uints);
+    }
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (uint i = 0; i < size; i++) {
+            bit_idx = i & 7;
+            byte_idx = i >> 3;
+            B_buff[s][byte_idx] = SET_BIT(B_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(a_bits[s][i], uint8_t(1)));
         }
     }
 
+    Mult_Byte(C_buff, A_buff, B_buff, num_uints, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        memset(a_pp[s], 0, sizeof(T) * size); // using a_pp as a buffer for B2A
+    }
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            bit_idx = i & 7;
+            byte_idx = i >> 3;
+            a_pp[s][i] = GET_BIT(C_buff[s][byte_idx], uint8_t(bit_idx));
+        }
+    }
+
+    Rss_B2A(a_pp, a_pp, size, ring_size, nodeNet, ss);
+
+    for (size_t s = 0; s < numShares; s++) {
+        for (size_t i = 0; i < size; i++) {
+            result[s][i] = result[s][i] + a_pp[s][i];
+        }
+    }
 
     for (size_t i = 0; i < numShares; i++) {
         delete[] A_buff[i];
         delete[] B_buff[i];
         delete[] C_buff[i];
-        delete[] a_p[i];
         delete[] a_pp[i];
         delete[] a_bits[i];
     }
@@ -241,7 +277,6 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
     delete[] B_buff;
     delete[] C_buff;
     delete[] a_bits;
-    delete[] a_p;
     delete[] a_pp;
 }
 

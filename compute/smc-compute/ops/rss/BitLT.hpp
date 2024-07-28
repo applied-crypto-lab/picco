@@ -203,7 +203,7 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
             for (j = 0; j < new_r_size; ++j) {
                 // loop constants
                 t_index = (j >> 2) + (i * n_uints);
-                mask2 = (2 * j + 1);
+                mask2 = (2 * j + 1); 
                 mask2m8 = (2 * j + 1) & 7;
                 mask1m8 = (2 * j) & 7; // "&7" = %8, used for leftover bits
 
