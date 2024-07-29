@@ -58,7 +58,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 #if __RSS__
     printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
-    nodeNet->element_size = ((bits + 7) >> 3);;
+
     // printf("RSS_constructor end\n");
 
 #endif

@@ -87,6 +87,7 @@ int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed mode
 const int numb = sizeof(char) * 8;
 int peers;
 int bits;
+int element_size;
 /************************************************************/
 
 
@@ -102,6 +103,8 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
 
 #if __SHAMIR__
     element_size = (bits + numb - 1) / numb;
+#elif __RSS__
+    element_size = ((bits + 7) >> 3);
 #endif
 
     // allocate space for prgSeeds
@@ -377,6 +380,18 @@ void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
             bytesWrote += bytes;
     }
 }
+
+void NodeNetwork::getDataFromPeer(int id, int size, int *data) {
+    int bytesWrote = 0, totalSize = size * sizeof(int);
+    while (bytesWrote < totalSize) {
+        bytes = getDataFromPeer(id, (unsigned char*)data, bytesWrote, totalSize - bytesWrote);
+
+        if (bytes > 0)
+            bytesWrote += bytes;
+    }
+
+}
+
 
 /*
     UNSIGNED CHAR (all data passed goes through here)
@@ -1484,7 +1499,12 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *sendData, priv_int_t *recvD
     int totalSize = size * element_size,
         bytesRead = 0,
         bytesWrote = 0;
-
+        
+    if (!(send_recv_map[0][0] > 0))
+        bytesWrote = totalSize;
+    if (!(send_recv_map[1][0] > 0))
+        bytesRead = totalSize;
+        
     while (bytesRead < totalSize || bytesWrote < totalSize) {
         if (bytesWrote < totalSize) {
             bytes = sendDataToPeer(send_recv_map[0][0], sendData, bytesWrote, totalSize - bytesWrote, ring_size);
@@ -1510,10 +1530,15 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *sendData, priv_int_t **recv
     toReceive.clear();
 
     int i, start;
-    for (i = 0; i < send_recv_map[0].size(); i++) {
-        toSend.push_back({i, 0});
-        toReceive.push_back({i, 0});
-    }
+    if (!send_recv_map[0].empty())
+        for (i = 0; i < send_recv_map[0].size() - 1; i++)
+            if (send_recv_map[0][i] > 0)
+                toSend.push_back({i, 0});
+
+    if (!send_recv_map[1].empty())
+        for (i = 0; i < send_recv_map[1].size() - 1; i++)
+            if (send_recv_map[1][i] > 0)
+                toReceive.push_back({i, 0});
 
     while (!(toSend.empty() && toReceive.empty())) {
         for (it = toSend.begin(); it < toSend.end(); it++) {
@@ -1552,10 +1577,16 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **sendData, priv_int_t **rec
     toReceive.clear();
 
     int i, start;
-    for (i = 0; i < send_recv_map[0].size(); i++) {
-        toSend.push_back({i, 0});
-        toReceive.push_back({i, 0});
-    }
+    if (!send_recv_map[0].empty())
+        for (i = 0; i < send_recv_map[0].size() - 1; i++)
+            if (send_recv_map[0][i] > 0)
+                toSend.push_back({i, 0});
+
+    if (!send_recv_map[1].empty())
+        for (i = 0; i < send_recv_map[1].size() - 1; i++)
+            if (send_recv_map[1][i] > 0)
+                toReceive.push_back({i, 0});
+
 
     while (!(toSend.empty() && toReceive.empty())) {
         for (it = toSend.begin(); it < toSend.end(); it++) {
@@ -1606,7 +1637,6 @@ int NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int remaini
     try {
         unsigned char *buffer = (unsigned char *)calloc(sizeof(unsigned char), remainingLength);
 
-
         unsigned char *pointer = buffer;
         for (int i = start; i < start + remainingLength; i++) {
             // I think this is here to preserve security beyond the ell (or k) bits of the shares
@@ -1622,7 +1652,7 @@ int NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int remaini
         
         free(buffer);
         free(encrypted);
-
+        
         return bytes;
 
     } catch (std::exception &e) {
@@ -1654,10 +1684,10 @@ int NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int remain
             decrypted = aes_decrypt(de_temp, buffer, &remainingLength);
 
             memcpy(((unsigned char *) data) + start, decrypted, bytes);
+            free(decrypted);
         }
         
         free(buffer);
-        free(decrypted);
 
         return bytes;
     } catch (std::exception &e) {
@@ -1715,12 +1745,12 @@ void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int 
 }
 
 // specific to 3 parties (open and mult)
-void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
+void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *sendData, uint8_t *recvData, int size, std::vector<std::vector<int>> send_recv_map) {
     for (int i = 0; i < send_recv_map[0].size(); i++) {
-        sendDataToPeer(send_recv_map[0][i], size, (unsigned char *) SendData);
+        sendDataToPeer(send_recv_map[0][i], size, (unsigned char *) sendData);
     }
     for (int i = 0; i < send_recv_map[1].size(); i++) {
-        getDataFromPeer(send_recv_map[1][i], size, (unsigned char *) RecvData);
+        getDataFromPeer(send_recv_map[1][i], size, (unsigned char *) recvData);
     }
 }
 

@@ -54,8 +54,6 @@ public:
     int *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read;
     int *runningTotalWrite = new int(0), *runningTotalRead = new int(0);
     bool tracking;
-    
-    int element_size; 
 
     void beginTracking();
     void endTracking(char*, int);
