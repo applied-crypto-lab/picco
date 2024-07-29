@@ -131,10 +131,6 @@ public:
     unsigned char **getPRGseeds();
 
 #if __RSS__
-    void SendAndGetDataFromPeer(priv_int_t *, priv_int_t *, int, uint, std::vector<std::vector<int>> send_recv_map);
-    void SendAndGetDataFromPeer(priv_int_t *, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
-    void SendAndGetDataFromPeer(priv_int_t **, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
-
     void sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size);
     int sendDataToPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size);
     
@@ -143,12 +139,14 @@ public:
     
     void multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size);
 
+
+    void SendAndGetDataFromPeer(priv_int_t *, priv_int_t *, int, uint, std::vector<std::vector<int>> send_recv_map);
+    void SendAndGetDataFromPeer(priv_int_t *, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
+    void SendAndGetDataFromPeer(priv_int_t **, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
+
     void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer_bit(uint8_t **SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map);
-
-    // void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
-    // void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
 
 #endif
 
