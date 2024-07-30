@@ -2095,7 +2095,7 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
         memset(a[i], 0, sizeof(priv_int_t) * size);
     }
 
-    // std::cout << "START" << std::endl;
+    std::cout << "START" << std::endl;
     gettimeofday(&start, NULL); // start timer here
     if (operation == "b2a") {
         for (size_t j = 0; j < num_iterations; j++) {
