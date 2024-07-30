@@ -861,7 +861,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             char *buffer = (char *)malloc(RSA_size(priRkey));
             int n = read(sockfd[i], buffer, RSA_size(priRkey));
             if (n < 0)
-                throw std::runtime_error("reading from socket");
+                throw std::runtime_error("reading from socket 1");
             char *decrypt = (char *)malloc(n);
             memset(decrypt, 0x00, n);
             int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
@@ -874,7 +874,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
             // check that this is the number of bytes that are supposed to be read from the socket
             if (read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
-                throw std::runtime_error("reading from socket");
+                throw std::runtime_error("reading from socket 2");
 #endif
 
             memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
