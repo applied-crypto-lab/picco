@@ -22,7 +22,7 @@
 
 #include "../bit_utils.hpp"
 #include "stdint.h"
-#include <charconv>
+// #include <charconv>
 #include <cmath>
 #include <exception>
 #include <fstream>
@@ -656,7 +656,7 @@ void replicatedSecretShare<T>::ss_input(int id, T **var, std::string type, std::
         for (int i = 0; i < numShares; i++) {
             if (!is_int(tokens[i]))
                 throw std::runtime_error("Non-integer input provided: " + tokens[i]);
-            std::from_chars(tokens[i].data(), tokens[i].data() + tokens[i].size(), (*var)[i]);
+            // std::from_chars(tokens[i].data(), tokens[i].data() + tokens[i].size(), (*var)[i]);
         }
 
     } catch (const std::runtime_error &ex) {
@@ -729,7 +729,7 @@ void replicatedSecretShare<T>::ss_input(int id, T **var, int size, std::string t
             for (int j = 0; j < numShares; j++) {
                 if (!is_int(temp[j]))
                     throw std::runtime_error("Non-integer input provided: " + temp[j]);
-                std::from_chars(temp[j].data(), temp[j].data() + temp[j].size(), var[j][i]);
+                // std::from_chars(temp[j].data(), temp[j].data() + temp[j].size(), var[j][i]);
             }
         }
     } catch (const std::runtime_error &ex) {
