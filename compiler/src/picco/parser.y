@@ -59,7 +59,7 @@ void    add_declaration_links(astspec s, astdecl d, int);
 void    set_pointer_flag(astspec s, astdecl d);
 void    set_security_flag_symbol(astexpr e, symbol s, int); 
 void 	set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid);
-void 	set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid); // this needs more work 
+void 	set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid);
 void 	set_security_flag_stmt(aststmt s, aststmt s1, aststmt s2);
 void    set_security_flag_func(char* funcname, astexpr e2);
 void 	set_bitlength_expr(astexpr e, astexpr e1, astexpr e2); 
@@ -523,7 +523,7 @@ postfix_expression:
    }
   | postfix_expression '.' IDENTIFIER
     {
-	$$ = DotField($1, Symbol($3));
+	$$ = DotField($1, Symbol($3)); // in here it is handled as dotfiled not array
 	set_identifier_attributes(Symbol($3), $$, 1); 
     }
   | postfix_expression PTR_OP IDENTIFIER
@@ -3809,26 +3809,24 @@ void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 struct_field get_struct_field_info(astexpr e)
 {
 	struct_node node;
-        struct_field field;
+    struct_field field;
 	while(e->type == ARRAYIDX)
 		e = e->left;
-        if(e->left->type != PTRFIELD && e->left->type != DOTFIELD)
-        {
-                stentry entry = symtab_get(stab, e->left->u.sym, IDNAME); 
-		node = struct_node_lookup(struct_table, entry->spec->name->name);
-                field = struct_field_lookup(node, e->u.sym->name);
-		if(!node->contain_pub_field)
-			set_global_tags_for_private_struct_field(field->type, field->name); 
-        }
-        else
-        {
-                struct_field f = get_struct_field_info(e->left);
-                node = struct_node_lookup(struct_table, f->type->name->name);
-                field = struct_field_lookup(node, e->u.sym->name);
-		if(!node->contain_pub_field)
-			set_global_tags_for_private_struct_field(field->type, field->name); 
-        }
-        return field;
+    if(e->left->type != PTRFIELD && e->left->type != DOTFIELD)
+    {
+        stentry entry = symtab_get(stab, e->left->u.sym, IDNAME); // aaaaaa struct issue
+        node = struct_node_lookup(struct_table, entry->spec->name->name);
+        field = struct_field_lookup(node, e->u.sym->name);
+        if(!node->contain_pub_field)
+            set_global_tags_for_private_struct_field(field->type, field->name); 
+    } else {
+        struct_field f = get_struct_field_info(e->left);
+        node = struct_node_lookup(struct_table, f->type->name->name);
+        field = struct_field_lookup(node, e->u.sym->name);
+        if(!node->contain_pub_field)
+            set_global_tags_for_private_struct_field(field->type, field->name); 
+    }
+    return field;
 }
 
 /*
@@ -3965,7 +3963,7 @@ void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
       astspec spec = NULL;
       astdecl decl = NULL;
       struct_field field;
-
+ // bbbbbb
       if(is_su_field)
       {
                 field = get_struct_field_info(e);
@@ -4101,8 +4099,25 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
             else
                 e->index = tmp_float_index; 
                     // assume e1 and e2 are arrays and have the same size
-                    if(e1->arraysize != NULL && e2->arraysize != NULL)
+                    if(e1->arraysize != NULL && e2->arraysize != NULL) {
                             e->arraysize = ast_expr_copy(e1->arraysize);
+                            
+                        // printf("e1: %s, e2: %s\n", e1->arraysize->u.str, e2->arraysize->u.str);
+
+                        if (atoi(e1->arraysize->u.str) > tmp_array_max_size) {
+                            tmp_array_max_size = atoi(e1->arraysize->u.str);
+                        }
+                        if (atoi(e2->arraysize->u.str) > tmp_array_max_size) {
+                            tmp_array_max_size = atoi(e2->arraysize->u.str) ;
+                        }
+
+                        array_tmp_index = 1;
+                        array_ftmp_index = 1;
+
+                        if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str)) {
+                            parse_error(-1, "Array sizes in expression do not match.\n");
+                        }
+                    }
                 //e->arraysize = e1->arraysize;   
 	    }
 	    compute_modulus_for_BOP(e1, e2, opid); 

@@ -57,7 +57,12 @@ int enterfunc = 0;
 int new_tree_index_for_auto_cast = 0; // this index is used by the new casting code because the index of tree in this case is -1 
 int is_return_void = 0;
 str arg_str;
-int immresulttype = 0;  /* Set the type of the resulting array for batch operations*/
+int immresulttype = 0;  /* Set the type of the resulting array for batch operations. */
+int BRACEDINIT_array_decl = 0;  /* This variable is used to marked array declaration in one line. */
+int BRACEDINIT_array_decl_tmp_counter = 0; /* This is the counter to keep track of the tmp array. */
+int BRACEDINIT_array_decl_tmp_type = 0; /* This is to keep track of the type. */
+int BRACEDINIT_array_decl_tmp_size = 0; /* This is to store the size of these arrays */
+str BRACEDINIT_array_smcset;
 
 static void indent() {
     int i;
@@ -2471,6 +2476,8 @@ void ast_stmt_show(aststmt tree, branchnode current) {
         if (declared == 0 && enterfunc == 1) {
             if (tree->body->u.expr->left != NULL && tree->body->u.expr->left->arraytype == 1) { // if there is an expression that involve arrays
                 // atoi(tree->body->u.expr->left->arraysize->u.str); // this has the array size 
+                array_tmp_index = 0; // this is needed to make sure incase if there is another expr, these tmp variables don't get updated 
+                array_ftmp_index = 0;
                 if (tree->u.expr->left->ftype == 1)
                     array_ftmp_index++;
                 else if (tree->u.expr->left->ftype == 0) 
@@ -3191,7 +3198,14 @@ void ast_expr_show(astexpr tree) {
         } else if (gf == 1 && is_init_decl == 1) {
             str_printf(global_string, "%s", tree->u.sym->name);
         } else {
-            fprintf(output, "%s", tree->u.sym->name);
+            if (BRACEDINIT_array_decl == 1) { // new added version to handle array init in one line using a public array assignment
+                if (BRACEDINIT_array_decl_tmp_type == 1) 
+                    fprintf(output, "\n    float ");
+                else if (BRACEDINIT_array_decl_tmp_type == 0) 
+                    fprintf(output, "\n    int ");
+                fprintf(output, "_picco_tmp_array_init%d[%d]", BRACEDINIT_array_decl_tmp_counter, BRACEDINIT_array_decl_tmp_size);
+            } else 
+                fprintf(output, "%s", tree->u.sym->name);  // old/regular way of printing array name
         }
         break;
     case CONSTVAL:
@@ -3251,7 +3265,7 @@ void ast_expr_show(astexpr tree) {
         break;
     case DOTFIELD:
         ast_expr_show(tree->left);
-        fprintf(output, ".%s", tree->u.sym->name);
+        fprintf(output, ".%s", tree->u.sym->name); // this is where the do for struct gets printed 
         break;
     case PTRFIELD:
         // retrieve the struct type for tree->left
@@ -3280,6 +3294,13 @@ void ast_expr_show(astexpr tree) {
             indent();
             indlev--;
             fprintf(output, "}");
+        }
+        // create the string up and call it here 
+        if (BRACEDINIT_array_decl == 1) {
+            fprintf(output, ";");
+            char *BRACEDINIT_array_smcset_var = str_string(BRACEDINIT_array_smcset); 
+            fprintf(output, "%s", BRACEDINIT_array_smcset_var);
+            BRACEDINIT_array_decl = 0; // set this back to zero for the rest of the instructions
         }
         break;
     // NEEDS MORE WORK
@@ -3655,7 +3676,7 @@ void ast_expr_show(astexpr tree) {
             if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
                 str_printf(global_string, "__s->smc_set(");
             } else {
-                fprintf(output, "__s->smc_set("); // This is where the smc gets printed for private global variables 
+                fprintf(output, "__s->smc_set("); // This is where the smc gets printed for private global/non-global variables and init of values to array/non-array variables and structs 
             }
             ast_expr_show(tree->right); // This is where the name and value gets printed after smc_set()
             if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
@@ -3993,6 +4014,25 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
                 indlev--;
             } else
                 ast_decl_memory_free_float(tree, struct_name);
+        } else if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) { // this is where array of struct should be handled too
+            fprintf(output, "    // Memory should get freed from here for array of struct!\n  ");
+            if (!tree->spec) {
+                indent();
+                if (!flag)
+                    fprintf(output, "%s_init(&(%s%s));\n", spec->name->name, struct_name, tree->decl->u.id->name);
+                else
+                    fprintf(output, "%s_free(&(%s%s));\n", spec->name->name, struct_name, tree->decl->u.id->name);
+            } else {
+                if (!struct_node_get_flag(sns, spec->name->name)) {
+                    indent();
+                    if (!flag) {
+                        int level = ast_compute_ptr_level(tree);
+                        fprintf(output, "%s%s = __s->smc_new_ptr(%d, 2);\n", struct_name, tree->decl->u.id->name, level);
+                    } else
+                        fprintf(output, "__s->smc_clear_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
+                }
+            }
+            break;
         }
         break;
     }
@@ -4247,6 +4287,38 @@ void ast_decl_stmt_show(aststmt tree, branchnode current) {
             is_priv = 0;
             is_init_decl = 0;
         }
+        // Added support for array init in one line
+        if (tree && tree->u.declaration.decl && tree->u.declaration.decl->u.expr &&
+            tree->u.declaration.decl->u.expr->left && tree->u.declaration.decl->decl &&
+            tree->u.declaration.decl->decl->decl) {
+            
+            if (tree->u.declaration.decl->u.expr->type == BRACEDINIT &&
+                tree->u.declaration.decl->u.expr->left->type == COMMALIST &&
+                tree->u.declaration.decl->decl->decl->type == DARRAY) {
+                
+                BRACEDINIT_array_decl = 1; // the flag to make sure it is an array init in one line
+                BRACEDINIT_array_decl_tmp_counter++; // the counter to make sure I have enough init for all variables 
+
+                // store the type to create the tmp public variable based on that 
+                if (tree->u.declaration.spec->subtype == SPEC_float || tree->u.declaration.spec->subtype == SPEC_Rlist) {
+                    BRACEDINIT_array_decl_tmp_type = 1; // float
+                } else if (tree->u.declaration.spec->subtype == SPEC_int || tree->u.declaration.spec->subtype == SPEC_Rlist) {
+                    BRACEDINIT_array_decl_tmp_type = 0; // int
+                }
+
+                // store the size of the array in here
+                BRACEDINIT_array_decl_tmp_size = atoi(tree->u.declaration.decl->decl->decl->u.expr->u.str); 
+
+                // create the smc_set instructions to assign the public array to the private array 
+                BRACEDINIT_array_smcset = Str("");
+
+                if (BRACEDINIT_array_decl_tmp_type == 1) { // float
+                    str_printf(BRACEDINIT_array_smcset, "\n    __s->smc_set(_picco_tmp_array_init%d, %s, %d, %d, %d, %d, %s, \"float\", %d)", BRACEDINIT_array_decl_tmp_counter, tree->u.declaration.decl->decl->decl->decl->u.id->name, tree->u.declaration.spec->size, tree->u.declaration.spec->sizeexp, tree->u.declaration.spec->size, tree->u.declaration.spec->sizeexp, tree->u.declaration.decl->decl->decl->u.expr->u.str, tree->u.declaration.decl->u.expr->left->thread_id);
+                } else if (BRACEDINIT_array_decl_tmp_type == 0) { // int
+                    str_printf(BRACEDINIT_array_smcset, "\n    __s->smc_set(_picco_tmp_array_init%d, %s, %d, %d, %s, \"int\", %d)", BRACEDINIT_array_decl_tmp_counter, tree->u.declaration.decl->decl->decl->decl->u.id->name, tree->u.declaration.spec->size, tree->u.declaration.spec->size, tree->u.declaration.decl->decl->decl->u.expr->u.str, tree->u.declaration.decl->u.expr->left->thread_id);
+                }
+            }
+        }
         ast_priv_decl_show(tree->u.declaration.decl, tree->u.declaration.spec, current, tree->gflag);
         is_priv = 0;
         is_init_decl = 0;
@@ -4478,6 +4550,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
                 }
             }
         }
+        // this is where array of struct should be handled 
         break;
     }
 }
@@ -4734,6 +4807,41 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             //     ast_decl_memory_assign_float(tree, "");
             //     indlev--;
             // }
+        } else if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {  // This is where array of struct should be handled! Same like int and float but different instructions!
+            // non-pointer declaration
+            if (!tree->spec) {
+                ast_spec_show(spec);
+                fprintf(output, " ");
+                ast_decl_show(tree);
+                fprintf(output, ";\n");
+                indent();
+                if (gf == 1 && is_init_decl == 1) 
+                    str_printf(global_string, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where a private global struct or union init function call gets printed
+                else 
+                    fprintf(output, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where any non-global struct or union init function call gets printed
+            }
+            // pointer declaration
+            else {
+                // perform operations below only if the struct contains non-public fields (nested)
+                int contain_pub_field = 1;
+                contain_pub_field = struct_node_get_flag(sns, spec->name->name);
+                if (!contain_pub_field) {
+                    indent();
+                    int level = ast_compute_ptr_level(tree);
+                    if (gf == 1 && is_init_decl == 1) {
+                        fprintf(output, "priv_ptr %s;\n", tree->decl->u.id->name);
+                        str_printf(global_string, "%s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                    } else {
+                        fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                    }
+                } else {
+                    ast_spec_show(spec);
+                    fprintf(output, " ");
+                    ast_decl_show(tree);
+                    fprintf(output, ";\n");
+                }
+            }
+            break;
         }
         break;
     }
@@ -4817,7 +4925,7 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
         if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
             indent_global_string(global_string);
             if (technique_var == SHAMIR_SS)
-                str_printf(global_string, "11111111ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name); // this does struct init
+                str_printf(global_string, "ss_init(%s%s[_picco_i]);\n", prefix, tree->decl->u.id->name); // this does struct init
             else if (technique_var == REPLICATED_SS) {
                 str_printf(global_string, "__s->ss_init(%s%s[_picco_i], ", prefix, tree->decl->u.id->name);
                 ast_expr_show(tree->u.expr); // This is here to print the ,name part for rss/ not needed for shamir
@@ -5717,7 +5825,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
         //             type = "\"int\"";
         //     }
 
-        //     fprintf(output, ", %s, %d)", type, tree->right->thread_id); /// fffffffffffffffffffff
+        //     fprintf(output, ", %s, %d)", type, tree->right->thread_id); 
         // } else 
         if (tree->right->opid == BOP_dot) {
             fprintf(output, "%s, %d)", str_string(leftop), tree->right->thread_id);
@@ -5790,17 +5898,31 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                     }
                 } else { // the old version used for other stuff 
                     indent();
-                    ast_assignment_prefix_show(tree); // call smc_set 
-                    if (tree->right->ftype == 1) { // float
-                        if (is_init_decl == 1)
-                            str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                        else 
-                            fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                    } else { // int
-                        if (is_init_decl == 1)
-                            str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
-                        else 
-                            fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                    ast_assignment_prefix_show(tree); // call fucntion smc_set name
+                    if(immresulttype == 0) { // print the rest of the instruction for smc_set - old/regular
+                        if (tree->right->ftype == 1) { // float
+                            if (is_init_decl == 1)
+                                str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                            else 
+                                fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                        } else { // int
+                            if (is_init_decl == 1)
+                                str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                            else 
+                                fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                        }
+                    } else if (immresulttype == 1) { // print the rest of the instruction for smc_set - newly added to support multiple operations on batch arrays -> we needed this cause it was not implemented before 
+                        if (tree->right->ftype == 1) { // float
+                            if (is_init_decl == 1)
+                                str_printf(global_string, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->arraysize->u.str, tree->right->thread_id);
+                            else 
+                                fprintf(output, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->arraysize->u.str, tree->right->thread_id);
+                        } else { // int
+                            if (is_init_decl == 1)
+                                str_printf(global_string, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->left->arraysize->u.str, tree->right->thread_id);
+                            else 
+                                fprintf(output, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->left->arraysize->u.str, tree->right->thread_id);
+                        }
                     }
                 }
             }

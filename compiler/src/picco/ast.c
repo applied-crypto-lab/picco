@@ -240,11 +240,13 @@ astdecl ArrayDecl(astdecl decl, astspec s, astexpr e) {
     if (e != NULL) {
         if (e->flag == PRI){ // array length cannot be private var
             if (e->ftype == 1)
-                exit_error(1, "Size of array '%s' has non-integer type and cannot be private.\n", decl->u.id->name);
-            exit_error(1, "Size of allocated memory (array '%s') cannot be private.\n", decl->u.id->name);
+                exit_error(1, "     Size of array '%s' has non-integer type and cannot be private.\n", decl->u.id->name);
+            exit_error(1, "     Size of allocated memory (array '%s') cannot be private.\n", decl->u.id->name);
         } else if (e->flag == PUB && e->ftype == 1) {
-            exit_error(1, "Size of array '%s' has non-integer type.\n", decl->u.id->name);
+            exit_error(1, "     Size of array '%s' has non-integer type.\n", decl->u.id->name);
         }
+    } else if (e == NULL) {
+        exit_error(1, "     Array '%s' length can not be empty!\n", decl->u.id->name);
     }
     astdecl d = Decl(DARRAY, 0, decl, s);
     d->u.expr = e;
