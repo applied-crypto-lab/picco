@@ -25,6 +25,7 @@ fi
 
 for exp in "${exps[@]}"
 do
+    echo "sleep ${sleep_times[$index]}; ./build/rss_main $3 $config_name private0$3.pem $1 $exp | tee -a $2_$1_pc_micro_$4_$timestamp.txt "
     sleep ${sleep_times[$index]}; ./build/rss_main $3 $config_name private0$3.pem $1 $exp | tee -a $2_$1_pc_micro_$4_$timestamp.txt
 done
 
