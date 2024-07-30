@@ -129,7 +129,7 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             r_hat[s][i] = (c[i] & ai[s]) ^ b_2[s][i];              // reusing r_hat
-            b2a_buff[s][3 * size + i] = (r_hat[s][i]) ^ v_2[s][i]; // computing (c_0 ^ b_0) ^ v (in Z2)
+            b2a_buff[s][3 * size + i] = (r_hat[s][i]) ^ v_2[s][i]; // computing (c_0 ^ b_0) ^ v (in Z2), and storing it in the last (size) elements
         }
     }
 
@@ -262,7 +262,7 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            result[s][i] = result[s][i] + a_pp[s][i];
+            result[s][i] += a_pp[s][i];
         }
     }
 

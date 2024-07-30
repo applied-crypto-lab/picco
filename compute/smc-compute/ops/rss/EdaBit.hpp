@@ -549,6 +549,7 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, uint m, ui
     static int numParties = ss->getPeers();
     static int id = ss->getID();
     static uint numShares = ss->getNumShares();
+    int m2 = m - 2;
     uint bytes = (ring_size + 7) >> 3;
 
     uint total_size = 4 * size; // for shares in 3*Z_2k and Z_2
@@ -643,7 +644,7 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, uint m, ui
                 // compiting cr_m - cr_k-1
                 r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
                 // compiting cr_m-2 - cr_k-1
-                r_hat_hat[s][i] += temp_carry[s][size + i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m - 2));
+                r_hat_hat[s][i] += temp_carry[s][size + i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m2));
             }
         }
 
@@ -701,8 +702,8 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, uint m, ui
                 r_hat[s][i] += temp_carry[s][i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m));
                 r_hat[s][i] += temp_carry[s][3 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
 
-                r_hat_hat[s][i] += temp_carry[s][size * i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m - 2));
-                r_hat_hat[s][i] += temp_carry[s][4 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m - 2));
+                r_hat_hat[s][i] += temp_carry[s][size * i] - ((temp_carry[s][2 * size + i]) << T(ring_size - m2));
+                r_hat_hat[s][i] += temp_carry[s][4 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m2));
             }
         }
 
@@ -788,9 +789,9 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, uint m, ui
                 r_hat[s][i] += temp_carry[s][1 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m));
                 r_hat[s][i] += temp_carry[s][6 * size + i] - ((temp_carry[s][8 * size + i]) << T(ring_size - m));
 
-                r_hat_hat[s][i] += temp_carry[s][2 * size + i] - ((temp_carry[s][4 * size + i]) << T(ring_size - m - 2));
-                r_hat_hat[s][i] += temp_carry[s][3 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m - 2));
-                r_hat_hat[s][i] += temp_carry[s][7 * size + i] - ((temp_carry[s][8 * size + i]) << T(ring_size - m - 2));
+                r_hat_hat[s][i] += temp_carry[s][2 * size + i] - ((temp_carry[s][4 * size + i]) << T(ring_size - m2));
+                r_hat_hat[s][i] += temp_carry[s][3 * size + i] - ((temp_carry[s][5 * size + i]) << T(ring_size - m2));
+                r_hat_hat[s][i] += temp_carry[s][7 * size + i] - ((temp_carry[s][8 * size + i]) << T(ring_size - m2));
             }
         }
 
