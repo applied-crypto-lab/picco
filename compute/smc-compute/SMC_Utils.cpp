@@ -62,6 +62,12 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
+
+    if (bits > 8 * sizeof(priv_int_t)) {
+        std::cerr << "ring size cannot be larger than the bitlength of priv_int_t\nExiting...\n";
+
+        std::exit(1);
+    }
     printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
     // printf("RSS_constructor end\n");
@@ -2076,7 +2082,6 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
     printf("size : %u\n", size);
     printf("8*sizeof(Lint) = %lu\n", 8 * sizeof(priv_int_t));
     printf("sizeof(Lint) = %lu\n", sizeof(priv_int_t));
-
     priv_int *a = new priv_int[numShares];
     priv_int *b = new priv_int[numShares];
     priv_int *c = new priv_int[numShares];
@@ -2090,6 +2095,7 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
         memset(a[i], 0, sizeof(priv_int_t) * size);
     }
 
+    // std::cout << "START" << std::endl;
     gettimeofday(&start, NULL); // start timer here
     if (operation == "b2a") {
         for (size_t j = 0; j < num_iterations; j++) {
@@ -2105,9 +2111,10 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
     }
 
     else {
-        std::cerr << "ERROR: unknown operation " << operation << ", exiting..."<< endl;
+        std::cerr << "ERROR: unknown operation " << operation << ", exiting..." << endl;
         exit(1);
     }
+    std::cout << "END" << std::endl;
     // std::cout<<numBytesSent<<std::endl;
 
     gettimeofday(&end, NULL); // stop timer here
