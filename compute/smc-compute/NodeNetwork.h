@@ -131,6 +131,9 @@ public:
     unsigned char **getPRGseeds();
 
 #if __RSS__
+    /*
+        priv_int_t
+    */
     void sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size);
     int sendDataToPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size);
     
@@ -143,6 +146,16 @@ public:
     void SendAndGetDataFromPeer(priv_int_t *, priv_int_t *, int, uint, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer(priv_int_t *, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer(priv_int_t **, priv_int_t **, int, uint, std::vector<std::vector<int>> send_recv_map);
+    
+
+    /*
+        uint8_t
+    */
+    void sendDataToPeer(int id, int size, uint8_t *data, uint ring_size);
+    int sendDataToPeer(int id, uint8_t *data, int start, int remainingLength, uint ring_size);
+    
+    void getDataFromPeer(int id, int size, uint8_t *buffer, uint ring_size);
+    int getDataFromPeer(int id, uint8_t *data, int start, int remainingLength, uint ring_size);
 
     void SendAndGetDataFromPeer_bit(uint8_t *, uint8_t **, int, std::vector<std::vector<int>> send_recv_map);
     void SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map);
@@ -184,8 +197,31 @@ private:
     uint threshold;
 
     //Used in batch mult and open
-    std::vector<std::pair<int, int>> toSend, toReceive;
+#if __SHAMIR__
+    std::vector<std::pair<int, int>> *toSend, *toReceive;
     std::vector<std::pair<int, int>>::iterator it;
+#elif __RSS__
+    struct toTransmit {
+        int ID;
+        int start;
+        priv_int_t *data; 
+    };
+    std::vector<toTransmit *> *toSend, *toReceive;
+    std::vector<toTransmit *>::iterator it;
+
+
+
+    struct toTransmit_bit {
+        int ID;
+        int start;
+        uint8_t *data; 
+    };
+    std::vector<toTransmit_bit *> *toSend_bit, *toReceive_bit;
+    std::vector<toTransmit_bit *>::iterator it_bit;
+
+    void sendAndReceive(int dataSize);
+    void sendAndReceive_bit(int dataSize);
+#endif
     int bytes;
     unsigned char *buffer, *encrypted, *decrypted;
     void multicastToThreshold(uint*, uint*, mpz_t**, mpz_t**, int);
