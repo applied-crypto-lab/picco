@@ -208,8 +208,8 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
                 mask1m8 = (2 * j) & 7; // "&7" = %8, used for leftover bits
 
                 for (size_t s = 0; s < numShares; s++) {
-                    buffer[s][i] = SET_BIT(buffer[s][i], j, GET_BIT(T(u[s][t_index]), mask1m8));
-                    buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], j, (GET_BIT(T(u[s][t_index]), mask2m8) ^ GET_BIT(d[numShares + s][i], mask2)));
+                    buffer[s][i] = SET_BIT(buffer[s][i], T(j), GET_BIT(T(u[s][t_index]), mask1m8));
+                    buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], T(j), (GET_BIT(T(u[s][t_index]), mask2m8) ^ GET_BIT(d[numShares + s][i], mask2)));
                 }
             }
         }
