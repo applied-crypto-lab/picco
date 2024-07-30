@@ -483,7 +483,6 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
         ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
-
     }
     T z = T(0);
     uint tracker;
@@ -494,11 +493,12 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
                a[3][i] * (b[0][i] + b[2][i]) +
                a[4][i] * (b[0][i] + b[1][i]) +
                a[5][i] * (b[0][i] + b[4][i]);
-
-        for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(T) * size);
-        }
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(T) * size);
+    }
+    for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
@@ -580,10 +580,12 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
                a[3][i] * (b[0][b_index] + b[2][b_index]) +
                a[4][i] * (b[0][b_index] + b[1][b_index]) +
                a[5][i] * (b[0][b_index] + b[4][b_index]);
- for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(T) * size);
-        }
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(T) * size);
+    }
+    for (i = 0; i < size; i++) {
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
@@ -665,12 +667,12 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
                (a[3][i] & (b[0][i] ^ b[2][i])) ^
                (a[4][i] & (b[0][i] ^ b[1][i])) ^
                (a[5][i] & (b[0][i] ^ b[4][i]));
-
-
- for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(uint8_t) * size);
-        }
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(uint8_t) * size);
+    }
+    for (i = 0; i < size; i++) {
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             for (T_index = 0; T_index < numShares; T_index++) {
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
@@ -897,7 +899,6 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
         ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
-
     }
     T z = T(0);
     uint tracker;
@@ -923,11 +924,12 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
-
-        for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(T) * size);
-        }
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(T) * size);
+    }
+    for (i = 0; i < size; i++) {
 
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
@@ -1028,12 +1030,12 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
             a[17][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index]) +
             a[18][i] * (b[1][b_index] + b[8][b_index]) +
             a[19][i] * (b[0][b_index] + b[5][b_index] + b[6][b_index]);
-
-        for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(T) * size);
-        }
-
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(T) * size);
+    }
+    for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
@@ -1497,12 +1499,12 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
             (a[17][i] & (b[0][i] ^ b[1][i] ^ b[2][i])) ^
             (a[18][i] & (b[1][i] ^ b[8][i])) ^
             (a[19][i] & (b[0][i] ^ b[5][i] ^ b[6][i]));
-
-        for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(T) * size);
-        }
-
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(T) * size);
+    }
+    for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
@@ -1574,7 +1576,7 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
         ss->prg_getrandom(i, 1, prg_ctrs[i] * size, buffer[i]);
         // sanitizing destination (just in case)
         // printf("case )\n");
-        memset(c[i], 0, sizeof(uint8_t) * size);
+        // memset(c[i], 0, sizeof(uint8_t) * size);
     }
     uint tracker = 0;
     uint trackers[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -1601,12 +1603,12 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
             (a[17][i] & (b[0][i] ^ b[1][i] ^ b[2][i])) ^
             (a[18][i] & (b[1][i] ^ b[8][i])) ^
             (a[19][i] & (b[0][i] ^ b[5][i] ^ b[6][i]));
-
-        for (i = 0; i < numShares; i++) {
-            // sanitizing after the product is computed, so we can reuse the buffer
-            memset(c[i], 0, sizeof(uint8_t) * size);
-        }
-
+    }
+    for (int s = 0; s < numShares; s++) {
+        // sanitizing after the product is computed, so we can reuse the buffer
+        memset(c[s], 0, sizeof(uint8_t) * size);
+    }
+    for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
