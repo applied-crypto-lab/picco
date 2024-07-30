@@ -332,6 +332,11 @@ void SMC_Utils::smc_set(priv_int **a, priv_int **result, int alen_sig, int alen_
         ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+void SMC_Utils::smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size,std::string type, int threadID) {
+    for (int i = 0; i < size; i++)
+        ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
+}
+
 void SMC_Utils::smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
@@ -348,6 +353,12 @@ void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen, int resultlen, 
 // this routine should implement in a way that result = a + share[0]
 void SMC_Utils::smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, ss);
+}
+
+void SMC_Utils::smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
+    for (size_t i = 0; i < size; i++) {
+        ss_set(a[i], result[i], alen, resultlen, type, threadID, net, ss);
+    }
 }
 
 void SMC_Utils::smc_priv_eval(priv_int a, priv_int b, priv_int cond, int threadID) {
@@ -2132,7 +2143,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
         // Data1[totalNumShares - 1][i] = ( (-1) * i ) & ss->SHIFT[bitlength];
-        Data1[totalNumShares - 1][i] = 10* ( i + 1 ) + 1;
+        Data1[totalNumShares - 1][i] = 10 * (i + 1) + 1;
         // Data1[totalNumShares - 1][i] = i;
         Data1_byte[totalNumShares - 1][i] = i;
         // Data1[totalNumShares - 1][i] = ((-1) * i);
@@ -2183,7 +2194,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     uint8_t **a_byte = new uint8_t *[ss->getNumShares()];
     uint8_t **b_byte = new uint8_t *[ss->getNumShares()];
 
-    uint8_t* *C_byte = new uint8_t*[ss->getNumShares()];
+    uint8_t **C_byte = new uint8_t *[ss->getNumShares()];
     priv_int *C = new priv_int[ss->getNumShares()];
     priv_int *D = new priv_int[ss->getNumShares()];
     priv_int *A_bit = new priv_int[ss->getNumShares()];
@@ -2195,13 +2206,10 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(C[i], 0, sizeof(priv_int_t) * size);
         D[i] = new priv_int_t[size];
         memset(D[i], 0, sizeof(priv_int_t) * size);
-    
 
         C_byte[i] = new uint8_t[size];
         memset(C[i], 0, sizeof(uint8_t) * size);
-
     }
-    
 
     for (size_t i = 0; i < numShares; i++) {
         a[i] = Data1[share_mapping[id - 1][i]];
@@ -2211,7 +2219,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     }
 
     printf("Intdiv\n");
-    doOperation_IntDiv(C, a, b,  bitlength, size, -1, net, ss);
+    doOperation_IntDiv(C, a, b, bitlength, size, -1, net, ss);
 
     Open(result, C, size, -1, net, ss);
     Open(result_2, a, size, -1, net, ss);
@@ -2226,7 +2234,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         // // print_binary((result_3[i]), ring_size);
 
         printf("(a / b)     [%lu]: %i / %i = %i\t", i, (int)result_2[i], (int)result_3[i], (int)result[i]);
-        printf("(off by) %i\n",(int)result[i] - (int)result_2[i]/ (int)result_3[i]);
+        printf("(off by) %i\n", (int)result[i] - (int)result_2[i] / (int)result_3[i]);
         // print_binary(result[i], ring_size);
         // printf("\n");
     }
@@ -2267,7 +2275,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     delete[] ao_res[i];
     // }
     // delete[] ao_res;
-
 
     // printf("multbyte\n");
     // Mult_Byte(C_byte, a_byte, b_byte, size, net, ss);
