@@ -1,12 +1,128 @@
 
-./runner.sh 3 30 1
-./runner.sh 3 30 2
-./runner.sh 3 30 3
 
+
+k = 30
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=ON -DUSE_64=OFF .. ; make -j8  ; cd ..
+
+
+k = 60
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd ..
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd ..
+
+
+./runner.sh 3 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 20 && ./runner.sh 3 60 1
+./runner.sh 3 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 10 && ./runner.sh 3 60 2
+./runner.sh 3 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 0 && ./runner.sh 3 60 3
+
+./runner.sh 5 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 40 && ./runner.sh 5 60 1
+./runner.sh 5 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 30 && ./runner.sh 5 60 2
+./runner.sh 5 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 20 && ./runner.sh 5 60 3
+./runner.sh 5 30 4 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 10 && ./runner.sh 5 60 4
+./runner.sh 5 30 5 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 0 && ./runner.sh 5 60 5
+
+./runner.sh 7 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 60  && ./runner.sh 7 60 1
+./runner.sh 7 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 50  && ./runner.sh 7 60 2
+./runner.sh 7 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 40  && ./runner.sh 7 60 3
+./runner.sh 7 30 4 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 30  && ./runner.sh 7 60 4
+./runner.sh 7 30 5 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 20  && ./runner.sh 7 60 5
+./runner.sh 7 30 6 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 10  && ./runner.sh 7 60 6
+./runner.sh 7 30 7 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 0  && ./runner.sh 7 60 7
+
+  
+./runner.sh 7 30 1
+./runner.sh 7 30 2 
+./runner.sh 7 30 3 
+./runner.sh 7 30 4 
+./runner.sh 7 30 5 
+./runner.sh 7 30 6 
+./runner.sh 7 30 7
+
+
+./runner.sh 5 30 1
+./runner.sh 5 30 2 
+./runner.sh 5 30 3 
+./runner.sh 5 30 4 
+./runner.sh 5 30 5 
+
+./runner.sh 3 30 1
+./runner.sh 3 30 2 
+./runner.sh 3 30 3 
+
+
+
+
+
+
+
+
+
+./runner.sh 7 60 1
+./runner.sh 7 60 2 
+./runner.sh 7 60 3 
+./runner.sh 7 60 4 
+./runner.sh 7 60 5 
+./runner.sh 7 60 6 
+./runner.sh 7 60 7
+
+
+./runner.sh 5 60 1
+./runner.sh 5 60 2 
+./runner.sh 5 60 3 
+./runner.sh 5 60 4 
+./runner.sh 5 60 5 
+
+./runner.sh 3 60 1
+./runner.sh 3 60 2 
+./runner.sh 3 60 3 
+
+
+
+
+
+./build/rss_main 1 confs/runtime-config-lake-7 private01.pem 7 b2a 32 1 1000
+./build/rss_main 2 confs/runtime-config-lake-7 private02.pem 7 b2a 32 1 1000
+./build/rss_main 3 confs/runtime-config-lake-7 private03.pem 7 b2a 32 1 1000
+./build/rss_main 4 confs/runtime-config-lake-7 private04.pem 7 b2a 32 1 1000
+./build/rss_main 5 confs/runtime-config-lake-7 private05.pem 7 b2a 32 1 1000
+./build/rss_main 6 confs/runtime-config-lake-7 private06.pem 7 b2a 32 1 1000
+./build/rss_main 7 confs/runtime-config-lake-7 private07.pem 7 b2a 32 1 1000
+
+./build/rss_main 1 confs/runtime-config-lake-7 private01.pem 7 b2a 60 10 10
+./build/rss_main 2 confs/runtime-config-lake-7 private02.pem 7 b2a 60 10 10
+./build/rss_main 3 confs/runtime-config-lake-7 private03.pem 7 b2a 60 10 10
+./build/rss_main 4 confs/runtime-config-lake-7 private04.pem 7 b2a 60 10 10
+./build/rss_main 5 confs/runtime-config-lake-7 private05.pem 7 b2a 60 10 10
+./build/rss_main 6 confs/runtime-config-lake-7 private06.pem 7 b2a 60 10 10
+./build/rss_main 7 confs/runtime-config-lake-7 private07.pem 7 b2a 60 10 10
+
+
+
+./build/rss_main 1 confs/runtime-config-mine-7 private01.pem 7 b2a 32 1 1000
+./build/rss_main 2 confs/runtime-config-mine-7 private02.pem 7 b2a 32 1 1000
+./build/rss_main 3 confs/runtime-config-mine-7 private03.pem 7 b2a 32 1 1000
+./build/rss_main 4 confs/runtime-config-mine-7 private04.pem 7 b2a 32 1 1000
+./build/rss_main 5 confs/runtime-config-mine-7 private05.pem 7 b2a 32 1 1000
+./build/rss_main 6 confs/runtime-config-mine-7 private06.pem 7 b2a 32 1 1000
+./build/rss_main 7 confs/runtime-config-mine-7 private07.pem 7 b2a 32 1 1000
+
+
+
+k = 30
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=ON -DUSE_64=OFF .. ; make -j8  ; cd ..
+
+
+k = 60
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd ..
+rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd ..
 
 
 
 ---- 3pc ----
+
+./build/rss_main 1 confs/runtime-config-mine private01.pem 3 b2a 32 10 1
+./build/rss_main 2 confs/runtime-config-mine private02.pem 3 b2a 32 10 1
+./build/rss_main 3 confs/runtime-config-mine private03.pem 3 b2a 32 10 1
+
 
 ./build/rss_main 1 confs/runtime-config-mine private01.pem 3 b2a 64 10 1
 ./build/rss_main 2 confs/runtime-config-mine private02.pem 3 b2a 64 10 1
