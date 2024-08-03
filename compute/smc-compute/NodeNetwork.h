@@ -51,9 +51,9 @@ public:
     NodeNetwork();
     virtual ~NodeNetwork();
 
-    int *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read;
-    int *runningTotalWrite = new int(0), *runningTotalRead = new int(0);
-    bool tracking;
+    int *trackedBytes_Write, *trackedBytes_Read;
+    int *runningTotalWrite, *runningTotalRead;
+    bool *tracking;
 
     void beginTracking();
     void endTracking(char*, int);
@@ -134,10 +134,10 @@ public:
     /*
         priv_int_t
     */
-    void sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size);
+    void sendDataToPeer(int id, priv_int_t *data, int size, uint ring_size);
     int sendDataToPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size);
     
-    void getDataFromPeer(int id, int size, priv_int_t *buffer, uint ring_size);
+    void getDataFromPeer(int id, priv_int_t *buffer, int size, uint ring_size);
     int getDataFromPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size);
     
     void multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size);
@@ -196,36 +196,44 @@ private:
     int serverSock;
     uint threshold;
 
-    //Used in batch mult and open
-#if __SHAMIR__
-    std::vector<std::pair<int, int>> *toSend, *toReceive;
-    std::vector<std::pair<int, int>>::iterator it;
-#elif __RSS__
+
+    template <typename T>
     struct toTransmit {
         int ID;
         int start;
-        priv_int_t *data; 
+        T *data; 
     };
-    std::vector<toTransmit *> *toSend, *toReceive;
-    std::vector<toTransmit *>::iterator it;
+
+    //Used in batch mult and open
+#if __SHAMIR__
+    inline toTransmit* makeEntry(int id, mpz_t *data);
+
+
+    std::vector<toTransmit<mpz_t> *> *toSend, *toReceive;
+    std::vector<toTransmit<mpz_t> *>::iterator it;
+#endif
+
+#if __RSS__
+    inline toTransmit<priv_int_t>* makeEntry(int id, priv_int_t *data);
+
+    std::vector<toTransmit<priv_int_t> *> *toSend, *toReceive;
+    std::vector<toTransmit<priv_int_t> *>::iterator it;
 
 
 
-    struct toTransmit_bit {
-        int ID;
-        int start;
-        uint8_t *data; 
-    };
-    std::vector<toTransmit_bit *> *toSend_bit, *toReceive_bit;
-    std::vector<toTransmit_bit *>::iterator it_bit;
+    inline toTransmit<uint8_t>* makeEntry_bit(int id, uint8_t *data);
+
+    std::vector<toTransmit<uint8_t> *> *toSend_bit, *toReceive_bit;
+    std::vector<toTransmit<uint8_t> *>::iterator it_bit;
+
+    void sendAndReceive_bit(int dataSize);
+
+#endif
 
     void sendAndReceive(int dataSize);
-    void sendAndReceive_bit(int dataSize);
-#endif
+
     int bytes;
     unsigned char *buffer, *encrypted, *decrypted;
-    void multicastToThreshold(uint*, uint*, mpz_t**, mpz_t**, int);
-    mpz_t *getDestination;
 
     // PRG seeds used in multiplication
     unsigned char **prgSeeds; // getter function works properly in SecretShare constructor
