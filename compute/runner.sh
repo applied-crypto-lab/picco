@@ -12,10 +12,10 @@ if [ "$1" == "3" ]; then
     declare -a sleep_times=(4 2 0)
     index=$(($(($3))-1))
 elif [ "$1" == "5" ]; then   
-    declare -a sleep_times=(4 3 2 1 0)
+    declare -a sleep_times=(4 4 4 4 4)
     index=$(($(($3))-1))
 elif [ "$1" == "7" ]; then   
-    declare -a sleep_times=(12 10 8 6 4 2 0)
+    declare -a sleep_times=(4 4 4 4 4 4 4)
     index=$(($(($3))-1))
 else   
   echo "Unknown OS detected"
