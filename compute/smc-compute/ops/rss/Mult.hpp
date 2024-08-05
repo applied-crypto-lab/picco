@@ -872,9 +872,9 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 template <typename T>
 void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // struct timeval start;
-    // struct timeval end;
-    // unsigned long timer = 0;
+    struct timeval start;
+    struct timeval end;
+    unsigned long timer = 0;
 
     uint bytes = (ring_size + 7) >> 3;
     uint i;
@@ -905,7 +905,7 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     }
     T z = T(0);
     uint tracker;
-    // gettimeofday(&start, NULL);
+    gettimeofday(&start, NULL);
     for (i = 0; i < size; i++) {
         v[i] =
             a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
@@ -929,15 +929,15 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
     }
-    // gettimeofday(&end, NULL); // stop timer here
-    // timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    // printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
 
-    // // for (int s = 0; s < numShares; s++) {
-    // //     // sanitizing after the product is computed, so we can reuse the buffer
-    // //     memset(c[s], 0, sizeof(priv_int_t) * size);
-    // // }
-    // gettimeofday(&start, NULL);
+    // for (int s = 0; s < numShares; s++) {
+    //     // sanitizing after the product is computed, so we can reuse the buffer
+    //     memset(c[s], 0, sizeof(priv_int_t) * size);
+    // }
+    gettimeofday(&start, NULL);
 
     // printf("finished calculating v\n");
     for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
@@ -961,9 +961,9 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             }
         }
     }
-    // gettimeofday(&end, NULL); // stop timer here
-    // timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    // printf("[7pc local 2] [%.3lf ms]\n", (double)(timer * 0.001));
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[7pc local 2] [%.3lf ms]\n", (double)(timer * 0.001));
     // gettimeofday(&start, NULL);
     // communication
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
