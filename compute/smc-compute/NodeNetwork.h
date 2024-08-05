@@ -30,6 +30,11 @@
 #endif
 #endif
 
+#include <tmmintrin.h>
+#include <wmmintrin.h> //for intrinsics for AES-NI
+#include <x86intrin.h>
+#include <immintrin.h>
+
 #include "../../common/shared.h"
 #include "NodeConfiguration.h"
 #include "stdint.h"
