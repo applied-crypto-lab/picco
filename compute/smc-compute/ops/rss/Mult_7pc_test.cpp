@@ -2,6 +2,8 @@
 
 void Rss_Mult_7pc_test(priv_int_t **c, priv_int_t **a, priv_int_t **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<priv_int_t> *ss) {
     std::cout << "Rss_Mult_7pc_test" << std::endl;
+    std::cout << "size  " << size << std::endl;
+    std::cout << "ring_size  " << ring_size << std::endl;
 
     struct timeval start;
     struct timeval end;
@@ -83,6 +85,7 @@ void Rss_Mult_7pc_test(priv_int_t **c, priv_int_t **a, priv_int_t **b, uint size
     gettimeofday(&end, NULL); // stop timer here
     timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     printf("[7pc local] [%.3lf ms]\n", (double)(timer * 0.001));
+
     gettimeofday(&start, NULL);
     // communication
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
