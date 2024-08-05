@@ -929,12 +929,17 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
-    // }
+    }
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
+
     // for (int s = 0; s < numShares; s++) {
     //     // sanitizing after the product is computed, so we can reuse the buffer
-    //     memset(c[s], 0, sizeof(T) * size);
+    //     memset(c[s], 0, sizeof(priv_int_t) * size);
     // }
-    // for (i = 0; i < size; i++) {
+    gettimeofday(&start, NULL);
+    for (i = 0; i < size; i++) {
 
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
@@ -958,7 +963,7 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     }
     gettimeofday(&end, NULL); // stop timer here
     timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    printf("[7pc local] [%.3lf ms]\n", (double)(timer * 0.001));
+    printf("[7pc local 2] [%.3lf ms]\n", (double)(timer * 0.001));
     gettimeofday(&start, NULL);
     // communication
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
@@ -1400,7 +1405,6 @@ void Mult_Byte(uint8_t **C, uint8_t **A, uint8_t **B, int size, NodeNetwork net,
         throw std::runtime_error("[Mult] " + error);
     }
 }
-
 
 void Rss_Mult_7pc_test(priv_int_t **c, priv_int_t **a, priv_int_t **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<priv_int_t> *ss);
 #endif
