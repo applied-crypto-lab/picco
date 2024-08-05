@@ -931,12 +931,12 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
-    }
-    for (int s = 0; s < numShares; s++) {
-        // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(T) * size);
-    }
-    for (i = 0; i < size; i++) {
+    // }
+    // for (int s = 0; s < numShares; s++) {
+    //     // sanitizing after the product is computed, so we can reuse the buffer
+    //     memset(c[s], 0, sizeof(T) * size);
+    // }
+    // for (i = 0; i < size; i++) {
 
         // printf("finished calculating v\n");
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
