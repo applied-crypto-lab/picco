@@ -58,7 +58,7 @@ inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> &T_map, uint n) {
             (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
 }
 
-inline bool p_prime_in_T_7(int p_prime, std::vector<int> T_map) {
+inline bool p_prime_in_T_7(int p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1] or p_prime == T_map[2]);
 }
 
