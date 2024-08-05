@@ -703,178 +703,12 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     delete[] recv_buf;
 }
 
-// template <typename T>
-// void Rss_MultPub_5pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-//     uint bytes = (ring_size + 7) >> 3;
-//     uint i, j;
-//     uint numShares = ss->getNumShares();
-//     uint numParties = ss->getPeers();
-//     // uint threshold = ss->getThreshold();
-//         static int pid = ss->getID();
-
-//     T **send_buf = new T *[numParties];
-//     T **recv_buf = new T *[numParties];
-//     for (i = 0; i < numParties; i++) {
-//         send_buf[i] = new T[size];
-//         memset(send_buf[i], 0, sizeof(T) * size);
-//         recv_buf[i] = new T[size];
-//         memset(recv_buf[i], 0, sizeof(T) * size);
-//     }
-//     T *v = new T[size];
-
-//     // move to outside function
-//     T *ops;
-//     uint *prg_ctrs;
-//     int num_ops = 0;
-//     switch (pid) {
-//     case 1:
-//         num_ops = 6;
-//         prg_ctrs = new uint[numShares]{1, 1, 1, 1, 1, 1};
-//         // ops = new T[num_ops]{(1), (1), (1), (1), (1), (1)};
-//         ops = new T[num_ops];
-//         ops[0] = T(1);
-//         ops[1] = T(1);
-//         ops[2] = T(1);
-//         ops[3] = T(1);
-//         ops[4] = T(1);
-//         ops[5] = T(1);
-//         break;
-//     case 2:
-//         num_ops = 6;
-//         prg_ctrs = new uint[numShares]{1, 1, 1, 1, 1, 1};
-//         // ops = new T[num_ops]{(1), (1), (1), (1), (1), (1)};
-//         ops = new T[num_ops];
-//         ops[0] = T(1);
-//         ops[1] = T(1);
-//         ops[2] = T(1);
-//         ops[3] = T(1);
-//         ops[4] = T(1);
-//         ops[5] = T(1);
-//         break;
-//     case 3:
-//         num_ops = 7;
-//         prg_ctrs = new uint[numShares]{2, 1, 1, 1, 1, 1};
-//         // ops = new T[num_ops]{(-1), (-1), (1), (1), (1), (1), (1)};
-//         ops = new T[num_ops];
-//         ops[0] = T(-1);
-//         ops[1] = T(-1);
-//         ops[2] = T(1);
-//         ops[3] = T(1);
-//         ops[4] = T(1);
-//         ops[5] = T(1);
-//         ops[6] = T(1);
-//         break;
-//     case 4:
-//         num_ops = 9;
-//         prg_ctrs = new uint[numShares]{2, 2, 2, 1, 1, 1};
-//         // ops = new T[num_ops]{(-1), (-1), (-1), (-1), (-1), (-1), (1), (1), (1)};
-//         ops = new T[num_ops];
-//         ops[0] = T(-1);
-//         ops[1] = T(-1);
-//         ops[2] = T(-1);
-//         ops[3] = T(-1);
-//         ops[4] = T(-1);
-//         ops[5] = T(-1);
-//         ops[6] = T(1);
-//         ops[7] = T(1);
-//         ops[8] = T(1);
-
-//         break;
-//     case 5:
-//         num_ops = 12;
-//         prg_ctrs = new uint[numShares]{2, 2, 2, 2, 2, 2};
-//         ops = new T[num_ops];
-//         // ops = new T[num_ops]{(-1), (-1), (-1), (-1), (-1), (-1), (-1), (-1), (-1), (-1), (-1), (-1)};
-//         ops[0] = T(-1);
-//         ops[1] = T(-1);
-//         ops[2] = T(-1);
-//         ops[3] = T(-1);
-//         ops[4] = T(-1);
-//         ops[5] = T(-1);
-//         ops[6] = T(-1);
-//         ops[7] = T(-1);
-//         ops[8] = T(-1);
-//         ops[9] = T(-1);
-//         ops[10] = T(-1);
-//         ops[11] = T(-1);
-//         break;
-//     }
-
-//     uint8_t **buffer = new uint8_t *[numShares];
-//     T **v_a = new T *[numShares];
-//     for (i = 0; i < numShares; i++) {
-//         buffer[i] = new uint8_t[bytes * size];
-//         v_a[i] = new T[size];
-//         ss->prg_getrandom(i, bytes, size, buffer[i]);
-//         memcpy(v_a[i], buffer[i], bytes * size);
-//     }
-
-//     // T z = 0;
-//     uint sign_index = 0;
-
-//     for (size_t i = 0; i < size; i++) {
-//         c[i] = a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i]) +
-//                a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i]) +
-//                a[2][i] * (b[1][i] + b[3][i]) +
-//                a[3][i] * (b[0][i] + b[2][i]) +
-//                a[4][i] * (b[0][i] + b[1][i]) +
-//                a[5][i] * (b[0][i] + b[4][i]);
-
-//         sign_index = 0;
-//         for (size_t j = 0; j < numShares; j++) {
-//             for (size_t v_index = 0; v_index < prg_ctrs[j]; v_index++) {
-//                 c[i] = c[i] + ops[sign_index] * v_a[j][i];
-//                 sign_index++;
-//             }
-//             // printf("sign_index: %llu\n", sign_index);
-//         }
-//     }
-
-//     // move data into buf
-//     for (i = 1; i <= numParties; i++) {
-//         if (i == pid) {
-//             continue;
-//         }
-//         memcpy(send_buf[i - 1], c, sizeof(T) * size);
-//     }
-
-//     nodeNet.multicastToPeers(send_buf, recv_buf, size, ring_size);
-
-//     for (i = 0; i < size; i++) {
-//         for (j = 0; j < numParties; j++) {
-//             c[i] = c[i] + recv_buf[j][i]; // we can just add up all received messages, including the one from itself (which is zero from earlier)
-//         }
-//         c[i] = c[i] & ss->SHIFT[ring_size];
-//     }
-
-//     for (i = 0; i < numParties; i++) {
-//         delete[] send_buf[i];
-//         delete[] recv_buf[i];
-//     }
-//     delete[] send_buf;
-//     delete[] recv_buf;
-
-//     for (i = 0; i < numShares; i++) {
-//         delete[] buffer[i];
-//         delete[] v_a[i];
-//     }
-//     delete[] v_a;
-
-//     // free
-//     delete[] v;
-//     delete[] buffer;
-//     delete[] ops;
-//     delete[] prg_ctrs;
-//     // delete[] recv_buf
-// }
-
 template <typename T>
 void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    struct timeval start;
-    struct timeval end;
-    unsigned long timer = 0;
+    // struct timeval start;
+    // struct timeval end;
+    // unsigned long timer = 0;
 
     uint bytes = (ring_size + 7) >> 3;
     uint i;
@@ -905,7 +739,7 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     }
     T z = T(0);
     uint tracker;
-    gettimeofday(&start, NULL);
+    // gettimeofday(&start, NULL);
     for (i = 0; i < size; i++) {
         v[i] =
             a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
@@ -929,15 +763,15 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
     }
-    gettimeofday(&end, NULL); // stop timer here
-    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
+    // gettimeofday(&end, NULL); // stop timer here
+    // timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    // printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
 
     // for (int s = 0; s < numShares; s++) {
     //     // sanitizing after the product is computed, so we can reuse the buffer
     //     memset(c[s], 0, sizeof(priv_int_t) * size);
     // }
-    gettimeofday(&start, NULL);
+    // gettimeofday(&start, NULL);
 
     // printf("finished calculating v\n");
     for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
@@ -961,9 +795,11 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             }
         }
     }
-    gettimeofday(&end, NULL); // stop timer here
-    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    printf("[7pc local 2] [%.3lf ms]\n", (double)(timer * 0.001));
+
+    // gettimeofday(&end, NULL); // stop timer here
+    // timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    // printf("[7pc local 2] [%.3lf ms]\n", (double)(timer * 0.001));
+
     // gettimeofday(&start, NULL);
     // communication
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
@@ -976,8 +812,14 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[19][i] = c[19][i] + recv_buf[0][i];
+    }
+    for (i = 0; i < size; i++) {
         c[16][i] = c[16][i] + recv_buf[1][i];
+    }
+    for (i = 0; i < size; i++) {
         c[10][i] = c[10][i] + recv_buf[2][i];
+    }
+    for (i = 0; i < size; i++) {
 
         c[0][i] = c[0][i] + v[i];
     }
