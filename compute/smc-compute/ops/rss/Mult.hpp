@@ -24,6 +24,9 @@
 #include "../../rss/RepSecretShare.hpp"
 
 #include <sys/time.h>
+#include <tmmintrin.h>
+#include <wmmintrin.h> //for intrinsics for AES-NI
+#include <x86intrin.h>
 
 // ANB, 1/30/2024
 // this is written in such a way that it checks both orderings of T_map.
