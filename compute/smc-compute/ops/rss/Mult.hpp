@@ -812,14 +812,8 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[19][i] = c[19][i] + recv_buf[0][i];
-    }
-    for (i = 0; i < size; i++) {
         c[16][i] = c[16][i] + recv_buf[1][i];
-    }
-    for (i = 0; i < size; i++) {
         c[10][i] = c[10][i] + recv_buf[2][i];
-    }
-    for (i = 0; i < size; i++) {
 
         c[0][i] = c[0][i] + v[i];
     }
