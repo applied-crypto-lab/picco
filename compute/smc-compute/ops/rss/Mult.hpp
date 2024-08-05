@@ -47,7 +47,7 @@ inline bool chi_p_prime_in_T_7(int &p_prime, std::vector<int> &T_map, uint &n) {
             (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
 }
 
-inline bool p_prime_in_T_7(int& p_prime, std::vector<int> &T_map) {
+inline bool p_prime_in_T_7(int &p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1] or p_prime == T_map[2]);
 }
 
@@ -489,24 +489,25 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
         // sanitizing after the product is computed, so we can reuse the buffer
         memset(c[s], 0, sizeof(T) * size);
     }
-    for (i = 0; i < size; i++) {
-        // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            // printf("\n");
-            for (T_index = 0; T_index < numShares; T_index++) {
-                tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+    // printf("finished calculating v\n");
+    for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+        // printf("\n");
+        for (T_index = 0; T_index < numShares; T_index++) {
+            tracker = 0;
+            if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker += 1;
-                } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
+                }
+                tracker += 1;
+            } else if (
+                (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
+                for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
-
-                    tracker += 1;
                 }
+                tracker += 1;
             }
         }
     }
@@ -937,25 +938,26 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     // //     memset(c[s], 0, sizeof(priv_int_t) * size);
     // // }
     // gettimeofday(&start, NULL);
-    for (i = 0; i < size; i++) {
 
-        // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            // printf("\n");
-            for (T_index = 0; T_index < numShares; T_index++) {
-                tracker = 0;
-                if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+    // printf("finished calculating v\n");
+    for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+        // printf("\n");
+        for (T_index = 0; T_index < numShares; T_index++) {
+            tracker = 0;
+            if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
+                for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
-                    tracker += 1;
-                } else if (
-                    (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
+                }
+                tracker += 1;
+            } else if (
+                (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
+                for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                     c[T_index][i] += z;
                     v[i] -= z;
-
-                    tracker += 1;
                 }
+                tracker += 1;
             }
         }
     }

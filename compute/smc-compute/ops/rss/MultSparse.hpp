@@ -339,7 +339,6 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
                     (p_prime == pid) and
                     (!(ss->chi_pid_is_T(pid, ss->T_map_mpc[T_index])))) {
                     for (i = 0; i < size; i++) {
-
                         memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
                         c[T_index][i] += z;
                         v[i] -= z;
