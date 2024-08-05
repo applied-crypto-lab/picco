@@ -5,7 +5,6 @@ cmake_minimum_required(VERSION 3.0.0)
 project(compiled_program LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-
 # set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-maes -mavx -mavx2 -march=native -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall")
@@ -68,14 +67,13 @@ if(RSS)
       if(USE_64)
             add_definitions(-D__RSS_32__=0)
             add_definitions(-D__RSS_64__=1)
-      endif(USE_64)
-      unset(USE_64 CACHE) # <---- this is the important!!
+
+      endif()
 
       if(USE_32)
             add_definitions(-D__RSS_32__=1)
             add_definitions(-D__RSS_64__=0)
       endif()
-      unset(USE_32 CACHE) # <---- this is the important!!
 endif()
 
 INCLUDE_DIRECTORIES(
@@ -110,11 +108,7 @@ if(SHAMIR)
 endif()
 
 if(RSS)
-      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
-
       add_executable(rss_main rss_main.cpp ${SOURCES} ${TECHNIQUE})
-      set_target_properties(rss_main PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-
       target_link_libraries(rss_main ${LIBS})
 endif()
 
