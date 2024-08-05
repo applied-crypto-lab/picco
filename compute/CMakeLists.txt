@@ -43,6 +43,7 @@ option(RSS "Replicated secret sharing (default=OFF)" OFF) # OFF by default
 if(OMPI_FOUND)
       set(OMPI_INC "${OMPI_INCLUDES}")
 endif()
+# unset(OMPI_FOUND CACHE) # <---- this is the important!!
 
 INCLUDE_DIRECTORIES(
       "${GMP_INCLUDES}"
@@ -55,6 +56,7 @@ if(SHAMIR)
       add_definitions(-D__SHAMIR__=1)
       add_definitions(-D__RSS__=0)
 endif()
+# unset(SHAMIR CACHE) # <---- this is the important!!
 
 option(USE_32 "32 bit or less ring sizes" ON) # enables 30 vscode
 option(USE_64 "33 to 64 bit rings" OFF) # enables 30 vscode
@@ -69,12 +71,15 @@ if(RSS)
             add_definitions(-D__RSS_64__=1)
 
       endif()
+      unset(USE_64 CACHE) # <---- this is the important!!
 
       if(USE_32)
             add_definitions(-D__RSS_32__=1)
             add_definitions(-D__RSS_64__=0)
       endif()
+      unset(USE_32 CACHE) # <---- this is the important!!
 endif()
+# unset(RSS CACHE) # <---- this is the important!!
 
 INCLUDE_DIRECTORIES(
       "${CMAKE_SOURCE_DIR}/smc-compute/${TECHNIQUE_DIR}"
@@ -91,6 +96,7 @@ if(DEPLOYMENT)
 else()
       add_definitions(-D__DEPLOYMENT__=0)
 endif()
+unset(DEPLOYMENT CACHE) # <---- this is the important!!
 
 set(LIBS
       ${CMAKE_THREAD_LIBS_INIT}
@@ -106,11 +112,13 @@ if(SHAMIR)
       add_executable(test_op test_op.cpp ${SOURCES} ${TECHNIQUE})
       target_link_libraries(test_op ${LIBS})
 endif()
+unset(SHAMIR CACHE) # <---- this is the important!!
 
 if(RSS)
       add_executable(rss_main rss_main.cpp ${SOURCES} ${TECHNIQUE})
       target_link_libraries(rss_main ${LIBS})
 endif()
+unset(RSS CACHE) # <---- this is the important!!
 
 add_custom_target(clean-all
       make clean && rm -fR ${CMAKE_BINARY_DIR}/CMakeCache.txt
