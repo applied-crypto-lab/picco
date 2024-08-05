@@ -885,10 +885,15 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
 
     uint bytes = (ring_size + 7) >> 3;
     uint i, p_prime, T_index;
-    uint numShares = ss->getNumShares();
-    uint numParties = ss->getPeers();
-    uint threshold = ss->getThreshold();
+    static uint numShares = ss->getNumShares();
+    static uint numParties = ss->getPeers();
+    static uint threshold = ss->getThreshold();
     static int pid = ss->getID();
+
+    std::cout << "numShares  " << numShares << std::endl;
+    std::cout << "numParties  " << numParties << std::endl;
+    std::cout << "threshold  " << threshold << std::endl;
+    std::cout << "pid  " << pid << std::endl;
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
