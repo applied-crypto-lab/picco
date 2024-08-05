@@ -4,13 +4,19 @@ cmake_minimum_required(VERSION 3.0.0)
 # set(CMAKE_CXX_COMPILER "g++")
 project(compiled_program LANGUAGES CXX)
 
+set(CMAKE_C_FLAGS                "-maes -mavx -mavx2 -march=native -Wall -std=c99")
+set(CMAKE_C_FLAGS_DEBUG          "-g")
+set(CMAKE_C_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE        "-O3 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
+
 set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-maes -mavx -mavx2 -march=native -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
+set(CMAKE_CXX_FLAGS "-maes -mavx -mavx2 -march=native -O3  -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -DNDEBUG")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
