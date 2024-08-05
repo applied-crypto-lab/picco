@@ -1767,4 +1767,6 @@ void Mult_Byte(uint8_t **C, uint8_t **A, uint8_t **B, int size, NodeNetwork net,
     }
 }
 
+
+void Rss_Mult_7pc_test(priv_int_t **c, priv_int_t **a, priv_int_t **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<priv_int_t> *ss);
 #endif
