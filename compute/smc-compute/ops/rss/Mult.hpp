@@ -23,6 +23,8 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 
+#include <sys/time.h>
+
 // ANB, 1/30/2024
 // this is written in such a way that it checks both orderings of T_map.
 // we are now sorting the T_map in the SecertShare constructor
@@ -952,7 +954,7 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
         }
     }
 
-        struct timeval start;
+    struct timeval start;
     struct timeval end;
     unsigned long timer = 0;
     gettimeofday(&start, NULL);
