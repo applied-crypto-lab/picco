@@ -6,7 +6,7 @@ project(compiled_program LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-maes -mavx -mavx2 -march=native -g3 -Wall -O0")
+set(CMAKE_CXX_FLAGS "-maes -mavx -mavx2 -march=native -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
