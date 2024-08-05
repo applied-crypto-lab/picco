@@ -27,7 +27,7 @@
 // this is written in such a way that it checks both orderings of T_map.
 // we are now sorting the T_map in the SecertShare constructor
 // so we no longer really need to do this, provided we sort calculate what T_map[i] is compared against
-inline bool chi_p_prime_in_T(int p_prime, std::vector<int> T_map, int n) {
+inline bool chi_p_prime_in_T(int p_prime, std::vector<int> &T_map, int n) {
     return (((((p_prime + 1 - 1) % n + 1) == T_map[0]) and (((p_prime + 2 - 1) % n + 1) == T_map[1])) or
             ((((p_prime + 1 - 1) % n + 1) == T_map[1]) and (((p_prime + 2 - 1) % n + 1) == T_map[0])));
 }
@@ -44,11 +44,11 @@ inline bool chi_p_prime_in_T(int p_prime, std::vector<int> T_map, int n) {
 //             ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
 // }
 
-inline bool p_prime_in_T(int p_prime, std::vector<int> T_map) {
+inline bool p_prime_in_T(int p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1]);
 }
 
-inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> T_map, uint n) {
+inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> &T_map, uint n) {
 
     int chi_0 = (p_prime + 1 - 1) % n + 1;
     int chi_1 = (p_prime + 2 - 1) % n + 1;
