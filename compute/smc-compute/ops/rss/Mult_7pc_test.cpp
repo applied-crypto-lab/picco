@@ -1,6 +1,7 @@
 #include "Mult.hpp"
 
 void Rss_Mult_7pc_test(priv_int_t **c, priv_int_t **a, priv_int_t **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<priv_int_t> *ss) {
+    std::cout << "Rss_Mult_7pc_test" << std::endl;
 
     struct timeval start;
     struct timeval end;

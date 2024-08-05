@@ -15,7 +15,7 @@ extern "C" void ort_finalize(int);
 
 #include "smc-compute/SMC_Utils.h"
 
-#include <gmp.h>
+// #include <gmp.h>
 
 SMC_Utils *__s;
 
