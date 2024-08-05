@@ -951,9 +951,18 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             }
         }
     }
+
+        struct timeval start;
+    struct timeval end;
+    unsigned long timer = 0;
+    gettimeofday(&start, NULL);
     // communication
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
+
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[7pc send recv] [%.3lf ms]\n", (double)(timer * 0.001));
 
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
