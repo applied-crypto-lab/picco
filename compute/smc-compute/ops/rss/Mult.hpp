@@ -27,28 +27,17 @@
 // this is written in such a way that it checks both orderings of T_map.
 // we are now sorting the T_map in the SecertShare constructor
 // so we no longer really need to do this, provided we sort calculate what T_map[i] is compared against
-inline bool chi_p_prime_in_T(int p_prime, std::vector<int> &T_map, int n) {
+
+inline bool chi_p_prime_in_T(int &p_prime, std::vector<int> &T_map, uint &n) {
     return (((((p_prime + 1 - 1) % n + 1) == T_map[0]) and (((p_prime + 2 - 1) % n + 1) == T_map[1])) or
             ((((p_prime + 1 - 1) % n + 1) == T_map[1]) and (((p_prime + 2 - 1) % n + 1) == T_map[0])));
 }
 
-// // CHECK
-// // does the mapping {p_prime+1, p_prime+2} need to be sorted?
-// // i think so, so we're better off just checking the combinations directly
-// inline bool chi_p_prime_in_T_new(int p_prime, std::vector<int> T_map_mpc, int n) {
-//     // return ((
-//     //     (mod_n(p_prime + 1, n) == T_map_mpc[0]) and
-//     //     (mod_n(p_prime + 2, n) == T_map_mpc[1]))); // this wont work, would require soring {p_prime+1, p_prime+2}
-
-//     return (((mod_n(p_prime + 1, n) == T_map_mpc[0]) and (mod_n(p_prime + 2, n) == T_map_mpc[1])) or
-//             ((mod_n(p_prime + 1, n) == T_map_mpc[1]) and (mod_n(p_prime + 2, n) == T_map_mpc[0])));
-// }
-
-inline bool p_prime_in_T(int p_prime, std::vector<int> &T_map) {
+inline bool p_prime_in_T(int &p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1]);
 }
 
-inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> &T_map, uint n) {
+inline bool chi_p_prime_in_T_7(int &p_prime, std::vector<int> &T_map, uint &n) {
 
     int chi_0 = (p_prime + 1 - 1) % n + 1;
     int chi_1 = (p_prime + 2 - 1) % n + 1;
@@ -58,7 +47,7 @@ inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> &T_map, uint n) {
             (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
 }
 
-inline bool p_prime_in_T_7(int p_prime, std::vector<int> &T_map) {
+inline bool p_prime_in_T_7(int& p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1] or p_prime == T_map[2]);
 }
 
@@ -381,7 +370,8 @@ template <typename T>
 void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -464,7 +454,8 @@ template <typename T>
 void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -630,7 +621,8 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
 template <typename T>
 void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    uint i = 0, p_prime, T_index;
+    uint i = 0;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -884,16 +876,17 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     unsigned long timer = 0;
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     static uint numShares = ss->getNumShares();
     static uint numParties = ss->getPeers();
     static uint threshold = ss->getThreshold();
     static int pid = ss->getID();
 
-    std::cout << "numShares  " << numShares << std::endl;
-    std::cout << "numParties  " << numParties << std::endl;
-    std::cout << "threshold  " << threshold << std::endl;
-    std::cout << "pid  " << pid << std::endl;
+    // std::cout << "numShares  " << numShares << std::endl;
+    // std::cout << "numParties  " << numParties << std::endl;
+    // std::cout << "threshold  " << threshold << std::endl;
+    // std::cout << "pid  " << pid << std::endl;
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -935,15 +928,15 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
     }
-    gettimeofday(&end, NULL); // stop timer here
-    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
+    // gettimeofday(&end, NULL); // stop timer here
+    // timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    // printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
 
-    // for (int s = 0; s < numShares; s++) {
-    //     // sanitizing after the product is computed, so we can reuse the buffer
-    //     memset(c[s], 0, sizeof(priv_int_t) * size);
-    // }
-    gettimeofday(&start, NULL);
+    // // for (int s = 0; s < numShares; s++) {
+    // //     // sanitizing after the product is computed, so we can reuse the buffer
+    // //     memset(c[s], 0, sizeof(priv_int_t) * size);
+    // // }
+    // gettimeofday(&start, NULL);
     for (i = 0; i < size; i++) {
 
         // printf("finished calculating v\n");
@@ -1110,7 +1103,8 @@ template <typename T>
 void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -1214,7 +1208,8 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
 template <typename T>
 void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -1411,5 +1406,4 @@ void Mult_Byte(uint8_t **C, uint8_t **A, uint8_t **B, int size, NodeNetwork net,
     }
 }
 
-void Rss_Mult_7pc_test(priv_int_t **c, priv_int_t **a, priv_int_t **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<priv_int_t> *ss);
 #endif

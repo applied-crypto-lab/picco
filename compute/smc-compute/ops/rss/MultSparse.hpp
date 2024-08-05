@@ -108,7 +108,8 @@ void Rss_Mult_Sparse_5pc(T **c, T **a, T **b_hat, uint size, uint ring_size, Nod
     vector<int> T_hat = {1, 2};
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
@@ -236,7 +237,8 @@ void Rss_Mult_Sparse_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNet
     vector<int> T_hat = {1, 2, 3};
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
