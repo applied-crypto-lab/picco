@@ -2105,8 +2105,8 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
     } else if (operation == "mult") {
 
         for (size_t j = 0; j < num_iterations; j++) {
-            // Mult(c, a, b, size, net, ss);
-            Rss_Mult_7pc_test(c, a, b, size, ring_size, net, ss);
+            Mult(c, a, b, size, net, ss);
+            // Rss_Mult_7pc_test(c, a, b, size, ring_size, net, ss);
             // Rss_B2A(c, a, b, size, ring_size, net, ss);
         }
     } else if (operation == "fl_mul") {
