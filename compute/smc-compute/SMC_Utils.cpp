@@ -2101,6 +2101,13 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
         for (size_t j = 0; j < num_iterations; j++) {
             Rss_B2A(c, a, size, ring_size, net, ss);
         }
+
+    } else if (operation == "mult") {
+
+        for (size_t j = 0; j < num_iterations; j++) {
+            Mult(c, a, b, size, net, ss);
+            // Rss_B2A(c, a, b, size, ring_size, net, ss);
+        }
     } else if (operation == "fl_mul") {
 
     } else if (operation == "fl_add") {

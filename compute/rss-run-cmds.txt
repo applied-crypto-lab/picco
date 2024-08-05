@@ -10,23 +10,6 @@ rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C
 rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd ..
 
 
-./runner.sh 3 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 20 && ./runner.sh 3 60 1
-./runner.sh 3 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 10 && ./runner.sh 3 60 2
-./runner.sh 3 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 0 && ./runner.sh 3 60 3
-
-./runner.sh 5 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 40 && ./runner.sh 5 60 1
-./runner.sh 5 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 30 && ./runner.sh 5 60 2
-./runner.sh 5 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 20 && ./runner.sh 5 60 3
-./runner.sh 5 30 4 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 10 && ./runner.sh 5 60 4
-./runner.sh 5 30 5 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 0 && ./runner.sh 5 60 5
-
-./runner.sh 7 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 60  && ./runner.sh 7 60 1
-./runner.sh 7 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 50  && ./runner.sh 7 60 2
-./runner.sh 7 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 40  && ./runner.sh 7 60 3
-./runner.sh 7 30 4 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 30  && ./runner.sh 7 60 4
-./runner.sh 7 30 5 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 20  && ./runner.sh 7 60 5
-./runner.sh 7 30 6 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 10  && ./runner.sh 7 60 6
-./runner.sh 7 30 7 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 0  && ./runner.sh 7 60 7
 
   
 ./runner.sh 7 30 1
@@ -47,10 +30,6 @@ rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -DDEPLOYME
 ./runner.sh 3 30 1
 ./runner.sh 3 30 2 
 ./runner.sh 3 30 3 
-
-
-
-
 
 
 
@@ -182,3 +161,24 @@ gdb --args build/rss_main 4 confs/runtime-config-mine-7 private04.pem 1 1 shares
 ./../compiler/bin/picco -d sample-programs/non-thread/test-rss.c ../compiler/smc-config-rss test_rss_sample_NEW confs/test_rss_conf_sample
 
 ./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/test-rss-data confs/test_rss_conf_sample shares/test_rss_data_
+
+
+
+
+./runner.sh 3 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 20 && ./runner.sh 3 60 1
+./runner.sh 3 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 10 && ./runner.sh 3 60 2
+./runner.sh 3 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 0 && ./runner.sh 3 60 3
+
+./runner.sh 5 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 40 && ./runner.sh 5 60 1
+./runner.sh 5 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 30 && ./runner.sh 5 60 2
+./runner.sh 5 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 20 && ./runner.sh 5 60 3
+./runner.sh 5 30 4 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 10 && ./runner.sh 5 60 4
+./runner.sh 5 30 5 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. && sleep 0 && ./runner.sh 5 60 5
+
+./runner.sh 7 30 1 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 60  && ./runner.sh 7 60 1
+./runner.sh 7 30 2 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 50  && ./runner.sh 7 60 2
+./runner.sh 7 30 3 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 40  && ./runner.sh 7 60 3
+./runner.sh 7 30 4 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 30  && ./runner.sh 7 60 4
+./runner.sh 7 30 5 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 20  && ./runner.sh 7 60 5
+./runner.sh 7 30 6 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 10  && ./runner.sh 7 60 6
+./runner.sh 7 30 7 && cd build; cmake -DCMAKE_BUILD_TYPE=Release -D CMAKE_C_COMPILER=clang-11 -D CMAKE_CXX_COMPILER=clang++-11 -DDEPLOYMENT=ON -DSHAMIR=OFF -DRSS=ON -DUSE_32=OFF -DUSE_64=ON .. ; make -j8  ; cd .. &&  sleep 0  && ./runner.sh 7 60 7
