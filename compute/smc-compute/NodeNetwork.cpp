@@ -112,8 +112,6 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     toSend = new std::vector<toTransmit<mpz_t> *>;
     toReceive = new std::vector<toTransmit<mpz_t> *>;
 #elif __RSS__
-    // number of bytes necessary to hold bits
-    element_size = ((bits + 7) >> 3);
 
     toSend = new std::vector<toTransmit<priv_int_t> *>;
     toReceive = new std::vector<toTransmit<priv_int_t> *>;
@@ -500,8 +498,9 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     for (i = 1; i <= peers + 1; i++) {
         if (id == i)
             continue;
-        toSend.push_back(makeEntry(i, data[i - 1]));
-        toReceive.push_back(makeEntry(i, data[i - 1]));
+
+        toSend->push_back(makeEntry(i, data[i - 1]));
+        toReceive->push_back(makeEntry(i, buffers[i - 1]));
     }
 
     sendAndReceive(size * element_size);
@@ -517,12 +516,19 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
     toSend->clear();
     toReceive->clear();
     
-    for (int i = 0; i <= peers; i++) {
+    int id = config->getID();
+    for (int i = 1; i <= peers + 1; i++) {
+        if (i == id) 
+            continue;
         toSend->push_back(makeEntry(i, data));
         toReceive->push_back(makeEntry(i, buffers[i - 1]));
     }
 
     sendAndReceive(size * element_size);
+
+    for (int j = 0; j < size; j++)
+        mpz_set(buffers[id - 1][j], data[j]);
+
     #endif
 }
 
@@ -1223,7 +1229,7 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 
 #if __SHAMIR__
 inline NodeNetwork::toTransmit<mpz_t>* NodeNetwork::makeEntry(int id, mpz_t *data) {
-    toTransmit *temp = (toTransmit *) malloc(sizeof(toTransmit));
+    toTransmit<mpz_t> *temp = (toTransmit<mpz_t> *) malloc(sizeof(toTransmit<mpz_t>));
     temp->ID = id;
     temp->start = 0;
 
@@ -1317,7 +1323,7 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *recvFromIDs, mpz_
 
     for (int i = 0; i < threshold; i++) {
         toSend->push_back(makeEntry(sendtoIDs[i], data[i]));
-        toReceive->push_back(makeEntry(recvFromIDs[i], data[2 * threshold - i]));
+        toReceive->push_back(makeEntry(recvFromIDs[threshold - i - 1], data[2 * threshold - i]));
     }
 
     sendAndReceive(size * element_size);
@@ -1327,7 +1333,6 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *recvFromIDs, mpz_
 // why is this needed for send/recv to work?
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
-        return;
     
     if (numOfThreads == 1) {
         multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
@@ -1435,12 +1440,16 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *recvFromIDs, mpz_
     toSend->clear();
     toReceive->clear();
 
+    int idx;
     for (int i = 0; i < threshold; i++) {
         toSend->push_back(makeEntry(sendtoIDs[i], data));
-        toReceive->push_back(makeEntry(recvFromIDs[i], buffer[threshold - i - 1]));
+
+        idx = threshold - i - 1;
+        toReceive->push_back(makeEntry(recvFromIDs[idx], buffer[idx]));
     }
 
     sendAndReceive(size * element_size);
+
     #endif
 }
 
@@ -1544,6 +1553,7 @@ void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int 
         toReceive->push_back(makeEntry(i, buffers[i - 1]));
     }
 
+    element_size = (ring_size + 7) >> 3;
     sendAndReceive(size * element_size);
 }
 
@@ -1565,6 +1575,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *sendData, priv_int_t *recvD
         }
     }
 
+    element_size = (ring_size + 7) >> 3;
     sendAndReceive(size * element_size);
 }
 
@@ -1586,6 +1597,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *sendData, priv_int_t **recv
         }
     }
 
+    element_size = (ring_size + 7) >> 3;
     sendAndReceive(size * element_size);
 }
 
@@ -1607,6 +1619,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **sendData, priv_int_t **rec
         }
     }
 
+    element_size = (ring_size + 7) >> 3;
     sendAndReceive(size * element_size);
 
 }

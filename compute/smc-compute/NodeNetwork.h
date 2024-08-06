@@ -206,7 +206,7 @@ private:
 
     //Used in batch mult and open
 #if __SHAMIR__
-    inline toTransmit* makeEntry(int id, mpz_t *data);
+    inline toTransmit<mpz_t>* makeEntry(int id, mpz_t *data);
 
 
     std::vector<toTransmit<mpz_t> *> *toSend, *toReceive;
