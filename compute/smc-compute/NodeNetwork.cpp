@@ -327,7 +327,7 @@ void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
 
 int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLength) {
     try {
-        buffer = (unsigned char *)calloc(1, start + remainingLength);
+        buffer = (unsigned char *) malloc(start + remainingLength);
 
         if (start > 0) {
             //Since we cannot write directly into an mpz, take out what we have currently
@@ -338,26 +338,32 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLe
             //Now write to the buffer, starting where we left off
         }
 
-        //Only the remaining gets sent, start = 0
-        bytes = getDataFromPeer(id, buffer, 0, remainingLength);
+        bytes = getDataFromPeer(id, buffer, start, remainingLength);
 
-        if (bytes > 0) {
+        // Decrypt only when everything's received
+        if (bytes == remainingLength) {
             EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-            decrypted = (unsigned char *)aes_decrypt(de_temp, buffer, &remainingLength);
+            int total = start + remainingLength;
+            decrypted = aes_decrypt(de_temp, buffer, &total);
 
-            for (int i = 0; i < remainingLength / element_size; i++) {
+            for (int i = 0; i < (total) / element_size; i++) {
                 mpz_import(data[i], element_size, -1, 1, -1, 0, decrypted + (i * element_size));
             }
 
-            // if (remainingLength > element_size) 
-            //     for (int i = 0; i < (start + remainingLength) / element_size; i++)
-            //         gmp_printf("RECV from %i: [%i] = %Zd\n", id, i, data[i]);
-
             free(decrypted);
+
+            // Put in mpz until everything's arrived
+        } else if (bytes > 0) {
+            for (int i = 0; i < (start + remainingLength) / element_size; i++) {
+                mpz_import(data[i], element_size, -1, 1, -1, 0, buffer + (i * element_size));
+            }
         }
+
+        // if (remainingLength > element_size) 
+        //     for (int i = 0; i < (start + remainingLength) / element_size; i++)
+        //         gmp_printf("RECV from %i: [%i] = %Zd\n", id, i, data[i]);
+
         
-        
-        free(buffer);
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
