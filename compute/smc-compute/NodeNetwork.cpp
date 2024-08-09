@@ -87,7 +87,7 @@ int NodeNetwork::numOfChangedNodes = 0; // number of nodes that has changed mode
 const int numb = sizeof(char) * 8;
 int peers;
 int bits;
-int unit_size; 
+int element_size;
 /************************************************************/
 
 
@@ -100,8 +100,17 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     // here number of peers is n-1 instead of n
     peers = config->getPeerCount();
     bits = config->getBits();
-    unit_size = (bits + numb - 1) / numb;
+
+#if __SHAMIR__
+    element_size = (bits + numb - 1) / numb;
+#elif __RSS__
+    // number of bytes necessary to hold bits
+    element_size = ((bits + 7) >> 3);
+#endif
+    toSend = new std::vector<toTransmit *>;
+    toReceive = new std::vector<toTransmit *>;
     
+
     // allocate space for prgSeeds
     threshold = peers / 2;
     prgSeeds = new unsigned char *[2 * threshold];
@@ -110,9 +119,9 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
         memset(prgSeeds[i], 0, KEYSIZE);
         // print_hexa(prgSeeds[i],KEYSIZE);
     }
-
+printf("connecting to peers\n");
     connectToPeers();
-
+printf("done connecting\n");
     numOfThreads = num_threads; // it should be read from parsing
 
     int temp_buffer_size = MAX_BUFFER_SIZE / (peers + 1) / ((bits + numb - 1) / numb);
@@ -242,14 +251,14 @@ void NodeNetwork::beginTracking() {
 char * separator = "-------------------------------------------";
 // char * separator = "\n";
 void NodeNetwork::endTracking(char* operation, int size) {
-    // int expectedBytes = size * unit_size;
+    // int expectedBytes = size * element_size;
     // int expectedUnits = (expectedBytes / MAX_BUFFER_SIZE) + 1;
 
     // if (size == 0)
     //     return;
     
     printf("%s\nUnit Size: %i\tOperator %s (size: %i)\nBytes wrote: \t%i (%i unit(s))\nBytes read: \t%i (%i unit(s))\n", 
-    separator, unit_size, operation, size, *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read);
+    separator, element_size, operation, size, *trackedBytes_Write, *trackedUnits_Write, *trackedBytes_Read, *trackedUnits_Read);
 
     *trackedBytes_Write = 0;
     *trackedUnits_Write = 0; 
@@ -268,7 +277,7 @@ void NodeNetwork::printRunningTotals() {
 */
 void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
     int start = 0, 
-        length = unit_size * size;
+        length = element_size * size;
 
     while (start < length) {
         bytes = sendDataToPeer(id, data, start, length - start);
@@ -281,21 +290,21 @@ void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
 
 int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLength) {
     try {
-        buffer = (unsigned char *)calloc(1, remainingLength);
+        buffer = (unsigned char *) calloc(sizeof(unsigned char), remainingLength);
 
         //Export each segment to the buffer.
         //  Do not worry about start here, since it will be cut off in the next sendData call.
-        for (int i = 0; i < remainingLength / unit_size; i++) {
-            mpz_export(buffer + (i * unit_size), NULL, -1, unit_size, -1, 0, data[i]);
+        for (int i = 0; i < remainingLength / element_size; i++) {
+            mpz_export(buffer + (i * element_size), NULL, -1, element_size, -1, 0, data[i]);
         }
 
         EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-        unsigned char *encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &remainingLength);
+        encrypted = aes_encrypt(en_temp, buffer, &remainingLength);
         
-        int bytes = sendDataToPeer(id, encrypted, start, remainingLength);
+        bytes = sendDataToPeer(id, encrypted, start, remainingLength);
 
-        // if (remainingLength > unit_size) 
-        //     for (int i = 0; i < (start + remainingLength) / unit_size; i++)
+        // if (remainingLength > element_size) 
+        //     for (int i = 0; i < (start + remainingLength) / element_size; i++)
         //                 gmp_printf("SENT to %i: [%i] = %Zd\n", id, i, data[i]);
 
 
@@ -310,7 +319,8 @@ int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLen
 
 void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
     int start = 0, 
-        length = unit_size * size;
+        length = element_size * size;
+
     while (start < length) {
         bytes = getDataFromPeer(id, buffer, start, length - start);
 
@@ -326,28 +336,29 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLe
 
         if (start > 0) {
             //Since we cannot write directly into an mpz, take out what we have currently
-            for (int i = 0; i < start / unit_size; i++) {
-                mpz_export(buffer + (i * unit_size), NULL, -1, unit_size, -1, 0, data[i]);
+            for (int i = 0; i < start / element_size; i++) {
+                mpz_export(buffer + (i * element_size), NULL, -1, element_size, -1, 0, data[i]);
             }
 
             //Now write to the buffer, starting where we left off
         }
 
         //Only the remaining gets sent, start = 0
-        int bytes = getDataFromPeer(id, buffer, 0, remainingLength);
+        bytes = getDataFromPeer(id, buffer, 0, remainingLength);
 
         if (bytes > 0) {
             EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-            unsigned char *decrypted = (unsigned char *)aes_decrypt(de_temp, buffer, &remainingLength);
+            decrypted = (unsigned char *)aes_decrypt(de_temp, buffer, &remainingLength);
 
-            for (int i = 0; i < remainingLength / unit_size; i++) {
-                mpz_import(data[i], unit_size, -1, 1, -1, 0, decrypted + (i * unit_size));
+            for (int i = 0; i < remainingLength / element_size; i++) {
+                mpz_import(data[i], element_size, -1, 1, -1, 0, decrypted + (i * element_size));
             }
 
-            // if (remainingLength > unit_size) 
-            //     for (int i = 0; i < (start + remainingLength) / unit_size; i++)
+            // if (remainingLength > element_size) 
+            //     for (int i = 0; i < (start + remainingLength) / element_size; i++)
             //         gmp_printf("RECV from %i: [%i] = %Zd\n", id, i, data[i]);
 
+            free(decrypted);
         }
         
         
@@ -367,7 +378,7 @@ void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
     int bytesWrote = 0, totalSize = size * sizeof(int);
     
     while (bytesWrote < totalSize) {
-        bytes = sendDataToPeer(id, (unsigned char*)data, bytesWrote, totalSize - bytesWrote);
+        bytes = sendDataToPeer(id, (unsigned char*) data, bytesWrote, totalSize - bytesWrote);
 
         if (bytes > 0)
             bytesWrote += bytes;
@@ -385,13 +396,13 @@ void NodeNetwork::getDataFromPeer(int id, int size, int *data) {
 
 }
 
+
 /*
     UNSIGNED CHAR (all data passed goes through here)
 */
 void NodeNetwork::sendDataToPeer(int id, int size, unsigned char *data) {
     int start = 0, 
-        length = size,
-        bytes;
+        length = size;
 
     while (start < length) {
         bytes = sendDataToPeer(id, data, start, length - start);
@@ -427,8 +438,8 @@ int NodeNetwork::sendDataToPeer(int id, unsigned char *data, int start, int rema
 
 void NodeNetwork::getDataFromPeer(int id, int size, unsigned char *buffer) {
     int start = 0, 
-        length = size,
-        bytes;
+        length = size;
+
     while (start < length) {
         bytes = getDataFromPeer(id, buffer, start, length - start);
 
@@ -443,8 +454,8 @@ int NodeNetwork::getDataFromPeer(int id, unsigned char *buffer, int start, int r
         int sockfd = peer2sock.find(id)->second;
         
         bytes = recv(sockfd, buffer + start, remainingLength, MSG_DONTWAIT);
+        
         if (bytes > 0) {
-
             if (tracking) {
                 *trackedBytes_Read += bytes;
                 *runningTotalRead += bytes;
@@ -488,38 +499,15 @@ void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer,
 }
 
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
-    toSend.clear();
-    toReceive.clear();
+    toSend->clear();
+    toReceive->clear();
 
-    int totalSize = unit_size * size;
+    int totalSize = element_size * size;
 
-    //N = 3 case, where we send to and receive from only 1 peer.
-    //  No need to have extra steps indicated below-- just send, then receive.
-    if (threshold == 1) {
-        int sent = 0, got = 0;
-        while (true) {
-            //Try sending
-            if (sent < totalSize) {
-                bytes = sendDataToPeer(1, data[0], sent, totalSize - sent);
-                if (bytes > 0)
-                    sent += bytes;
-            }
-
-            //Try receiving
-            if (got < totalSize) {
-                bytes = getDataFromPeer(1, buffers[0], got, totalSize - got);
-
-                if (bytes > 0)
-                    got += bytes;
-            }
-
-            //Both are done
-            if (sent == totalSize && got == totalSize)
-                break;
-        }
-
-        return;
-    }
+    
+    std::vector<std::pair<int, int>> toSend;
+    std::vector<std::pair<int, int>> toReceive;
+    std::vector<std::pair<int, int>>::iterator it;
     
     int i, id = getID();
     for (i = 1; i <= peers + 1; i++) {
@@ -567,10 +555,14 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
 
 /* this function sends identical data (stored in variable 'data') to all other peers and receives data from all of them as well (stored in variable 'buffers') */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
-    toSend.clear();
-    toReceive.clear();
+    toSend->clear();
+    toReceive->clear();
 
-    int totalSize = unit_size * size;
+    int totalSize = element_size * size;
+
+    std::vector<std::pair<int, int>> toSend;
+    std::vector<std::pair<int, int>> toReceive;
+    std::vector<std::pair<int, int>>::iterator it;
 
     int i, id = getID();
     for (i = 1; i <= peers + 1; i++) {
@@ -787,7 +779,7 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
         info[1] = amount;
         info[2] = size;
 
-        int buffer_size = unit_size * amount;
+        int buffer_size = element_size * amount;
 
         //TODO: must change to correct _export
         buffer = (unsigned char *)calloc(sizeof(char), buffer_size);
@@ -1281,7 +1273,7 @@ void NodeNetwork::init_keys(int peer, int nRead) {
 // }
 
 void NodeNetwork::getRounds(int size, int *count, int *rounds) {
-    *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
+    *count = MAX_BUFFER_SIZE / (peers + 1) / element_size;
     if (size % (*count) != 0)
         *rounds = size / (*count);
     else
@@ -1332,43 +1324,13 @@ unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *cipher
 
 //_Mult and _Open have the same pattern, just different places that the data is read into.
 void NodeNetwork::multicastToThreshold(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, mpz_t **buffer, int size) {
-    int totalSize = unit_size * size;
+    int totalSize = element_size * size;
 
-    //N = 3 case, where we send to and receive from only 1 peer.
-    //  No need to have extra steps indicated below-- just send, then receive.
-    if (threshold == 1) {
-
-        if (buffer == NULL)
-            getDestination = data[2 * threshold];
-        else
-            getDestination = buffer[threshold - 1];
-
-        int sent = 0, got = 0;
-        while (true) {
-            //Try sending
-            if (sent < totalSize) {
-                bytes = sendDataToPeer(sendtoIDs[0], data[0], sent, totalSize - sent);
-                if (bytes > 0)
-                    sent += bytes;
-            }
-
-            //Try receiving
-            if (got < totalSize) {
-                bytes = getDataFromPeer(RecvFromIDs[threshold - 1], getDestination, got, totalSize - got);
-                if (bytes > 0)
-                    got += bytes;
-            }
-
-            //Both are done
-            if (sent == totalSize && got == totalSize)
-                break;
-        }
-
-        return;
-    }
+    std::vector<std::pair<int, int>> toSend;
+    std::vector<std::pair<int, int>> toReceive;
+    std::vector<std::pair<int, int>>::iterator it;
 
 
-    //Larger parties
     toSend.clear();
     toReceive.clear();
 
@@ -1550,266 +1512,463 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 //////////////////////////////////////////////////////////////////////
 #if __RSS__
 
-void NodeNetwork::getRounds_RSS(int size, uint *count, uint *rounds, uint ring_size) {
-    int unit_size = (ring_size + 7) >> 3;
-    *count = MAX_BUFFER_SIZE / (peers + 1) / unit_size;
-    if (size % (*count) != 0)
-        *rounds = size / (*count);
-    else
-        *rounds = size / (*count) - 1;
-}
+/*
+    priv_int send / recv
+*/
+// Full Send
+void NodeNetwork::sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size) {
+    int bytesWrote = 0, totalSize = size * sizeof(priv_int_t);
 
-// specific to 3 parties
-void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t *RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
-    uint count = 0, rounds = 0;
-    getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
-        // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
-        for (size_t i = 0; i < send_recv_map[0].size(); i++) {
-            if (send_recv_map[0][i] > 0) {
-                sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
-            }
-        }
-        for (size_t i = 0; i < send_recv_map[1].size(); i++) {
-            if (send_recv_map[1][i] > 0) {
-                getDataFromPeer(send_recv_map[1][i], RecvData, k * count, count, size, ring_size);
-            }
-        }
+    while (bytesWrote < totalSize) {
+        bytes = sendDataToPeer(id, data, bytesWrote, totalSize - bytesWrote, ring_size);
+
+        if (bytes > 0)
+            bytesWrote += bytes;
     }
 }
 
-// used for 5p, 7p Mult and edaBit
-void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
-    uint count = 0, rounds = 0;
-    getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
-        for (size_t i = 0; i < send_recv_map[0].size(); i++) {
-            // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
-            if (send_recv_map[0][i] > 0) {
-                sendDataToPeer(send_recv_map[0][i], SendData, k * count, count, size, ring_size);
-                // for (size_t j = 0; j < size; j++) {
-                // printf("sent %lu\n", SendData[j]);
-                // }
-                // std::cout << "-- sending to " << send_recv_map[0][i] << " -- "<< std::endl;
-            }
-        }
-        for (size_t i = 0; i < send_recv_map[1].size(); i++) {
-            if (send_recv_map[1][i] > 0) {
-                getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
-                // for (size_t j = 0; j < size; j++) {
-                //     printf("received %lu\n", RecvData[i][j]);
-                // }
-                // std::cout << "** recv from " << send_recv_map[1][i] << " into index " << i << " **"<<std::endl;
-            }
-        }
-    }
-}
-
-// used for Open (5 and 7 pc)
-void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **SendData, priv_int_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
-    uint count = 0, rounds = 0;
-    getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
-        // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
-        for (size_t i = 0; i < send_recv_map[0].size(); i++) {
-            if (send_recv_map[0][i] > 0) {
-                sendDataToPeer(send_recv_map[0][i], SendData[i], k * count, count, size, ring_size);
-            }
-        }
-        for (size_t i = 0; i < send_recv_map[1].size(); i++) {
-            if (send_recv_map[1][i] > 0) {
-                getDataFromPeer(send_recv_map[1][i], RecvData[i], k * count, count, size, ring_size);
-            }
-        }
-    }
-}
-
-void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size) {
+// Partial Send (requires multiple calls)
+int NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size) {
     try {
-        uint read_amount = 0;
-        if (start + amount > size)
-            read_amount = size - start;
-        else
-            read_amount = amount;
-        int unit_size = (ring_size + 7) >> 3;
-        int buffer_size = unit_size * read_amount;
-        buffer = (unsigned char *)malloc(sizeof(char) * buffer_size);
-        char *pointer = buffer;
-        memset(buffer, 0, buffer_size);
-        for (int i = start; i < start + read_amount; i++) {
-            // I think this is here to preserve security beyond the ell (or k) bits of the shares
+        buffer = (unsigned char *) malloc(sizeof(char) * remainingLength);
+        unsigned char *pointer = buffer;
+
+        int intSize = sizeof(priv_int_t);
+        for (int i = start / intSize; i < (start + remainingLength) / intSize; i++) {
+            // This is here to preserve security beyond the ell (or k) bits of the shares
             data[i] = data[i] & SHIFT_RSS[ring_size];
-            memcpy(pointer, &data[i], unit_size);
-            pointer += unit_size;
+            memcpy(pointer, &(data[i]), intSize);
+            pointer += intSize;
         }
+
         EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-        encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
-        sendDataToPeer(id, buffer_size, encrypted);
+        unsigned char *encrypted = aes_encrypt(en_temp, buffer, &remainingLength);
+        
+        int bytes = sendDataToPeer(id, encrypted, start, remainingLength);
+        
         free(buffer);
         free(encrypted);
+        
+        return bytes;
+
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
     }
 }
 
-void NodeNetwork::sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size) {
-    uint count = 0, rounds = 0;
-    getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++)
-        sendDataToPeer(id, data, k * count, count, size, ring_size);
-}
-
+// Full Recv
 void NodeNetwork::getDataFromPeer(int id, int size, priv_int_t *buffer, uint ring_size) {
-    uint count = 0, rounds = 0;
-    getRounds_RSS(size, &count, &rounds, ring_size);
-    memset(buffer, 0, sizeof(priv_int_t) * size);
-    for (int k = 0; k <= rounds; k++)
-        getDataFromPeer(id, buffer, k * count, count, size, ring_size);
+    int bytesRead = 0, totalSize = size * sizeof(priv_int_t);
+
+    while (bytesRead < totalSize) {
+        bytes = getDataFromPeer(id, buffer, bytesRead, totalSize - bytesRead, ring_size);
+        
+        if (bytes > 0)
+            bytesRead += bytes;
+    }
 }
 
-void NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size) {
+// Partial Recv (requires multiple calls)
+int NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int remainingLength, uint ring_size) {
     try {
-        int write_amount = 0;
-        if (start + amount > size)
-            write_amount = size - start;
-        else
-            write_amount = amount;
-        int unit_size = (ring_size + 7) >> 3;
-        int length = unit_size * write_amount;
+        buffer = (unsigned char *) malloc(sizeof(char) * remainingLength);
 
-        buffer = (unsigned char *)malloc(sizeof(char) * length);
-        getDataFromPeer(id, length, (unsigned char *)buffer);
-        EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-        decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
-        memset(&data[start], 0, sizeof(priv_int_t) * write_amount);
-        for (int i = start; i < start + write_amount; i++) {
-            memcpy(&data[i], decrypted, unit_size);
-            decrypted += unit_size;
+        // Only the remaining gets sent, so start = 0
+        int bytes = getDataFromPeer(id, buffer, 0, remainingLength);
+
+        if (bytes > 0) {
+            EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+            decrypted = aes_decrypt(de_temp, buffer, &remainingLength);
+            memcpy(((unsigned char *) data) + start, decrypted, bytes);
+            free(decrypted);
         }
-        decrypted -= (write_amount)*unit_size;
+        
         free(buffer);
-        free(decrypted);
+
+        return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
     }
 }
 
-void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size) {
-    int id = getID();
-    uint count = 0, rounds = 0;
-    getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
-        for (int j = 1; j <= peers + 1; j++) {
-            if (id == j)
-                continue;
-            sendDataToPeer(j, data[j - 1], k * count, count, size, ring_size);
+void NodeNetwork::sendAndReceive(int dataSize) {
+    int id, start;
+    priv_int_t *data;
+    while (!(toSend->empty() && toReceive->empty())) {
+        for (it = toSend->begin(); it < toSend->end(); it++) {
+            id = (*it)->ID;
+            start = (*it)->start;
+            data = (*it)->data;
+
+            bytes = sendDataToPeer(id, data, start, dataSize - start, bits);
+
+            if (bytes > 0)
+                (*it)->start += bytes;
+
+            if ((*it)->start == dataSize) {
+                it = toSend->erase(it);
+            }
         }
-        for (int j = 1; j <= peers + 1; j++) {
-            if (id == j)
-                continue;
-            getDataFromPeer(j, buffers[j - 1], k * count, count, size, ring_size);
+
+        for (it = toReceive->begin(); it < toReceive->end(); it++) {
+            id = (*it)->ID;
+            start = (*it)->start;
+            data = (*it)->data;
+
+            bytes = getDataFromPeer(id, data, start, dataSize - start, bits);
+
+            if (bytes > 0)
+                (*it)->start += bytes;
+
+            if ((*it)->start == dataSize) {
+                it = toReceive->erase(it);
+            }
+        }
+    }
+}
+
+void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int size, uint ring_size) {
+    toSend->clear();
+    toReceive->clear();
+    
+    int i, id = getID();
+    for (i = 1; i <= peers + 1; i++) {
+        if (id == i)
+            continue;
+        
+        toTransmit *sending = (toTransmit *) malloc(sizeof(toTransmit)), 
+            *receiving = (toTransmit *) malloc(sizeof(toTransmit));
+        
+        sending->ID = i;
+        receiving->ID = i;
+
+        sending->start = 0;
+        receiving->start = 0;
+
+        sending->data = data[i - 1];
+        receiving->data = buffers[i - 1];
+
+
+        toSend->push_back(sending);
+        toReceive->push_back(receiving);
+    }
+
+    sendAndReceive(element_size * sizeof(priv_int_t));
+}
+
+// specific to 3 parties
+void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *sendData, priv_int_t *recvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
+
+    toSend->clear();
+    toReceive->clear();
+
+    for (int i = 0; i < send_recv_map[0].size(); i++) {
+        if (send_recv_map[0][i] > 0) {
+            toTransmit *sending = (toTransmit *) malloc(sizeof(toTransmit));
+
+            sending->ID = send_recv_map[0][i];
+            sending->start = 0;
+            sending->data = &(sendData[i]);
+            
+            toSend->push_back(sending);
+        }
+    }
+
+    for (int i = 0; i < send_recv_map[1].size(); i++) {
+        if (send_recv_map[1][i] > 0) {
+            toTransmit *receiving = (toTransmit *) malloc(sizeof(toTransmit));
+
+            receiving->ID = send_recv_map[1][i];
+            receiving->start = 0;
+            receiving->data = &(recvData[i]);
+            
+            toReceive->push_back(receiving);
+        }
+    }
+
+    sendAndReceive(size * sizeof(priv_int_t));
+}
+
+// used for 5p, 7p Mult and edaBit
+void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *sendData, priv_int_t **recvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
+
+    toSend->clear();
+    toReceive->clear();
+
+    for (int i = 0; i < send_recv_map[0].size(); i++) {
+        if (send_recv_map[0][i] > 0) {
+            toTransmit *sending = (toTransmit *) malloc(sizeof(toTransmit));
+
+            sending->ID = send_recv_map[0][i];
+            sending->start = 0;
+            sending->data = &(sendData[i]);
+            
+            toSend->push_back(sending);
+        }
+    }
+
+    for (int i = 0; i < send_recv_map[1].size(); i++) {
+        if (send_recv_map[1][i] > 0) {
+            toTransmit *receiving = (toTransmit *) malloc(sizeof(toTransmit));
+
+            receiving->ID = send_recv_map[1][i];
+            receiving->start = 0;
+            receiving->data = recvData[i];
+            
+            toReceive->push_back(receiving);
+        }
+    }
+
+    sendAndReceive(size * sizeof(priv_int_t));
+}
+
+// used for Open (5 and 7 pc)
+void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **sendData, priv_int_t **recvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
+    toSend->clear();
+    toReceive->clear();
+
+    for (int i = 0; i < send_recv_map[0].size(); i++) {
+        if (send_recv_map[0][i] > 0) {
+            toTransmit *sending = (toTransmit *) malloc(sizeof(toTransmit));
+
+            sending->ID = send_recv_map[0][i];
+            sending->start = 0;
+            sending->data = sendData[i];
+            
+            toSend->push_back(sending);
+        }
+    }
+
+    for (int i = 0; i < send_recv_map[1].size(); i++) {
+        if (send_recv_map[1][i] > 0) {
+            toTransmit *receiving = (toTransmit *) malloc(sizeof(toTransmit));
+
+            receiving->ID = send_recv_map[1][i];
+            receiving->start = 0;
+            receiving->data = recvData[i];
+            
+            toReceive->push_back(receiving);
+        }
+    }
+
+    sendAndReceive(size * sizeof(priv_int_t));
+
+}
+
+
+
+/*
+    uint8_t send / recv
+*/
+// Full Send
+void NodeNetwork::sendDataToPeer(int id, int size, uint8_t *data, uint ring_size) {
+    int bytesWrote = 0, totalSize = size * sizeof(uint8_t);
+
+    while (bytesWrote < totalSize) {
+        bytes = sendDataToPeer(id, data, bytesWrote, totalSize - bytesWrote, ring_size);
+
+        if (bytes > 0)
+            bytesWrote += bytes;
+    }
+}
+
+// Partial Send (requires multiple calls)
+int NodeNetwork::sendDataToPeer(int id, uint8_t *data, int start, int remainingLength, uint ring_size) {
+    try {
+        buffer = (unsigned char *) malloc(sizeof(char) * remainingLength);
+        unsigned char *pointer = buffer;
+
+        int intSize = sizeof(uint8_t);
+        for (int i = start / intSize; i < (start + remainingLength) / intSize; i++) {
+            // This is here to preserve security beyond the ell (or k) bits of the shares
+            data[i] = data[i] & SHIFT_RSS[ring_size];
+            memcpy(pointer, &(data[i]), intSize);
+            pointer += intSize;
+        }
+
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
+        unsigned char *encrypted = aes_encrypt(en_temp, buffer, &remainingLength);
+        
+        int bytes = sendDataToPeer(id, encrypted, start, remainingLength);
+        
+        free(buffer);
+        free(encrypted);
+        
+        return bytes;
+
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+// Full Recv
+void NodeNetwork::getDataFromPeer(int id, int size, uint8_t *buffer, uint ring_size) {
+    int bytesRead = 0, totalSize = size * sizeof(uint8_t);
+
+    while (bytesRead < totalSize) {
+        bytes = getDataFromPeer(id, buffer, bytesRead, totalSize - bytesRead, ring_size);
+        
+        if (bytes > 0)
+            bytesRead += bytes;
+    }
+}
+
+// Partial Recv (requires multiple calls)
+int NodeNetwork::getDataFromPeer(int id, uint8_t *data, int start, int remainingLength, uint ring_size) {
+    try {
+        buffer = (unsigned char *) malloc(sizeof(char) * remainingLength);
+
+        // Only the remaining gets sent, so start = 0
+        int bytes = getDataFromPeer(id, buffer, 0, remainingLength);
+
+        if (bytes > 0) {
+            EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+            decrypted = aes_decrypt(de_temp, buffer, &remainingLength);
+            memcpy(((unsigned char *) data) + start, decrypted, bytes);
+            free(decrypted);
+        }
+        
+        free(buffer);
+
+        return bytes;
+    } catch (std::exception &e) {
+        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+    }
+}
+
+void NodeNetwork::sendAndReceive_bit(int dataSize) {
+    int id, start;
+    uint8_t *data;
+    while (!(toSend_bit->empty() && toReceive_bit->empty())) {
+        for (it_bit = toSend_bit->begin(); it_bit < toSend_bit->end(); it++) {
+            id = (*it_bit)->ID;
+            start = (*it_bit)->start;
+            data = (*it_bit)->data;
+
+            bytes = sendDataToPeer(id, data, start, dataSize - start, bits);
+
+            if (bytes > 0)
+                (*it_bit)->start += bytes;
+
+            if ((*it_bit)->start == dataSize) {
+                it_bit = toSend_bit->erase(it_bit);
+            }
+        }
+
+        for (it_bit = toReceive_bit->begin(); it_bit < toReceive_bit->end(); it_bit++) {
+            id = (*it_bit)->ID;
+            start = (*it_bit)->start;
+            data = (*it_bit)->data;
+
+            bytes = getDataFromPeer(id, data, start, dataSize - start, bits);
+
+            if (bytes > 0)
+                (*it_bit)->start += bytes;
+
+            if ((*it_bit)->start == dataSize) {
+                it_bit = toReceive_bit->erase(it_bit);
+            }
         }
     }
 }
 
 // specific to 3 parties (open and mult)
-void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
-    uint count = 0, rounds = 0;
-    getRounds_bit(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
-        for (size_t i = 0; i < send_recv_map[0].size(); i++) {
-            sendDataToPeer_bit(send_recv_map[0][i], SendData, k * count, count, size);
-        }
-        for (size_t i = 0; i < send_recv_map[1].size(); i++) {
-            getDataFromPeer_bit(send_recv_map[1][i], RecvData, k * count, count, size);
+void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *sendData, uint8_t *recvData, int size, std::vector<std::vector<int>> send_recv_map) {
+
+    toSend_bit->clear();
+    toReceive_bit->clear();
+
+    for (int i = 0; i < send_recv_map[0].size(); i++) {
+        if (send_recv_map[0][i] > 0) {
+            toTransmit_bit *sending = (toTransmit_bit *) malloc(sizeof(toTransmit_bit));
+
+            sending->ID = send_recv_map[0][i];
+            sending->start = 0;
+            sending->data = &(sendData[i]);
+            
+            toSend_bit->push_back(sending);
         }
     }
+
+    for (int i = 0; i < send_recv_map[1].size(); i++) {
+        if (send_recv_map[1][i] > 0) {
+            toTransmit_bit *receiving = (toTransmit_bit *) malloc(sizeof(toTransmit_bit));
+
+            receiving->ID = send_recv_map[1][i];
+            receiving->start = 0;
+            receiving->data = &(recvData[i]);
+            
+            toReceive_bit->push_back(receiving);
+        }
+    }
+
+    sendAndReceive_bit(size * sizeof(uint8_t));
 }
 
-// used for multiplication
-void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
-    uint count = 0, rounds = 0;
-    getRounds_bit(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
-        for (size_t i = 0; i < send_recv_map[0].size(); i++) {
-            sendDataToPeer_bit(send_recv_map[0][i], SendData, k * count, count, size);
-        }
-        for (size_t i = 0; i < send_recv_map[1].size(); i++) {
-            getDataFromPeer_bit(send_recv_map[1][i], RecvData[i], k * count, count, size);
+// used for Multiplication
+void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *sendData, uint8_t **recvData, int size, std::vector<std::vector<int>> send_recv_map) {
+
+    toSend_bit->clear();
+    toReceive_bit->clear();
+
+    for (int i = 0; i < send_recv_map[0].size(); i++) {
+        if (send_recv_map[0][i] > 0) {
+            toTransmit_bit *sending = (toTransmit_bit *) malloc(sizeof(toTransmit_bit));
+
+            sending->ID = send_recv_map[0][i];
+            sending->start = 0;
+            sending->data = &(sendData[i]);
+            
+            toSend_bit->push_back(sending);
         }
     }
+
+    for (int i = 0; i < send_recv_map[1].size(); i++) {
+        if (send_recv_map[1][i] > 0) {
+            toTransmit_bit *receiving = (toTransmit_bit *) malloc(sizeof(toTransmit_bit));
+
+            receiving->ID = send_recv_map[1][i];
+            receiving->start = 0;
+            receiving->data = recvData[i];
+            
+            toReceive_bit->push_back(receiving);
+        }
+    }
+
+    sendAndReceive_bit(size * sizeof(uint8_t));
 }
 
 // used for Open
-void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t **SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
-    uint count = 0, rounds = 0;
-    getRounds_bit(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
-        for (size_t i = 0; i < send_recv_map[0].size(); i++) {
-            sendDataToPeer_bit(send_recv_map[0][i], SendData[i], k * count, count, size);
+void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t **sendData, uint8_t **recvData, int size, std::vector<std::vector<int>> send_recv_map) {
+
+    toSend_bit->clear();
+    toReceive_bit->clear();
+
+    for (int i = 0; i < send_recv_map[0].size(); i++) {
+        if (send_recv_map[0][i] > 0) {
+            toTransmit_bit *sending = (toTransmit_bit *) malloc(sizeof(toTransmit_bit));
+
+            sending->ID = send_recv_map[0][i];
+            sending->start = 0;
+            sending->data = sendData[i];
+            
+            toSend_bit->push_back(sending);
         }
-        for (size_t i = 0; i < send_recv_map[1].size(); i++) {
-            getDataFromPeer_bit(send_recv_map[1][i], RecvData[i], k * count, count, size);
+    }
+
+    for (int i = 0; i < send_recv_map[1].size(); i++) {
+        if (send_recv_map[1][i] > 0) {
+            toTransmit_bit *receiving = (toTransmit_bit *) malloc(sizeof(toTransmit_bit));
+
+            receiving->ID = send_recv_map[1][i];
+            receiving->start = 0;
+            receiving->data = recvData[i];
+            
+            toReceive_bit->push_back(receiving);
         }
     }
-}
 
-void NodeNetwork::sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size) {
-    try {
-        int read_amount = 0;
-        if (start + amount > size)
-            read_amount = size - start;
-        else
-            read_amount = amount;
-        int unit_size = 1;
-        int buffer_size = unit_size * read_amount;
-        buffer = (unsigned char *)malloc(sizeof(char) * buffer_size);
-        char *pointer = buffer;
-
-        memset(buffer, 0, buffer_size);
-        memcpy(pointer, &data[start], unit_size * read_amount);
-
-        EVP_CIPHER_CTX *en_temp = peer2enlist.find(id)->second;
-        encrypted = aes_encrypt(en_temp, (unsigned char *)buffer, &buffer_size);
-        sendDataToPeer(id, buffer_size, encrypted);
-        free(buffer);
-        free(encrypted);
-    } catch (std::exception &e) {
-        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size) {
-    try {
-        int length = 0;
-        if (start + amount > size)
-            length = size - start;
-        else
-            length = amount;
-        
-        buffer = (unsigned char *)malloc(sizeof(char) * length);
-        getDataFromPeer(id, length, (unsigned char *)buffer);
-
-        EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
-        decrypted = (char *)aes_decrypt(de_temp, (unsigned char *)buffer, &length);
-        memset(&data[start], 0, sizeof(uint8_t) * write_amount);
-        memcpy(&data[start], decrypted, unit_size * write_amount);
-
-        free(buffer);
-        free(decrypted);
-
-    } catch (std::exception &e) {
-        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
-    // size means number of bytes
-    *count = MAX_BUFFER_SIZE / (peers + 1);
-    if (size % (*count) != 0)
-        *rounds = size / (*count);
-    else
-        *rounds = size / (*count) - 1;
+    sendAndReceive_bit(size * sizeof(uint8_t));
 }
 
 #endif
