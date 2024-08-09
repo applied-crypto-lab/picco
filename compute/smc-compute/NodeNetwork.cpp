@@ -331,7 +331,7 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLe
 
         if (start > 0) {
             //Since we cannot write directly into an mpz, take out what we have currently
-            for (int i = 0; i < start / element_size; i++) {
+            for (int i = 0; i < (start + remainingLength) / element_size; i++) {
                 mpz_export(buffer + (i * element_size), NULL, -1, element_size, -1, 0, data[i]);
             }
 
@@ -363,7 +363,7 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLe
         //     for (int i = 0; i < (start + remainingLength) / element_size; i++)
         //         gmp_printf("RECV from %i: [%i] = %Zd\n", id, i, data[i]);
 
-        
+        free(buffer);
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
