@@ -90,7 +90,6 @@ int bits;
 int element_size;
 /************************************************************/
 
-
 NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads) {
     privatekeyfile = privatekey_filename;
     config = nodeConfig;
@@ -234,12 +233,112 @@ NodeNetwork::~NodeNetwork() {
     // delete[] prgSeeds;
 }
 
-unsigned char **NodeNetwork::getPRGseeds() {
-    return prgSeeds;
+int NodeNetwork::sendDataToPeer(int id, unsigned char *data, int start, int remainingLength) {
+    try {
+        //Find corresponding socket
+        int sockfd = peer2sock.find(id)->second;
+
+        //If written returns -1, this means EAGAIN or EWOULDBLOCK.
+        bytes = send(sockfd, data + start, remainingLength, MSG_DONTWAIT);
+
+        if (bytes > 0) {
+            if (*tracking) {
+                *trackedBytes_Write += bytes;
+                *runningTotalWrite += bytes;
+            }
+        }
+
+        return bytes;
+    } catch (std::exception &e) {
+        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+    }
 }
 
-void NodeNetwork::closeAllConnections() {
+int NodeNetwork::getDataFromPeer(int id, unsigned char *buffer, int start, int remainingLength) {
+    try {
+        int sockfd = peer2sock.find(id)->second;
+        
+        bytes = recv(sockfd, buffer + start, remainingLength, MSG_DONTWAIT);
+        
+        if (bytes > 0) {
+            if (*tracking) {
+                *trackedBytes_Read += bytes;
+                *runningTotalRead += bytes;
+            }
+        }
+
+        return bytes;
+    } catch (std::exception &e) {
+        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+    }
 }
+
+
+void NodeNetwork::init_keys(int peer, int nRead) {
+    unsigned char key[KEYSIZE], iv[AES_BLOCK_SIZE], prg_seed_key[KEYSIZE];
+    memset(key, 0x00, KEYSIZE);
+    memset(iv, 0x00, AES_BLOCK_SIZE);
+    memset(prg_seed_key, 0x00, KEYSIZE);
+
+    if (0 == nRead) {
+        // useKey KeyIV
+        memcpy(key, KeyIV, KEYSIZE);
+        memcpy(iv, KeyIV + KEYSIZE, AES_BLOCK_SIZE);
+        memcpy(prg_seed_key, KeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
+    } else {
+        // getKey from peers
+        memcpy(key, peerKeyIV, KEYSIZE);
+        memcpy(iv, peerKeyIV + KEYSIZE, AES_BLOCK_SIZE);
+        memcpy(prg_seed_key, peerKeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
+    }
+
+    // populate the prgSeeds array which stores keys for parties myid-threshold through myid-1
+    // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties
+    int threshold = peers / 2;
+    int myid = getID();
+    int index = myid - peer;
+    if (index < 0) {
+        index = index + peers + 1;
+    }
+
+    if ((1 <= index) and (index <= threshold)) {
+        memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
+    } else {
+        memcpy(prgSeeds[threshold + peers - index], prg_seed_key, KEYSIZE);
+    }
+
+    en = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(en, EVP_aes_128_ctr(), NULL, key, iv);
+    de = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(de, EVP_aes_128_ctr(), NULL, key, iv);
+    peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
+    peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
+}
+
+unsigned char *NodeNetwork::aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len) {
+    int c_len = *len + AES_BLOCK_SIZE;
+    int f_len = 0;
+    unsigned char *ciphertext = (unsigned char *)malloc(c_len);
+
+    EVP_EncryptInit_ex(e, NULL, NULL, NULL, NULL);
+    EVP_EncryptUpdate(e, ciphertext, &c_len, plaintext, *len);
+    EVP_EncryptFinal_ex(e, ciphertext + c_len, &f_len);
+    *len = c_len + f_len;
+    return ciphertext;
+}
+
+unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len) {
+    int p_len = *len;
+    int f_len = 0;
+    unsigned char *plaintext = (unsigned char *)malloc(p_len + AES_BLOCK_SIZE);
+
+    EVP_DecryptInit_ex(e, NULL, NULL, NULL, NULL);
+    EVP_DecryptUpdate(e, plaintext, &p_len, ciphertext, *len);
+    EVP_DecryptFinal_ex(e, plaintext + p_len, &f_len);
+    *len = p_len + f_len;
+    return plaintext;
+}
+
 
 
 
@@ -267,9 +366,54 @@ void NodeNetwork::printRunningTotals() {
     std::cout << "[Totals: Read = " <<  *runningTotalRead << ", Write = " << *runningTotalWrite << "]\n" <<std::flush;
 }
 
+
+double NodeNetwork::time_diff(struct timeval *t1, struct timeval *t2) {
+    double elapsed;
+    if (t1->tv_usec > t2->tv_usec) {
+        t2->tv_usec += 1000000;
+        t2->tv_sec--;
+    }
+    elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
+    return (elapsed);
+}
+
+int NodeNetwork::getID() {
+    return config->getID();
+}
+
+int NodeNetwork::getNumOfThreads() {
+    return numOfThreads;
+}
+
+#if __SHAMIR__
+unsigned char **NodeNetwork::getPRGseeds() {
+    return prgSeeds;
+}
+
+// void NodeNetwork::mpzFromString(char *str, mpz_t *no, int *lengths, int size) {
+//     for (int i = 0; i < size; i++) {
+//         char temp[lengths[i]]; // = (char*)malloc(sizeof(char) * lengths[i]);
+//         memcpy(temp, str, lengths[i]);
+//         temp[lengths[i]] = '\0';
+//         str += lengths[i];
+//         mpz_set_str(no[i], temp, BASE_36);
+//     }
+// }
+
 /*
-    MPZ send/recv
+    BLOCKING send/recvs
 */
+void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
+    int bytesWrote = 0, totalSize = size * sizeof(int);
+    
+    while (bytesWrote < totalSize) {
+        bytes = sendDataToPeer(id, (unsigned char*) data, bytesWrote, totalSize - bytesWrote);
+
+        if (bytes > 0)
+            bytesWrote += bytes;
+    }
+}
+
 void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
     int start = 0, 
         length = size * element_size;
@@ -282,6 +426,63 @@ void NodeNetwork::sendDataToPeer(int id, int size, mpz_t *data) {
         }
     }
 }
+
+
+void NodeNetwork::sendDataToPeer(int id, int size, unsigned char *data) {
+    int start = 0, 
+        length = size;
+
+    while (start < length) {
+        bytes = sendDataToPeer(id, data, start, length - start);
+
+        if (bytes > 0)
+            start += bytes;
+    }
+}
+
+
+void NodeNetwork::getDataFromPeer(int id, int size, int *data) {
+    int bytesWrote = 0, totalSize = size * sizeof(int);
+    while (bytesWrote < totalSize) {
+        bytes = getDataFromPeer(id, (unsigned char*)data, bytesWrote, totalSize - bytesWrote);
+
+        if (bytes > 0)
+            bytesWrote += bytes;
+    }
+
+}
+
+void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
+    int start = 0, 
+        length = size * element_size;
+
+    while (start < length) {
+        bytes = getDataFromPeer(id, buffer, start, length - start);
+
+        if (bytes > 0) {
+            start += bytes;
+        }
+    }
+}
+
+void NodeNetwork::getDataFromPeer(int id, int size, unsigned char *buffer) {
+    int start = 0, 
+        length = size;
+
+    while (start < length) {
+        bytes = getDataFromPeer(id, buffer, start, length - start);
+
+        if (bytes > 0) {
+            start += bytes;
+        }
+    }
+}
+
+
+
+/*
+    NON-BLOCKING send/recvs
+*/
 
 int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLength) {
     try {
@@ -309,19 +510,6 @@ int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLen
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::getDataFromPeer(int id, int size, mpz_t *buffer) {
-    int start = 0, 
-        length = size * element_size;
-
-    while (start < length) {
-        bytes = getDataFromPeer(id, buffer, start, length - start);
-
-        if (bytes > 0) {
-            start += bytes;
-        }
     }
 }
 
@@ -371,130 +559,30 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLe
 }
 
 
+
 /*
-    INT send/recv
-        (used for 'mode' in threaded)
+    NETWORKING PATTERNS
 */
-void NodeNetwork::sendDataToPeer(int id, int size, int *data) {
-    int bytesWrote = 0, totalSize = size * sizeof(int);
+/* this function sends identical data (stored in variable 'data') to all other peers and receives data from all of them as well (stored in variable 'buffers') */
+void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
+    toSend->clear();
+    toReceive->clear();
     
-    while (bytesWrote < totalSize) {
-        bytes = sendDataToPeer(id, (unsigned char*) data, bytesWrote, totalSize - bytesWrote);
-
-        if (bytes > 0)
-            bytesWrote += bytes;
-    }
-}
-
-void NodeNetwork::getDataFromPeer(int id, int size, int *data) {
-    int bytesWrote = 0, totalSize = size * sizeof(int);
-    while (bytesWrote < totalSize) {
-        bytes = getDataFromPeer(id, (unsigned char*)data, bytesWrote, totalSize - bytesWrote);
-
-        if (bytes > 0)
-            bytesWrote += bytes;
+    int id = config->getID();
+    for (int i = 1; i <= peers + 1; i++) {
+        if (i == id) 
+            continue;
+        toSend->push_back(makeEntry(i, data));
+        toReceive->push_back(makeEntry(i, buffers[i - 1]));
     }
 
-}
+    sendAndReceive(size * element_size);
 
-
-/*
-    UNSIGNED CHAR (all data passed goes through here)
-*/
-void NodeNetwork::sendDataToPeer(int id, int size, unsigned char *data) {
-    int start = 0, 
-        length = size;
-
-    while (start < length) {
-        bytes = sendDataToPeer(id, data, start, length - start);
-
-        if (bytes > 0)
-            start += bytes;
-    }
-}
-
-int NodeNetwork::sendDataToPeer(int id, unsigned char *data, int start, int remainingLength) {
-    try {
-        //Find corresponding socket
-        int sockfd = peer2sock.find(id)->second;
-
-        //If written returns -1, this means EAGAIN or EWOULDBLOCK.
-        bytes = send(sockfd, data + start, remainingLength, MSG_DONTWAIT);
-
-        if (bytes > 0) {
-            if (*tracking) {
-                *trackedBytes_Write += bytes;
-                *runningTotalWrite += bytes;
-            }
-        }
-
-        return bytes;
-    } catch (std::exception &e) {
-        std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-void NodeNetwork::getDataFromPeer(int id, int size, unsigned char *buffer) {
-    int start = 0, 
-        length = size;
-
-    while (start < length) {
-        bytes = getDataFromPeer(id, buffer, start, length - start);
-
-        if (bytes > 0) {
-            start += bytes;
-        }
-    }
-}
-
-int NodeNetwork::getDataFromPeer(int id, unsigned char *buffer, int start, int remainingLength) {
-    try {
-        int sockfd = peer2sock.find(id)->second;
-        
-        bytes = recv(sockfd, buffer + start, remainingLength, MSG_DONTWAIT);
-        
-        if (bytes > 0) {
-            if (*tracking) {
-                *trackedBytes_Read += bytes;
-                *runningTotalRead += bytes;
-            }
-        }
-
-        return bytes;
-    } catch (std::exception &e) {
-        std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
-    }
-}
-
-/*
-    Multicast refers to sending multiple unicasts to separate locations, all with their own pieces of data.
-        Think node i gets sent data[i], and gets back result in buffer[i].
-*/
-void NodeNetwork::multicastToPeers(long long **srcBuffer, long long **desBuffer, int size) {
-    mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
-    mpz_t **data = (mpz_t **)malloc(sizeof(mpz_t *) * (peers + 1));
-    // int sendIdx = 0, getIdx = 0;
-    for (int i = 0; i < peers + 1; i++) {
-        buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        data[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; j++) {
-            mpz_init(buffer[i][j]);
-            mpz_init_set_ui(data[i][j], srcBuffer[i][j]);
-        }
-    }
-
-    multicastToPeers(data, buffer, size);
-    for (int i = 0; i <= peers; i++)
-        for (int j = 0; j < size; j++)
-            desBuffer[i][j] = mpz_get_ui(buffer[i][j]);
-    for (int i = 0; i <= peers; i++) {
-        free(buffer[i]);
-        free(data[i]);
-    }
+    for (int j = 0; j < size; j++)
+        mpz_set(buffers[id - 1][j], data[j]);
 }
 
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
-    #if __SHAMIR__ //todo: remove when redoing multithread
     toSend->clear();
     toReceive->clear();
 
@@ -513,29 +601,19 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
 
     for (int i = 0; i < size; i++)
         mpz_set(buffers[id - 1][i], data[id - 1][i]);
-    #endif
 }
 
-/* this function sends identical data (stored in variable 'data') to all other peers and receives data from all of them as well (stored in variable 'buffers') */
-void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
-    #if __SHAMIR__ //todo: remove when redoing multithread
+
+void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *recvFromIDs, mpz_t **data, int size) {
     toSend->clear();
     toReceive->clear();
-    
-    int id = config->getID();
-    for (int i = 1; i <= peers + 1; i++) {
-        if (i == id) 
-            continue;
-        toSend->push_back(makeEntry(i, data));
-        toReceive->push_back(makeEntry(i, buffers[i - 1]));
+
+    for (int i = 0; i < threshold; i++) {
+        toSend->push_back(makeEntry(sendtoIDs[i], data[i]));
+        toReceive->push_back(makeEntry(recvFromIDs[threshold - i - 1], data[2 * threshold - i]));
     }
 
     sendAndReceive(size * element_size);
-
-    for (int j = 0; j < size; j++)
-        mpz_set(buffers[id - 1][j], data[j]);
-
-    #endif
 }
 
 void NodeNetwork::connectToPeers() {
@@ -550,6 +628,43 @@ void NodeNetwork::connectToPeers() {
     // pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
 }
 
+void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *recvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
+    toSend->clear();
+    toReceive->clear();
+
+    int idx;
+    for (int i = 0; i < threshold; i++) {
+        toSend->push_back(makeEntry(sendtoIDs[i], data));
+
+        idx = threshold - i - 1;
+        toReceive->push_back(makeEntry(recvFromIDs[idx], buffer[idx]));
+    }
+
+    sendAndReceive(size * element_size);
+
+}
+
+
+/*
+    GETTERS
+*/
+void NodeNetwork::getRounds(int size, int *count, int *rounds) {
+    *count = MAX_BUFFER_SIZE / (peers + 1) / element_size;
+    if (size % (*count) != 0)
+        *rounds = size / (*count);
+    else
+        *rounds = size / (*count) - 1;
+}
+
+
+
+
+
+
+
+/*
+    SHAMIR MULTITHREADED
+*/
 void NodeNetwork::launchManager() {
     pthread_create(&manager, NULL, &managerWorkHelper, this); // something in here causes a segfault (not properly reported unless running GDB, the program makes it look like the segfault occurs in the constructor)
 }
@@ -633,6 +748,59 @@ void *NodeNetwork::managerWork() {
     return 0;
 }
 
+void NodeNetwork::sendModeToPeers() {
+    bool trackingBefore = *tracking;
+    if (trackingBefore)
+        *tracking = false;
+
+    int msg = -2;
+    int id = getID();
+
+    for (int j = 1; j <= peers + 1; j++) {
+        if (id == j)
+            continue;
+        
+        sendDataToPeer(j, 1, &msg);
+    }
+
+    if (trackingBefore)
+        *tracking = true;
+}
+
+
+void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
+    int *info = (int *)malloc(sizeof(int) * 3);
+    getDataFromPeer(peerID, 3, info);
+
+    pthread_mutex_lock(&buffer_mutex);
+    while (comm_flags[peerID - 1][threadID] == 0) {
+        pthread_cond_wait(&buffer_conditional_variables[threadID], &buffer_mutex);
+    }
+    pthread_mutex_unlock(&buffer_mutex);
+
+
+    getDataFromPeer(peerID, buffer_handlers[peerID - 1][threadID], info[0], info[1]);
+
+    if (info[0] + info[1] >= info[2]) {
+        comm_flags[peerID - 1][threadID] = 0;
+    }
+
+    read_socks[threadID]++;
+    if (read_socks[threadID] == config->getPeerCount()) {
+        pthread_mutex_lock(&socket_mutex);
+
+        while (unit_flags[threadID] == 1)
+            pthread_cond_wait(&flag_conditional_variables[threadID], &socket_mutex);
+        unit_flags[threadID] = 1;
+        pthread_cond_signal(&socket_conditional_variables[threadID]);
+
+        pthread_mutex_unlock(&socket_mutex);
+        read_socks[threadID] = 0;
+    }
+    free(info);
+    return;
+}
+
 void NodeNetwork::getDataFromPeerToBuffer(int socketID, int peerID, int threadID, int **info) {
     int write_amount = 0;
     int *data = (int *)malloc(sizeof(int) * 3);
@@ -682,6 +850,7 @@ void NodeNetwork::restoreDataToBuffer(int socketID, int peerID, int threadID, in
     return;
 }
 
+
 void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int size, int threadID) {
     try {
         int *info = (int *)malloc(sizeof(int) * 3);
@@ -710,62 +879,71 @@ void NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int amount, int
     }
 }
 
-void NodeNetwork::getDataFromPeer(int socketID, int peerID, int threadID) {
-    int *info = (int *)malloc(sizeof(int) * 3);
-    getDataFromPeer(peerID, 3, info);
+
+/* the function sends the same data to each peer and receives data from each peer */
+void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int threadID) {
+    test_flags[threadID]++;
+
+    if (size == 0)
+        return;
+
+    if (numOfThreads == 1) {
+        broadcastToPeers(data, size, buffers);
+        return;
+    }
+
+    if (threadID == -1) {
+        if (mode != -1) {
+            sendModeToPeers();
+            pthread_mutex_lock(&buffer_mutex);
+            while (numOfChangedNodes < peers)
+                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
+            pthread_mutex_unlock(&buffer_mutex);
+            numOfChangedNodes = 0;
+            mode = -1;
+        }
+        broadcastToPeers(data, size, buffers);
+        return;
+    }
+
+    if (mode != 0) {
+        pthread_mutex_lock(&buffer_mutex);
+        pthread_cond_signal(&manager_conditional_variable);
+        pthread_mutex_unlock(&buffer_mutex);
+        mode = 0;
+    }
+
+    // int sendIdx = 0, getIdx = 0;
+    int rounds = 0, count = 0;
+    getRounds(size, &count, &rounds);
+    for (int i = 0; i <= peers; i++)
+        buffer_handlers[i][threadID] = buffers[i];
 
     pthread_mutex_lock(&buffer_mutex);
-    while (comm_flags[peerID - 1][threadID] == 0) {
-        pthread_cond_wait(&buffer_conditional_variables[threadID], &buffer_mutex);
-    }
+    for (int i = 0; i <= peers; i++)
+        comm_flags[i][threadID] = 1;
+    pthread_cond_signal(&buffer_conditional_variables[threadID]);
     pthread_mutex_unlock(&buffer_mutex);
 
-
-    getDataFromPeer(peerID, buffer_handlers[peerID - 1][threadID], info[0], info[1]);
-
-    if (info[0] + info[1] >= info[2]) {
-        comm_flags[peerID - 1][threadID] = 0;
-    }
-
-    read_socks[threadID]++;
-    if (read_socks[threadID] == config->getPeerCount()) {
-        pthread_mutex_lock(&socket_mutex);
-
-        while (unit_flags[threadID] == 1)
-            pthread_cond_wait(&flag_conditional_variables[threadID], &socket_mutex);
-        unit_flags[threadID] = 1;
-        pthread_cond_signal(&socket_conditional_variables[threadID]);
-
-        pthread_mutex_unlock(&socket_mutex);
-        read_socks[threadID] = 0;
-    }
-    free(info);
-    return;
-}
-
-/*
-For multithreading:
-    There is a race between the integer node and data payload getting to the destination first.
-    If the data gets there first, the managerWork function will read threadID as data,
-        which will seg fault or cause unwanted behavior.
-*/
-void NodeNetwork::sendModeToPeers() {
-    bool trackingBefore = *tracking;
-    if (trackingBefore)
-        *tracking = false;
-
-    int msg = -2;
     int id = getID();
-
-    for (int j = 1; j <= peers + 1; j++) {
-        if (id == j)
-            continue;
-        
-        sendDataToPeer(j, 1, &msg);
+    for (int k = 0; k <= rounds; k++) {
+        for (int j = 1; j <= peers + 1; j++) {
+            if (id == j)
+                continue;
+            pthread_mutex_lock(&socket_mutex);
+            sendDataToPeer(j, data, k * count, count, size, threadID);
+            pthread_mutex_unlock(&socket_mutex);
+        }
+        pthread_mutex_lock(&socket_mutex);
+        while (unit_flags[threadID] == 0) {
+            pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
+        }
+        unit_flags[threadID] = 0;
+        pthread_cond_signal(&flag_conditional_variables[threadID]);
+        pthread_mutex_unlock(&socket_mutex);
     }
-
-    if (trackingBefore)
-        *tracking = true;
+    for (int j = 0; j < size; j++)
+        mpz_set(buffers[id - 1][j], data[j]);
 }
 
 /* the function sends different data to each peer and receive data from each peer */
@@ -839,15 +1017,12 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
         mpz_set(buffers[id - 1][i], data[id - 1][i]);
 }
 
-/* the function sends the same data to each peer and receives data from each peer */
-void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int threadID) {
+// why is this needed for send/recv to work?
+void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
     test_flags[threadID]++;
-
-    if (size == 0)
-        return;
-
+    
     if (numOfThreads == 1) {
-        broadcastToPeers(data, size, buffers);
+        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
         return;
     }
 
@@ -861,7 +1036,7 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
             numOfChangedNodes = 0;
             mode = -1;
         }
-        broadcastToPeers(data, size, buffers);
+        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
         return;
     }
 
@@ -872,39 +1047,87 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int t
         mode = 0;
     }
 
-    // int sendIdx = 0, getIdx = 0;
-    int rounds = 0, count = 0;
-    getRounds(size, &count, &rounds);
-    for (int i = 0; i <= peers; i++)
-        buffer_handlers[i][threadID] = buffers[i];
+    // this needs to be implemented such that multithreading can function for Shamir SS
+    // int count = 0, rounds = 0;
+    // getRounds(size, &count, &rounds);
+    // for (int i = 0; i <= peers; i++)
+    //     buffer_handlers[i][threadID] = buffers[i];
 
-    pthread_mutex_lock(&buffer_mutex);
-    for (int i = 0; i <= peers; i++)
-        comm_flags[i][threadID] = 1;
-    pthread_cond_signal(&buffer_conditional_variables[threadID]);
-    pthread_mutex_unlock(&buffer_mutex);
+    // pthread_mutex_lock(&buffer_mutex);
+    // for (int i = 0; i <= peers; i++)
+    //     comm_flags[i][threadID] = 1;
+    // pthread_cond_signal(&buffer_conditional_variables[threadID]);
+    // // gettimeofday(&tv1, NULL);
+    // pthread_mutex_unlock(&buffer_mutex);
 
-    int id = getID();
-    for (int k = 0; k <= rounds; k++) {
-        for (int j = 1; j <= peers + 1; j++) {
-            if (id == j)
-                continue;
-            pthread_mutex_lock(&socket_mutex);
-            sendDataToPeer(j, data, k * count, count, size, threadID);
-            pthread_mutex_unlock(&socket_mutex);
-        }
-        pthread_mutex_lock(&socket_mutex);
-        while (unit_flags[threadID] == 0) {
-            pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
-        }
-        unit_flags[threadID] = 0;
-        pthread_cond_signal(&flag_conditional_variables[threadID]);
-        pthread_mutex_unlock(&socket_mutex);
-    }
-    for (int j = 0; j < size; j++)
-        mpz_set(buffers[id - 1][j], data[j]);
+    // for (int i = 1; i <= peers + 1; i++) {
+    //     if (id == i) {
+    //         for (int k = 0; k <= rounds; k++) {
+    //             for (int j = 1; j <= peers + 1; j++) {
+    //                 if (id == j)
+    //                     continue;
+    //                 pthread_mutex_lock(&socket_mutex);
+    //                 sendDataToPeer(j, data[j - 1], k * count, count, size, threadID);
+    //                 pthread_mutex_unlock(&socket_mutex);
+    //             }
+    //             pthread_mutex_lock(&socket_mutex);
+    //             while (unit_flags[threadID] == 0) {
+    //                 // gettimeofday(&tv1, NULL);
+    //                 pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
+    //             }
+    //             unit_flags[threadID] = 0;
+    //             pthread_cond_signal(&flag_conditional_variables[threadID]);
+    //             pthread_mutex_unlock(&socket_mutex);
+    //         }
+    //     }
+    // }
+
+    // for (int i = 0; i < size; i++)
+    //     mpz_set(buffers[id - 1][i], data[id - 1][i]);
+    
 }
 
+// sends one piece of data to recvFromIds
+void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
+    // std::cout << "batch threadID : "<<threadID << std::endl;
+    test_flags[threadID]++;
+
+    if (size == 0)
+        return;
+    
+    if (numOfThreads == 1) {
+        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
+        return;
+    }
+    
+    if (threadID == -1) {
+        if (mode != -1) {
+            sendModeToPeers();
+            pthread_mutex_lock(&buffer_mutex);
+            while (numOfChangedNodes < peers)
+                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
+            pthread_mutex_unlock(&buffer_mutex);
+            numOfChangedNodes = 0;
+            mode = -1;
+        }
+        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
+        return;
+    }
+
+    if (mode != 0) {
+        pthread_mutex_lock(&buffer_mutex);
+        pthread_cond_signal(&manager_conditional_variable);
+        pthread_mutex_unlock(&buffer_mutex);
+        mode = 0;
+    }
+}
+
+#endif
+
+
+/*
+    PRIVATE UTILS
+*/
 void NodeNetwork::requestConnection(int numOfPeers) {
     // key/iv for secure communication, plus key for seed
     peerKeyIV = (unsigned char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
@@ -912,6 +1135,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
     int *portno = (int *)malloc(sizeof(int) * numOfPeers);
     struct sockaddr_in *serv_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * numOfPeers);
     struct hostent **server = (struct hostent **)malloc(sizeof(struct hostent *) * numOfPeers);
+    const int BUFFER_SIZE = 10000000;
     int on = 1;
     int ID;
     try {
@@ -930,9 +1154,13 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             // equivalent function otherwise.
             // fcntl(sockfd[i], F_SETFL, O_NONBLOCK);
             // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
-            if (setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+            if (setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
                 throw std::runtime_error("setsockopt(SO_REUSEADDR)");
-            if (setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0)
+            if (setsockopt(sockfd[i], SOL_SOCKET, SO_SNDBUF, &BUFFER_SIZE, sizeof(BUFFER_SIZE)) < 0)
+                throw std::runtime_error("setsockopt(SO_SNDBUF)");
+                if (setsockopt(sockfd[i], SOL_SOCKET, SO_RCVBUF, &BUFFER_SIZE, sizeof(BUFFER_SIZE)) < 0)
+                throw std::runtime_error("setsockopt(SO_RCVBUF)");
+            if (setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
                 throw std::runtime_error("setsockopt(IPPROTO_TCP)");
             server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
             if (server[i] == NULL)
@@ -1132,106 +1360,7 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
     }
 }
 
-void NodeNetwork::init_keys(int peer, int nRead) {
-    unsigned char key[KEYSIZE], iv[AES_BLOCK_SIZE], prg_seed_key[KEYSIZE];
-    memset(key, 0x00, KEYSIZE);
-    memset(iv, 0x00, AES_BLOCK_SIZE);
-    memset(prg_seed_key, 0x00, KEYSIZE);
 
-    if (0 == nRead) {
-        // useKey KeyIV
-        memcpy(key, KeyIV, KEYSIZE);
-        memcpy(iv, KeyIV + KEYSIZE, AES_BLOCK_SIZE);
-        memcpy(prg_seed_key, KeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
-    } else {
-        // getKey from peers
-        memcpy(key, peerKeyIV, KEYSIZE);
-        memcpy(iv, peerKeyIV + KEYSIZE, AES_BLOCK_SIZE);
-        memcpy(prg_seed_key, peerKeyIV + KEYSIZE + AES_BLOCK_SIZE, KEYSIZE);
-    }
-
-    // populate the prgSeeds array which stores keys for parties myid-threshold through myid-1
-    // variable peers here stores a DIFFERENT value from peers elsewhere - this corresponds to the n-1 parties
-    int threshold = peers / 2;
-    int myid = getID();
-    int index = myid - peer;
-    if (index < 0) {
-        index = index + peers + 1;
-    }
-
-    if ((1 <= index) and (index <= threshold)) {
-        memcpy(prgSeeds[threshold - index], prg_seed_key, KEYSIZE);
-    } else {
-        memcpy(prgSeeds[threshold + peers - index], prg_seed_key, KEYSIZE);
-    }
-
-    en = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(en, EVP_aes_128_ctr(), NULL, key, iv);
-    de = EVP_CIPHER_CTX_new();
-    EVP_DecryptInit_ex(de, EVP_aes_128_ctr(), NULL, key, iv);
-    peer2enlist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, en));
-    peer2delist.insert(std::pair<int, EVP_CIPHER_CTX *>(peer, de));
-}
-
-// void NodeNetwork::mpzFromString(char *str, mpz_t *no, int *lengths, int size) {
-//     for (int i = 0; i < size; i++) {
-//         char temp[lengths[i]]; // = (char*)malloc(sizeof(char) * lengths[i]);
-//         memcpy(temp, str, lengths[i]);
-//         temp[lengths[i]] = '\0';
-//         str += lengths[i];
-//         mpz_set_str(no[i], temp, BASE_36);
-//     }
-// }
-
-void NodeNetwork::getRounds(int size, int *count, int *rounds) {
-    *count = MAX_BUFFER_SIZE / (peers + 1) / element_size;
-    if (size % (*count) != 0)
-        *rounds = size / (*count);
-    else
-        *rounds = size / (*count) - 1;
-}
-
-double NodeNetwork::time_diff(struct timeval *t1, struct timeval *t2) {
-    double elapsed;
-    if (t1->tv_usec > t2->tv_usec) {
-        t2->tv_usec += 1000000;
-        t2->tv_sec--;
-    }
-    elapsed = (t2->tv_sec - t1->tv_sec) + (t2->tv_usec - t1->tv_usec) / 1000000.0;
-    return (elapsed);
-}
-
-int NodeNetwork::getID() {
-    return config->getID();
-}
-
-int NodeNetwork::getNumOfThreads() {
-    return numOfThreads;
-}
-
-unsigned char *NodeNetwork::aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len) {
-    int c_len = *len + AES_BLOCK_SIZE;
-    int f_len = 0;
-    unsigned char *ciphertext = (unsigned char *)malloc(c_len);
-
-    EVP_EncryptInit_ex(e, NULL, NULL, NULL, NULL);
-    EVP_EncryptUpdate(e, ciphertext, &c_len, plaintext, *len);
-    EVP_EncryptFinal_ex(e, ciphertext + c_len, &f_len);
-    *len = c_len + f_len;
-    return ciphertext;
-}
-
-unsigned char *NodeNetwork::aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len) {
-    int p_len = *len;
-    int f_len = 0;
-    unsigned char *plaintext = (unsigned char *)malloc(p_len + AES_BLOCK_SIZE);
-
-    EVP_DecryptInit_ex(e, NULL, NULL, NULL, NULL);
-    EVP_DecryptUpdate(e, plaintext, &p_len, ciphertext, *len);
-    EVP_DecryptFinal_ex(e, plaintext + p_len, &f_len);
-    *len = p_len + f_len;
-    return plaintext;
-}
 
 #if __SHAMIR__
 inline NodeNetwork::toTransmit<mpz_t>* NodeNetwork::makeEntry(int id, mpz_t *data) {
@@ -1269,19 +1398,38 @@ inline NodeNetwork::toTransmit<uint8_t>* NodeNetwork::makeEntry_bit(int id, uint
 
 void NodeNetwork::sendAndReceive(int dataSize) {
     int id, start;
+    unsigned char *data;
+
+    // Preprocess data
+    for (it = toSend->begin(); it < toSend->end(); it++) {
+        buffer = (unsigned char *) malloc(sizeof(char) * dataSize);
 
 #if __SHAMIR__
-    mpz_t *data;
+
+        // Export
+        for (int i = 0; i < dataSize / element_size; i++) {
+            mpz_export(buffer + (i * element_size), NULL, -1, element_size, -1, 0, ((*it)->data)[i]);
+        }
+
+        // Encrypt
+        EVP_CIPHER_CTX *en_temp = peer2enlist.find((*it)->ID)->second;
+        (*it)->convertedData = aes_encrypt(en_temp, buffer, &dataSize);
 #endif
-#if __RSS__
-    priv_int_t *data;
-#endif
+
+        free(buffer);
+
+    }    
+
+    for (it = toReceive->begin(); it < toReceive->end(); it++) {
+        (*it)->convertedData = (unsigned char *) malloc(sizeof(char) * dataSize);
+    } 
+
 
     while (!(toSend->empty() && toReceive->empty())) {
         for (it = toSend->begin(); it < toSend->end(); it++) {
             id = (*it)->ID;
             start = (*it)->start;
-            data = (*it)->data;
+            data = (*it)->convertedData;
 
 #if __SHAMIR__
             bytes = sendDataToPeer(id, data, start, dataSize - start);
@@ -1293,7 +1441,6 @@ void NodeNetwork::sendAndReceive(int dataSize) {
                 (*it)->start += bytes;
 
             if ((*it)->start == dataSize) {
-
                 free(*it);
                 it = toSend->erase(it);
             }
@@ -1302,7 +1449,7 @@ void NodeNetwork::sendAndReceive(int dataSize) {
         for (it = toReceive->begin(); it < toReceive->end(); it++) {
             id = (*it)->ID;
             start = (*it)->start;
-            data = (*it)->data;
+            data = (*it)->convertedData;
 
 #if __SHAMIR__
             bytes = getDataFromPeer(id, data, start, dataSize - start);
@@ -1315,148 +1462,23 @@ void NodeNetwork::sendAndReceive(int dataSize) {
                 (*it)->start += bytes;
 
             if ((*it)->start == dataSize) {
+                
+#if __SHAMIR__
+                EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
+                decrypted = aes_decrypt(de_temp, (*it)->convertedData, &dataSize);
+                
+                // Import
+                for (int i = 0; i < dataSize / element_size; i++) {
+                    mpz_import(((*it)->data)[i], element_size, -1, 1, -1, 0, decrypted + (i * element_size));
+                }
+
+                free(decrypted);
+#endif
                 free(*it);
                 it = toReceive->erase(it);
             }
         }
     }
-}
-
-void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *recvFromIDs, mpz_t **data, int size) {
-    #if __SHAMIR__ //TODO: remove when reworking multithread
-    toSend->clear();
-    toReceive->clear();
-
-    for (int i = 0; i < threshold; i++) {
-        toSend->push_back(makeEntry(sendtoIDs[i], data[i]));
-        toReceive->push_back(makeEntry(recvFromIDs[threshold - i - 1], data[2 * threshold - i]));
-    }
-
-    sendAndReceive(size * element_size);
-    #endif
-}
-
-// why is this needed for send/recv to work?
-void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
-    test_flags[threadID]++;
-    
-    if (numOfThreads == 1) {
-        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
-        return;
-    }
-
-    if (threadID == -1) {
-        if (mode != -1) {
-            sendModeToPeers();
-            pthread_mutex_lock(&buffer_mutex);
-            while (numOfChangedNodes < peers)
-                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
-            pthread_mutex_unlock(&buffer_mutex);
-            numOfChangedNodes = 0;
-            mode = -1;
-        }
-        multicastToPeers_Mult(sendtoIDs, RecvFromIDs, data, size);
-        return;
-    }
-
-    if (mode != 0) {
-        pthread_mutex_lock(&buffer_mutex);
-        pthread_cond_signal(&manager_conditional_variable);
-        pthread_mutex_unlock(&buffer_mutex);
-        mode = 0;
-    }
-
-    // this needs to be implemented such that multithreading can function for Shamir SS
-    // int count = 0, rounds = 0;
-    // getRounds(size, &count, &rounds);
-    // for (int i = 0; i <= peers; i++)
-    //     buffer_handlers[i][threadID] = buffers[i];
-
-    // pthread_mutex_lock(&buffer_mutex);
-    // for (int i = 0; i <= peers; i++)
-    //     comm_flags[i][threadID] = 1;
-    // pthread_cond_signal(&buffer_conditional_variables[threadID]);
-    // // gettimeofday(&tv1, NULL);
-    // pthread_mutex_unlock(&buffer_mutex);
-
-    // for (int i = 1; i <= peers + 1; i++) {
-    //     if (id == i) {
-    //         for (int k = 0; k <= rounds; k++) {
-    //             for (int j = 1; j <= peers + 1; j++) {
-    //                 if (id == j)
-    //                     continue;
-    //                 pthread_mutex_lock(&socket_mutex);
-    //                 sendDataToPeer(j, data[j - 1], k * count, count, size, threadID);
-    //                 pthread_mutex_unlock(&socket_mutex);
-    //             }
-    //             pthread_mutex_lock(&socket_mutex);
-    //             while (unit_flags[threadID] == 0) {
-    //                 // gettimeofday(&tv1, NULL);
-    //                 pthread_cond_wait(&socket_conditional_variables[threadID], &socket_mutex);
-    //             }
-    //             unit_flags[threadID] = 0;
-    //             pthread_cond_signal(&flag_conditional_variables[threadID]);
-    //             pthread_mutex_unlock(&socket_mutex);
-    //         }
-    //     }
-    // }
-
-    // for (int i = 0; i < size; i++)
-    //     mpz_set(buffers[id - 1][i], data[id - 1][i]);
-    
-}
-
-// sends one piece of data to recvFromIds
-void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
-    // std::cout << "batch threadID : "<<threadID << std::endl;
-    test_flags[threadID]++;
-
-    if (size == 0)
-        return;
-    
-    if (numOfThreads == 1) {
-        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
-        return;
-    }
-    
-    if (threadID == -1) {
-        if (mode != -1) {
-            sendModeToPeers();
-            pthread_mutex_lock(&buffer_mutex);
-            while (numOfChangedNodes < peers)
-                pthread_cond_wait(&proceed_conditional_variable, &buffer_mutex);
-            pthread_mutex_unlock(&buffer_mutex);
-            numOfChangedNodes = 0;
-            mode = -1;
-        }
-        multicastToPeers_Open(sendtoIDs, RecvFromIDs, data, buffer, size);
-        return;
-    }
-
-    if (mode != 0) {
-        pthread_mutex_lock(&buffer_mutex);
-        pthread_cond_signal(&manager_conditional_variable);
-        pthread_mutex_unlock(&buffer_mutex);
-        mode = 0;
-    }
-}
-
-void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *recvFromIDs, mpz_t *data, mpz_t **buffer, int size) {
-    #if __SHAMIR__ //todo: rework when redoing multithreaded, here for RSS
-    toSend->clear();
-    toReceive->clear();
-
-    int idx;
-    for (int i = 0; i < threshold; i++) {
-        toSend->push_back(makeEntry(sendtoIDs[i], data));
-
-        idx = threshold - i - 1;
-        toReceive->push_back(makeEntry(recvFromIDs[idx], buffer[idx]));
-    }
-
-    sendAndReceive(size * element_size);
-
-    #endif
 }
 
 //////////////////////////////////////////////////////////////////////

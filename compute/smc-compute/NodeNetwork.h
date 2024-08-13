@@ -51,6 +51,19 @@ public:
     NodeNetwork();
     virtual ~NodeNetwork();
 
+    /*
+        UTILITIES
+    */
+    //NON-BLOCKING send/recvs (unsigned char)
+    int sendDataToPeer(int, unsigned char *, int, int);
+    int getDataFromPeer(int, unsigned char *, int, int);
+
+    // Encryption and Decryption
+    void init_keys(int peer, int nRead);
+    unsigned char *aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len);
+    unsigned char *aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
+
+    // Tracking
     int *trackedBytes_Write, *trackedBytes_Read;
     int *runningTotalWrite, *runningTotalRead;
     bool *tracking;
@@ -59,6 +72,21 @@ public:
     void endTracking(char*, int);
     void printRunningTotals();
 
+
+    double time_diff(struct timeval *, struct timeval *);
+    int getID();
+    int getNumOfThreads();
+
+#if __SHAMIR__
+    // Shamir utils
+    // getter function for retreiving PRG seeds, used for Multiplication in SHAMIR
+    unsigned char **getPRGseeds();
+    // void mpzFromString(char *, mpz_t *, int *, int);
+
+
+    /*
+        SHAMIR SINGLE THREADED
+    */
     // BLOCKING send/receives
     void sendDataToPeer(int, int, int *); //Used for sending modes (threaded)
     void sendDataToPeer(int, int, mpz_t *);
@@ -69,67 +97,43 @@ public:
     void getDataFromPeer(int, int, unsigned char *);
 
 
-    // NON-BLOCKING send/receives
-    int sendDataToPeer(int, unsigned char *, int, int);
+    // NON-BLOCKING send/receives (mpz)
     int sendDataToPeer(int, mpz_t *, int, int);
-
-    
-    int getDataFromPeer(int, unsigned char *, int, int);
     int getDataFromPeer(int, mpz_t *, int, int);
 
-
-    void sendModeToPeers();
     
-    // Broadcast identical data
+    // Networking Patterns
     void broadcastToPeers(mpz_t *, int, mpz_t **);
-    void broadcastToPeers(long long *, int, long long **);
-
-    // Send out different pieces of data to separate locations (1 -> 1, 2 -> 2...)
     void multicastToPeers(mpz_t **, mpz_t **, int);
-    void multicastToPeers(long long **, long long **, int);
+    void multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size);
+    void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size);
+    
 
-    // Get the ID of the compute Node
-    int getID();
-    int getNumOfThreads();
-    void getRounds(int, int *, int *);
-    // void handle_write(const boost::system::error_code& error);
-    // Close all the connections to peers
-    void closeAllConnections();
+    // Getters
+    void getRounds(int, int *, int *); // needed for multithreaded, gone otherwise
 
-    // Encryption and Decryption
-    void init_keys(int peer, int nRead);
-    void gen_keyiv();
-    void get_keyiv(char *key_iv);
-    unsigned char *aes_encrypt(EVP_CIPHER_CTX *e, unsigned char *plaintext, int *len);
-    unsigned char *aes_decrypt(EVP_CIPHER_CTX *e, unsigned char *ciphertext, int *len);
 
-    // Close
-    // void mpzFromString(char *, mpz_t *, int *, int);
-    double time_diff(struct timeval *, struct timeval *);
-
+    /*
+        SHAMIR MULTITHREADED
+    */
     // Manager work
     void launchManager();
-    void *managerWork();
     static void *managerWorkHelper(void *);
+    void *managerWork();
+    void sendModeToPeers();
+
     void getDataFromPeer(int, int, int);
     void getDataFromPeerToBuffer(int, int, int, int **);
     void restoreDataToBuffer(int, int, int, int **);
+
     void sendDataToPeer(int, mpz_t *, int, int, int, int);
-    void multicastToPeers(mpz_t **, mpz_t **, int, int);
+
     void broadcastToPeers(mpz_t *, int, mpz_t **, int);
-
-    // void getRandOfPeer(int id, mpz_t *rand_id, int size);
-    // void multicastToPeers_Mul(mpz_t **data, int size, int threadID);
-    // void multicastToPeers_Mul2(mpz_t **data, int size);
-    void multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size);
+    void multicastToPeers(mpz_t **, mpz_t **, int, int);
     void multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID);
-
     void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID);
-    void multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size);
 
-    // getter function for retreiving PRG seeds, used for Multiplication in SHAMIR
-    unsigned char **getPRGseeds();
-
+#endif
 #if __RSS__
     /*
         priv_int_t
@@ -149,7 +153,7 @@ public:
     
 
     /*
-        uint8_t
+        uint8_t (for _bit)
     */
     void sendDataToPeer(int id, int size, uint8_t *data, uint ring_size);
     int sendDataToPeer(int id, uint8_t *data, int start, int remainingLength, uint ring_size);
@@ -202,6 +206,7 @@ private:
         int ID;
         int start;
         T *data; 
+        unsigned char *convertedData;
     };
 
     //Used in batch mult and open
