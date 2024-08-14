@@ -24,6 +24,7 @@
 #include "stdint.h"
 #include <charconv>
 #include <cmath>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <iostream>

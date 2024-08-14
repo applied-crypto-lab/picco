@@ -195,93 +195,6 @@ void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     delete[] v;
 }
 
-//  For party 1, a[0,1]=a_2,3; b[0,1]=b_2,3;  c[0,1] = c_2,3;
-//  For party 2, a[0,1]=a_3,1; b[0,1]=b_3,1;  c[0,1] = c_3,1;
-//  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
-// template <typename T>
-// void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-//     int i; // used for loops
-
-//     // uint bytes = (nodeNet.RING[ring_size] +7) >> 3;
-//     uint bytes = (ring_size + 7) >> 3;
-
-//     T **sendbuf = new T *[3];
-//     T **recvbuf = new T *[3];
-//     for (i = 0; i < 3; i++) {
-//         sendbuf[i] = new T[size];
-//         memset(sendbuf[i], 0, sizeof(T) * size);
-//         recvbuf[i] = new T[size];
-//         memset(recvbuf[i], 0, sizeof(T) * size);
-//     }
-
-//         static int pid = ss->getID();
-
-//     T *v = new T[size];
-//     T *v_a = new T[size];
-
-//     T opa = 0;
-//     T opb = 0;
-//     switch (pid) {
-//     case 1:
-//         opa = 1;
-//         opb = 1;
-//         break;
-//     case 2:
-//         opa = -1;
-//         opb = 1;
-//         break;
-//     case 3:
-//         opa = -1;
-//         opb = -1;
-//         break;
-//     }
-
-//     uint8_t *buffer = new uint8_t[bytes * size];
-//     ss->prg_getrandom(0, bytes, size, buffer);
-//     for (i = 0; i < size; i++) {
-//         memcpy(v_a + i, buffer + i * bytes, bytes);
-//     }
-//     ss->prg_getrandom(1, bytes, size, buffer);
-//     for (i = 0; i < size; i++) {
-//         memcpy(c + i, buffer + i * bytes, bytes);
-//     }
-
-//     for (i = 0; i < size; i++) {
-//         v[i] = a[0][i] * b[0][i] + a[0][i] * b[1][i] + a[1][i] * b[0][i];
-//         c[i] = v[i] + opb * c[i] + opa * v_a[i];
-//     }
-
-//     // communication
-//     // move data into buf
-//     for (i = 1; i <= 3; i++) {
-//         if (i == pid)
-//             continue;
-//         memcpy(sendbuf[i - 1], c, sizeof(T) * size);
-//     }
-
-//     nodeNet.multicastToPeers(sendbuf, recvbuf, size, ring_size);
-
-//     memcpy(v_a, recvbuf[(((nodeNet.getID()) + 2 - 1) % 3 + 1) - 1], sizeof(T) * size);
-//     memcpy(v, recvbuf[(((nodeNet.getID()) + 1 - 1) % 3 + 1) - 1], sizeof(T) * size);
-
-//     for (i = 0; i < size; i++) {
-//         // mask here
-//         c[i] = c[i] + v_a[i] + v[i];
-//         c[i] = c[i] & ss->SHIFT[ring_size];
-//     }
-
-//     // free
-//     delete[] v;
-//     delete[] v_a;
-//     delete[] buffer;
-//     for (i = 0; i < 3; i++) {
-//         delete[] sendbuf[i];
-//         delete[] recvbuf[i];
-//     }
-//     delete[] sendbuf;
-//     delete[] recvbuf;
-// }
-
 template <typename T>
 void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitlength, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     int i; // used for loops
@@ -397,7 +310,6 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     }
     T z = 0;
     uint trackers[6] = {0, 0, 0, 0, 0, 0};
-    // printf("-- calculating v\n");
     // uint tracker;
     for (i = 0; i < size; i++) {
         v[i] = (a[0][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^ (a[1][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^ (a[2][i] & (b[1][i] ^ b[3][i])) ^ (a[3][i] & (b[0][i] ^ b[2][i])) ^ (a[4][i] & (b[0][i] ^ b[1][i])) ^ (a[5][i] & (b[0][i] ^ b[4][i]));
@@ -423,13 +335,10 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
             }
         }
     }
-    // printf("-- sending v\n");
 
     // communication
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
 
-    // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
-    // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
         c[3][i] = c[3][i] ^ recv_buf[1][i];
         c[5][i] = c[5][i] ^ recv_buf[0][i];
@@ -763,15 +672,10 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
             a[18][i] * (b[1][i] + b[8][i]) +
             a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
     }
-    // gettimeofday(&end, NULL); // stop timer here
-    // timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    // printf("[7pc local 1] [%.3lf ms]\n", (double)(timer * 0.001));
 
-    // for (int s = 0; s < numShares; s++) {
-    //     // sanitizing after the product is computed, so we can reuse the buffer
-    //     memset(c[s], 0, sizeof(priv_int_t) * size);
-    // }
-    // gettimeofday(&start, NULL);
+    for (int s = 0; s < numShares; s++) {
+        memset(c[s], 0, sizeof(T) * size);
+    }
 
     // printf("finished calculating v\n");
     for (p_prime = 1; p_prime < numParties + 1; p_prime++) {

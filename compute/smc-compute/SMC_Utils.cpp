@@ -70,13 +70,12 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     }
     printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
-    // printf("RSS_constructor end\n");
 
 #endif
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
-#if __SHAMIR__
+// #if __SHAMIR__
     try {
         inputStreams = new std::ifstream[numOfInputPeers];
         outputStreams = new std::ofstream[numOfOutputPeers];
@@ -104,8 +103,6 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
         // appending to new throw, then re-throwing
         throw std::runtime_error("[SMC_Utils, constructor] " + error);
     }
-
-#endif
 #endif
 }
 
