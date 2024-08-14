@@ -338,12 +338,14 @@ public:
 
     // for floating point
     void smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
+    void smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     void smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
     void smc_set(priv_int **a, priv_int **result, int alen_sig, int alne_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     // for integer set
     void smc_set(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
     void smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
     void smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
+    void smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
     // Dot Product
     void smc_dot(priv_int *a, priv_int *b, int size, priv_int result, int threadID);
     void smc_dot(priv_int **a, priv_int **b, int batch_size, int array_size, priv_int *result, std::string type, int threadID);

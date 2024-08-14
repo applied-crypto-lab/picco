@@ -344,6 +344,11 @@ void SMC_Utils::smc_set(priv_int **a, priv_int **result, int alen_sig, int alen_
         ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+void SMC_Utils::smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size,std::string type, int threadID) {
+    for (int i = 0; i < size; i++)
+        ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
+}
+
 void SMC_Utils::smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
@@ -360,6 +365,12 @@ void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen, int resultlen, 
 // this routine should implement in a way that result = a + share[0]
 void SMC_Utils::smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, ss);
+}
+
+void SMC_Utils::smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
+    for (size_t i = 0; i < size; i++) {
+        ss_set(a[i], result[i], alen, resultlen, type, threadID, net, ss);
+    }
 }
 
 void SMC_Utils::smc_priv_eval(priv_int a, priv_int b, priv_int cond, int threadID) {
