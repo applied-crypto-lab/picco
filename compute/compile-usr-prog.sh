@@ -51,11 +51,6 @@ case $technique in
     ;;
 esac
 
-echo "Bits: $bits"
-echo "Bits Flag: $bits_flag"
-echo "Technique: $technique"
-echo "Technique Flag: $technique_flag"
-
 
 while getopts "dm" option; do
   case $option in
