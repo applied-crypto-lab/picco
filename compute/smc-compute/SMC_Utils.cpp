@@ -2135,7 +2135,8 @@ void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations
 
     gettimeofday(&end, NULL); // stop timer here
     timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    printf("[%s_%spc] [%u, %i, %u] [%.6lf ms,  %.6lf ms/size,  %lu bytes] \n", operation.c_str(), std::to_string(numParties).c_str(), ring_size, size, num_iterations, (double)(timer * 0.001) / num_iterations, (double)(timer * 0.001 / size) / num_iterations, net.getCommunicationInBytes() / num_iterations);
+    printf("[%s_%spc] [%u, %i, %u] [%.6lf ms,  %.6lf ms/size,  %lu bytes] \n", operation.c_str(), std::to_string(numParties).c_str(), ring_size, size, num_iterations, (double)(timer * 0.001) / num_iterations, (double)(timer * 0.001 / size) / num_iterations, 
+    0 / num_iterations);
 
     for (size_t i = 0; i < numShares; i++) {
         delete[] a[i];
