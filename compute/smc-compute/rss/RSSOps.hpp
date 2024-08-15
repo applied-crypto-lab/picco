@@ -39,6 +39,11 @@ void ss_init(T *x){
    return;
 }
 
+template <typename T, typename U>
+void ss_init(T x, U size){
+   x = (T)malloc(sizeof(std::remove_pointer_t<T>) * (size));
+}
+
 template <typename T>
 void ss_set(T *x, T *x_val){
    return;
@@ -55,9 +60,15 @@ int ss_get_si(T *x){
 }
 
 template <typename T>
-void ss_clear(T *x){
+void ss_clear(T x){
+   free(x);
+}
+
+template <typename T,  typename U>
+void ss_clear(T *x, U size){
    return;
 }
+
 
 template <typename T>
 void ss_add_ui(T *rop, T *op1, uint op2){
