@@ -113,93 +113,117 @@ public:
 
     /************************************ Addition *****************************************/
     /********* singular operations *******/
-    // 1) private int + private int
+    // 1) private int = private int + private int
     void smc_add(priv_int a, priv_int b, priv_int result, int alen, int blen, int clen, std::string type, int threadID);
-    // 2) private float + private float
+    // 2) private float = private float + private float
     void smc_add(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 3) private int + public int
+    // 3) private int = private int + public int
     void smc_add(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 4) public int + private int
+    // 4) private int = public int + private int
     void smc_add(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 5) private float + public float
+    // 5) private float = private float + public float
     void smc_add(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 6) private float + public float
+    // 6) private float = private float + public float
     void smc_add(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
     /************ batch operations *********/
+    // 1) private *int = public *int + private *int
     void smc_add(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *int + public *int
     void smc_add(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 3) private *int = private *int + private *int
     void smc_add(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 4) private *float = private *float + private *float
     void smc_add(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 5) private *float = public *float + private *float
     void smc_add(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 6) private *float = private *float + public *float
     void smc_add(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
 
     void smc_sum(priv_int *a, priv_int result, int size);
 
     /************************************* Subtraction *************************************/
     /********** singular operations ***********/
-    // 1) private int - private int
+    // 1) private int = private int - private int
     void smc_sub(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 2) private float - private float
+    // 2) private float = private float - private float
     void smc_sub(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 3) private int - public int
+    // 3) private int = private int - public int
     void smc_sub(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 4) public int - private int
+    // 4) private int = public int - private int
     void smc_sub(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 5) private float - public float
+    // 5) private float = private float - public float
     void smc_sub(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 6) public float - private float
+    // 6) private float = public float - private float
     void smc_sub(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
     /************ batch operations *********/
+    // 1) private *int = public *int - private *int 
     void smc_sub(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *int - public *int 
     void smc_sub(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 3) private *int = private *int - private *int 
     void smc_sub(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 4) private *float = private *float - private *float 
     void smc_sub(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 5) private *float = public *float - private *float 
     void smc_sub(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 6) private *float = private *float - public *float 
     void smc_sub(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     /************************************** Multiplication ***************************************/
     /************* singular operations *****************/
-    // 1) private int * private int
+    // 1) private int = private int * private int
     void smc_mult(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 2) private int * public int
+    // 2) private int = private int * public int
     void smc_mult(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 3) public int * private int
+    // 3) private int = public int * private int
     void smc_mult(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 4) private float * private float
+    // 4) private float = private float * private float
     void smc_mult(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 5) public float * private float
+    // 5) private float = public float * private float
     void smc_mult(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 6) private float * public float
+    // 6) private float = private float * public float
     void smc_mult(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 7) private float * private int (only used when private float is updated in the body of private condition)
+    // 7) private float = private float * private int (only used when private float is updated in the body of private condition)
     void smc_mult(priv_int *a, priv_int b, priv_int *result, int alen_sig, int alen_exp, int blen, int resultlen_sig, int resultlen_exp, std::string type, int threadID); // only used in the priv condition
     /************ batch operations *********/
+    // 1) private *int = private *int * public *int
     void smc_mult(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = public *int * private *int
     void smc_mult(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 3) private *int = private *int * private *int
     void smc_mult(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 4) private *float = private *float * public *float
     void smc_mult(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 5) private *float = public *float * private *float
     void smc_mult(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 6) private *float = private *float * private *float
     void smc_mult(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     /*****************************************  Division ******************************************/
     /******************* singular operations *****************/
-    // 1) private int / private int
+    // 1) private int = private int / private int
     void smc_div(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 2) private int / public int
+    // 2) private int = private int / public int
     void smc_div(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 3) public int / private int
+    // 3) private int = public int / private int
     void smc_div(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
-    // 4) private float / private float
+    // 4) private float = private float / private float
     void smc_div(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 5) private float / public float
+    // 5) private float = private float / public float
     void smc_div(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 6) public float / private float
+    // 6) private float = public float / private float
     void smc_div(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int = private *int / private *int
     void smc_div(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *int / public *int
     void smc_div(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 3) private *int = public *int / private *int
     void smc_div(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 4) private *float = private *float / private *float
     void smc_div(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 5) private *float = private *float / public *float
     void smc_div(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 6) private *float = public *float / private *float
     void smc_div(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
 
     /************************** Comparisons ***********************************************/
@@ -218,7 +242,9 @@ public:
     void smc_lt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int = private *int < private *int
     void smc_lt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *float < private *float
     void smc_lt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID);
     /************************* singular operations ************************/
     // 1) private int > private int
@@ -235,7 +261,9 @@ public:
     void smc_gt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int = private *int > private *int
     void smc_gt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *float > private *float
     void smc_gt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID);
     /************************* singular operations ***********************/
     // 1) private int <= private int
@@ -252,7 +280,9 @@ public:
     void smc_leq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int = private *int <= private *int
     void smc_leq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *float <= private *float
     void smc_leq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID);
 
     /************************* singular operations **********************/
@@ -270,7 +300,9 @@ public:
     void smc_geq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int = private *int >= private *int
     void smc_geq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int = private *float >= private *float
     void smc_geq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID);
 
     /*********************** singular operations *************************/
@@ -288,10 +320,13 @@ public:
     void smc_eqeq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int == private *int
     void smc_eqeq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *float == private *float
     void smc_eqeq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID);
-
+    // 3) private *int == public *int
     void smc_eqeq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 4) public *int == private *int
     void smc_eqeq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
 
     /************************* singular operations **************************/
@@ -309,15 +344,23 @@ public:
     void smc_neq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID);
 
     /************ batch operations *********/
+    // 1) private *int != private *int
     void smc_neq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *float != private *float
     void smc_neq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID);
 
-    // Logical operators
+    // Logical operators &&
+    // 1) private int && private int 
     void smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 2) private float && private float 
     void smc_land(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 3) private int ^ private int 
     // void smc_lxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 4) private float ^ private float 
     // void smc_lxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 5) private int || private int 
     void smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 6) private float || private float 
     void smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
 
     // bitwise operators
@@ -332,27 +375,51 @@ public:
     void smc_bnot(priv_int a, priv_int result, int resultlen, std::string type, int threadID);
 
     // Shift operators
+    // 1) private int << private int
     void smc_shl(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 2) private int << public int
     void smc_shl(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 3) private int >> private int
     void smc_shr(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    // 4) private int >> public int
     void smc_shr(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
 
+    // Batch
+    // 1) private *int << private *int
     void smc_shl(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 2) private *int << public *int
     void smc_shl(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 3) private *int >> private *int
     void smc_shr(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
+    // 4) private *int >> public *int
     void smc_shr(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID);
 
-    // for floating point
+    // for floating point set
+    // 1) private float = public float
     void smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
+    // 2) public array of float = private array of float
+    void smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    // 3) private float = private float
     void smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
+    // 4) private *float = private *float
     void smc_set(priv_int **a, priv_int **result, int alen_sig, int alne_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+    
     // for integer set
+    // 1) private int = private int 
     void smc_set(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
+    // 2) private *int = private *int  
     void smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
+    // 3) private int = public int
     void smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
+    // 4) public array of int = private array of int 
+    void smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
+
     // Dot Product
+    // 1) private int = private *int @ private *int
     void smc_dot(priv_int *a, priv_int *b, int size, priv_int result, int threadID);
+    // 2) private float = private *float @ private *float
     void smc_dot(priv_int **a, priv_int **b, int batch_size, int array_size, priv_int *result, std::string type, int threadID);
+    // 3) private float = private *float @ private *float
     void smc_batch_dot(priv_int **a, priv_int **b, int batch_size, int array_size, int *index_array, priv_int *result, int threadID);
 
     void smc_priv_eval(priv_int a, priv_int b, priv_int cond, int threadID);
@@ -408,7 +475,9 @@ public:
     /********************** pointer interfaces (for int) **************************************/
 #if __SHAMIR__
 
+    // int
     priv_ptr smc_new_ptr(int level, int type);
+    // float
     priv_ptr *smc_new_ptr(int level, int type, int num);
 
     void smc_set_int_ptr(priv_ptr ptr, priv_int *var_loc, std::string type, int threadID);
@@ -432,8 +501,11 @@ public:
 
     void smc_shrink_ptr(priv_ptr, int current_index, int parent_index, int threadID);
 
+    // 1) private int = private ptr
     void smc_dereference_read_ptr(priv_ptr ptr, priv_int var_result, int num_of_dereferences, priv_int priv_cond, std::string type, int threadID);
+    // 2) private float = private ptr
     void smc_dereference_read_ptr(priv_ptr ptr, priv_int *var_result, int num_of_dereferences, priv_int priv_cond, std::string type, int threadID);
+    // 3) private ptr = private ptr
     void smc_dereference_read_ptr(priv_ptr ptr, priv_ptr ptr_result, int num_of_dereferences, priv_int priv_cond, std::string type, int threadID);
 
     void smc_dereference_write_int_ptr(priv_ptr ptr, priv_int *var_value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID);
@@ -452,13 +524,21 @@ public:
 #endif
 
     /************************************************/
+    // private float = private int
     void smc_int2fl(priv_int value, priv_int *result, int gamma, int K, int L, int threadID);
+    // private float = public int 
     void smc_int2fl(int value, priv_int *result, int gamma, int K, int L, int threadID);
+    // private int = private int 
     void smc_int2int(priv_int value, priv_int result, int gamma1, int gamma2, int threadID);
+    // private int = public int 
     void smc_int2int(int value, priv_int result, int gamma1, int gamma2, int threadID);
+    // private int = public int 
     void smc_fl2int(priv_int *value, priv_int result, int K, int L, int gamma, int threadID);
+    // private int = private float
     void smc_fl2int(float value, priv_int result, int K, int L, int gamma, int threadID);
+    // private float = public float 
     void smc_fl2fl(priv_int *value, priv_int *result, int K1, int L1, int K2, int L2, int threadID);
+    // private float = public float 
     void smc_fl2fl(float value, priv_int *result, int K1, int L1, int K2, int L2, int threadID);
 
     // Batch Operation Support
