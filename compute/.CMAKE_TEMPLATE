@@ -12,10 +12,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(OMPDIR "/insert/ompi/install/dir/here")
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      message("using clang")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      message("using gcc")
+endif()
+
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(OMPI)
-# find_package(CryptoPP REQUIRED)
 find_package(GMP REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
@@ -45,10 +50,28 @@ if(SHAMIR)
       add_definitions(-D__RSS__=0)
 endif()
 
+
+# used for setting the data types for RSS 
+option(USE_32 "32 bit or less ring sizes" ON)
+option(USE_64 "33 to 64 bit rings" OFF) 
+
 if(RSS)
       set(TECHNIQUE_DIR "rss")
       add_definitions(-D__RSS__=1)
       add_definitions(-D__SHAMIR__=0)
+
+      if(USE_64)
+            add_definitions(-D__RSS_32__=0)
+            add_definitions(-D__RSS_64__=1)
+
+      endif()
+      unset(USE_64 CACHE) 
+
+      if(USE_32)
+            add_definitions(-D__RSS_32__=1)
+            add_definitions(-D__RSS_64__=0)
+      endif()
+      unset(USE_32 CACHE) 
 endif()
 
 INCLUDE_DIRECTORIES(
