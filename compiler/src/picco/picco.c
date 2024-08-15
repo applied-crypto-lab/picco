@@ -529,11 +529,21 @@ int main(int argc, char *argv[]) {
      * 2. Parse & get the AST
      */
     ast = parse_file(filename, &r);
-    if (bits == 0)
-        bits = modulus + 1; // setting modulus to right above the computed bitlength
-    else if (bits > 0 && bits < modulus)
-        printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
-    bits = fmax(bits, ceil(log(peers)) + 1);
+
+    if (technique_var == SHAMIR_SS) {
+        if (bits == 0)
+            bits = modulus + 1; // setting modulus to right above the computed bitlength
+        else if (bits > 0 && bits < modulus)
+            printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
+        bits = fmax(bits, ceil(log(peers)) + 1);
+    } else if (technique_var == REPLICATED_SS) {
+        if (bits == 0)
+            bits = modulus;
+        else if (bits > 0 && bits < modulus)
+            printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
+        bits = fmax(bits, ceil(log(peers)) + 1);
+    }
+
     if (r)
         return (r);
     if (ast == NULL) /* Cannot open file */
