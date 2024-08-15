@@ -109,7 +109,7 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
 
     T e_bit;
     for (i = 0; i < size; ++i) {
-        e_bit = GET_BIT(e[i], ring_size - 1); // getting the (k-1)th bit
+        e_bit = GET_BIT(e[i], T(ring_size - 1)); // getting the (k-1)th bit
         for (size_t s = 0; s < numShares; s++) {
             res[s][i] = e_bit * ai[s] + b[s][i] - (e_bit * b[s][i] << T(1));
         }

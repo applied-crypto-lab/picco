@@ -21,6 +21,7 @@
 #ifndef NODENETWORK_H_
 #define NODENETWORK_H_
 
+#include <cstdint>
 #if __RSS__
 #include "rss/RSS_types.hpp"
 #endif
@@ -44,14 +45,13 @@ using namespace std::chrono_literals;
 // Can be modified by the end user to better fit his/her use case.
 #define MAX_RETRIES 60000 // number of times we try to connect to a node.
 #define WAIT_INTERVAL 5ms // interval we wait before trying again
-
 class NodeNetwork {
 public:
     NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_filename, int num_threads);
     NodeNetwork();
     virtual ~NodeNetwork();
 
-    template<typename T>
+    template <typename T>
     void sendDataToPeer(int, int, T *);
 
     void sendDataToPeer(int, mpz_t *, int, int, int);
@@ -59,12 +59,12 @@ public:
 
     template <typename T>
     void getDataFromPeer(int, int, T *);
-    
+
     void getDataFromPeer(int, mpz_t *, int, int, int);
     void getDataFromPeer(int, int, mpz_t *);
 
     void sendModeToPeers(int);
-    
+
     // Broadcast identical data to peers
     void broadcastToPeers(mpz_t *, int, mpz_t **);
     void broadcastToPeers(long long *, int, long long **);
@@ -131,7 +131,6 @@ public:
     void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getRounds_bit(int size, uint *count, uint *rounds);
-
 #endif
 
 private:

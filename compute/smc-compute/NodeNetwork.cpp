@@ -859,7 +859,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             char *buffer = (char *)malloc(RSA_size(priRkey));
             int n = read(sockfd[i], buffer, RSA_size(priRkey));
             if (n < 0)
-                throw std::runtime_error("reading from socket");
+                throw std::runtime_error("reading from socket 1");
             char *decrypt = (char *)malloc(n);
             memset(decrypt, 0x00, n);
             int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
@@ -872,7 +872,7 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             char *decrypt = (char *)malloc(2 * KEYSIZE + AES_BLOCK_SIZE);
             // check that this is the number of bytes that are supposed to be read from the socket
             if (read(sockfd[i], decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE) < 0)
-                throw std::runtime_error("reading from socket");
+                throw std::runtime_error("reading from socket 2");
 #endif
 
             memcpy(peerKeyIV, decrypt, 2 * KEYSIZE + AES_BLOCK_SIZE);
@@ -1271,6 +1271,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
             }
         }
     }
+
 }
 
 // used for Open (5 and 7 pc)
@@ -1290,6 +1291,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **SendData, priv_int_t **Rec
             }
         }
     }
+
 }
 
 void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size) {
@@ -1392,6 +1394,7 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvDat
             getDataFromPeer_bit(send_recv_map[1][i], RecvData, k * count, count, size);
         }
     }
+
 }
 
 // used for multiplication
@@ -1478,5 +1481,8 @@ void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
     else
         *rounds = size / (*count) - 1;
 }
+
+
+
 
 #endif

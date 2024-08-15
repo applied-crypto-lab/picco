@@ -21,7 +21,7 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
-#include "Mult.hpp"
+#include "Mult.hpp" 
 // returns a binary sharing res, where res = a ?< b (we pack 2 shares in a single bit
 // the function expects a and b to be arrays of binary values
 // a is a single value
@@ -203,13 +203,13 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
             for (j = 0; j < new_r_size; ++j) {
                 // loop constants
                 t_index = (j >> 2) + (i * n_uints);
-                mask2 = (2 * j + 1);
+                mask2 = (2 * j + 1); 
                 mask2m8 = (2 * j + 1) & 7;
                 mask1m8 = (2 * j) & 7; // "&7" = %8, used for leftover bits
 
                 for (size_t s = 0; s < numShares; s++) {
-                    buffer[s][i] = SET_BIT(buffer[s][i], j, GET_BIT(T(u[s][t_index]), mask1m8));
-                    buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], j, (GET_BIT(T(u[s][t_index]), mask2m8) ^ GET_BIT(d[numShares + s][i], mask2)));
+                    buffer[s][i] = SET_BIT(buffer[s][i], T(j), GET_BIT(T(u[s][t_index]), mask1m8));
+                    buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], T(j), (GET_BIT(T(u[s][t_index]), mask2m8) ^ GET_BIT(d[numShares + s][i], mask2)));
                 }
             }
         }

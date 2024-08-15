@@ -21,7 +21,14 @@
 #include "bit_utils.hpp"
 #include <functional>
 #include <iomanip>
+#include <iostream>
 #include <string>
+
+using std::cout;
+using std::endl;
+using std::string;
+using std::vector;
+
 // Constructors
 SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
     id = _id;
@@ -55,14 +62,20 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
+
+    if (bits > 8 * sizeof(priv_int_t)) {
+        std::cerr << "ring size cannot be larger than the bitlength of priv_int_t\nExiting...\n";
+
+        std::exit(1);
+    }
     printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
-    // printf("RSS_constructor end\n");
 
 #endif
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
+// #if __SHAMIR__
     try {
         inputStreams = new std::ifstream[numOfInputPeers];
         outputStreams = new std::ofstream[numOfOutputPeers];
@@ -90,7 +103,6 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
         // appending to new throw, then re-throwing
         throw std::runtime_error("[SMC_Utils, constructor] " + error);
     }
-
 #endif
 }
 
@@ -2063,6 +2075,79 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
     memcpy(destination, res, sizeof(priv_int_t)); // cipher becomes new seed or key
 }
 
+void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations) {
+    struct timeval start;
+    struct timeval end;
+    uint numShares = ss->getNumShares();
+    unsigned long timer;
+    uint numParties = ss->getPeers();
+
+    uint ring_size = ss->ring_size;
+
+    uint bytes = (ss->ring_size + 7) >> 3;
+    printf("bytes : %u\n", bytes);
+    printf("ring_size : %u\n", ring_size);
+    printf("size : %u\n", size);
+    printf("8*sizeof(Lint) = %lu\n", 8 * sizeof(priv_int_t));
+    printf("sizeof(Lint) = %lu\n", sizeof(priv_int_t));
+    priv_int *a = new priv_int[numShares];
+    priv_int *b = new priv_int[numShares];
+    priv_int *c = new priv_int[numShares];
+
+    for (int i = 0; i < numShares; i++) {
+        a[i] = new priv_int_t[size];
+        memset(a[i], 0, sizeof(priv_int_t) * size);
+        b[i] = new priv_int_t[size];
+        memset(b[i], 0, sizeof(priv_int_t) * size);
+        c[i] = new priv_int_t[size];
+        memset(a[i], 0, sizeof(priv_int_t) * size);
+    }
+
+    std::cout << "START" << std::endl;
+    gettimeofday(&start, NULL); // start timer here
+    if (operation == "b2a") {
+        for (size_t j = 0; j < num_iterations; j++) {
+            Rss_B2A(c, a, size, ring_size, net, ss);
+        }
+
+    } else if (operation == "mult") {
+
+        for (size_t j = 0; j < num_iterations; j++) {
+            Mult(c, a, b, size, net, ss);
+            // Rss_Mult_7pc_test(c, a, b, size, ring_size, net, ss);
+            // Rss_B2A(c, a, b, size, ring_size, net, ss);
+        }
+    } else if (operation == "fl_mul") {
+
+    } else if (operation == "fl_add") {
+
+    } else if (operation == "fl_div") {
+
+    } else if (operation == "fl_cmp") {
+    }
+
+    else {
+        std::cerr << "ERROR: unknown operation " << operation << ", exiting..." << endl;
+        exit(1);
+    }
+    std::cout << "END" << std::endl;
+    // std::cout<<numBytesSent<<std::endl;
+
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[%s_%spc] [%u, %i, %u] [%.6lf ms,  %.6lf ms/size,  %lu bytes] \n", operation.c_str(), std::to_string(numParties).c_str(), ring_size, size, num_iterations, (double)(timer * 0.001) / num_iterations, (double)(timer * 0.001 / size) / num_iterations, 
+    0 / num_iterations);
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] a[i];
+        delete[] b[i];
+        delete[] c[i];
+    }
+    delete[] a;
+    delete[] b;
+    delete[] c;
+}
+
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     size = 5; //  testing only so I dont have to keep opening rss_main.cpp
     // uint bitlength = 20;
@@ -2084,7 +2169,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     std::vector<std::vector<int>> share_mapping;
     int numPeers = ss->getPeers();
-
     switch (numPeers) {
     case 3:
         share_mapping = {

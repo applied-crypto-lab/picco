@@ -73,7 +73,8 @@ template <typename T>
 void Rss_DotProd_5pc(T **c, T **a, T **b, uint array_size, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     static uint numShares = ss->getNumShares();
     static uint numParties = ss->getPeers();
     static uint threshold = ss->getThreshold();
@@ -158,7 +159,8 @@ template <typename T>
 void Rss_DotProd_7pc(T **c, T **a, T **b, uint array_size, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
-    uint i, p_prime, T_index;
+    uint i;
+    int p_prime, T_index;
     static uint numShares = ss->getNumShares();
     static uint numParties = ss->getPeers();
     static uint threshold = ss->getThreshold();

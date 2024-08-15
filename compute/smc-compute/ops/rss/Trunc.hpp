@@ -39,7 +39,6 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     T **b = new T *[numShares];
     T **b_km1 = new T *[numShares];
     T **b_2 = new T *[numShares];
-
     T **u_2 = new T *[numShares];
 
     T *c = new T[size];

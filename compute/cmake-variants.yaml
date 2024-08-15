@@ -1,0 +1,31 @@
+buildType:
+  default: debug_shamir
+  choices:
+    debug_shamir:
+      short: Debug, Shamir
+      long: Disable optimizations - include debug information. Uses Shamir SS
+      buildType: Debug
+      settings:
+        SHAMIR: on
+        RSS: off
+    debug_rss:
+      short: Debug, RSS
+      long: Disable optimizations - include debug information. Uses Replicated SS
+      buildType: Debug
+      settings:
+        SHAMIR: off
+        RSS: on
+    release_shamir:
+      short: Release, Shamir
+      long: Optimize for speed - exclude debug information. Uses Replicated SS
+      buildType: Release
+      settings:
+        SHAMIR: on
+        RSS: off
+    release_rss:
+      short: Release, RSS
+      long: Optimize for speed - exclude debug information. Uses Shamir SS
+      buildType: Release
+      settings:
+        SHAMIR: off
+        RSS: on

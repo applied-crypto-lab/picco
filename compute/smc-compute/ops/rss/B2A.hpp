@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cmath>
 #include <numeric>
+#include <string>
 /*
 3pc xi map:
 p1 : [{2}, {3}]
@@ -44,7 +45,8 @@ p3 : [(4, 5, 6), (4, 5, 7), (1, 4, 5), (2, 4, 5), (1, 4, 6), (1, 4, 7), (1, 2, 4
 // [a] is a secret bit shared in Z_2 (stored in a T)
 template <typename T>
 void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    assertm((ring_size == ss->ring_size ) , "checking ring_size argument == ss->ring_size");
+
+    assertm((ring_size == ss->ring_size ) , "checking ring_size argument == ss->ring_size" );
 
     //  int n = ss->getPeers();
     static int threshold = ss->getThreshold();
@@ -166,7 +168,7 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
             memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
         }
         // this can theoretically be done with a Mult_and_MultSparse special function
-        Mult(C_buff, A_buff, B_buff, size, nodeNet, ss);
+        Mult(C_buff, A_buff, B_buff, 2*size, nodeNet, ss);
 
         for (uint s = 0; s < numShares; s++) {
             for (size_t i = 0; i < size; i++) {
@@ -192,7 +194,6 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
         delete[] A_buff;
         delete[] B_buff;
         delete[] C_buff;
-        // run MultSparse
         break;
     }
     default:
