@@ -1156,10 +1156,6 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             // int rc = setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
             if (setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
                 throw std::runtime_error("setsockopt(SO_REUSEADDR)");
-            if (setsockopt(sockfd[i], SOL_SOCKET, SO_SNDBUF, &BUFFER_SIZE, sizeof(BUFFER_SIZE)) < 0)
-                throw std::runtime_error("setsockopt(SO_SNDBUF)");
-                if (setsockopt(sockfd[i], SOL_SOCKET, SO_RCVBUF, &BUFFER_SIZE, sizeof(BUFFER_SIZE)) < 0)
-                throw std::runtime_error("setsockopt(SO_RCVBUF)");
             if (setsockopt(sockfd[i], IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
                 throw std::runtime_error("setsockopt(IPPROTO_TCP)");
             server[i] = gethostbyname((config->getPeerIP(ID)).c_str());
@@ -1462,7 +1458,7 @@ void NodeNetwork::sendAndReceive(int dataSize) {
                 (*it)->start += bytes;
 
             if ((*it)->start == dataSize) {
-                
+
 #if __SHAMIR__
                 EVP_CIPHER_CTX *de_temp = peer2delist.find(id)->second;
                 decrypted = aes_decrypt(de_temp, (*it)->convertedData, &dataSize);
