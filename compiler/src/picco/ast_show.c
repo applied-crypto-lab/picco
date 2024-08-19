@@ -6524,9 +6524,7 @@ void ast_decl_memory_free_float(astdecl tree, char *prefix) {
         if (technique_var == SHAMIR_SS) {
             fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
         } else if (technique_var == REPLICATED_SS) {
-            fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]", prefix, tree->decl->u.id->name);
-            // ast_expr_show(tree->u.expr);
-            fprintf(output, ");\n");
+            fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->u.id->name);
         }
         indlev--;
         indlev--;
