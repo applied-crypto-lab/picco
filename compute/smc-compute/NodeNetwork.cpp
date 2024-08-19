@@ -45,7 +45,6 @@
 
 #define MAX_BUFFER_SIZE 262144 // .25MB
 // int MAX_BUFFER_SIZE = 4194304; // ?
-unsigned long numBytesSent; // used to measure communication
 
 NodeConfiguration *config;
 EVP_CIPHER_CTX *en, *de;
@@ -93,7 +92,6 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     peers = config->getPeerCount();
     bits = config->getBits();
     unit_size = (bits + numb - 1) / numb;
-    numBytesSent = 0;
 
     // allocate space for prgSeeds
     threshold = peers / 2;
@@ -1246,7 +1244,6 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t *RecvD
             }
         }
     }
-    numBytesSent += size * sizeof(priv_int_t) * threshold;
 }
 
 // used for 5p, 7p Mult and edaBit
@@ -1274,7 +1271,6 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
             }
         }
     }
-    numBytesSent += size * sizeof(priv_int_t) * threshold;
 
 }
 
@@ -1295,7 +1291,6 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **SendData, priv_int_t **Rec
             }
         }
     }
-    numBytesSent += size * sizeof(priv_int_t) * threshold;
 
 }
 
@@ -1399,7 +1394,6 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvDat
             getDataFromPeer_bit(send_recv_map[1][i], RecvData, k * count, count, size);
         }
     }
-    numBytesSent += size * threshold;
 
 }
 
@@ -1489,8 +1483,6 @@ void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
 }
 
 
-unsigned long NodeNetwork::getCommunicationInBytes() {
-    return numBytesSent;
-}
+
 
 #endif

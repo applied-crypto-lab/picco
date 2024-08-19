@@ -21,13 +21,9 @@
 #ifndef NODENETWORK_H_
 #define NODENETWORK_H_
 
+#include <cstdint>
 #if __RSS__
-#if __RSS_32__
-#include "../include_32/RSS_types.hpp"
-#endif
-#if __RSS_64__
-#include "../include_64/RSS_types.hpp"
-#endif
+#include "rss/RSS_types.hpp"
 #endif
 
 #include "../../common/shared.h"
@@ -44,7 +40,6 @@
 #include <vector>
 
 using namespace std::chrono_literals;
-extern unsigned long numBytesSent; // used to measure communication
 
 // The timeout time is calculated as (MAX_RETRIES * WAIT_INTERVAL), which comes out to 5 minutes with the constants below
 // Can be modified by the end user to better fit his/her use case.
@@ -136,7 +131,6 @@ public:
     void sendDataToPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getDataFromPeer_bit(int id, uint8_t *data, int start, int amount, int size);
     void getRounds_bit(int size, uint *count, uint *rounds);
-    unsigned long getCommunicationInBytes();
 #endif
 
 private:

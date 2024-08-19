@@ -194,7 +194,6 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
         delete[] A_buff;
         delete[] B_buff;
         delete[] C_buff;
-        // run MultSparse
         break;
     }
     default:
