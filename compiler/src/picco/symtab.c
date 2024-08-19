@@ -194,6 +194,7 @@ stentry symtab_put(symtab t, symbol s, namespace space) {
     bucket = &(t->table[((unsigned long int)s) % STSIZE]);
     *bucket = t->top = Stentry(s, space, *bucket, t->top);
     t->top->scopelevel = t->scopelevel; /* current scope level */
+    // printf("%s -> type-> %d\n\n", s->name, space);
     return (t->top);
 }
 
@@ -285,6 +286,7 @@ stentry symtab_get(symtab t, symbol s, namespace p) {
     for (e = t->table[((unsigned long int)s) % STSIZE]; e; e = e->bucketnext)
         if (e->key == s && e->space == p) /* found it */
             return (e);
+    // printf("%s -> type-> %d\n\n", s->name, p);
     return (NULL);
 }
 

@@ -46,6 +46,9 @@ char *UOP_symbols[11] =
 int default_len = 32;
 str strs;
 astexpr Astexpr(enum exprtype type, astexpr left, astexpr right) {
+    if (type == COMMALIST && left->type == CONSTVAL && right->type == CONSTVAL) {
+        exit_error(1, "    Invalid initialization using (), line: %d.\n", left->l);
+    }
     astexpr n = smalloc(sizeof(struct astexpr_));
     n->type = type;
     n->left = left;
@@ -246,7 +249,7 @@ astdecl ArrayDecl(astdecl decl, astspec s, astexpr e) {
             exit_error(1, "     Size of array '%s' has non-integer type.\n", decl->u.id->name);
         }
     } else if (e == NULL) {
-        exit_error(1, "     Array '%s' length can not be empty!\n", decl->u.id->name);
+        exit_error(1, "     Array size missing in '%s'\n", decl->u.id->name);
     }
     astdecl d = Decl(DARRAY, 0, decl, s);
     d->u.expr = e;

@@ -523,7 +523,7 @@ postfix_expression:
    }
   | postfix_expression '.' IDENTIFIER
     {
-	$$ = DotField($1, Symbol($3)); // in here it is handled as dotfiled not array
+	$$ = DotField($1, Symbol($3)); // in here it is handled as dotfiled not array 
 	set_identifier_attributes(Symbol($3), $$, 1); 
     }
   | postfix_expression PTR_OP IDENTIFIER
@@ -1140,7 +1140,7 @@ expression:	// This is where each expression gets handled
       set_security_flag_expr($$, $1, NULL, -1);
       set_bitlength_expr($$, $1, NULL); 
     }
-  | expression ',' assignment_expression
+  | expression ',' assignment_expression // this is where it accepts array with ()
     {
       $$ = CommaList($1, $3);
     }
@@ -3814,7 +3814,11 @@ struct_field get_struct_field_info(astexpr e)
 		e = e->left;
     if(e->left->type != PTRFIELD && e->left->type != DOTFIELD)
     {
-        stentry entry = symtab_get(stab, e->left->u.sym, IDNAME); // aaaaaa struct issue
+        stentry entry;
+        if (e->left->type == ARRAYIDX)
+            entry = symtab_get(stab, e->left->left->u.sym, IDNAME); // array of struct
+        else 
+            entry = symtab_get(stab, e->left->u.sym, IDNAME); // struct
         node = struct_node_lookup(struct_table, entry->spec->name->name);
         field = struct_field_lookup(node, e->u.sym->name);
         if(!node->contain_pub_field)
@@ -4038,7 +4042,7 @@ void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 		// if((e1->ftype != e2->ftype))
 		// {
             // printf("\n\ne1 Type: %d, e2 Type: %d\n\n", e1->ftype, e2->ftype); 
-            // parse_error(-1, "Error 1: Operands of the same type are expected (use casting).\n"); 
+            // parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
 
 		// }
 		if(e1->ftype == 0) 
@@ -4454,11 +4458,11 @@ int check_func_param(astexpr funcname, astexpr arglist){
             return 0; 
         }
 
-        // Compare the type 
-        if (decl->u.expr->ftype != arglist->right->ftype) { // If type does not match
-            parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
-            return 0; 
-        }
+        // Compare the type - this gives error in not needed areas 
+        // if (decl->u.expr->ftype != arglist->right->ftype) { // If type does not match
+        //     parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
+        //     return 0; 
+        // }
         
         // Move to the next argument and the next parameter
         arglist = arglist->left;
@@ -4510,7 +4514,7 @@ int compare_specs(astspec spec, int flag){
 void increase_index(astexpr e){
     if((e->u.sym == NULL || e->type == CASTEXPR) && e->flag == PRI){
         if(e->ftype == 0)
-		tmp_index++;
+		    tmp_index++;
 	else
 		tmp_float_index++; 
     }
@@ -4650,12 +4654,12 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 	if(e1->ftype == 0 && e2->ftype == 0){ // integer computation
 		int len = fmax(e1->size, e2->size); 
 		if(e1->flag == PRI || e2->flag == PRI){
-			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq || opid == BOP_eqeq || opid == BOP_neq)
+			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq   )
 				modulus = fmax(modulus, len+kappa_nu); 
-			else if(opid == BOP_div)
-				modulus = fmax(modulus, 2*len+kappa_nu+8);
+			else if ( ( opid == BOP_eqeq || opid == BOP_neq ) && len > 1)
+				modulus = fmax(modulus, len+kappa_nu); 
 			else if(opid == BOP_shr){ // checking for right shifts, 
-                // if shifting bu public amount --> truncation (Catrina and de Hoogh, 2010)
+                // if shifting by public amount --> truncation (Catrina and de Hoogh, 2010)
                 // if shifting by a private amount, the security of the first argument doesnt matter, and we call truncation by a private value in floating point paper (Aliasgari et al., 2013)
 				modulus = fmax(modulus, e1->size+kappa_nu);
             }
@@ -4690,13 +4694,16 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 		else if(opid == BOP_div)
 			modulus = fmax(modulus, 2*len+kappa_nu+1);  
 	} else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
-		parse_error(-1, "Error 2: Operands of the same type are expected (use casting).\n"); 
+		parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
 		exit(0); 
 	} else if (((e1->flag == PRI && e2->flag == PUB) || (e1->flag == PUB && e2->flag == PRI)) && (opid == BOP_neq || opid == BOP_eqeq)) {
-        parse_error(-1, "Error 3: Operands of the same type are expected (use casting).\n"); 
+        parse_error(-1, " Operands of the same type are expected (use casting).\n"); 
         exit(0); 
     } else if (opid == BOP_dot && ((e1->flag == PRI && e2->flag == PUB) || (e2->flag == PRI && e1->flag == PUB))) {
-        parse_error(-1, "Error 4: Operands of the same type are expected (use casting).\n"); 
+        parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
+		exit(0); 
+    } else if ((e1->arraytype == 1 || e2->arraytype == 1) && (opid == BOP_land || opid == BOP_lor || opid == BOP_band || opid == BOP_bor)) {
+        parse_error(-1, "Element_wise and logical bitwise is only supported for shift operators. \n"); 
 		exit(0); 
     }
 }
