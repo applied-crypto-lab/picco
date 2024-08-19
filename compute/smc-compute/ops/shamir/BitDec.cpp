@@ -21,13 +21,12 @@
 #include "BitDec.h"
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
-// Protocol 5.14 page 57
+// Protocol 2.1, page 7
 void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     int threshold = ss->getThreshold();
     mpz_t **R = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 2));
     mpz_t *R1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t **resultShares = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * size);
     mpz_t **BB = (mpz_t **)malloc(sizeof(mpz_t *) * M);
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -62,11 +61,6 @@ void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadI
         B[i] = (mpz_t *)malloc(sizeof(mpz_t) * M);
         for (int j = 0; j < M; j++)
             mpz_init(B[i][j]);
-    }
-    for (int i = 0; i < peers; i++) {
-        resultShares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; j++)
-            mpz_init(resultShares[i][j]);
     }
 
     for (int i = 0; i < size; i++) {
@@ -122,13 +116,6 @@ void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadI
         free(BB[i]);
     }
     free(BB);
-
-    for (int i = 0; i < peers; i++) {
-        for (int j = 0; j < size; j++)
-            mpz_clear(resultShares[i][j]);
-        free(resultShares[i]);
-    }
-    free(resultShares);
 
     for (int i = 0; i < size; i++) {
         mpz_clear(temp[i]);

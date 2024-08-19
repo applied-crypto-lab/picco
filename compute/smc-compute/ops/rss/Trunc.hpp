@@ -39,7 +39,6 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     T **b = new T *[numShares];
     T **b_km1 = new T *[numShares];
     T **b_2 = new T *[numShares];
-
     T **u_2 = new T *[numShares];
 
     T *c = new T[size];
@@ -93,7 +92,7 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
         }
     }
 
-    // the following block of code converts a probabilistic trunation to deterministic
+    // the following block of code converts a probabilistic trunation to deterministic (exact)
     // in order to preserve security (see Li et al., "Efficient 3PC for Binary Circuits with Application to Maliciously-Secure DNN Inference", USENIX 2023)
     Rss_BitLT(u_2, c, b_2, size, m, nodeNet, ss);
     Rss_B2A(u_2, u_2, size, ring_size, nodeNet, ss);

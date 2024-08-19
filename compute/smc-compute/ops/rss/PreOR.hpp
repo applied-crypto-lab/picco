@@ -23,18 +23,29 @@
 #include "../../rss/RepSecretShare.hpp"
 #include "Mult.hpp"
 #include "Open.hpp"
+#include "bit_utils.hpp"
 
-// performs a "reverse" parallel prefix, i.e. a_8, a_8 | a_7, a_8 | a_7 | a_6, ... 
+template <typename T>
+void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, uint numShares) ;
+
+
+
+// performs a "reverse" parallel prefix, i.e. a_8, a_8 | a_7, a_8 | a_7 | a_6, ...
 // directly on bits
 // there isn't a functionality that requires the "normal" ordered parallel prefix, so we don't implement it here
-// we should probably have it compute the "normal" ordered parallel prefix, but have the bits of the input reversed 
-// stores the result in input
+// we should probably have it compute the "normal" ordered parallel prefix, but have the bits of the input reversed
 // follows similar logic to that in BitAdd implementation
+// although, there isn't a protocol which directly uses it
 template <typename T>
-void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    T i, j, l, y, z, op_r; // used for loops
     static uint numShares = ss->getNumShares();
+
+    for (size_t s = 0; s < numShares; s++) {
+        memcpy(result[s], input[s], sizeof(T) * size);
+    }
+    
+    T i, j, l, y, z, op_r; // used for loops
     uint r_size = ring_size;
     uint idx_1, idx_2;
     if (r_size > 1) {
@@ -45,7 +56,6 @@ void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *no
         T mask1, mask2, mask1m8;
         uint r_size_2 = pow(2, ceil(log2(r_size))); // rounding up to next power of two
         uint rounds = ceil(log2(r_size_2));
-
 
         uint **index_array = new uint *[2];
         T **buffer = new T *[2 * numShares];
@@ -79,19 +89,19 @@ void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *no
             op_r = 0; // number of operations in a round
 
             // for (j = 1; j <= ceil(r_size_2 / pow(2, i)); j++) {
-            for (j = ceil(r_size_2 / pow(2, i)) ; j >= 1; j--) {
+            for (j = ceil(r_size_2 / pow(2, i)); j >= 1; j--) {
 
                 y = uint(pow(2, i - 1) + j * pow(2, i)) % r_size_2;
 
                 for (z = (pow(2, i - 1)); z >= 1; z--) {
-                // for (z = 1; z <= (pow(2, i - 1)); z++) {
+                    // for (z = 1; z <= (pow(2, i - 1)); z++) {
 
-                    idx_1 = (y % r_size_2 );
-                    idx_2 = (y + z ) % (r_size_2 + 1)  ;
+                    idx_1 = (y % r_size_2);
+                    idx_2 = (y + z) % (r_size_2 + 1);
 
                     if ((idx_1 <= r_size) && (idx_2 <= r_size)) {
-                        index_array[0][op_r] = (idx_1 - 1)*(-1) + (r_size-1); // used for reverse pp
-                        index_array[1][op_r] = (idx_2 - 1)*(-1) + (r_size-1); // used for reverse pp
+                        index_array[0][op_r] = (idx_1 - 1) * (-1) + (r_size - 1); // used for reverse pp
+                        index_array[1][op_r] = (idx_2 - 1) * (-1) + (r_size - 1); // used for reverse pp
                         op_r++;
                     }
                 }
@@ -102,7 +112,7 @@ void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *no
             num = ((op_r + 7) >> 3) * size;
 
             // extracting terms into buffer
-            CarryBufferPreOR(buffer, input, index_array, size, op_r, numShares);
+            CarryBufferPreOR(buffer, result, index_array, size, op_r, numShares);
 
             for (j = 0; j < size; ++j) {
                 for (size_t s = 0; s < numShares; s++) {
@@ -114,7 +124,7 @@ void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *no
             }
             // break;
             // bitwise multiplication
-            Mult_Byte(u, a, b, num, nodeNet, ss );
+            Mult_Byte(u, a, b, num, nodeNet, ss);
 
             T temp;
             for (l = 0; l < size; ++l) {
@@ -132,10 +142,10 @@ void Rss_PreOR(T **result ,T **input, uint size, uint ring_size, NodeNetwork *no
                         // input[s][l] = SET_BIT(input[s][l], mask2, GET_BIT(u[s][t_index], mask1m8));
                         // input[1][l] = SET_BIT(input[1][l], mask2, GET_BIT(u[1][t_index], mask1m8));
 
-                        temp = GET_BIT(input[s][l], mask1) ^ GET_BIT(input[s][l], mask2) ^ GET_BIT(u[s][t_index], mask1m8);
+                        temp = GET_BIT(result[s][l], mask1) ^ GET_BIT(result[s][l], mask2) ^ GET_BIT(static_cast<T>(u[s][t_index]), mask1m8);
 
                         // simplified from needing two separate loops
-                        result[s][l] = SET_BIT(input[s][l], mask2, temp);
+                        result[s][l] = SET_BIT(result[s][l], mask2, temp);
                         // input[3][l] = SET_BIT(input[3][l], mask2, (GET_BIT(u[1][t_index], mask2m8) ^ GET_BIT(input[3][l], mask2)));
                     }
                 }

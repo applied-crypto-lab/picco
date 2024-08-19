@@ -358,4 +358,127 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
     delete[] buffer;
 }
 
+/*
+the input functionality called by edaBit_trunc
+input : [size]
+result : [numInputParties][numShares][3*size]
+first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2), third (size) elements are shared in Z_2k (for r_hat value)
+*/
+template <typename T>
+void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+
+    static uint numShares = ss->getNumShares();
+    uint bytes = (ring_size + 7) >> 3;
+    static int pid = ss->getID();
+    uint total_size = 4 * size;
+    std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
+
+    // allocated based on the size of recv_map()
+    T **recvbuf = new T *[send_recv_map[1].size()];
+    for (size_t i = 0; i < send_recv_map[1].size(); i++) {
+        recvbuf[i] = new T[total_size];
+        memset(recvbuf[i], 0, sizeof(T) * total_size);
+    }
+
+    uint8_t **buffer = new uint8_t *[numShares];
+    for (uint s = 0; s < numShares; s++) {
+        buffer[s] = new uint8_t[bytes * total_size];
+    }
+
+    // instead of generating T_star, just get the index in T_map where it exists (different for each party)
+    // iterating through every input party
+    int T_star_index;
+    int p_star_index = 0;
+    int my_index = 0;
+    int my_T_star_index = 0;
+    for (auto p_star : input_parties) {
+        T_star_index = ss->generateT_star_index(p_star); // cannot be made static/const
+        // iterating through every set T in mapping T_map_mpc (every share, exclusing T^*)
+        // calling the PRGs whenever applicable
+        for (uint s = 0; s < numShares; s++) {
+            if (s != T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
+                ss->prg_getrandom(s, bytes, total_size, buffer[s]);
+                for (size_t i = 0; i < total_size; i++) {
+                    memcpy(result[p_star_index][s] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[p_star][s][i]
+                }
+            }
+        }
+
+        // only to be performed by the current input party (p_star) we are dealing with in this iteration
+        // p_star will compute the last share T^*
+        // THIS IS CONTINGENT ON result BEING ZEROED !!!!!!
+        if (p_star == pid) {
+            my_index = p_star_index;        // storing the index of myself
+            my_T_star_index = T_star_index; // storing the index of my T_star
+            // very small number of if statements are being executed, no degradation to performance
+            for (uint s = 0; s < numShares; s++) {
+                if (s != T_star_index) {
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][i] -= result[my_index][s][i];
+                    }
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][size + i] ^= result[my_index][s][size + i];
+                    }
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][2 * size + i] -= result[my_index][s][2 * size + i];
+                    }
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][3 * size + i] -= result[my_index][s][3 * size + i];
+                    }
+                } else {
+                    // only happens once, p_star adding the value which is being inputted to share T_star
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][i] += input[i];
+                    }
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][size + i] ^= input[i];
+                    }
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][2 * size + i] += (input[i] >> T(m));
+                    }
+                    for (size_t i = 0; i < size; i++) {
+                        result[my_index][T_star_index][3 * size + i] += (input[i] >> T(m-2));
+                    }
+                }
+            }
+        }
+        p_star_index += 1;
+        // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
+        // However, will still need to extract the shares received into the correct locations
+    }
+    // sending everything in the result[my_index][my_T_star_index]
+    nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, total_size, ring_size, send_recv_map);
+    /*
+    the order which data is received into recvbuf corresponds to the recv component of send_recv_map
+    e.g. supposed input_parties = {1,2,3}
+    5 receives from parties 2 and 1 (in that order)
+    p5 will iterate through recv_map, then through input_parties
+    if a match is found (e.g., we first find "2" at index 1 in input_parties), this informs us that everything in recv_buff at position[1] is from party 2
+     */
+    // iterate through recv_map, look for match in input_parties
+    p_star_index = 0;
+    for (auto p_star : input_parties) {
+        // used to determine correct index of T_star (different for each party)
+        T_star_index = ss->generateT_star_index(p_star);
+        for (size_t recv_id_idx = 0; recv_id_idx < send_recv_map[1].size(); recv_id_idx++) {
+            if (p_star == send_recv_map[1][recv_id_idx]) {
+                // getting the index of the share T_star
+                T_star_index = ss->generateT_star_index(p_star);
+                memcpy(result[p_star_index][T_star_index], recvbuf[recv_id_idx], sizeof(T) * total_size);
+            }
+        }
+        p_star_index += 1;
+    }
+
+    for (size_t i = 0; i < send_recv_map[1].size(); i++) {
+        delete[] recvbuf[i];
+    }
+
+    delete[] recvbuf;
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] buffer[i];
+    }
+    delete[] buffer;
+}
+
 #endif // _INPUT_HPP_

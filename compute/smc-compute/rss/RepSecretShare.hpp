@@ -24,6 +24,7 @@
 #include "stdint.h"
 #include <charconv>
 #include <cmath>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -191,9 +192,9 @@ public:
 
     std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
 
-    inline bool pid_in_T(int pid, std::vector<int> T_map);
-    inline bool chi_pid_is_T(int pid, std::vector<int> T_map);
-    std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> input_parties);
+    inline bool pid_in_T(int &pid, std::vector<int> &T_map);
+    inline bool chi_pid_is_T(int& pid, std::vector<int> &T_map);
+    std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> &input_parties);
 
     T *SHIFT;
     T *ODD;
@@ -1561,7 +1562,7 @@ void replicatedSecretShare<T>::sparsify_public(T *result, int x) {
 }
 // general-use "is pid in share T?"
 template <typename T>
-inline bool replicatedSecretShare<T>::pid_in_T(int pid, std::vector<int> T_map) {
+inline bool replicatedSecretShare<T>::pid_in_T(int &pid, std::vector<int> &T_map) {
     switch (n) {
     case 3:
         return (pid == T_map[0]);
@@ -1577,7 +1578,7 @@ inline bool replicatedSecretShare<T>::pid_in_T(int pid, std::vector<int> T_map) 
 
 // checks if \chi(p) == T?
 template <typename T>
-inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> T_map) {
+inline bool replicatedSecretShare<T>::chi_pid_is_T(int &pid, std::vector<int> &T_map) {
     switch (n) {
     case 5: {
         return ((mod_n(pid + 1, n) == T_map[0]) and (mod_n(pid + 2, n) == T_map[1])) or
@@ -1620,7 +1621,7 @@ inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> T_m
 * This is NOT considered a deadlock, because it does not incur any additional communication cost
 */
 template <typename T>
-std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap(std::vector<int> input_parties) {
+std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap(std::vector<int> &input_parties) {
     try {
 
         if (input_parties.size() > n) {

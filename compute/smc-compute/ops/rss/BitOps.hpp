@@ -23,13 +23,28 @@
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
 
-template <typename T>
-void BitAnd(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
+// template <typename T>
+// void BitAnd(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
+
+// template <typename T>
+// void BitOr(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
+
+// template <typename T>
+// void BitXor(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
 
 template <typename T>
-void BitOr(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
+void LogicalAnd(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 template <typename T>
-void BitXor(T **A, T **B, T **result, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {}
+void LogicalOr(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+
+template <typename T>
+void BitAnd(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+
+template <typename T>
+void BitOr(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+
+template <typename T>
+void BitXor(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 #endif // _BITOPS_HPP_

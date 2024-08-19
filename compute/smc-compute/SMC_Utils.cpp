@@ -19,8 +19,15 @@
 */
 #include "SMC_Utils.h"
 #include "bit_utils.hpp"
+#include <functional>
 #include <iomanip>
+#include <iostream>
 #include <string>
+
+using std::cout;
+using std::endl;
+using std::string;
+using std::vector;
 
 // Constructors
 SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
@@ -48,20 +55,27 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
     std::cout << "Creating SecretShare\n";
 #if __SHAMIR__
-
-    net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
-    printf("Technique: SHAMIR\n");
+    if (num_threads > 1) {
+        net.launchManager(); // launching thread manager here as to not conflict with seed setup, only done for Shamir since RSS doesn't support multithreading
+        printf("Technique: SHAMIR\n");
+    }
     ss = new SecretShare(numOfPeers, threshold, modulus, id, num_threads, net.getPRGseeds(), shamir_seeds_coefs);
 #endif
 #if __RSS__
+
+    if (bits > 8 * sizeof(priv_int_t)) {
+        std::cerr << "ring size cannot be larger than the bitlength of priv_int_t\nExiting...\n";
+
+        std::exit(1);
+    }
     printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
-    // printf("RSS_constructor end\n");
 
 #endif
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
+    // #if __SHAMIR__
     try {
         inputStreams = new std::ifstream[numOfInputPeers];
         outputStreams = new std::ofstream[numOfOutputPeers];
@@ -89,7 +103,6 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
         // appending to new throw, then re-throwing
         throw std::runtime_error("[SMC_Utils, constructor] " + error);
     }
-
 #endif
 }
 
@@ -103,6 +116,12 @@ int SMC_Utils::smc_open(priv_int var, int threadID) {
 float SMC_Utils::smc_open(priv_int *var, int threadID) {
     return Open_float(var, threadID, net, ss);
 }
+
+#if __SHAMIR__
+void SMC_Utils::smc_open(priv_int *result, priv_int *input, int size, int threadID) {
+    Open(result, input, size, threadID, net, ss);
+}
+#endif
 
 #if __RSS__
 void SMC_Utils::smc_open(priv_int result, priv_int *var, int size, int threadID) {
@@ -325,6 +344,11 @@ void SMC_Utils::smc_set(priv_int **a, priv_int **result, int alen_sig, int alen_
         ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+void SMC_Utils::smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    for (int i = 0; i < size; i++)
+        ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
+}
+
 void SMC_Utils::smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
@@ -334,13 +358,26 @@ void SMC_Utils::smc_set(priv_int a, priv_int result, int alen, int resultlen, st
 }
 
 void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
+
+#if __SHAMIR__
     for (int i = 0; i < size; i++)
         ss_set(a[i], result[i], alen, resultlen, type, threadID, net, ss);
+#endif
+
+#if __RSS__
+    ss_set(a, result, alen, resultlen, size, type, threadID, net, ss);
+#endif
 }
 
 // this routine should implement in a way that result = a + share[0]
 void SMC_Utils::smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, ss);
+}
+
+void SMC_Utils::smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
+    for (size_t i = 0; i < size; i++) {
+        ss_set(a[i], result[i], alen, resultlen, type, threadID, net, ss);
+    }
 }
 
 void SMC_Utils::smc_priv_eval(priv_int a, priv_int b, priv_int cond, int threadID) {
@@ -853,30 +890,48 @@ void SMC_Utils::smc_neq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, 
     ss->modSub(result, 1, result, size);
 }
 
-void SMC_Utils::smc_xor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
-    BitXor(a, b, result, size, threadID, net, ss);
+// batch logical operations
+void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    LogicalAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
-void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
-    BitAnd(a, b, result, size, threadID, net, ss);
+void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    LogicalOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+}
+// batch bitwise operations
+void SMC_Utils::smc_band(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    // BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+}
+void SMC_Utils::smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
-void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, std::string type, int threadID) {
-    BitOr(a, b, result, size, threadID, net, ss);
+void SMC_Utils::smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    // BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
 #if __SHAMIR__
-// Bitwise Operations
-void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
+
+// bitwise operations
+void SMC_Utils::smc_band(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    // BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
-void SMC_Utils::smc_xor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
+void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+}
+
+void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    // BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+}
+
+// logical Operations
+void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    LogicalAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
 void SMC_Utils::smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), 1, threadID, net, ss);
+    LogicalOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
 void SMC_Utils::smc_shr(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
@@ -1967,7 +2022,7 @@ std::vector<int> SMC_Utils::generateCoefficients(std::vector<int> T_set, int thr
     return coefficients;
 }
 
-std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
+// std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 #if __RSS__
 uint SMC_Utils::getNumShares() {
@@ -2027,8 +2082,82 @@ void SMC_Utils::prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key)
     memcpy(destination, res, sizeof(priv_int_t)); // cipher becomes new seed or key
 }
 
+void SMC_Utils::smc_rss_benchmark(string operation, int size, int num_iterations) {
+    struct timeval start;
+    struct timeval end;
+    uint numShares = ss->getNumShares();
+    unsigned long timer;
+    uint numParties = ss->getPeers();
+
+    uint ring_size = ss->ring_size;
+
+    uint bytes = (ss->ring_size + 7) >> 3;
+    printf("bytes : %u\n", bytes);
+    printf("ring_size : %u\n", ring_size);
+    printf("size : %u\n", size);
+    printf("8*sizeof(Lint) = %lu\n", 8 * sizeof(priv_int_t));
+    printf("sizeof(Lint) = %lu\n", sizeof(priv_int_t));
+    priv_int *a = new priv_int[numShares];
+    priv_int *b = new priv_int[numShares];
+    priv_int *c = new priv_int[numShares];
+
+    for (int i = 0; i < numShares; i++) {
+        a[i] = new priv_int_t[size];
+        memset(a[i], 0, sizeof(priv_int_t) * size);
+        b[i] = new priv_int_t[size];
+        memset(b[i], 0, sizeof(priv_int_t) * size);
+        c[i] = new priv_int_t[size];
+        memset(a[i], 0, sizeof(priv_int_t) * size);
+    }
+
+    std::cout << "START" << std::endl;
+    gettimeofday(&start, NULL); // start timer here
+    if (operation == "b2a") {
+        for (size_t j = 0; j < num_iterations; j++) {
+            Rss_B2A(c, a, size, ring_size, net, ss);
+        }
+
+    } else if (operation == "mult") {
+
+        for (size_t j = 0; j < num_iterations; j++) {
+            Mult(c, a, b, size, net, ss);
+            // Rss_Mult_7pc_test(c, a, b, size, ring_size, net, ss);
+            // Rss_B2A(c, a, b, size, ring_size, net, ss);
+        }
+    } else if (operation == "fl_mul") {
+
+    } else if (operation == "fl_add") {
+
+    } else if (operation == "fl_div") {
+
+    } else if (operation == "fl_cmp") {
+    }
+
+    else {
+        std::cerr << "ERROR: unknown operation " << operation << ", exiting..." << endl;
+        exit(1);
+    }
+    std::cout << "END" << std::endl;
+    // std::cout<<numBytesSent<<std::endl;
+
+    gettimeofday(&end, NULL); // stop timer here
+    timer = 1e6 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("[%s_%spc] [%u, %i, %u] [%.6lf ms,  %.6lf ms/size,  %lu bytes] \n", operation.c_str(), std::to_string(numParties).c_str(), ring_size, size, num_iterations, (double)(timer * 0.001) / num_iterations, (double)(timer * 0.001 / size) / num_iterations,
+           0 / num_iterations);
+
+    for (size_t i = 0; i < numShares; i++) {
+        delete[] a[i];
+        delete[] b[i];
+        delete[] c[i];
+    }
+    delete[] a;
+    delete[] b;
+    delete[] c;
+}
+
 void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     size = 5; //  testing only so I dont have to keep opening rss_main.cpp
+    // uint bitlength = 20;
 
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -2047,7 +2176,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     std::vector<std::vector<int>> share_mapping;
     int numPeers = ss->getPeers();
-
     switch (numPeers) {
     case 3:
         share_mapping = {
@@ -2080,6 +2208,8 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         fprintf(stderr, "ERROR (rss_setup): invalid number of parties, only n = {3, 5, 7} is supported for RSS \n");
         exit(1);
     }
+    uint8_t **Data1_byte = new uint8_t *[totalNumShares];
+    uint8_t **Data2_byte = new uint8_t *[totalNumShares];
 
     priv_int_t **Data1 = new priv_int_t *[totalNumShares];
     priv_int_t **Data2 = new priv_int_t *[totalNumShares];
@@ -2088,7 +2218,13 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(Data1[i], 0, sizeof(priv_int_t) * size);
         Data2[i] = new priv_int_t[size];
         memset(Data2[i], 0, sizeof(priv_int_t) * size);
+
+        Data1_byte[i] = new uint8_t[size];
+        memset(Data1_byte[i], 0, sizeof(uint8_t) * size);
+        Data2_byte[i] = new uint8_t[size];
+        memset(Data2_byte[i], 0, sizeof(uint8_t) * size);
     }
+    uint bitlength = 12;
 
     for (int i = 0; i < size; i++) {
         for (size_t j = 0; j < totalNumShares - 1; j++) {
@@ -2097,13 +2233,20 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
             prg_aes_ni(Data2[j] + i, k2, key_prg);
             // Data2[j][i] = GET_BIT(Data2[j][i], priv_int_t(0));
         }
-        Data1[totalNumShares - 1][i] = 6 + i;
+        // Data1[totalNumShares - 1][i] = ( (-1) * i ) & ss->SHIFT[bitlength];
+        Data1[totalNumShares - 1][i] = 10 * (i + 1) + 1;
+        // Data1[totalNumShares - 1][i] = i;
+        Data1_byte[totalNumShares - 1][i] = i;
+        // Data1[totalNumShares - 1][i] = ((-1) * i);
+        // Data1[totalNumShares - 1][i] = 6 + i;
         // Data2[totalNumShares - 1][i] = priv_int_t(-1) >> 1;
         // Data2[totalNumShares - 1][i] = 1 + i;
-        Data2[totalNumShares - 1][i] = i;
+        Data2[totalNumShares - 1][i] = 2;
+        Data2_byte[totalNumShares - 1][i] = i;
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             Data1[totalNumShares - 1][i] -= Data1[j][i];
-            Data2[totalNumShares - 1][i] ^= Data2[j][i];
+            Data2[totalNumShares - 1][i] -= Data2[j][i];
+            // Data2[totalNumShares - 1][i] ^= Data2[j][i];
             // Data1[totalNumShares - 1][i] ^= GET_BIT(Data1[j][i], priv_int_t(0)); // only want a single bit
             // Data2[totalNumShares - 1][i] ^= GET_BIT(Data2[j][i], priv_int_t(0)); // only want a single bit
         }
@@ -2128,10 +2271,21 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     priv_int result_3 = new priv_int_t[size];
     memset(result_3, 0, sizeof(priv_int_t) * size);
 
+    uint8_t *result_byte = new uint8_t[size];
+    memset(result_byte, 0, sizeof(uint8_t) * size);
+
+    uint8_t *result_byte_2 = new uint8_t[size];
+    memset(result_byte_2, 0, sizeof(uint8_t) * size);
+    uint8_t *result_byte_3 = new uint8_t[size];
+    memset(result_byte_3, 0, sizeof(uint8_t) * size);
+
     priv_int *B_sparse = new priv_int[ss->getNumShares()];
     priv_int *a = new priv_int[ss->getNumShares()];
     priv_int *b = new priv_int[ss->getNumShares()];
+    uint8_t **a_byte = new uint8_t *[ss->getNumShares()];
+    uint8_t **b_byte = new uint8_t *[ss->getNumShares()];
 
+    uint8_t **C_byte = new uint8_t *[ss->getNumShares()];
     priv_int *C = new priv_int[ss->getNumShares()];
     priv_int *D = new priv_int[ss->getNumShares()];
     priv_int *A_bit = new priv_int[ss->getNumShares()];
@@ -2143,57 +2297,101 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
         memset(C[i], 0, sizeof(priv_int_t) * size);
         D[i] = new priv_int_t[size];
         memset(D[i], 0, sizeof(priv_int_t) * size);
+
+        C_byte[i] = new uint8_t[size];
+        memset(C[i], 0, sizeof(uint8_t) * size);
     }
 
     for (size_t i = 0; i < numShares; i++) {
         a[i] = Data1[share_mapping[id - 1][i]];
         b[i] = Data2[share_mapping[id - 1][i]];
+        a_byte[i] = Data1_byte[share_mapping[id - 1][i]];
+        b_byte[i] = Data2_byte[share_mapping[id - 1][i]];
     }
 
-    uint k = 3;
-    uint num_bits = (1 << k) * size; // exact number of bits in the output
+    printf("Intdiv\n");
+    doOperation_IntDiv(C, a, b, bitlength, size, -1, net, ss);
+
+    Open(result, C, size, -1, net, ss);
+    Open(result_2, a, size, -1, net, ss);
+    Open(result_3, b, size, -1, net, ss);
+
+    printf("\n");
+    for (size_t i = 0; i < size; i++) {
+        // printf("(input a)     [%lu]: %i\n", i, (int)result_2[i]);
+        // // print_binary((result_2[i]), ring_size);
+
+        // printf("(input b)     [%lu]: %i\n", i, (int)result_3[i]);
+        // // print_binary((result_3[i]), ring_size);
+
+        printf("(a / b)     [%lu]: %i / %i = %i\t", i, (int)result_2[i], (int)result_3[i], (int)result[i]);
+        printf("(off by) %i\n", (int)result[i] - (int)result_2[i] / (int)result_3[i]);
+        // print_binary(result[i], ring_size);
+        // printf("\n");
+    }
+
+    // uint k = 3;
+    // uint num_bits = (1 << k) * size; // exact number of bits in the output
     // uint num_uints = (num_bits + 7) >> 3;
-    std::cout << "k : " << k << std::endl;
-    std::cout << "num_bits : " << num_bits << std::endl;
+    // std::cout << "k : " << k << std::endl;
+    // std::cout << "num_bits : " << num_bits << std::endl;
     // std::cout << "num_uints : " << num_uints << std::endl;
 
-    priv_int_t **ao_res = new priv_int_t *[numShares];
-    for (size_t i = 0; i < numShares; i++)
-        ao_res[i] = new priv_int_t[num_bits];
+    // priv_int_t **ao_res = new priv_int_t *[numShares];
+    // for (size_t i = 0; i < numShares; i++)
+    //     ao_res[i] = new priv_int_t[num_bits];
 
-    AllOr(b, k, ao_res, size, -1, net, ss);
+    // AllOr(b, k, ao_res, size, -1, net, ss);
 
-    priv_int_t *res_8 = new priv_int_t[num_bits];
-    memset(res_8, 0, sizeof(priv_int_t) * num_bits);
+    // priv_int_t *res_8 = new priv_int_t[num_bits];
+    // memset(res_8, 0, sizeof(priv_int_t) * num_bits);
 
-    Open_Bitwise(res_8, ao_res, num_bits, -1, net, ss);
-    Open_Bitwise(result, b, size, -1, net, ss);
+    // Open_Bitwise(res_8, ao_res, num_bits, -1, net, ss);
+    // Open_Bitwise(result, b, size, -1, net, ss);
 
-    for (size_t i = 0; i < size; i++) {
-        printf("(open) b   [%lu]: %u\t", i, result[i]);
-        print_binary(result[i], ring_size);
-    }
-
-    for (size_t i = 0; i < num_bits; i++) {
-        printf("(open) ao_res   [%lu]: %u\t", i, res_8[i]);
-        print_binary(res_8[i], 8);
-        if (((i + 1) % (1 << k)) == 0) {
-            printf("\n");
-        }
-    }
-
-    for (size_t i = 0; i < numShares; i++) {
-        delete[] ao_res[i];
-    }
-    delete[] ao_res;
-
-    // Mult_Bitwise(C, b, b, size, net, ss);
-    // Open_Bitwise(result, C, size, -1, net, ss);
     // for (size_t i = 0; i < size; i++) {
-    //     printf("(open) [b*b]   [%lu]: %u\n", i, result[i]);
+    //     printf("(open) b   [%lu]: %u\t", i, result[i]);
     //     print_binary(result[i], ring_size);
     // }
-    // return;
+
+    // for (size_t i = 0; i < num_bits; i++) {
+    //     printf("(open) ao_res   [%lu]: %u\t", i, res_8[i]);
+    //     print_binary(res_8[i], 8);
+    //     if (((i + 1) % (1 << k)) == 0) {
+    //         printf("\n");
+    //     }
+    // }
+
+    // for (size_t i = 0; i < numShares; i++) {
+    //     delete[] ao_res[i];
+    // }
+    // delete[] ao_res;
+
+    // printf("multbyte\n");
+    // Mult_Byte(C_byte, a_byte, b_byte, size, net, ss);
+    // Open_Byte(result_byte, C_byte, size, -1, net, ss);
+    // Open_Byte(result_byte_2, a_byte, size, -1, net, ss);
+    // Open_Byte(result_byte_3, b_byte, size, -1, net, ss);
+    // for (size_t i = 0; i < size; i++) {
+    //     if (!(result[i] == (result_3[i] & result_2[i]))) {
+    //         printf("(open) [a*b] (z2)  [%lu]: %u\n", i, result[i]);
+    //         printf("expected %u\n", result_3[i] & result_2[i]);
+    //         print_binary(result[i], ring_size);
+    //     }
+    // }
+
+    // // Mult_Bitwise(C, a, b, size, net, ss);
+    // // Open_Bitwise(result, C, size, -1, net, ss);
+    // // Open_Bitwise(result_2, a, size, -1, net, ss);
+    // // Open_Bitwise(result_3, b, size, -1, net, ss);
+    // // for (size_t i = 0; i < size; i++) {
+    // //     if (!(result[i] == (result_3[i] & result_2[i]))) {
+    // //         printf("(open) [a*b] (z2)  [%lu]: %u\n", i, result[i]);
+    // //         printf("expected %u\n", result_3[i] & result_2[i]);
+    // //         print_binary(result[i], ring_size);
+    // //     }
+    // // }
+    // // return;
 
     // for (size_t i = 0; i < numShares; i++) {
     //     A_bit[i] = Data1[share_mapping[id - 1][i]];
@@ -2222,16 +2420,6 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //         printf("(open)  expected  [%lu]: %u\n", i, result[i] >> priv_int_t(m));
     //         print_binary(result[i] >> priv_int_t(m), ring_size);
     //     }
-    // }
-
-    // doOperation_Pow2(C, a, ring_size, size, -1, net, ss);
-    // Open(result, C, size, -1, net, ss);
-    // Open(result_2, a, size, -1, net, ss);
-    // for (size_t i = 0; i < size; i++) {
-    //     printf("(open) [2^a]   [%lu]: %u\n", i, result[i]);
-    //     print_binary(result[i], ring_size);
-    //     printf("(expected)     [%lu]: %u\n", i, (1 << result_2[i]));
-    //     print_binary((1 << result_2[i]), ring_size);
     // }
 
     // printf("\n");
@@ -2280,12 +2468,12 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
     //     // printf("(open) c   [%lu]: %u\n", i, result[i]);
     //     // printf("(open) a   [%lu]: %u\n", i, result_2[i]);
     //     // printf("(open) b   [%lu]: %u\n", i, result_3[i]);
-    //     if (!(result[i] == (result_2[i] > result_3[i]))) {
+    //     if (!(result[i] == ((int)result_2[i] > (int)result_3[i]))) {
     //         printf("LT ERROR\n");
 
-    //         // printf("(open ) c   [%lu]: %u\n", i, result[i]);
-    //         // printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
-    //         // printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
+    //         printf("(open ) c   [%lu]: %u\n", i, result[i]);
+    //         printf("(open ) a   [%lu]: %u\n", i, result_2[i]);
+    //         printf("(open ) b   [%lu]: %u\n", i, result_3[i]);
     //     }
     // }
 

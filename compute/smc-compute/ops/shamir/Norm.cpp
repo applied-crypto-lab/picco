@@ -19,10 +19,9 @@
 */
 #include "Norm.h"
 
-
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 3.5, page 14
-void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t one, two, temp;
     mpz_init_set_ui(one, 1);
     mpz_init_set_ui(two, 2);
@@ -50,10 +49,18 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
         }
     }
     // start computation
+
+    // ***********************
+    // this step computes the absolute value of b
+    // however, in doOperation_intDiv, before calling IntAppRcr, we make both a and b positive
+    // therefore, these steps effectively do nothing
     doOperation_LTZ(s, b, k, size, threadID, net, ss);
     ss->modMul(s, s, two, size);
     ss->modSub(s, one, s, size);
     Mult(x, s, b, size, threadID, net, ss);
+    // we theoretically can just call bitDec on b directly
+    // ***********************
+
     doOperation_bitDec(xb, x, k, k, size, threadID, net, ss);
     for (int i = 0; i < k; ++i)
         for (int j = 0; j < size; ++j)
@@ -79,6 +86,8 @@ void doOperation_Norm(mpz_t *c, mpz_t *vp, mpz_t *b, int k, int f, int size, int
 
     // these multiplications can be batched together
     Mult(c, x, v, size, threadID, net, ss);
+    // similarlly to the absolute value computation above, this step is irrelevant since
+    // we already guarantee b to be positive at the start of the computation
     Mult(vp, s, v, size, threadID, net, ss);
 
     // free the memory
