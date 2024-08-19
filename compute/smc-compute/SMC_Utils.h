@@ -391,15 +391,13 @@ public:
     // for floating point set
     // 1) private float = public float
     void smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-<<<<<<< HEAD
     // 2) public array of float = private array of float
     void smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     // 3) private float = private float
-=======
     void smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
->>>>>>> f684aa64ad976ccc2fc07c7ee6547f5e3eb3a346
+    // 4) private *int = private *int
     void smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
-    // 4) private *float = private *float
+    // 5) private *float = private *float
     void smc_set(priv_int **a, priv_int **result, int alen_sig, int alne_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     
     // for integer set
@@ -409,13 +407,8 @@ public:
     void smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
     // 3) private int = public int
     void smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
-<<<<<<< HEAD
     // 4) public array of int = private array of int 
     void smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
-
-=======
-    void smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
->>>>>>> f684aa64ad976ccc2fc07c7ee6547f5e3eb3a346
     // Dot Product
     // 1) private int = private *int @ private *int
     void smc_dot(priv_int *a, priv_int *b, int size, priv_int result, int threadID);

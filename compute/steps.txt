@@ -1,0 +1,335 @@
+Testing one machine 
+Compilation of PICCO
+
+ssh zuhramas@rigel-01.cse.buffalo.edu 
+
+cd picco/compiler && clear
+cd ../compiler && clear
+cd picco/compute && clear
+cd ../compute && clear
+
+./compile.sh
+control+c -> to kill 
+//Error-Checking 
+./../compiler/bin/picco -d rss_test.c ../compiler/smc-config test_utility running_files/test_utility_conf 
+./../compiler/bin/picco -d Error-Limitations/Error-Checking/q-digest.c ../compiler/smc-config test_utility running_files/test_utility_conf 
+./../compiler/bin/picco -d Error-Limitations/Error-Checking/batching.c ../compiler/smc-config test_utility running_files/test_utility_conf 
+./../compiler/bin/picco -d Error-Limitations/sample_programs_here/test-rss.c ../compiler/smc-config test_utility running_files/test_utility_conf 
+./../compiler/bin/picco -d RSS_Testing.c ../compiler/smc-config test_utility running_files/test_utility_conf 
+
+./../compiler/bin/picco -d sample-programs/non-thread/array-operations.c ../compiler/smc-config test_utility running_files/test_utility_conf 
+rm -rf build
+./compile-usr-prog.sh -d test_utility.cpp running_files/test_utility_conf
+
+./../compiler/bin/picco-utility -I 1 rss_test_data running_files/test_utility_conf running_files/test_util_shares_A_
+
+
+// 1 party
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/batch-div-data running_files/test_utility_conf running_files/test_util_shares_A_
+
+// 2 parties
+./../compiler/bin/picco-utility -I 1 sample-programs/non-thread/IO-test-data-1 running_files/test_utility_conf running_files/test_util_shares_A_
+./../compiler/bin/picco-utility -I 2 sample-programs/non-thread/IO-test-data-2 running_files/test_utility_conf running_files/test_util_shares_B_
+
+openssl genrsa -out running_files/private_01.pem 2048 && openssl rsa -in running_files/private_01.pem -outform PEM -pubout -out running_files/public_01.pem 
+openssl genrsa -out running_files/private_02.pem 2048 && openssl rsa -in running_files/private_02.pem -outform PEM -pubout -out running_files/public_02.pem 
+openssl genrsa -out running_files/private_03.pem 2048 && openssl rsa -in running_files/private_03.pem -outform PEM -pubout -out running_files/public_03.pem 
+
+// 1 party 
+./../compute/build/test_utility 1 running_files/runtime-config running_files/private_01.pem 1 1 running_files/test_util_shares_A_1 running_files/output_example
+./../compute/build/test_utility 2 running_files/runtime-config running_files/private_02.pem 1 1 running_files/test_util_shares_A_2 running_files/output_example
+./../compute/build/test_utility 3 running_files/runtime-config running_files/private_03.pem 1 1 running_files/test_util_shares_A_3 running_files/output_example
+
+// 2 parties (2 input, 2 output)
+./../compute/build/test_utility 1 running_files/runtime-config running_files/private_01.pem 2 2 running_files/test_util_shares_A_1 running_files/test_util_shares_B_1 running_files/output_example_1 running_files/output_example_2 
+./../compute/build/test_utility 2 running_files/runtime-config running_files/private_02.pem 2 2 running_files/test_util_shares_A_2 running_files/test_util_shares_B_2 running_files/output_example_1 running_files/output_example_2 
+./../compute/build/test_utility 3 running_files/runtime-config running_files/private_03.pem 2 2 running_files/test_util_shares_A_3 running_files/test_util_shares_B_3 running_files/output_example_1 running_files/output_example_2 
+
+./../compiler/bin/picco-utility -O 1 running_files/output_example running_files/test_utility_conf reconstructed_result_1
+
+(2 input, 2 output)
+./../compiler/bin/picco-utility -O 2 running_files/output_example_2 running_files/test_utility_conf reconstructed_result_2
+./../compiler/bin/picco-utility -O 1 running_files/output_example_1 running_files/test_utility_conf reconstructed_result_1
+
+
+control+shift+p then wrap to wrap the text on the same page 
+  
+Killing the port numbers 
+lsof -ti :#
+kill -9 PID
+
+See all the processes run by me
+ps -u zuhramas
+ps -ef | grep zuhramas
+
+Kill all the processes run by me
+pkill -u zuhramas
+pkill -9 -u zuhramas
+
+top -> this is to know how many percent of memory is used for what
+
+Kill zuhramas 
+ps -u zuhramas
+kill PID 
+
+// To Run this: gcc -fopenmp hmm.c -o hmm
+// To Run this: gcc hmm.c -o hmm
+// ./hmm
+
+Example: 
+    107418: This is the process ID (PID) of the top command itself.
+    zuhramas: This is the username of the user who launched the top command.
+    20: This indicates the priority of the process. Higher values mean lower priority.
+    0: This indicates the scheduling policy of the process. 0 means the default scheduling policy.
+    11268: This is the memory usage of the process in kilobytes (KiB).
+    5720: This is the memory usage of the process that's in the shared memory area.
+    4748: This is the memory usage of the process that's in the memory-mapped area.
+    R: This indicates the current state of the process. R means the process is running.
+    0.7: This is the percentage of CPU usage for the process.
+    0.0: This is the percentage of memory usage for the process.
+    0:00.19: This is the cumulative CPU time usage of the process.
+
+
+int* _picco_batch_index_array1 = (int*)malloc(sizeof(int) * 3 * _picco_batch_counter1);
+priv_int* _picco_batch_tmp_array1 = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter1);
+
+for (int _picco_i = 0; _picco_i < _picco_batch_counter1; _picco_i++) {
+  ss_init(_picco_batch_tmp_array1[_picco_i]);
+}
+
+for (j = 0; j < 500; j++) {
+  // First operation: c[j+6] = a[j+1] * b[j+2]
+  _picco_batch_index_array1[3 * _picco_ind1] = j + 1;
+  _picco_batch_index_array1[3 * _picco_ind1 + 1] = j + 2;
+  _picco_batch_index_array1[3 * _picco_ind1 + 2] = j + 6;
+  _picco_ind1++;
+}
+
+__s->smc_batch(a, b, _picco_batch_tmp_array1, 32, 32, 32, 1000, 1000, 1000, NULL, NULL, -1, _picco_batch_index_array1, _picco_batch_counter1, "*", "int", -1);
+
+for (j = 0; j < 500; j++) {
+  // Second operation: c[j+6] = c[j+6] * a[j+3]
+  _picco_batch_index_array1[3 * _picco_ind1] = j + 3;
+  _picco_batch_index_array1[3 * _picco_ind1 + 1] = j + 6;
+  _picco_batch_index_array1[3 * _picco_ind1 + 2] = j + 6;
+  _picco_ind1++;
+}
+
+__s->smc_batch(_picco_batch_tmp_array1, a, _picco_batch_tmp_array1, 32, 32, 32, 1000, 1000, 1000, NULL, NULL, -1, _picco_batch_index_array1, _picco_batch_counter1, "*", "int", -1);
+
+for (j = 0; j < 500; j++) {
+  // Third operation: c[j+6] = c[j+6] / d[j+4]
+  _picco_batch_index_array1[3 * _picco_ind1] = j + 4;
+  _picco_batch_index_array1[3 * _picco_ind1 + 1] = j + 6;
+  _picco_batch_index_array1[3 * _picco_ind1 + 2] = j + 6;
+  _picco_ind1++;
+}
+
+__s->smc_batch(_picco_batch_tmp_array1, d, _picco_batch_tmp_array1, 32, 32, 32, 1000, 1000, 1000, NULL, NULL, -1, _picco_batch_index_array1, _picco_batch_counter1, "/", "int", -1);
+
+for (j = 0; j < 500; j++) {
+  // Fourth operation: c[j+6] = c[j+6] * e[j+5]
+  _picco_batch_index_array1[3 * _picco_ind1] = j + 5;
+  _picco_batch_index_array1[3 * _picco_ind1 + 1] = j + 6;
+  _picco_batch_index_array1[3 * _picco_ind1 + 2] = j + 6;
+  _picco_ind1++;
+}
+
+__s->smc_batch(_picco_batch_tmp_array1, e, c, 32, 32, 32, 1000, 1000, 1000, NULL, NULL, -1, _picco_batch_index_array1, _picco_batch_counter1, "*", "int", -1);
+
+free(_picco_batch_index_array1);
+free(_picco_batch_tmp_array1);
+
+
+    // The newly added version to support multiple batch operations in one line 
+    if (multi_batch_op_flag == 1){
+
+        // Run this all until there is more left on the tree 
+        // while (tree->u.expr->left != NULL) {
+            // Print the first line index initilizing loop 
+            ast_batch_print_cond(tree);
+            control_sequence_push(&batch_index, batch_stack);
+            fprintf(output, "{\n");
+            indlev++;
+
+            // Store the indices on the array index 1 - only one will be used 
+            ast_batch_print_index(tree, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, multi_batch_op_flag);
+
+            // End part of the index initilizing loop 
+            indent();
+            fprintf(output, "_picco_ind%d++;\n", batch_index);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+            indlev--;
+            batch_index++;
+            control_sequence_pop(batch_stack);
+            
+            // Now call the smc_batch functions to perform the first operation using the tmp array 
+            // re-initialize all control variables.
+            batch_index = 0;
+            statement_index = 0;
+            private_selection_index = 0;
+            narray_element_index = 0;
+            private_index = 0;
+
+            if (tree->body->u.expr->right != NULL){
+                delete_tmp_array[3 * (narray_element_index)] = tree->body->u.expr->right->left->flag;
+                delete_tmp_array[3 * (narray_element_index) + 1] = tree->body->u.expr->right->left->ftype;
+                delete_tmp_array[3 * (narray_element_index) + 2] = batch_index;
+                (narray_element_index)++;
+                char *name = (char *)malloc(sizeof(char) * buffer_size);
+                sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", narray_element_index, batch_index);
+                astexpr e0 = String(name);
+                e0->ftype = tree->body->u.expr->right->left->ftype;
+                e0->flag = tree->body->u.expr->right->left->flag;
+                e0->size = tree->body->u.expr->right->right->size;
+                e0->sizeexp = tree->body->u.expr->right->right->sizeexp;
+                astexpr e1 = Assignment(e0, ASS_eq, tree->body->u.expr->right->left);
+                e1->thread_id = tree->body->u.expr->right->thread_id;
+                e1->ftype = e0->ftype;
+                indent();
+                ast_mult_op_batch_expr_show(e1);
+                fprintf(output, ";\n");
+                // ast_batch_print_index_operator(rightop, tree->u.expr->right->right, batch_index, private_index);
+                indent();
+                fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+                free(name);
+            }
+
+            // This works only for last op
+            // ast_batch_compute_stmt(tree, &batch_index, &statement_index, &private_selection_index, &narray_element_index, &private_index, current);
+        // }
+
+    } else {
+
+
+
+
+void ast_mult_op_batch_expr_show(aststmt main_tree, astexpr tree, int *batch_index, int *statement_index, int *narray_element_index, int *private_selection_index, int *delete_tmp_array, int *private_index) {
+    switch (tree->type) {
+    case ASS:
+        // only deals with assignment expression
+        // str leftop = Str("");
+        // str leftop = Str("");
+        // str rightop = Str("");
+        // str assignop = Str("");
+        // str tmp = Str("");
+
+        // Print the first line index initilizing loop 
+        ast_batch_print_cond(main_tree);
+        control_sequence_push(&batch_index, batch_stack);
+        fprintf(output, "{\n");
+        indlev++;
+
+        // Store the indices on the array index 1 - only one will be used 
+        // if (strcmp(str_string(leftop), "")) {
+        //     indent();
+        //     fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = %s;\n", *statement_index, *batch_index, str_string(leftop));
+        // } else if (!strcmp(str_string(leftop), "")) {
+        indent();
+        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", *statement_index, *batch_index, *batch_index);
+        // }
+
+        // if (strcmp(str_string(rightop), "")) {
+        //     indent();
+        //     fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", *statement_index, batch_index, str_string(rightop));
+        // } else if (!strcmp(str_string(rightop), "")) {
+        indent();
+        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = _picco_ind%d;\n", *statement_index, *batch_index, *batch_index);
+        // }
+
+        // if (strcmp(str_string(assignop), "")) {
+        //     indent();
+        //     fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = %s;\n", *statement_index, batch_index, str_string(assignop));
+        // } else if (!strcmp(str_string(assignop), "")) {
+        indent();
+        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = _picco_ind%d;\n", *statement_index, *batch_index, *batch_index);
+        // }
+        
+        // End part of the index initilizing loop 
+        indent();
+        fprintf(output, "_picco_ind%d++;\n", *batch_index);
+        indlev--;
+        indent();
+        fprintf(output, "}\n");
+        indlev--;
+        (*batch_index)++;
+        control_sequence_pop(batch_stack);
+
+        // re-initialize all control variables.
+        (*batch_index) = 0;
+        (*statement_index) = 0;
+        (*private_selection_index) = 0;
+        (*narray_element_index) = 0;
+        (*private_index) = 0;
+        
+        // Call the function to print the smc_batch code
+        /* for simple pri to pri assignment */
+        if (tree->left->flag == PRI && tree->right->flag == PRI) {
+            if (tree->right->index == 0) {
+                if (tree->right->type == FUNCCALL) {
+                    arg_str = Str("");
+                    ast_expr_print(arg_str, tree->right->left);
+                    // for compiler defined functions inv and bits
+                    if (!strcmp(str_string(arg_str), "inv"))
+                        fprintf(output, "%s", "__s->smc_inv");
+                    else if (!strcmp(str_string(arg_str), "bits"))
+                        fprintf(output, "%s", "__s->smc_bits");
+                    else
+                        ast_mult_op_batch_expr_show(main_tree, tree->right->left, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index);
+                    fprintf(output, "(");
+
+                    if (tree->right->right) {
+                        ast_mult_op_batch_expr_show(main_tree, tree->right->right, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index);
+                        fprintf(output, ", ");
+                    }
+
+                    ast_mult_op_batch_expr_show(main_tree, tree->left, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index);
+
+                    fprintf(output, ")");
+                    str_free(arg_str);
+                } else {
+                    ast_priv_assignment_show(tree, -1);
+                }
+            }
+            // right side is an arithmetic expression
+            else
+                ast_priv_assignment_show(tree, -1);
+            break;
+        }
+        // left side is private while the right side is public
+        else if (tree->left->flag == PRI && tree->right->flag == PUB) {
+            if (is_private_struct(tree->left) || is_private_struct_field(tree->left) || is_private_indexed(tree->left)) {
+                ast_priv_assignment_show(tree, -1);
+                break;
+            }
+            printf(output, "__s->smc_set("); // This is where the smc gets printed for private global/non-global variables and init of values to array/non-array variables and array of structs 
+            ast_mult_op_batch_expr_show(main_tree, tree->right, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index); // This is where the name and value gets printed after smc_set()
+            fprintf(output, ", ");
+            ast_mult_op_batch_expr_show(main_tree, tree->left, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index); // This is where the name and value gets printed after smc_set() for op and values I think!
+
+            /* print the bitlength of parameter */
+            if (tree->left->ftype == 1) {
+                fprintf(output, ", %d, %d, %d, %d, \"float\", %d)", tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->thread_id); // Print to output stream
+            } else if (tree->left->ftype == 0) {
+                fprintf(output, ", %d, %d, \"int\", %d)", tree->right->size, tree->left->size, tree->thread_id); // Print to output stream
+            }
+            break;
+        } else {
+            // determine if the left operator is private pointer to struct type (consider both pointer variable and field)
+            if (is_private_struct(tree->left) || is_private_struct_field(tree->left)) {
+                ast_priv_assignment_show(tree, -1);
+            } else {
+                /*for pub assignment */
+                ast_mult_op_batch_expr_show(main_tree, tree->left, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index);
+                fprintf(output, " %s ", ASS_symbols[tree->opid]); // this is where the assignment on global struct gets printed (Finally)
+                ast_mult_op_batch_expr_show(main_tree, tree->right, &batch_index, &statement_index, &narray_element_index, &private_selection_index, delete_tmp_array, &private_index);
+            }
+            break;
+        }
+    default:
+        fprintf(stderr, "[ast_mult_op_batch_expr_show]: b u g !!\n");
+    }
+}
+

@@ -52,12 +52,14 @@
     
 void    check_uknown_var(char *name);
 void    parse_error(int exitvalue, char *format, ...);
+void    parse_warning(char *format, ...);
 void    yyerror(char *s);
 void    check_for_main_and_declare(astspec s, astdecl d);
 void    add_declaration_links(astspec s, astdecl d, int);
 void    set_pointer_flag(astspec s, astdecl d);
 void    set_security_flag_symbol(astexpr e, symbol s, int); 
 void 	set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid);
+void 	set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid);
 void 	set_security_flag_stmt(aststmt s, aststmt s1, aststmt s2);
 void    set_security_flag_func(char* funcname, astexpr e2);
 void 	set_bitlength_expr(astexpr e, astexpr e1, astexpr e2); 
@@ -107,6 +109,7 @@ int	    num_threads = 0;
 int 	modulus = 0; 
 int     global_variables_c_restrict_flag = 0;
 int     pointer_flag = 0;
+int     declis = 0;
  
 struct_node_stack struct_table = NULL;
  
@@ -318,7 +321,7 @@ FILE 	*var_file;
 %token <name> OMPIX_SCOPE OMPIX_NODES OMPIX_WORKERS OMPIX_LOCAL OMPIX_GLOBAL
 %token <name> OMPIX_TIED
 %token <name> FLOAT STRUCT UNION TYPEDEF PTR_OP TYPE_NAME SIZEOF
-%token <name> PMALLOC PFREE
+%token <name> PMALLOC PFREE CHAR SHORT LONG
 
 /* Non-terminals */
 %type <xcon>   ompix_construct
@@ -414,7 +417,7 @@ primary_expression: // This is where var name, const value and string literal ge
     
       if (checkDecls)
       {
-        check_uknown_var($1);
+        check_uknown_var($1); // this is where the checking for unknown vars happen for all identifiers
         
         if ((e = symtab_get(stab, id, IDNAME)) != NULL) /* could be enum name */
           if (istp(e) && threadmode)
@@ -423,7 +426,7 @@ primary_expression: // This is where var name, const value and string literal ge
       $$ = chflag ? UnaryOperator(UOP_paren,
                              UnaryOperator(UOP_star, Identifier(id)))
                   : Identifier(id);
-      set_identifier_attributes(id, $$, 0); 	
+      set_identifier_attributes(id, $$, 0); 	 /// this is one place 
     }
   | CONSTANT
     {
@@ -451,11 +454,15 @@ postfix_expression:
     }
   | postfix_expression '[' expression ']'
     {
+      global_variables_c_restrict_flag = 0;
       $$ = ArrayIndex($1, $3);
       set_security_flag_expr($$, $1, NULL, -1);
       set_bitlength_expr($$, $1, NULL);
       set_size_symbol($$, $1, $3);
       $$->ftype = $1->ftype;
+      if($3->ftype == 1) { // if the index is private, public, const float 
+        parse_error(-1, "Non-integer used for '%s' array index.\n", $1->u.sym->name);
+      }
       if($3->flag == PRI && $1->ftype == 0)
 		is_priv_int_index_appear = 1;
       if($3->flag == PRI && $1->ftype == 1)
@@ -479,7 +486,7 @@ postfix_expression:
     {
       /* Catch calls to "main()" (unlikely but possible) */
       if (check_func_param(Identifier(Symbol($1)), $3))
-          parse_error(1, "The provided arguments do not match function parameters.\n");
+          parse_error(1, "Check the arguments to function '%s'.\n", $1);
       $$ = strcmp($1, "main") ?
              FunctionCall(Identifier(Symbol($1)), $3) :
              FunctionCall(Identifier(Symbol(MAIN_NEWNAME)), $3);
@@ -516,7 +523,7 @@ postfix_expression:
    }
   | postfix_expression '.' IDENTIFIER
     {
-	$$ = DotField($1, Symbol($3));
+	$$ = DotField($1, Symbol($3)); // in here it is handled as dotfiled not array 
 	set_identifier_attributes(Symbol($3), $$, 1); 
     }
   | postfix_expression PTR_OP IDENTIFIER
@@ -625,6 +632,10 @@ unary_operator:
     {
         $$ = UOP_neg; 
     }
+    |'~'
+    {
+        $$ = UOP_bnot; 
+    }
     | '!'
     {
         $$ = UOP_lnot; 
@@ -658,63 +669,62 @@ cast_expression:
     unary_expression
     {
         $$ = $1;
-	$$->thread_id = thread_id; 
+	    $$->thread_id = thread_id; 
         $$->ftype = $1->ftype;
         set_security_flag_expr($$, $1, NULL, -1);
         $$->size = $1->size;
-	$$->sizeexp  = $1->sizeexp; 
+	    $$->sizeexp  = $1->sizeexp; 
     }
     | '(' type_name ')'
     {
-	if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
-		tmp_index++; 
- 	if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
-		tmp_float_index++;  
-    	num_index = num_index > tmp_index? num_index: tmp_index;
-    	num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
+        if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+            tmp_index++; 
+        if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+            tmp_float_index++;  
+        num_index = num_index > tmp_index? num_index: tmp_index;
+        num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
     } 
     cast_expression
     {
-        
-	$$ = CastedExpr($2, $5);
-	$$->thread_id = thread_id; 
- 	if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_int)
-		$$->ftype = 0;
- 	if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_float)
-		$$->ftype = 1;
-	$$->flag = $5->flag; 
+        $$ = CastedExpr($2, $5);
+        $$->thread_id = thread_id; 
+        if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_int)
+            $$->ftype = 0;
+        if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_float)
+            $$->ftype = 1;
+        $$->flag = $5->flag;
 
- 	if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
-	{
-		$$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
-		tmp_index--;
-		$$->index = tmp_index; 
-		$$->flag = PRI; 
-		//FL2INT
-		if($5->ftype == 1)
-		 	modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+kappa_nu);
-
-	} 
- 	if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
-	{
-		$$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
-		$$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;  
-		tmp_float_index--;
-		$$->index = tmp_float_index; 
-		$$->flag = PRI; 
-		//FL2FL
-		if($5->ftype == 1 && $5->size > $$->size)
-            if($5->flag == PRI)
-                modulus = fmax(modulus, $5->size+kappa_nu); 
-                // modulus = fmax(modulus,  $5->size+48 );
-		//INT2FL
-		if($5->ftype == 0)
-            if($5->flag == PRI)
-                modulus = fmax(modulus, $5->size+kappa_nu); 
-                // modulus = fmax(modulus, $5->size+48); 
-                // modulus = fmax(modulus, $5->flag == PRI ? $5->size+48 : 32+48); 
-            
-	}
+        if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+        {
+            $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
+            tmp_index--;
+            $$->index = tmp_index; 
+            $$->flag = PRI; 
+            //FL2INT
+            if($5->ftype == 1)
+                modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+kappa_nu);
+        }
+        if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        {
+            $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
+            $$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;  
+            tmp_float_index--;
+            $$->index = tmp_float_index; 
+            $$->flag = PRI; // old
+            // $$->flag = $5->flag; // new
+            //FL2FL
+            if($5->ftype == 1 && $5->size > $$->size)
+                if($5->flag == PRI)
+                    modulus = fmax(modulus, $5->size+kappa_nu); 
+                    // modulus = fmax(modulus,  $5->size+48 );
+            //INT2FL
+            if($5->ftype == 0)
+                if($5->flag == PRI)
+                    modulus = fmax(modulus, $5->size+kappa_nu); 
+                    // modulus = fmax(modulus, $5->size+48); 
+                    // modulus = fmax(modulus, $5->flag == PRI ? $5->size+48 : 32+48); 
+                
+        } 
     }
 ;
 
@@ -722,6 +732,7 @@ cast_expression:
 multiplicative_expression:		
     cast_expression
     {
+      global_variables_c_restrict_flag = 0;
       $$ = $1;
       set_bitlength_expr($$, $1, NULL); 
     }
@@ -734,7 +745,7 @@ multiplicative_expression:
       decrease_index($1); 
       $$ = BinaryOperator(BOP_mul, $1, $4);
       $$->ftype = $4->ftype; 
-      set_security_flag_expr($$, $1, $4, BOP_mul);
+      set_security_flag_expr($$, $1, $4, BOP_mul); // thisisone
       set_bitlength_expr($$, $1, $4); 
     }
   | multiplicative_expression '/'
@@ -746,7 +757,7 @@ multiplicative_expression:
       decrease_index($1);
       $$ = BinaryOperator(BOP_div, $1, $4);
       $$->ftype = $4->ftype; 
-      set_security_flag_expr($$, $1, $4, BOP_div);
+      set_security_flag_expr($$, $1, $4, BOP_div); // thisisone
       set_bitlength_expr($$, $1, $4); 
     }
   | multiplicative_expression '%'
@@ -758,7 +769,7 @@ multiplicative_expression:
       decrease_index($1);
       $$ = BinaryOperator(BOP_mod, $1, $4);
       $$->ftype = $4->ftype; 
-      set_security_flag_expr($$, $1, $4, BOP_mod);
+      set_security_flag_expr($$, $1, $4, BOP_mod); // thisisone
       set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -770,19 +781,34 @@ additive_expression:
       $$ = $1;
       set_bitlength_expr($$, $1, NULL); 
     }
-  | additive_expression '+'
+  | additive_expression '+' // handles +
    {
 	increase_index($1);
    }
   multiplicative_expression
   {
+      
       decrease_index($1);
       $$ = BinaryOperator(BOP_add, $1, $4);
-      $$->ftype = $4->ftype; 
-      set_security_flag_expr($$, $1, $4, BOP_add);
+    if ($1 != NULL && $4 != NULL) {
+        if($4->ftype == 1) 
+            $$->ftype = $4->ftype; 
+        else 
+            $$->ftype = $1->ftype; 
+    } else if ($1 == NULL && $4 == NULL) {
+        $$->ftype = $4->ftype; 
+    } else {
+        if ($4 != NULL) {
+        $$->ftype = $4->ftype; 
+        } else if ($1 != NULL) {
+        $$->ftype = $1->ftype; 
+        }
+    }
+      set_security_flag_expr($$, $1, $4, BOP_add); // this is one
+      set_security_flag_expr2($$, $1, $4, BOP_add); // for globals
       set_bitlength_expr($$, $1, $4); 
   }
-  | additive_expression '-'
+  | additive_expression '-' // handles -
   {
       increase_index($1);
   }
@@ -791,7 +817,7 @@ additive_expression:
       decrease_index($1);
       $$ = BinaryOperator(BOP_sub, $1, $4);
       $$->ftype = $4->ftype; 
-      set_security_flag_expr($$, $1, $4, BOP_sub);
+      set_security_flag_expr($$, $1, $4, BOP_sub); // thisisone
       set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -810,9 +836,12 @@ shift_expression:
     additive_expression
     {
         decrease_index($1); 
-	$$ = BinaryOperator(BOP_shl, $1, $4);
-	$$->ftype = $1->ftype; 
-        set_security_flag_expr($$, $1, $4, BOP_shl);
+        $$ = BinaryOperator(BOP_shl, $1, $4);
+        if ($1->ftype == 1 || $4->ftype ==1) {
+            parse_error(1, "Invalid operands to binary << (use an int or cast if needed)\n");
+        }
+        $$->ftype = $1->ftype; 
+        set_security_flag_expr($$, $1, $4, BOP_shl); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
     | shift_expression RIGHT_OP 
@@ -821,10 +850,13 @@ shift_expression:
     }
     additive_expression
     {
-	decrease_index($1); 
+	    decrease_index($1); 
         $$ = BinaryOperator(BOP_shr, $1, $4);
-	$$->ftype = $1->ftype; 
-        set_security_flag_expr($$, $1, $4, BOP_shr);
+        if ($1->ftype == 1 || $4->ftype ==1) {
+            parse_error(1, "Invalid operands to binary >> (use an int or cast if needed)\n");
+        }
+        $$->ftype = $1->ftype; 
+        set_security_flag_expr($$, $1, $4, BOP_shr); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -846,7 +878,7 @@ relational_expression:
         $$ = BinaryOperator(BOP_lt, $1, $4);
         $$->ftype = 0; 
 	$$->size = 1; 
-        set_security_flag_expr($$, $1, $4, BOP_lt);
+        set_security_flag_expr($$, $1, $4, BOP_lt); // thisisone
         //set_bitlength_expr($$, $1, $4); 
     }
     | relational_expression '>'
@@ -859,7 +891,7 @@ relational_expression:
         $$ = BinaryOperator(BOP_gt, $1, $4);
       	$$->ftype = 0; 
 	$$->size = 1; 
-        set_security_flag_expr($$, $1, $4, BOP_gt);
+        set_security_flag_expr($$, $1, $4, BOP_gt); // thisisone
         //set_bitlength_expr($$, $1, $4); 
     }
     | relational_expression LE_OP
@@ -872,7 +904,7 @@ relational_expression:
         $$ = BinaryOperator(BOP_leq, $1, $4);
         $$->ftype = 0; 
 	$$->size = 1; 
-	set_security_flag_expr($$, $1, $4, BOP_leq);
+	set_security_flag_expr($$, $1, $4, BOP_leq); // thisisone
         //set_bitlength_expr($$, $1, $4); 
     }
     | relational_expression GE_OP
@@ -885,7 +917,7 @@ relational_expression:
         $$ = BinaryOperator(BOP_geq, $1, $4);
         $$->ftype = 0; 
 	$$->size = 1; 
-        set_security_flag_expr($$, $1, $4, BOP_geq);
+        set_security_flag_expr($$, $1, $4, BOP_geq); // thisisone
         //set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -907,7 +939,7 @@ equality_expression:
         $$ = BinaryOperator(BOP_eqeq, $1, $4);
         $$->ftype = 0;
 	$$->size = 1;  
-        set_security_flag_expr($$, $1, $4, BOP_eqeq);
+        set_security_flag_expr($$, $1, $4, BOP_eqeq); // thisisone
         //set_bitlength_expr($$, $1, $4); 
     }
     | equality_expression NE_OP
@@ -920,7 +952,7 @@ equality_expression:
         $$ = BinaryOperator(BOP_neq, $1, $4);
         $$->ftype = 0; 
 	$$->size = 1; 
-	set_security_flag_expr($$, $1, $4, BOP_neq);
+	set_security_flag_expr($$, $1, $4, BOP_neq); // thisisone
         //set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -939,7 +971,7 @@ AND_expression:
     {
         decrease_index($1);
         $$ = BinaryOperator(BOP_band, $1, $4);
-        set_security_flag_expr($$, $1, $4, BOP_band);
+        set_security_flag_expr($$, $1, $4, BOP_band); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -958,8 +990,8 @@ exclusive_OR_expression:
     AND_expression
     {
         decrease_index($1);
-        $$ = BinaryOperator(BOP_xor, $1, $4);
-        set_security_flag_expr($$, $1, $4, BOP_xor);
+        $$ = BinaryOperator(BOP_bxor, $1, $4);
+        set_security_flag_expr($$, $1, $4, BOP_bxor); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -979,7 +1011,7 @@ inclusive_OR_expression:
     {
         decrease_index($1);
         $$ = BinaryOperator(BOP_bor, $1, $4);
-        set_security_flag_expr($$, $1, $4, BOP_bor);
+        set_security_flag_expr($$, $1, $4, BOP_bor); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -999,7 +1031,7 @@ logical_AND_expression:
     {
         decrease_index($1);
         $$ = BinaryOperator(BOP_land, $1, $4);
-        set_security_flag_expr($$, $1, $4, BOP_land);
+        set_security_flag_expr($$, $1, $4, BOP_land); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
@@ -1019,14 +1051,16 @@ logical_OR_expression:
     {
         decrease_index($1);
         $$ = BinaryOperator(BOP_lor, $1, $4);
-        set_security_flag_expr($$, $1, $4, BOP_lor);
+        set_security_flag_expr($$, $1, $4, BOP_lor); // thisisone
         set_bitlength_expr($$, $1, $4); 
     }
 ;
 DOT_product_expression:
     unary_expression '@' unary_expression{
         $$ = BinaryOperator(BOP_dot, $1, $3);
-        set_security_flag_expr($$, $1, $3, BOP_dot);
+        if ($1->ftype == 1 || $3->ftype == 1)
+            parse_error(1, "Dot product operation @ is only supported for integers.\n");
+        set_security_flag_expr($$, $1, $3, BOP_dot); // thisisone
         set_bitlength_expr($$, $1, $3); 
     }
 ;
@@ -1059,6 +1093,7 @@ assignment_expression:
     }
   | unary_expression assignment_operator assignment_expression
     {
+
       //do security check here
       security_check_for_assignment($1, $3);
       $$ = Assignment($1, $2, $3);
@@ -1105,7 +1140,7 @@ expression:	// This is where each expression gets handled
       set_security_flag_expr($$, $1, NULL, -1);
       set_bitlength_expr($$, $1, NULL); 
     }
-  | expression ',' assignment_expression
+  | expression ',' assignment_expression // this is where it accepts array with ()
     {
       $$ = CommaList($1, $3);
     }
@@ -1140,13 +1175,13 @@ declaration:
   |
   declaration_specifiers init_declarator_list ';'
     {
+      global_variables_c_restrict_flag = 0;
       if (checkDecls) add_declaration_links($1, $2, 0);
       	security_check_for_declaration($1, $2);
       $$ = Declaration($1, $2);
       isTypedef = 0;
       set_pointer_flag($1, $2);
       $$->gflag = 0;
-      global_variables_c_restrict_flag = 0;
     }
   | threadprivate_directive // OpenMP Version 2.5 ISO/IEC 9899:1999 addition
     {
@@ -1225,6 +1260,9 @@ init_declarator:
         e = symtab_put(stab, s->u.id, (isTypedef) ? TYPENAME :
                                        (declkind == DFUNC) ? FUNCNAME : IDNAME);
         e->isarray = (declkind == DARRAY);
+        if (declkind == DARRAY) {
+            global_variables_c_restrict_flag = 0;
+        }
       }
       $$ = $1;
     }
@@ -1241,6 +1279,9 @@ init_declarator:
         e = symtab_put(stab, s->u.id, (isTypedef) ? TYPENAME :
                                        (declkind == DFUNC) ? FUNCNAME : IDNAME);
         e->isarray = (declkind == DARRAY);
+        if (declkind == DARRAY) {
+            global_variables_c_restrict_flag = 0;
+        }
       }
     }
     initializer
@@ -1256,11 +1297,26 @@ init_declarator:
 type_specifier:
   INT
     {
-      $$ = Declspec(SPEC_int, 32);
+      $$ = Declspec(SPEC_int, INT_SIZE); // 32
+    }
+  | CHAR
+    {
+      $$ = Declspec(SPEC_int, CHAR_SIZE); // 8
+      parse_warning("Replacing type 'char' with 'int<%d>'.\n", CHAR_SIZE);
+    }
+  | SHORT
+    {
+      $$ = Declspec(SPEC_int, SHORT_SIZE); // 16
+      parse_warning("Replacing type 'short' with 'int<%d>'.\n", SHORT_SIZE);
+    }
+  | LONG
+    {
+      $$ = Declspec(SPEC_int, LONG_SIZE); // 64
+      parse_warning("Replacing type 'long' with 'int<%d>'.\n", LONG_SIZE);
     }
   | FLOAT
     {
-      $$ = DeclspecFloat(SPEC_float, 32, 9); 
+      $$ = DeclspecFloat(SPEC_float, FLOAT_MAN_SIZE, FLOAT_EXP_SIZE); // MAN-32, EXP-9
     }
   | VOID
     {
@@ -1279,11 +1335,11 @@ type_specifier:
 type_qualifier:
     PRIVATE
     {
-      $$ = Declspec(SPEC_private, 0);
+        $$ = Declspec(SPEC_private, 0);
     }
   | PUBLIC
     {
-      $$ = Declspec(SPEC_public, 0);
+        $$ = Declspec(SPEC_public, 0);
     }
 ;
 
@@ -1494,26 +1550,32 @@ direct_abstract_declarator:
     }
     | '[' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(NULL, NULL, NULL);
     }
     | direct_abstract_declarator '[' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl($1, NULL, NULL);
     }
     | '[' assignment_expression ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(NULL, NULL, $2);
     }
     | direct_abstract_declarator '[' assignment_expression ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl($1, NULL, $3);
     }
     | '[' '*' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(NULL, Declspec(SPEC_star, 0), NULL);
     }
     | direct_abstract_declarator '[' '*' ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl($1, Declspec(SPEC_star, 0), NULL);
     }
     | '(' ')'
@@ -1577,7 +1639,12 @@ declarator:
 direct_declarator:
     IDENTIFIER
     {
-      $$ = IdentifierDecl( Symbol($1) );
+      
+    //   astexpr e = symtab_get(stab, Symbol($1), IDENT);
+    //   if (e != NULL && stab->scopelevel > 0) { // Handles only variable redifination  
+    //     parse_error(1, "Redefinition of '%s'.\n", $1);
+    //   }
+      $$ = IdentifierDecl( Symbol($1) ); 
     }
   | '(' declarator ')'
     {
@@ -1589,10 +1656,12 @@ direct_declarator:
     }
   | direct_declarator '[' ']'
     {
+      global_variables_c_restrict_flag = 0;
       $$ = ArrayDecl($1, NULL, NULL);
     }
-  | direct_declarator '[' assignment_expression ']'
+  | direct_declarator '[' assignment_expression ']' // array with variable length
     {
+      global_variables_c_restrict_flag = 0;
       $$ = ArrayDecl($1, NULL, $3);
     }
   | direct_declarator '(' ')'
@@ -2062,7 +2131,7 @@ smc_statement:
 /*for one-dimensional array*/
    | SMCINPUT '(' postfix_expression ',' primary_expression ',' expression ')' ';'
     {
-        
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1; 
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
@@ -2092,10 +2161,12 @@ smc_statement:
 	
 	$3->thread_id = thread_id; 
         $$ = Smc(SINPUT, e->spec, $3, $5, $7, NULL);
+        global_variables_c_restrict_flag = 0;
     }
 /*for two-dimensional array*/
     | SMCINPUT '(' postfix_expression ',' primary_expression ',' expression ',' expression')' ';'
     {
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1; 
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
@@ -2127,10 +2198,11 @@ smc_statement:
                 fprintf(var_file, ",%d,%d\n", spec1->size, spec1->sizeexp);
 	$3->thread_id = thread_id; 
         $$ = Smc(SINPUT, e->spec, $3, $5, $7, $9);
+        global_variables_c_restrict_flag = 0;
     }
    | SMCOUTPUT '(' postfix_expression ',' primary_expression ')' ';'
     {
-        
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1; /* PRI = 1, PUB = 2 */
         stentry e = get_entry_from_expr($3);
         /* the varible is public type */
@@ -2155,10 +2227,11 @@ smc_statement:
                fprintf(var_file, ",%d,%d\n", spec1->size, spec1->sizeexp);
 	$3->thread_id = thread_id;
         $$ = Smc(SOUTPUT, e->spec, $3, $5, NULL, NULL);
+        global_variables_c_restrict_flag = 0;
     }
  | SMCOUTPUT '(' postfix_expression ',' primary_expression ',' expression ')' ';'
     {
-    
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1;
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
@@ -2187,9 +2260,11 @@ smc_statement:
 	$3->thread_id = thread_id; 
 	
 	$$ = Smc(SOUTPUT, e->spec, $3, $5, $7, NULL);
+    global_variables_c_restrict_flag = 0;
     }
   | SMCOUTPUT '(' postfix_expression ',' primary_expression ',' expression ',' expression')' ';'
     {
+        global_variables_c_restrict_flag = 0;
         int secrecy = 1;
         stentry e = get_entry_from_expr($3);
         if(set_security_flag_spec(e->spec) != PRI)
@@ -2218,6 +2293,7 @@ smc_statement:
                fprintf(var_file, ",%d,%d\n", spec1->size, spec1->sizeexp);
 	$3->thread_id = thread_id; 
         $$ = Smc(SOUTPUT, e->spec, $3, $5, $7, $9);
+        global_variables_c_restrict_flag = 0;
     }
  ;
 
@@ -2269,7 +2345,7 @@ external_declaration:
     {
       $$ = $1; 
       $$->gflag = 1; 
-      global_variables_c_restrict_flag = 1;
+      global_variables_c_restrict_flag = 0;
     }
     /* Actually, although not in the grammar, we support 1 more option
      * here:  Verbatim
@@ -2329,11 +2405,11 @@ normal_function_definition:
 
       if(is_priv_int_ptr_appear == 1)
       {
-	$$->is_priv_int_ptr_appear = 1; 
-	is_priv_int_ptr_appear = 0;  
+        $$->is_priv_int_ptr_appear = 1; 
+        is_priv_int_ptr_appear = 0;  
+      } else {
+	    $$->is_priv_int_ptr_appear = 0; 
       }
-      else 
-	$$->is_priv_int_ptr_appear = 0; 
 
       if(is_priv_float_ptr_appear == 1)
       {
@@ -2436,11 +2512,11 @@ normal_function_definition:
       
       if(is_priv_int_ptr_appear == 1)
       {
-	$$->is_priv_int_ptr_appear = 1; 
-	is_priv_int_ptr_appear = 0;  
+        $$->is_priv_int_ptr_appear = 1; 
+        is_priv_int_ptr_appear = 0;  
+      } else {
+	    $$->is_priv_int_ptr_appear = 0; 
       }
-      else 
-	$$->is_priv_int_ptr_appear = 0; 
 
       if(is_priv_float_ptr_appear == 1)
       {
@@ -3458,12 +3534,14 @@ ox_variable_size_elem:
     {
         if (checkDecls) check_uknown_var($4);
         /* Use extern to differentiate */
+        global_variables_c_restrict_flag = 0;
             $$ = ArrayDecl(IdentifierDecl( Symbol($1) ), StClassSpec(SPEC_extern),
         Identifier(Symbol($4)));
         symtab_put(stab, Symbol($1), IDNAME);
     }
     | IDENTIFIER '[' assignment_expression ']'
     {
+        global_variables_c_restrict_flag = 0;
         $$ = ArrayDecl(IdentifierDecl( Symbol($1) ), NULL, $3);
         symtab_put(stab, Symbol($1), IDNAME);
     }
@@ -3562,11 +3640,10 @@ void yyerror(char *s)
  */
 void check_uknown_var(char *name)
 {
-  symbol s = Symbol(name);
-  if (symtab_get(stab, s, IDNAME) == NULL &&
-      symtab_get(stab, s, LABELNAME) == NULL &&
-      symtab_get(stab, s, FUNCNAME) == NULL)
-    parse_error(-1, "Unknown identifier `%s'.\n", name);
+    symbol s = Symbol(name);
+    if (symtab_get(stab, s, IDNAME) == NULL && symtab_get(stab, s, LABELNAME) == NULL && symtab_get(stab, s, FUNCNAME) == NULL) {
+        parse_error(-1, "Unknown identifier `%s'.\n", name);
+    }
 }
 
 void check_for_main_and_declare(astspec s, astdecl d)
@@ -3732,26 +3809,28 @@ void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 struct_field get_struct_field_info(astexpr e)
 {
 	struct_node node;
-        struct_field field;
+    struct_field field;
 	while(e->type == ARRAYIDX)
 		e = e->left;
-        if(e->left->type != PTRFIELD && e->left->type != DOTFIELD)
-        {
-                stentry entry = symtab_get(stab, e->left->u.sym, IDNAME); 
-		node = struct_node_lookup(struct_table, entry->spec->name->name);
-                field = struct_field_lookup(node, e->u.sym->name);
-		if(!node->contain_pub_field)
-			set_global_tags_for_private_struct_field(field->type, field->name); 
-        }
-        else
-        {
-                struct_field f = get_struct_field_info(e->left);
-                node = struct_node_lookup(struct_table, f->type->name->name);
-                field = struct_field_lookup(node, e->u.sym->name);
-		if(!node->contain_pub_field)
-			set_global_tags_for_private_struct_field(field->type, field->name); 
-        }
-        return field;
+    if(e->left->type != PTRFIELD && e->left->type != DOTFIELD)
+    {
+        stentry entry;
+        if (e->left->type == ARRAYIDX)
+            entry = symtab_get(stab, e->left->left->u.sym, IDNAME); // array of struct
+        else 
+            entry = symtab_get(stab, e->left->u.sym, IDNAME); // struct
+        node = struct_node_lookup(struct_table, entry->spec->name->name);
+        field = struct_field_lookup(node, e->u.sym->name);
+        if(!node->contain_pub_field)
+            set_global_tags_for_private_struct_field(field->type, field->name); 
+    } else {
+        struct_field f = get_struct_field_info(e->left);
+        node = struct_node_lookup(struct_table, f->type->name->name);
+        field = struct_field_lookup(node, e->u.sym->name);
+        if(!node->contain_pub_field)
+            set_global_tags_for_private_struct_field(field->type, field->name); 
+    }
+    return field;
 }
 
 /*
@@ -3780,7 +3859,6 @@ void set_identifier_attributes(symbol id, astexpr expr, int is_su_field)
 		s = entry->spec; 
 		d = entry->decl; 
       }
- 
       set_security_flag_symbol(expr, id, is_su_field);
       set_size_symbol(expr, Identifier(id), NULL);
       // for no "private " declaration
@@ -3875,10 +3953,12 @@ void set_pointer_flag(astspec spec, astdecl decl)
     if(check_decl_for_pointer(d1) == 1)
         is_pointer = 1;
         
-    if(is_int == 1 && is_private == 1 && is_pointer == 1)
+    if(is_int == 1 && is_private == 1 && is_pointer == 1) {
         is_priv_int_ptr_appear = 1;
-    if(is_float == 1 && is_private == 1 && is_pointer == 1)
+    }
+    if(is_float == 1 && is_private == 1 && is_pointer == 1) {
         is_priv_float_ptr_appear = 1;
+    }
 }
 
 void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
@@ -3887,7 +3967,7 @@ void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
       astspec spec = NULL;
       astdecl decl = NULL;
       struct_field field;
-
+ // bbbbbb
       if(is_su_field)
       {
                 field = get_struct_field_info(e);
@@ -3928,7 +4008,7 @@ void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
 			e->flag = PUB; 
 			e->index = -1; 
 		}	
-     }
+     } // makes the expr either priv or pub based on the SPEC_private 
      else if(spec->body->subtype == SPEC_private)
      {
 		e->flag = PRI; 
@@ -3945,34 +4025,41 @@ void set_gloabl_tags_for_private_struct_field(astspec s)
 {
 	
 }
+
+/*
+*   Set the bit length of ast. 
+*   aastexpr_ -> int ftype -> if expr represents a floating point value ftype=1 
+*/
 void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 {
-	if(e2 == NULL)
+	if(e2 == NULL) // this check is because e could be a unary expression with only e1 
 	{
 		e->size = e1->size; 
-		e->sizeexp = e1->sizeexp; 		
-	}
-	else 
+		e->sizeexp = e1->sizeexp; 
+    }
+	else // this is the case if e is a binary expression  
 	{
-		if(e1->ftype != e2->ftype)
+		// if((e1->ftype != e2->ftype))
+		// {
+            // printf("\n\ne1 Type: %d, e2 Type: %d\n\n", e1->ftype, e2->ftype); 
+            // parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
+
+		// }
+		if(e1->ftype == 0) 
 		{
-			parse_error(-1, "Operators should have the same type...\n"); 
-		}
-		if(e1->ftype == 0)
-		{
-			if(e1->size >= e2->size)
+			if(e1->size >= e2->size) // set the size of e to be the maximum of the sizes of e1 and e2.
 				e->size = e1->size; 
 			else
 				e->size = e2->size; 
 		}
 		else if(e1->ftype == 1)
 		{
-			if(e1->size >= e2->size)
+			if(e1->size >= e2->size) // set the size of e to be the maximum of the sizes of e1 and e2.
 				e->size = e1->size; 
 			else
 				e->size = e2->size; 
 			
-			if(e1->sizeexp >= e2->sizeexp)
+			if(e1->sizeexp >= e2->sizeexp) // set e's size expression to be the maximum of e1 and e2.
 				e->sizeexp = e1->sizeexp; 
 			else
 				e->sizeexp = e2->sizeexp; 
@@ -3980,39 +4067,72 @@ void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 	}	
 }
 
+void set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid){
+    if (global_variables_c_restrict_flag == 1) { 
+        // if (e1 != NULL && e2 != NULL) {
+        if (e1 != NULL && e1->type == CONSTVAL && e2 != NULL && e2->type != CONSTVAL) { // 2 + i
+            parse_error(-1, "Initializer element is not a constant '%s' 1.\n", e->u.sym->name);
+        } else if (e1 != NULL && e1->type != CONSTVAL && e2 != NULL && e2->type == CONSTVAL) { // i + 2
+            parse_error(-1, "Initializer element is not a constant '%s' 2.\n", e->u.sym->name);
+        } else if (e1 != NULL && e1->type != CONSTVAL && e2 != NULL && e2->type != CONSTVAL) { // i + i
+            parse_error(-1, "Initializer element is not a constant '%s' 3.\n", e->u.sym->name);
+        } else if (e1 != NULL && e1->type != CONSTVAL) {
+            parse_error(-1, "Initializer element is not a constant '%s' 4.\n", e->u.sym->name); // 
+        } else if (e2 != NULL && e2->type != CONSTVAL) {
+            parse_error(-1, "Initializer element is not a constant '%s' 5.\n", e->u.sym->name); // 
+        } else if (e1 != NULL && e1->u.dtype->type != DARRAY && e1->type != ARRAYIDX && e1->arraytype != 1 && e1->type != CONSTVAL) { // i
+            parse_error(-1, "Initializer element is not a constant '%s' 6.\n", e->u.sym->name);
+        } else if (e1 == NULL && e2 != NULL) { // const + non-const
+            parse_error(-1, "Initializer element is not a constant 7.\n");
+        // } else if (e1 != NULL && e2 == NULL) { // non_const + const
+        //     parse_error(-1, "Initializer element is not a constant 8.\n");
+        }
+    }
+}
+
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
-    if(e2 != NULL && e1 != NULL)
-    {
-        if(e1->flag == PUB && e2->flag == PUB)
-	{
+    if(e2 != NULL && e1 != NULL){
+        if(e1->flag == PUB && e2->flag == PUB){
             e->flag = PUB;
             e->index = -1;
-        }
-        else
-	{
-                e->flag = PRI;
-                if(e->ftype == 0)
-                	e->index = tmp_index;
-		else
-			e->index = tmp_float_index; 
-                // assume e1 and e2 are arrays and have the same size
-                if(e1->arraysize != NULL && e2->arraysize != NULL)
-                        e->arraysize = ast_expr_copy(e1->arraysize);
-			//e->arraysize = e1->arraysize; 
-        	  
-	}
-	compute_modulus_for_BOP(e1, e2, opid); 
+        } else {
+            e->flag = PRI;
+            if(e->ftype == 0)
+                e->index = tmp_index;
+            else
+                e->index = tmp_float_index; 
+                    // assume e1 and e2 are arrays and have the same size
+                    if(e1->arraysize != NULL && e2->arraysize != NULL) {
+                            e->arraysize = ast_expr_copy(e1->arraysize);
+                            
+                        // printf("e1: %s, e2: %s\n", e1->arraysize->u.str, e2->arraysize->u.str);
+
+                        if (atoi(e1->arraysize->u.str) > tmp_array_max_size) {
+                            tmp_array_max_size = atoi(e1->arraysize->u.str);
+                        }
+                        if (atoi(e2->arraysize->u.str) > tmp_array_max_size) {
+                            tmp_array_max_size = atoi(e2->arraysize->u.str) ;
+                        }
+
+                        array_tmp_index = 1;
+                        array_ftmp_index = 1;
+
+                        if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str)) {
+                            parse_error(-1, "Array sizes in expression do not match.\n");
+                        }
+                    }
+                //e->arraysize = e1->arraysize;   
+	    }
+	    compute_modulus_for_BOP(e1, e2, opid); 
     }
     //() or UOP or ASS
-    else if(e2 == NULL && e1 != NULL)
-    {
-          e->flag = e1->flag;
-          e->index = e1->index; 
+    else if(e2 == NULL && e1 != NULL){
+        e->flag = e1->flag;
+        e->index = e1->index; 
     }
     //const
-    else if(e1 == NULL && e2 == NULL)
-    {
+    else if(e1 == NULL && e2 == NULL){
         e->flag = PUB;
         e->index = -1; 
     }
@@ -4022,11 +4142,25 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     // e2: Represents the right operand of the addition operation, which is 3.
     // this takes care of a+b 
     // Check if the expression is a constant or a constant expression
-    // if (global_variables_c_restrict_flag == 1) { // this needs to prevent the assignments below only in global scope and I realize that it prevents it inside main too, so commented it out to be able to merge this code to main, and I will on 4/19 or 4/22 mon
-    //     if (e1 != NULL && e2 != NULL) { // i + i
-    //         parse_error(-1, "Initializer element is not a constant or a constant expression 1.\n");
-    //     } else if (e1 == NULL && e2 != NULL) { // 2 + i
-    //         parse_error(-1, "Initializer element is not a constant or a constant expression 3.\n");
+
+    // if (global_variables_c_restrict_flag == 1) { 
+    //     // if (e1 != NULL && e2 != NULL) {
+    //     if (e1 != NULL && e1->type == CONSTVAL && e2 != NULL && e2->type != CONSTVAL) { // 2 + i
+    //         parse_error(-1, "Initializer element is not a constant '%s' 1.\n", e->u.sym->name);
+    //     } else if (e1 != NULL && e1->type != CONSTVAL && e2 != NULL && e2->type == CONSTVAL) { // i + 2
+    //         parse_error(-1, "Initializer element is not a constant '%s' 2.\n", e->u.sym->name);
+    //     } else if (e1 != NULL && e1->type != CONSTVAL && e2 != NULL && e2->type != CONSTVAL) { // i + i
+    //         parse_error(-1, "Initializer element is not a constant '%s' 3.\n", e->u.sym->name);
+    //     } else if (e1 != NULL && e1->type != CONSTVAL) {
+    //         parse_error(-1, "Initializer element is not a constant '%s' 4.\n", e->u.sym->name); // 
+    //     } else if (e2 != NULL && e2->type != CONSTVAL) {
+    //         parse_error(-1, "Initializer element is not a constant '%s' 5.\n", e->u.sym->name); // 
+    //     } else if (e1 != NULL && e1->u.dtype->type != DARRAY && e1->type != ARRAYIDX && e1->arraytype != 1 && e1->type != CONSTVAL) { // i
+    //         parse_error(-1, "Initializer element is not a constant '%s' 6.\n", e->u.sym->name);
+    //     } else if (e1 == NULL && e2 != NULL) { // const + non-const
+    //         parse_error(-1, "Initializer element is not a constant 7.\n");
+    //     // } else if (e1 != NULL && e2 == NULL) { // non_const + const
+    //     //     parse_error(-1, "Initializer element is not a constant 8.\n");
     //     }
     // }
    //COMPUTE THE MODULUS FOR DIFFERENT OPERATIONS AND DIFFERENT TYPES OF PRIVATE VARIABLES
@@ -4034,7 +4168,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, "Security type mismatch in assignment.\n");
+		parse_error(-1, "Type mismatch with respect to public/private data in assignment 1.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){
@@ -4046,13 +4180,13 @@ void security_check_for_declaration(astspec spec, astdecl decl){
     if(spec->type == SPECLIST && spec->body->subtype == SPEC_private)
         flag1 = 1;
     else if(spec->subtype == SPEC_int || spec->subtype == SPEC_float)
-	flag1 = 1; 
+	    flag1 = 1;
     else if(spec->subtype == SPEC_struct || spec->subtype == SPEC_union)
     {
-	struct_node node = struct_node_lookup(struct_table, spec->name->name); 
-	if(!node->contain_pub_field)
-		flag1 = 1;  
-    } 
+        struct_node node = struct_node_lookup(struct_table, spec->name->name); 
+        if(!node->contain_pub_field)
+            flag1 = 1;  
+    }
     
     // declarator
     if(decl->type == DLIST)
@@ -4066,7 +4200,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                     flag2 = 1;
             }
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "A: Security type mismatch in assignment.\n");
+                parse_error(-1, "A: Type mismatch with respect to public/private data in assignment.\n");
             decl = decl->u.next;
         }
         
@@ -4076,7 +4210,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                 flag2 = 1;
             
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "B: Security type mismatch in assignment.\n");
+                parse_error(-1, "B: Type mismatch with respect to public/private data in assignment.\n");
         }
     
     }
@@ -4086,7 +4220,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
             if(decl->u.expr->flag == PRI)
                 flag2 = 1;
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "C: Security type mismatch in assignment.\n");
+                parse_error(-1, "C: Type mismatch with respect to public/private data in assignment.\n");
         }
     }
   
@@ -4094,8 +4228,9 @@ void security_check_for_declaration(astspec spec, astdecl decl){
 
 void set_security_flag_stmt(aststmt s, aststmt s1, aststmt s2){
     if(s->type = STATEMENTLIST){
-        if((s1->flag == PUB) || (s2->flag == PUB))
+        if((s1->flag == PUB) || (s2->flag == PUB)) {
            s->flag = PUB;
+        }
     }
 }
 
@@ -4122,9 +4257,9 @@ void set_security_flag_func(char* funcname, astexpr e2){
 }
 
 int set_security_flag_spec(astspec spec){
-    if(spec->type == SUE)
-	return PUB;
-    else if(spec->type == SPECLIST){
+    if(spec != NULL && spec->type == SUE)
+	    return PUB;
+    else if(spec != NULL && spec->type == SPECLIST){
         if(spec->body->subtype == SPEC_public)
             return PUB;
         else if(spec->body->subtype == SPEC_private)
@@ -4185,23 +4320,27 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
 	e1->sizeexp = spec->sizeexp; 
     }
     // if e2 is an array, we further store its size
-    if(isarray){
+    if(isarray){ // only true for static allocated arrays with name[len] not for dynamic allocated using pmalloc
+        global_variables_c_restrict_flag = 0;
         d = decl->decl;
         // for one dimension array
         if(e2->type == IDENT){
-		//e1->arraysize = d->u.expr;
+            global_variables_c_restrict_flag = 0;
+		    //e1->arraysize = d->u.expr;
 	        e1->arraysize = ast_expr_copy(d->u.expr);
-		//set the arraytype
-		if(e3 == NULL || (e3 != NULL && d->decl->type == DARRAY))
-			e1->arraytype = 1; 
-	}
-        // for two dimension array
-	else if (e2->type == ARRAYIDX){
-	    //e1->arraysize = decl->decl->u.expr; 
-	    //e2->arraysize = decl->decl->decl->u.expr; 
-       	    e1->arraysize = ast_expr_copy(decl->decl->u.expr);
+            //set the arraytype
+            if(e3 == NULL || (e3 != NULL && d->decl->type == DARRAY))
+                e1->arraytype = 1; 
+        }
+            // for two dimension array
+        else if (e2->type == ARRAYIDX){
+            global_variables_c_restrict_flag = 0;
+            //e1->arraysize = decl->decl->u.expr; 
+            //e2->arraysize = decl->decl->decl->u.expr; 
+            e1->arraysize = ast_expr_copy(decl->decl->u.expr);
             e2->arraysize = ast_expr_copy(decl->decl->decl->u.expr);
-	}
+        }
+        global_variables_c_restrict_flag = 0;
     }
     // for identifier
     else
@@ -4280,6 +4419,7 @@ astdecl fix_known_typename(astspec s)
 
 void get_arraysize(astexpr op, str arg_str)
 {
+    global_variables_c_restrict_flag = 0;
     stentry e;
     if(op->type != CONSTVAL)
     {
@@ -4306,7 +4446,29 @@ int check_func_param(astexpr funcname, astexpr arglist){
     else
         // get the paramater list
     decl = e->decl->decl->u.params;
-    
+
+    // Traverse through argument list and parameter list 
+    while (arglist->type == COMMALIST && decl->type == DLIST) {
+        // Get the type spec of the parameter
+        spec = (decl->decl)->spec;
+        
+        // Compare the security type 
+        if (set_security_flag_spec(spec) != arglist->right->flag) { // If sec type does not match
+            parse_error(1, "Type mismatch with respect to public/private data in argument list of '%s'.\n", funcname->u.sym->name);
+            return 0; 
+        }
+
+        // Compare the type - this gives error in not needed areas 
+        // if (decl->u.expr->ftype != arglist->right->ftype) { // If type does not match
+        //     parse_error(1, "Type mismatch in argument list of '%s'.\n", funcname->u.sym->name);
+        //     return 0; 
+        // }
+        
+        // Move to the next argument and the next parameter
+        arglist = arglist->left;
+        decl = decl->u.next;
+    }
+        
     if(arglist->type == COMMALIST)
     {
         while(1)
@@ -4323,7 +4485,7 @@ int check_func_param(astexpr funcname, astexpr arglist){
         }
         // for the leftmost var
         if((decl->type == DLIST && arglist->type != COMMALIST) || (decl->type == DPARAM && arglist->type == COMMALIST)){
-            parse_error(1, "The provided arguments do not match function parameters.\n");
+            parse_error(1, "111 Too many or too few arguments to function '%s'\n", funcname);
         }
         else{
             spec = decl->spec;
@@ -4352,7 +4514,7 @@ int compare_specs(astspec spec, int flag){
 void increase_index(astexpr e){
     if((e->u.sym == NULL || e->type == CASTEXPR) && e->flag == PRI){
         if(e->ftype == 0)
-		tmp_index++;
+		    tmp_index++;
 	else
 		tmp_float_index++; 
     }
@@ -4363,7 +4525,7 @@ void increase_index(astexpr e){
 void decrease_index(astexpr e){
     if((e->u.sym == NULL || e->type == CASTEXPR) && e->flag == PRI){
 	if(e->ftype == 0)
-        	tmp_index--;
+        tmp_index--;
 	else
 		tmp_float_index--; 
     }
@@ -4379,6 +4541,20 @@ void parse_error(int exitvalue, char *format, ...)
   if (strcmp(sc_original_file(), "injected_code") == 0)
     fprintf(stderr, "\n>>>>>>>\n%s\n>>>>>>>\n", parsingstring);
   _exit(exitvalue);
+}
+
+
+void parse_warning(char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+
+    fprintf(stdout, "(%s, line %d)\n\t", sc_original_file(), sc_original_line());
+    vfprintf(stdout, format, ap); // this prints the message itself 
+
+    va_end(ap);
+
+    if (strcmp(sc_original_file(), "injected_code") == 0)
+        fprintf(stdout, "\n>>>>>>>\n%s\n>>>>>>>\n", parsingstring);
 }
 
 
@@ -4482,10 +4658,8 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 				modulus = fmax(modulus, len+kappa_nu); 
 			else if ( ( opid == BOP_eqeq || opid == BOP_neq ) && len > 1)
 				modulus = fmax(modulus, len+kappa_nu); 
-			else if(opid == BOP_div)
-				modulus = fmax(modulus, 2*len+kappa_nu+8);
 			else if(opid == BOP_shr){ // checking for right shifts, 
-                // if shifting bu public amount --> truncation (Catrina and de Hoogh, 2010)
+                // if shifting by public amount --> truncation (Catrina and de Hoogh, 2010)
                 // if shifting by a private amount, the security of the first argument doesnt matter, and we call truncation by a private value in floating point paper (Aliasgari et al., 2013)
 				modulus = fmax(modulus, e1->size+kappa_nu);
             }
@@ -4519,10 +4693,18 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 			modulus = fmax(modulus, fmax(len, k)+kappa_nu); 
 		else if(opid == BOP_div)
 			modulus = fmax(modulus, 2*len+kappa_nu+1);  
-	}else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
-		printf("%d, %d\n", e1->ftype, e2->ftype); 	
-		printf("Operands with different types are not allowed.\n"); 
+	} else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
+		parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
 		exit(0); 
-	}
+	} else if (((e1->flag == PRI && e2->flag == PUB) || (e1->flag == PUB && e2->flag == PRI)) && (opid == BOP_neq || opid == BOP_eqeq)) {
+        parse_error(-1, " Operands of the same type are expected (use casting).\n"); 
+        exit(0); 
+    } else if (opid == BOP_dot && ((e1->flag == PRI && e2->flag == PUB) || (e2->flag == PRI && e1->flag == PUB))) {
+        parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
+		exit(0); 
+    } else if ((e1->arraytype == 1 || e2->arraytype == 1) && (opid == BOP_land || opid == BOP_lor || opid == BOP_band || opid == BOP_bor)) {
+        parse_error(-1, "Element_wise and logical bitwise is only supported for shift operators. \n"); 
+		exit(0); 
+    }
 }
 	

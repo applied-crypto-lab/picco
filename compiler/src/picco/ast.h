@@ -24,6 +24,13 @@
 #ifndef __AST_H__
 #define __AST_H__
 
+#define INT_SIZE 32
+#define CHAR_SIZE 8
+#define SHORT_SIZE 16
+#define LONG_SIZE 64
+#define FLOAT_MAN_SIZE 16
+#define FLOAT_EXP_SIZE 64
+
 #include <stdio.h>
 
 /* Predefine them because they are mutually recursive & they are used in
@@ -128,7 +135,8 @@ struct astexpr_ {
     astexpr left, right;
     int opid;          /* Used for operators */
     astexpr arraysize; /* Used for arrays */
-    int arraytype;     /* if expr represents an array,  arraytpe = 1 */
+    int computingarraysize; 
+    int arraytype;     /* if expr represents an array,  arraytype = 1 */
     int ftype;         /* if expr represents a floating point value ftype = 1 */
     int isptr;
     union {
@@ -168,7 +176,7 @@ extern char *UOP_symbols[11];
 #define BOP_lor 7
 #define BOP_band 8
 #define BOP_bor 9
-#define BOP_xor 10
+#define BOP_bxor 10
 #define BOP_add 11
 #define BOP_sub 12
 #define BOP_lt 13
@@ -418,7 +426,7 @@ struct aststmt_ { // statments that are declaration   // this is where the flag 
     int is_stmt_for_sng; /*Indicates if the stmt is a declaration stmt for sng*/
     int subtype;
     int flag;       /* Indicates if the statement contains priv assign */
-    int gflag;    /* gflag or global flag is used to keep track of private or public global variables. */
+    int gflag;    /* (0->non-global, 1->global) -> gflag or global flag is used to keep track of private or public global variables. */
     aststmt parent; /* Set *after* AST construction */
     aststmt body;   /* Most have a body (COMPOUND has ONLY body) */
     aststmt openmp_parent_stmt;

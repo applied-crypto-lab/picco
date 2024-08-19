@@ -84,6 +84,9 @@ int total_threads = 0;
 int nu;
 int kappa_nu;
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
+tmp_array_max_size = 1; // Default to 1
+array_tmp_index = 0;
+array_ftmp_index = 0;
 
 void getPrime(mpz_t, int);
 
@@ -529,11 +532,20 @@ int main(int argc, char *argv[]) {
      * 2. Parse & get the AST
      */
     ast = parse_file(filename, &r);
-    if (bits == 0)
-        bits = modulus + 1; // setting modulus to right above the computed bitlength
-    else if (bits > 0 && bits < modulus)
-        printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
-    bits = fmax(bits, ceil(log(peers)) + 1);
+
+    if (technique_var == SHAMIR_SS) {
+        if (bits == 0)
+            bits = modulus + 1; // setting modulus to right above the computed bitlength
+        else if (bits > 0 && bits < modulus)
+            printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
+        bits = fmax(bits, ceil(log(peers)) + 1);
+    } else if (technique_var == REPLICATED_SS) {
+        if (bits == 0)
+            bits = modulus;
+        else if (bits > 0 && bits < modulus)
+            printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
+    }
+
     if (r)
         return (r);
     if (ast == NULL) /* Cannot open file */
