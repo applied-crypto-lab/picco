@@ -242,6 +242,7 @@ void ast_stmt_jump_show(aststmt tree, branchnode current) {
 }
 
 
+// Change for batch loop 
 void ast_multi_op_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index, int *private_selection_index, int *narray_element_index, int *private_index, branchnode current) {
     switch (tree->type) {
     case COMPOUND:
@@ -286,6 +287,7 @@ void ast_multi_op_batch_compute_stmt(aststmt tree, int *batch_index, int *statem
     }
 }
 
+// Changed for batch loop 
 void multi_batch_op_used_one_stmt(aststmt tree, int batch_index, int statement_index, int narray_element_index, int private_selection_index, int private_index, branchnode current, int flag, int dir, char *leftop) {
     // if (tree->body->u.expr->right != NULL && tree->body->u.expr->right->left != NULL){
     if (tree->body->u.expr->right != NULL && tree->body->u.expr->right->left != NULL){
@@ -356,6 +358,7 @@ void multi_batch_op_used_one_stmt(aststmt tree, int batch_index, int statement_i
     // }
 }
 
+// Change for batch loop 
 void multi_batch_op_used_multi_stmt(aststmt tree, int batch_index, int statement_index, int narray_element_index, int private_selection_index, int private_index, branchnode current, int flag, int dir, char *leftop) {
     // if (tree->u.expr->right != NULL && tree->u.expr->right->left != NULL){
     if (tree->u.expr->right != NULL && tree->u.expr->right->left != NULL){
@@ -425,6 +428,7 @@ void multi_batch_op_used_multi_stmt(aststmt tree, int batch_index, int statement
     // }
 }
 
+// Change for batch loop 
 void single_batch_op_used(aststmt tree, int *batch_index, int *statement_index, int *private_selection_index, int *narray_element_index, int *private_index, branchnode current) {
     batch_index = 0;
     statement_index = 0;
@@ -7094,6 +7098,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                 } else { // the old version used for other stuff 
                     indent();
                     ast_assignment_prefix_show(tree); // call fucntion smc_set name
+                    // In here I encountered an issue in aray_operations cause that also used the second case, the solution for this is creating smc_set functions for arrays
                     if(immresulttype == 0) { // print the rest of the instruction for smc_set - old/regular
                         if (tree->right->ftype == 1) { // float
                             if (is_init_decl == 1)
@@ -7107,16 +7112,22 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                                 fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
                         }
                     } else if (immresulttype == 1) { // print the rest of the instruction for smc_set - newly added to support multiple operations on batch arrays -> we needed this cause it was not implemented before 
+                        str array_Size = Str("");
+                        if (tree->left->arraysize->type == IDENT)
+                            str_printf(array_Size, tree->left->arraysize->u.sym->name);
+                        else 
+                            str_printf(array_Size, tree->left->arraysize->u.str);
+
                         if (tree->right->ftype == 1) { // float
                             if (is_init_decl == 1)
-                                str_printf(global_string, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->arraysize->u.str, tree->right->thread_id);
+                                str_printf(global_string, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
                             else 
-                                fprintf(output, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->arraysize->u.str, tree->right->thread_id);
+                                fprintf(output, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
                         } else { // int
                             if (is_init_decl == 1)
-                                str_printf(global_string, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->left->arraysize->u.str, tree->right->thread_id);
+                                str_printf(global_string, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
                             else 
-                                fprintf(output, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->left->arraysize->u.str, tree->right->thread_id);
+                                fprintf(output, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
                         }
                     }
                 }
