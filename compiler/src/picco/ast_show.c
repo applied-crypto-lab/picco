@@ -95,109 +95,111 @@ void ast_clear_all_tmp_variables(branchnode current) {
         ast_array_float_tmp_clear_show("_picco_arr_ftmp", 1, array_ftmp_index);
     }
 
-    if (tmp_index >= 1)
-        ast_tmp_clear_show("_picco_tmp", 1, tmp_index);
-    if (tmp_float_index >= 1)
-        ast_float_tmp_clear_show("_picco_ftmp", 1, tmp_float_index);
+    if (technique_var == SHAMIR_SS) {
+        if (tmp_index >= 1)
+            ast_tmp_clear_show("_picco_tmp", 1, tmp_index);
+        if (tmp_float_index >= 1)
+            ast_float_tmp_clear_show("_picco_ftmp", 1, tmp_float_index);
 
-    if (is_priv_int_index_appear || is_priv_float_index_appear)
-        ast_tmp_clear_show("_picco_priv_ind", 1, 3);
-    if (is_priv_int_index_appear || is_priv_int_ptr_appear)
-        ast_tmp_clear_show("_picco_priv_tmp", 1, 2);
-    if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
-        indent();
-        fprintf(output, "for(int i = 0; i < 4; i++){\n");
-        indlev++;
-        indent();
-        fprintf(output, "ss_clear(_picco_priv_ftmp1[i]);\n");
-        indent();
-        fprintf(output, "ss_clear(_picco_priv_ftmp2[i]);\n");
-        indlev--;
-        fprintf(output, "}\n");
-        indent();
-        fprintf(output, "free(_picco_priv_ftmp1);\n");
-        indent();
-        fprintf(output, "free(_picco_priv_ftmp2);\n");
-    }
-    if (is_priv_int_ptr_appear) {
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_int_ptr1);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_int_ptr2);\n");
-    }
-    if (is_priv_float_ptr_appear) {
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_float_ptr1);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_float_ptr2);\n");
-    }
+        if (is_priv_int_index_appear || is_priv_float_index_appear)
+            ast_tmp_clear_show("_picco_priv_ind", 1, 3);
+        if (is_priv_int_index_appear || is_priv_int_ptr_appear)
+            ast_tmp_clear_show("_picco_priv_tmp", 1, 2);
+        if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
+            indent();
+            fprintf(output, "for(int i = 0; i < 4; i++){\n");
+            indlev++;
+            indent();
+            fprintf(output, "ss_clear(_picco_priv_ftmp1[i]);\n");
+            indent();
+            fprintf(output, "ss_clear(_picco_priv_ftmp2[i]);\n");
+            indlev--;
+            fprintf(output, "}\n");
+            indent();
+            fprintf(output, "free(_picco_priv_ftmp1);\n");
+            indent();
+            fprintf(output, "free(_picco_priv_ftmp2);\n");
+        }
+        if (is_priv_int_ptr_appear) {
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_int_ptr1);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_int_ptr2);\n");
+        }
+        if (is_priv_float_ptr_appear) {
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_float_ptr1);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_float_ptr2);\n");
+        }
 
-    if (is_priv_int_struct_field_appear) {
-        indent();
-        fprintf(output, "ss_clear(_picco_str_field_tmp_int1);\n");
-        indent();
-        fprintf(output, "ss_clear(_picco_str_field_tmp_int2);\n");
-        indent();
-        fprintf(output, "ss_clear(_picco_str_field_tmp_int3);\n");
-    }
+        if (is_priv_int_struct_field_appear) {
+            indent();
+            fprintf(output, "ss_clear(_picco_str_field_tmp_int1);\n");
+            indent();
+            fprintf(output, "ss_clear(_picco_str_field_tmp_int2);\n");
+            indent();
+            fprintf(output, "ss_clear(_picco_str_field_tmp_int3);\n");
+        }
 
-    if (is_priv_int_ptr_struct_field_appear) {
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_int_ptr1);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_int_ptr2);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_int_ptr3);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_int_ptr);\n");
-    }
+        if (is_priv_int_ptr_struct_field_appear) {
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_int_ptr1);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_int_ptr2);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_int_ptr3);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_int_ptr);\n");
+        }
 
-    if (is_priv_float_struct_field_appear) {
-        indent();
-        fprintf(output, "for(int _picco_i = 0; _picco_i < 4; _picco_i++){\n");
-        indlev++;
-        indent();
-        fprintf(output, "ss_clear(_picco_str_field_tmp_float1[_picco_i]);\n");
-        indent();
-        fprintf(output, "ss_clear(_picco_str_field_tmp_float2[_picco_i]);\n");
-        indent();
-        fprintf(output, "ss_clear(_picco_str_field_tmp_float3[_picco_i]);\n");
-        indlev--;
-        fprintf(output, "}\n");
-        indent();
-        fprintf(output, "free(_picco_str_field_tmp_float1);\n");
-        indent();
-        fprintf(output, "free(_picco_str_field_tmp_float2);\n");
-        indent();
-        fprintf(output, "free(_picco_str_field_tmp_float3);\n");
-    }
+        if (is_priv_float_struct_field_appear) {
+            indent();
+            fprintf(output, "for(int _picco_i = 0; _picco_i < 4; _picco_i++){\n");
+            indlev++;
+            indent();
+            fprintf(output, "ss_clear(_picco_str_field_tmp_float1[_picco_i]);\n");
+            indent();
+            fprintf(output, "ss_clear(_picco_str_field_tmp_float2[_picco_i]);\n");
+            indent();
+            fprintf(output, "ss_clear(_picco_str_field_tmp_float3[_picco_i]);\n");
+            indlev--;
+            fprintf(output, "}\n");
+            indent();
+            fprintf(output, "free(_picco_str_field_tmp_float1);\n");
+            indent();
+            fprintf(output, "free(_picco_str_field_tmp_float2);\n");
+            indent();
+            fprintf(output, "free(_picco_str_field_tmp_float3);\n");
+        }
 
-    if (is_priv_float_ptr_struct_field_appear) {
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_float_ptr1);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_float_ptr2);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_float_ptr3);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_float_ptr);\n");
-    }
+        if (is_priv_float_ptr_struct_field_appear) {
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_float_ptr1);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_float_ptr2);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_float_ptr3);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_float_ptr);\n");
+        }
 
-    if (is_priv_struct_ptr_struct_field_appear) {
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr1);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr2);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr3);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr4);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr5);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr6);\n");
-        indent();
-        fprintf(output, "__s->smc_free_ptr(&_picco_tmp_struct_ptr);\n");
+        if (is_priv_struct_ptr_struct_field_appear) {
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr1);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr2);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr3);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr4);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr5);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_str_field_tmp_struct_ptr6);\n");
+            indent();
+            fprintf(output, "__s->smc_free_ptr(&_picco_tmp_struct_ptr);\n");
+        }
     }
     //  ast_tmp_clear_show("cond", 1, 3);
 }
@@ -243,7 +245,7 @@ void ast_stmt_jump_show(aststmt tree, branchnode current) {
 
 
 // Change for batch loop 
-void ast_multi_op_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index, int *private_selection_index, int *narray_element_index, int *private_index, branchnode current) {
+void ast_multi_op_batch_compute_stmt(aststmt tree, int batch_index, int statement_index, int private_selection_index, int narray_element_index, int private_index, branchnode current) {
     switch (tree->type) {
     case COMPOUND:
         printf("3 COMPOUND\n");
@@ -418,8 +420,7 @@ void multi_batch_op_used_multi_stmt(aststmt tree, int batch_index, int statement
         }
     }
     
-    batch_index--;
-    ast_mult_op_batch_expr_show2(tree, tree->u.expr, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, 0, " ");
+    ast_mult_op_batch_expr_show2(tree->u.expr->left, tree->u.expr, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, 0, " ");
 
     indent();
     fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
@@ -3733,16 +3734,23 @@ void ast_expr_show(astexpr tree) {
                 if (tree->left->index <= 0) { 
                     ast_expr_show(tree->left);
                 } else { // batch array falls in this else to print the tmp stuff 
-                    if (immresulttype == 1){ // new case
+                    if (technique_var == SHAMIR_SS) {
+                        if (immresulttype == 1){ // new case
+                            if (tree->ftype == 1)
+                                fprintf(output, "_picco_arr_ftmp%d", tree->left->index);
+                            else if (tree->ftype == 0)
+                                fprintf(output, "_picco_arr_tmp%d", tree->left->index);
+                        } else { // old case 
+                            if (tree->ftype == 1)
+                                fprintf(output, "_picco_ftmp%d", tree->left->index);
+                            else if (tree->ftype == 0)
+                                fprintf(output, "_picco_tmp%d", tree->left->index);
+                        }
+                    } else if (technique_var == REPLICATED_SS) {
                         if (tree->ftype == 1)
                             fprintf(output, "_picco_arr_ftmp%d", tree->left->index);
                         else if (tree->ftype == 0)
                             fprintf(output, "_picco_arr_tmp%d", tree->left->index);
-                    } else { // old case 
-                        if (tree->ftype == 1)
-                            fprintf(output, "_picco_ftmp%d", tree->left->index);
-                        else if (tree->ftype == 0)
-                            fprintf(output, "_picco_tmp%d", tree->left->index);
                     }
                 }
                 fprintf(output, ", ");
@@ -3754,7 +3762,29 @@ void ast_expr_show(astexpr tree) {
                 if (tree->right->index <= 0){ 
                     ast_expr_show(tree->right);
                 } else {
-                    if (immresulttype == 1){ // new case
+                    if (technique_var == SHAMIR_SS) {
+                        if (immresulttype == 1){ // new case
+                            if (tree->right->ftype == 1 && tree->left->ftype == 1){//tree->ftype == 1)
+                                fprintf(output, "_picco_arr_ftmp%d", tree->right->index);
+                            } else if (tree->right->ftype == 0 && tree->left->ftype == 0) {
+                                fprintf(output, "_picco_arr_tmp%d", tree->right->index);
+                            } else if (tree->left->ftype == 1) {
+                                fprintf(output, "_picco_arr_ftmp%d", tree->right->index);
+                            } else if (tree->left->ftype == 0) {
+                                fprintf(output, "_picco_arr_tmp%d", tree->right->index);
+                            }
+                        } else { // old case 
+                            if (tree->right->ftype == 1 || tree->left->ftype == 1){//tree->ftype == 1)
+                                fprintf(output, "_picco_ftmp%d", tree->right->index);
+                            } else if (tree->right->ftype == 0 && tree->left->ftype == 0) {
+                                fprintf(output, "_picco_tmp%d", tree->right->index);
+                            } else if (tree->left->ftype == 1) {
+                                fprintf(output, "_picco_ftmp%d", tree->right->index);
+                            } else if (tree->left->ftype == 0) {
+                                fprintf(output, "_picco_tmp%d", tree->right->index);
+                            }
+                        }
+                    } else if (technique_var == REPLICATED_SS) {
                         if (tree->right->ftype == 1 && tree->left->ftype == 1){//tree->ftype == 1)
                             fprintf(output, "_picco_arr_ftmp%d", tree->right->index);
                         } else if (tree->right->ftype == 0 && tree->left->ftype == 0) {
@@ -3763,16 +3793,6 @@ void ast_expr_show(astexpr tree) {
                             fprintf(output, "_picco_arr_ftmp%d", tree->right->index);
                         } else if (tree->left->ftype == 0) {
                             fprintf(output, "_picco_arr_tmp%d", tree->right->index);
-                        }
-                    } else { // old case 
-                        if (tree->right->ftype == 1 || tree->left->ftype == 1){//tree->ftype == 1)
-                            fprintf(output, "_picco_ftmp%d", tree->right->index);
-                        } else if (tree->right->ftype == 0 && tree->left->ftype == 0) {
-                            fprintf(output, "_picco_tmp%d", tree->right->index);
-                        } else if (tree->left->ftype == 1) {
-                            fprintf(output, "_picco_ftmp%d", tree->right->index);
-                        } else if (tree->left->ftype == 0) {
-                            fprintf(output, "_picco_tmp%d", tree->right->index);
                         }
                     }
                 }
@@ -3826,17 +3846,27 @@ void ast_expr_show(astexpr tree) {
                 fprintf(output, ", %s, %d);\n", type, tree->right->thread_id);
             } // if the operation is on variables 
             else if (immresulttype == 0) {
-                if (tree->ftype == 1)
-                    fprintf(output, "_picco_ftmp%d, ", tree->index);
-                else if (tree->ftype == 0)
-                    fprintf(output, "_picco_tmp%d, ", tree->index);
-                if (tree->right->ftype == 1 || tree->left->ftype == 1) {
-                    if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq)
-                        fprintf(output, "%d, %d, %d, %d, %d, %d, \"float\", %d);\n", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->size, tree->sizeexp, tree->thread_id);
-                    else
-                        fprintf(output, "%d, %d, %d, %d, 1, \"float\", %d);\n", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->thread_id);
-                } else
-                    fprintf(output, "%d, %d, %d, \"int\", %d);\n", tree->left->size, tree->right->size, tree->size, tree->thread_id);
+                if (technique_var == SHAMIR_SS) {
+                    if (tree->ftype == 1)
+                        fprintf(output, "_picco_ftmp%d, ", tree->index);
+                    else if (tree->ftype == 0)
+                        fprintf(output, "_picco_tmp%d, ", tree->index);
+                    if (tree->right->ftype == 1 || tree->left->ftype == 1) {
+                        if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq)
+                            fprintf(output, "%d, %d, %d, %d, %d, %d, \"float\", %d);\n", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->size, tree->sizeexp, tree->thread_id);
+                        else
+                            fprintf(output, "%d, %d, %d, %d, 1, \"float\", %d);\n", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->thread_id);
+                    } else
+                        fprintf(output, "%d, %d, %d, \"int\", %d);\n", tree->left->size, tree->right->size, tree->size, tree->thread_id);
+                } else if (technique_var == REPLICATED_SS) {
+                    if (tree->right->ftype == 1 || tree->left->ftype == 1) {
+                        if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq)
+                            fprintf(output, "%d, %d, %d, %d, _picco_arr_ftmp%d, %d, %d, 1, \"float\", %d);\n", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->index, tree->size, tree->sizeexp, tree->thread_id);
+                        else
+                            fprintf(output, "%d, %d, %d, %d, _picco_arr_ftmp%d, 1, 1, \"float\", %d);\n", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->index, tree->thread_id);
+                    } else
+                        fprintf(output, "%d, %d, _picco_arr_tmp%d, %d, 1, \"int\", %d);\n", tree->left->size, tree->right->size, tree->index, tree->size, tree->thread_id);
+                }
             }
         }
         break;
@@ -4019,68 +4049,6 @@ void ast_expr_show(astexpr tree) {
         fprintf(stderr, "[ast_expr_show]: b u g !!\n");
     }
 }
-
-
-
-
-
-// void ast_multi_op_batch_compute_index(aststmt tree, int *batch_index, int *statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index) {
-//     switch (tree->type) {
-//     case COMPOUND:
-//         ast_multi_op_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-//         break;
-//     case STATEMENTLIST:
-//         ast_multi_op_batch_compute_index(tree->u.next, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-//         ast_multi_op_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-//         break;
-//     case BATCH:
-//         // only prints the inner loop itself that handles the picco batch index array inside a batch statement 
-//         ast_batch_print_cond(tree); 
-//         // handles everything that goes inside the loop (storing the indices and calling the regular op functions )
-//         // this also calls the {} and the 
-//         ast_batch_print_prefix_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);  
-//         break;
-//     case SELECTION: {
-//         if (tree->u.selection.cond->flag == PUB) {
-//             indlev++;
-//             indent();
-//             fprintf(output, "if (");
-//             ast_expr_show(tree->u.selection.cond);
-//             fprintf(output, ")\n");
-//             indent();
-//             ast_batch_print_prefix_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-//             if (tree->u.selection.elsebody) {
-//                 indlev++;
-//                 indent();
-//                 fprintf(output, "else\n");
-//                 indent();
-//                 ast_batch_print_prefix_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-//             }
-//         }
-//         if (tree->u.selection.cond->flag == PRI) {
-//             (*statement_index)++;
-//             ast_batch_print_index(Expression(tree->u.selection.cond), batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index, 0);
-//             ast_multi_op_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-
-//             if (tree->u.selection.elsebody) {
-//                 (*statement_index)++;
-//                 ast_multi_op_batch_compute_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-//             }
-//         }
-//     }
-//     case EXPRESSION:
-//         switch (tree->u.expr->type) {
-//         // if the selection is expression
-//         case ASS:
-//             (*statement_index)++;
-//             ast_batch_print_index(tree, batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index, 0);
-//             break;
-//         }
-//         break;
-//     default:
-//         break;
-//     }
-// }
 
 
 
@@ -4406,9 +4374,6 @@ void ast_mult_op_batch_expr_show(aststmt main_tree, astexpr tree, int batch_inde
         str_printf(index_array_result, "%s %s %s", main_tree->body->u.expr->left->right->left->u.sym->name, BOP_symbols[main_tree->body->u.expr->left->right->opid], main_tree->body->u.expr->left->right->right->u.str); 
         str_printf(leftop, main_tree->body->u.expr->left->left->u.sym->name);
         str_printf(assign_size, "%s", main_tree->body->u.expr->left->arraysize->u.str);
-        // str_printf(index_array_result, "aaaaa"); 
-        // str_printf(leftop, "fffffffffff");
-        // str_printf(assign_size, "gggggggggg");
 
         ast_mult_op_batch_expr_show(main_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, str_string(leftop));
         
@@ -4684,6 +4649,8 @@ void ast_mult_op_batch_expr_show2(astexpr main_tree, astexpr tree, int batch_ind
             indlev++;
 
             // Store the indices on the array index 1 - only one will be used 
+
+            // 1
             // if (tree->right->right->u.sym != NULL) {
             if (!strcmp(str_string(index_array_right), "")) {
                 indent();
@@ -4694,11 +4661,13 @@ void ast_mult_op_batch_expr_show2(astexpr main_tree, astexpr tree, int batch_ind
             } 
             // }
 
+            // 2
             if (tree->right->type == ARRAYIDX && tree->right->left->u.sym != NULL) {
                 indent();
                 fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", statement_index, batch_index, str_string(index_array_left));
             }
 
+            // 3
             if (tree->left->type == ARRAYIDX && tree->left->u.sym != NULL) {
                 indent();
                 fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = %s;\n", statement_index, batch_index, str_string(index_array_result));
@@ -6780,7 +6749,7 @@ void ast_tmp_clear_show(char *prefix, int sidx, int eidx) {
 void ast_array_tmp_clear_show(char *prefix, int sidx, int eidx) {
     if (eidx > 0) {
         for (ind = sidx; ind <= eidx; ind++) {
-            fprintf(output, "for(int _picco_j = 0; _picco_j < %d; _picco_j++)\n", tmp_array_max_size);
+            fprintf(output, "for(int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(tmp_array_max_size));
             fprintf(output, "   ss_clear(%s%d[_picco_j]);\n", prefix, ind);
             fprintf(output, "free(%s%d);\n\n", prefix, ind);
         }
@@ -6791,7 +6760,7 @@ void ast_array_tmp_clear_show(char *prefix, int sidx, int eidx) {
 void ast_array_float_tmp_clear_show(char *prefix, int sidx, int eidx) {
     if (eidx > 0) {
         for (ind = sidx; ind <= eidx; ind++) {
-            fprintf(output, "for(int _picco_i = 0; _picco_i < %d; _picco_i++) { \n", tmp_array_max_size);
+            fprintf(output, "for(int _picco_i = 0; _picco_i < %s; _picco_i++) { \n", str_string(tmp_array_max_size));
             fprintf(output, "   for(int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
             fprintf(output, "       ss_clear(%s%d[_picco_i][_picco_j]);\n", prefix, ind);
             fprintf(output, "}\n", prefix, ind);
@@ -6884,12 +6853,20 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
     }
     // if right side is an arithmetic operation
     else if (tree->right->index > 0) {
-        if (tree->left->arraytype != 1 && tree->right->arraytype != 1) {
-            if (tree->right->ftype == 1)
-                sprintf(tmp, "_picco_ftmp%d", tree->right->index);
-            else if (tree->right->ftype == 0)
-                sprintf(tmp, "_picco_tmp%d", tree->right->index);
-        } else {
+        if (technique_var == SHAMIR_SS) {
+            if (tree->left->arraytype != 1 && tree->right->arraytype != 1) {
+                if (tree->right->ftype == 1)
+                    sprintf(tmp, "_picco_ftmp%d", tree->right->index);
+                else if (tree->right->ftype == 0)
+                    sprintf(tmp, "_picco_tmp%d", tree->right->index);
+            } else {
+                if (tree->ftype == 1){
+                    sprintf(tmp, "_picco_arr_ftmp%d", tree->right->index);
+                } else if (tree->ftype == 0){
+                    sprintf(tmp, "_picco_arr_tmp%d", tree->right->index);
+                }
+            }
+        } else if (technique_var == REPLICATED_SS) {
             if (tree->ftype == 1){
                 sprintf(tmp, "_picco_arr_ftmp%d", tree->right->index);
             } else if (tree->ftype == 0){
@@ -7097,38 +7074,63 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                     }
                 } else { // the old version used for other stuff 
                     indent();
-                    ast_assignment_prefix_show(tree); // call fucntion smc_set name
+                    ast_assignment_prefix_show(tree); // call function smc_set name
                     // In here I encountered an issue in aray_operations cause that also used the second case, the solution for this is creating smc_set functions for arrays
-                    if(immresulttype == 0) { // print the rest of the instruction for smc_set - old/regular
-                        if (tree->right->ftype == 1) { // float
-                            if (is_init_decl == 1)
-                                str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                    if (technique_var == SHAMIR_SS) {
+                        if(immresulttype == 0) { // print the rest of the instruction for smc_set - old/regular
+                            if (tree->right->ftype == 1) { // float
+                                if (is_init_decl == 1)
+                                    str_printf(global_string, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                                else 
+                                    fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
+                            } else { // int
+                                if (is_init_decl == 1)
+                                    str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                                else 
+                                    fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
+                            }
+                        } else if (immresulttype == 1) { // print the rest of the instruction for smc_set - newly added to support multiple operations on batch arrays -> we needed this cause it was not implemented before 
+                            str array_Size = Str("");
+                            if (tree->left->arraysize->type == IDENT)
+                                str_printf(array_Size, tree->left->arraysize->u.sym->name);
                             else 
-                                fprintf(output, "(%s, %s, %d, %d, %d, %d, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, tree->right->thread_id);
-                        } else { // int
-                            if (is_init_decl == 1)
-                                str_printf(global_string, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
-                            else 
-                                fprintf(output, "(%s, %s, %d, %d, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, tree->right->thread_id);
-                        }
-                    } else if (immresulttype == 1) { // print the rest of the instruction for smc_set - newly added to support multiple operations on batch arrays -> we needed this cause it was not implemented before 
-                        str array_Size = Str("");
-                        if (tree->left->arraysize->type == IDENT)
-                            str_printf(array_Size, tree->left->arraysize->u.sym->name);
-                        else 
-                            str_printf(array_Size, tree->left->arraysize->u.str);
+                                str_printf(array_Size, tree->left->arraysize->u.str);
 
-                        if (tree->right->ftype == 1) { // float
-                            if (is_init_decl == 1)
-                                str_printf(global_string, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
-                            else 
-                                fprintf(output, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
-                        } else { // int
-                            if (is_init_decl == 1)
-                                str_printf(global_string, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
-                            else 
-                                fprintf(output, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
+                            if (tree->right->ftype == 1) { // float
+                                if (is_init_decl == 1)
+                                    str_printf(global_string, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
+                                else 
+                                    fprintf(output, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
+                            } else { // int
+                                if (is_init_decl == 1)
+                                    str_printf(global_string, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
+                                else 
+                                    fprintf(output, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
+                            }
                         }
+                    } else if (technique_var == REPLICATED_SS) { 
+                            // this case is added to support RSS, in rss variables are like array of size one, so if the arraysize is null, print the size as 1, considering it is a regular variable smc set
+                            str array_Size = Str("");
+                            if (tree->left->arraysize == NULL) {
+                                str_printf(array_Size, "1");
+                            } else if (tree->left != NULL && tree->left->arraysize != NULL) {
+                                if (tree->left->arraysize->type == IDENT)
+                                    str_printf(array_Size, tree->left->arraysize->u.sym->name);
+                                else 
+                                    str_printf(array_Size, tree->left->arraysize->u.str);
+                            }
+
+                            if (tree->right->ftype == 1) { // float
+                                if (is_init_decl == 1)
+                                    str_printf(global_string, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
+                                else 
+                                    fprintf(output, "(%s, %s, %d, %d, %d, %d, %s, \"float\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(array_Size), tree->right->thread_id);
+                            } else { // int
+                                if (is_init_decl == 1)
+                                    str_printf(global_string, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
+                                else 
+                                    fprintf(output, "(%s, %s, %d, %d, %s, \"int\", %d)", str_string(rightop), str_string(leftop), tree->right->size, tree->left->size, str_string(array_Size), tree->right->thread_id);
+                            }
                     }
                 }
             }
@@ -7137,158 +7139,171 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
 }
 
 void ast_temporary_variable_declaration() {
+    if (technique_var == REPLICATED_SS) {
+        if (array_tmp_index == 0) {
+            array_tmp_index++;
+        } 
+        if (array_ftmp_index == 0) {
+            array_ftmp_index++;
+        }
+        if (!strcmp(str_string(tmp_array_max_size), "")) {
+            str_printf(tmp_array_max_size, "1");
+        } 
+    }
     fprintf(output, "\n");
     if (array_tmp_index >= 1) { // int
         fprintf(output, "priv_int* _picco_arr_tmp%d;\n", array_tmp_index);
-        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%d));\n", array_tmp_index, tmp_array_max_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
+        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", array_tmp_index, str_string(tmp_array_max_size));
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
         fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", array_tmp_index);
 
         fprintf(output, "priv_int* _picco_arr_tmp%d;\n", array_tmp_index+1);
-        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%d));\n", array_tmp_index+1, tmp_array_max_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
+        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", array_tmp_index+1, str_string(tmp_array_max_size));
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
         fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", array_tmp_index+1);
     }
     if (array_ftmp_index >= 1) { // float
         fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", array_ftmp_index);
-        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%d));\n", array_ftmp_index, tmp_array_max_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
+        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", array_ftmp_index, str_string(tmp_array_max_size));
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
         fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", array_ftmp_index);
         fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", array_ftmp_index);
         fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", array_ftmp_index);
         fprintf(output, "   }\n\n");
 
         fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", array_ftmp_index+1);
-        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%d));\n", array_ftmp_index+1, tmp_array_max_size);
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %d; _picco_i++)\n", tmp_array_max_size);
+        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", array_ftmp_index+1, str_string(tmp_array_max_size));
+        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
         fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", array_ftmp_index+1);
         fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", array_ftmp_index+1);
         fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", array_ftmp_index+1);
         fprintf(output, "   }\n\n");
     }
     
-    if (tmp_index >= 1)
-        ast_tmp_decl_show("_picco_", 1, tmp_index);
-    if (tmp_float_index >= 1)
-        ast_float_tmp_decl_show("_picco_f", 1, tmp_float_index);
-    indent();
-    fprintf(output, "void* _picco_temp_;\n ");
-    if (is_priv_int_index_appear || is_priv_float_index_appear) {
+    if (technique_var == SHAMIR_SS) {
+        if (tmp_index >= 1)
+            ast_tmp_decl_show("_picco_", 1, tmp_index);
+        if (tmp_float_index >= 1)
+            ast_float_tmp_decl_show("_picco_f", 1, tmp_float_index);
         indent();
-        fprintf(output, "priv_int _picco_priv_ind1, _picco_priv_ind2, _picco_priv_ind3;\n");
-        indent();
-        fprintf(output, "ss_init(_picco_priv_ind1);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_priv_ind2);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_priv_ind3);\n");
-    }
+        fprintf(output, "void* _picco_temp_;\n ");
+        if (is_priv_int_index_appear || is_priv_float_index_appear) {
+            indent();
+            fprintf(output, "priv_int _picco_priv_ind1, _picco_priv_ind2, _picco_priv_ind3;\n");
+            indent();
+            fprintf(output, "ss_init(_picco_priv_ind1);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_priv_ind2);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_priv_ind3);\n");
+        }
 
-    if (is_priv_int_index_appear || is_priv_int_ptr_appear) {
-        indent();
-        fprintf(output, "priv_int _picco_priv_tmp1, _picco_priv_tmp2;\n");
-        indent();
-        fprintf(output, "ss_init(_picco_priv_tmp1);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_priv_tmp2);\n");
-    }
-    if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
-        indent();
-        fprintf(output, "priv_int *_picco_priv_ftmp1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-        indent();
-        fprintf(output, "priv_int *_picco_priv_ftmp2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-        indent();
-        fprintf(output, "for(int i = 0; i < 4; i++){\n");
-        indlev++;
-        indent();
-        fprintf(output, "ss_init(_picco_priv_ftmp1[i]);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_priv_ftmp2[i]);\n");
-        indlev--;
-        fprintf(output, "}\n");
-    }
-    if (is_priv_int_ptr_appear) {
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
-    }
-    if (is_priv_float_ptr_appear) {
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
-    }
+        if (is_priv_int_index_appear || is_priv_int_ptr_appear) {
+            indent();
+            fprintf(output, "priv_int _picco_priv_tmp1, _picco_priv_tmp2;\n");
+            indent();
+            fprintf(output, "ss_init(_picco_priv_tmp1);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_priv_tmp2);\n");
+        }
+        if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
+            indent();
+            fprintf(output, "priv_int *_picco_priv_ftmp1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+            indent();
+            fprintf(output, "priv_int *_picco_priv_ftmp2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+            indent();
+            fprintf(output, "for(int i = 0; i < 4; i++){\n");
+            indlev++;
+            indent();
+            fprintf(output, "ss_init(_picco_priv_ftmp1[i]);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_priv_ftmp2[i]);\n");
+            indlev--;
+            fprintf(output, "}\n");
+        }
+        if (is_priv_int_ptr_appear) {
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
+        }
+        if (is_priv_float_ptr_appear) {
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
+        }
 
-    if (is_priv_int_struct_field_appear) {
-        indent();
-        fprintf(output, "priv_int _picco_str_field_tmp_int1, _picco_str_field_tmp_int2, _picco_str_field_tmp_int3;\n");
-        indent();
-        fprintf(output, "ss_init(_picco_str_field_tmp_int1);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_str_field_tmp_int2);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_str_field_tmp_int3);\n");
-    }
+        if (is_priv_int_struct_field_appear) {
+            indent();
+            fprintf(output, "priv_int _picco_str_field_tmp_int1, _picco_str_field_tmp_int2, _picco_str_field_tmp_int3;\n");
+            indent();
+            fprintf(output, "ss_init(_picco_str_field_tmp_int1);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_str_field_tmp_int2);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_str_field_tmp_int3);\n");
+        }
 
-    if (is_priv_int_ptr_struct_field_appear) {
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr3 = __s->smc_new_ptr(1, 0);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_int_ptr = __s->smc_new_ptr(0, 0);\n");
-    }
+        if (is_priv_int_ptr_struct_field_appear) {
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr3 = __s->smc_new_ptr(1, 0);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_int_ptr = __s->smc_new_ptr(0, 0);\n");
+        }
 
-    if (is_priv_float_struct_field_appear) {
+        if (is_priv_float_struct_field_appear) {
 
-        indent();
-        fprintf(output, "priv_int *_picco_str_field_tmp_float1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-        indent();
-        fprintf(output, "priv_int *_picco_str_field_tmp_float2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-        indent();
-        fprintf(output, "priv_int *_picco_str_field_tmp_float3 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-        indent();
-        fprintf(output, "for(int i = 0; i < 4; i++){\n");
-        indlev++;
-        indent();
-        fprintf(output, "ss_init(_picco_str_field_tmp_float1[i]);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_str_field_tmp_float2[i]);\n");
-        indent();
-        fprintf(output, "ss_init(_picco_str_field_tmp_float3[i]);\n");
-        indlev--;
-        fprintf(output, "}\n");
-    }
+            indent();
+            fprintf(output, "priv_int *_picco_str_field_tmp_float1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+            indent();
+            fprintf(output, "priv_int *_picco_str_field_tmp_float2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+            indent();
+            fprintf(output, "priv_int *_picco_str_field_tmp_float3 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+            indent();
+            fprintf(output, "for(int i = 0; i < 4; i++){\n");
+            indlev++;
+            indent();
+            fprintf(output, "ss_init(_picco_str_field_tmp_float1[i]);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_str_field_tmp_float2[i]);\n");
+            indent();
+            fprintf(output, "ss_init(_picco_str_field_tmp_float3[i]);\n");
+            indlev--;
+            fprintf(output, "}\n");
+        }
 
-    if (is_priv_float_ptr_struct_field_appear) {
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr3 = __s->smc_new_ptr(1, 1);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_float_ptr = __s->smc_new_ptr(1, 1);\n");
-    }
+        if (is_priv_float_ptr_struct_field_appear) {
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr3 = __s->smc_new_ptr(1, 1);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_float_ptr = __s->smc_new_ptr(1, 1);\n");
+        }
 
-    if (is_priv_struct_ptr_struct_field_appear) {
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr1 = __s->smc_new_ptr(1, 2);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr2 = __s->smc_new_ptr(1, 2);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr3 = __s->smc_new_ptr(1, 2);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr4 = __s->smc_new_ptr(1, 2);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr5 = __s->smc_new_ptr(1, 2);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr6 = __s->smc_new_ptr(1, 2);\n");
-        indent();
-        fprintf(output, "priv_ptr _picco_tmp_struct_ptr = __s->smc_new_ptr(1, 2);\n");
+        if (is_priv_struct_ptr_struct_field_appear) {
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr1 = __s->smc_new_ptr(1, 2);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr2 = __s->smc_new_ptr(1, 2);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr3 = __s->smc_new_ptr(1, 2);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr4 = __s->smc_new_ptr(1, 2);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr5 = __s->smc_new_ptr(1, 2);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr6 = __s->smc_new_ptr(1, 2);\n");
+            indent();
+            fprintf(output, "priv_ptr _picco_tmp_struct_ptr = __s->smc_new_ptr(1, 2);\n");
+        }
     }
 }
 
