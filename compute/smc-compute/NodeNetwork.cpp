@@ -123,7 +123,7 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     // allocate space for prgSeeds
     threshold = peers / 2;
     prgSeeds = new unsigned char *[2 * threshold];
-    for (unsigned int i = 0; i < peers; i++) {
+    for (int i = 0; i < peers; i++) {
         prgSeeds[i] = new unsigned char[KEYSIZE];
         memset(prgSeeds[i], 0, KEYSIZE);
         // print_hexa(prgSeeds[i],KEYSIZE);
@@ -251,6 +251,7 @@ int NodeNetwork::sendDataToPeer(int id, unsigned char *data, int start, int rema
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -270,6 +271,7 @@ int NodeNetwork::getDataFromPeer(int id, unsigned char *buffer, int start, int r
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -510,6 +512,7 @@ int NodeNetwork::sendDataToPeer(int id, mpz_t *data, int start, int remainingLen
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -555,6 +558,7 @@ int NodeNetwork::getDataFromPeer(int id, mpz_t *data, int start, int remainingLe
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -585,8 +589,6 @@ void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers) {
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size) {
     toSend->clear();
     toReceive->clear();
-
-    int totalSize = size * element_size;
     
     int i, id = getID();
     for (i = 1; i <= peers + 1; i++) {
@@ -608,7 +610,7 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *recvFromIDs, mpz_
     toSend->clear();
     toReceive->clear();
 
-    for (int i = 0; i < threshold; i++) {
+    for (uint i = 0; i < threshold; i++) {
         toSend->push_back(makeEntry(sendtoIDs[i], data[i]));
         toReceive->push_back(makeEntry(recvFromIDs[threshold - i - 1], data[2 * threshold - i]));
     }
@@ -633,7 +635,7 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *recvFromIDs, mpz_
     toReceive->clear();
 
     int idx;
-    for (int i = 0; i < threshold; i++) {
+    for (uint i = 0; i < threshold; i++) {
         toSend->push_back(makeEntry(sendtoIDs[i], data));
 
         idx = threshold - i - 1;
@@ -1525,6 +1527,7 @@ int NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int remaini
 
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -1560,6 +1563,7 @@ int NodeNetwork::getDataFromPeer(int id, priv_int_t *data, int start, int remain
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -1691,6 +1695,7 @@ int NodeNetwork::sendDataToPeer(int id, uint8_t *data, int start, int remainingL
 
     } catch (std::exception &e) {
         std::cout << "An exception (in Send Data To Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
@@ -1726,6 +1731,7 @@ int NodeNetwork::getDataFromPeer(int id, uint8_t *data, int start, int remaining
         return bytes;
     } catch (std::exception &e) {
         std::cout << "An exception (get Data From Peer) was caught: " << e.what() << "\n";
+        return -1;
     }
 }
 
