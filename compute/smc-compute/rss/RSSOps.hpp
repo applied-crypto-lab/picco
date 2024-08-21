@@ -69,15 +69,15 @@ void ss_clear(T *x, U size) {
     return;
 }
 
-template <typename T>
-void ss_add_ui(T *rop, T *op1, uint op2) {
-    return;
-}
+// template <typename T>
+// void ss_add_ui(T **rop, T **op1, uint op2) {
+//     return;
+// }
 
-template <typename T>
-void ss_sub_ui(T *rop, T *op1, uint op2) {
-    return;
-}
+// template <typename T>
+// void ss_sub_ui(T **rop, T **op1, uint op2) {
+//     return;
+// }
 
 template <typename T>
 void ss_process_operands(T ***a1, T ***b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, replicatedSecretShare<T> *ss) {
