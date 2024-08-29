@@ -139,6 +139,7 @@ struct astexpr_ {
     int arraytype;     /* if expr represents an array,  arraytype = 1 */
     int ftype;         /* if expr represents a floating point value ftype = 1 */
     int isptr;
+    int last_op_hit; 
     union {
         char *str;     /* Used by strings and constants */
         symbol sym;    /* Used by identifiers/fields */

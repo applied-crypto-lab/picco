@@ -4090,6 +4090,19 @@ void set_security_flag_expr2(astexpr e, astexpr e1, astexpr e2, int opid){
     }
 }
 
+
+// Function to recursively check for constants in an expression
+int contains_constant(astexpr e) {
+    if (e->arraytype != 1 && (e->type == CONSTVAL || e->type == IDENT)) {
+        return 1;
+    }
+    if (e->type == BOP) {
+        return contains_constant(e->left) || contains_constant(e->right);
+    }
+    return 0;
+}
+
+
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
     if(e2 != NULL && e1 != NULL){
@@ -4105,25 +4118,71 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
                     // assume e1 and e2 are arrays and have the same size
                     if(e1->arraysize != NULL && e2->arraysize != NULL) {
                             e->arraysize = ast_expr_copy(e1->arraysize);
-                            
+
                         // printf("e1: %s, e2: %s\n", e1->arraysize->u.str, e2->arraysize->u.str);
 
-                        if (atoi(e1->arraysize->u.str) > tmp_array_max_size) {
-                            tmp_array_max_size = atoi(e1->arraysize->u.str);
-                        }
-                        if (atoi(e2->arraysize->u.str) > tmp_array_max_size) {
-                            tmp_array_max_size = atoi(e2->arraysize->u.str) ;
+                        tmp_array_max_size = Str("");
+                        str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
+                        if (atoi(e1->arraysize->u.str)) {
+                            if (atoi(e1->arraysize->u.str) > tmp_array_max_size_int_counter) {
+                                tmp_array_max_size = Str("");
+                                tmp_array_max_size_int_counter = atoi(e1->arraysize->u.str);
+                                str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
+                            } 
+                            if (atoi(e2->arraysize->u.str) > tmp_array_max_size_int_counter) {
+                                tmp_array_max_size = Str("");
+                                tmp_array_max_size_int_counter = atoi(e2->arraysize->u.str) ;
+                                str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
+                            }
+                        } else { // THe code below has an issue with the array size. 
+                            // if (atoi(e1->arraysize->u.sym->name) > tmp_array_max_size_int_counter) {
+                            //     tmp_array_max_size = Str("");
+                            //     // tmp_array_max_size_int_counter = ;
+                            //     str_printf(tmp_array_max_size, "%s", e1->arraysize->u.sym->name);
+                            // } 
+                            // if (atoi(e2->arraysize->u.sym->name) > tmp_array_max_size_int_counter) {
+                                tmp_array_max_size = Str("");
+                                // tmp_array_max_size_int_counter = ;
+                                str_printf(tmp_array_max_size, "%s", e2->arraysize->u.sym->name);
+                            // } 
                         }
 
                         array_tmp_index = 1;
                         array_ftmp_index = 1;
 
-                        if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str)) {
-                            parse_error(-1, "Array sizes in expression do not match.\n");
+                        if (atoi(e1->arraysize->u.str) && atoi(e2->arraysize->u.str)) {
+                            if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str))
+                                parse_error(-1, "Array sizes in expression do not match.\n");
+                        } else {
+                            if (strcmp(e1->arraysize->u.sym->name, e2->arraysize->u.sym->name) != 0)
+                                parse_error(-1, "Array sizes in expression do not match.\n");
                         }
                     }
                 //e->arraysize = e1->arraysize;   
 	    }
+        if (e1->arraytype == 1 || e2->arraytype == 1) {
+            if (e->size != 1) {
+                if (opid != BOP_add && opid != BOP_sub && opid != BOP_div && opid != BOP_mul && opid != BOP_dot && opid != BOP_mod && opid != BOP_eqeq && opid != BOP_geq && opid != BOP_leq && opid != BOP_neq && opid != BOP_gt && opid != BOP_lt && opid != BOP_shl && opid != BOP_shr) { // these are the only supported operations on arrays
+                    parse_error(-1, "'%s' is only supported on arrays of bits. \n", BOP_symbols[opid]); // replace &&
+                    exit(0); 
+                }
+            }
+        }
+        // Check if either operand is a constant during array operations
+        if (e->arraytype == 1 || e1->arraytype == 1 || e2->arraytype == 1) {
+            if (contains_constant(e1) == 1 || contains_constant(e2) == 1) {
+                parse_error(-1, "Array operations are not supported between an array and a scalar.\n"); 
+                exit(0); 
+            }
+        } else if (e1->right != NULL && e1->right->arraytype == 1) {
+            if (e1->type == BOP || e2->type == BOP) {
+                // Handle binary operations to ensure constants aren't used with arrays
+                if (contains_constant(e1) || contains_constant(e2)) {
+                    parse_error(-1, "Array operations are not supported when a scalar constant is involved.\n");
+                    exit(0);
+                }
+            }
+        }
 	    compute_modulus_for_BOP(e1, e2, opid); 
     }
     //() or UOP or ASS
@@ -4701,9 +4760,6 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
         exit(0); 
     } else if (opid == BOP_dot && ((e1->flag == PRI && e2->flag == PUB) || (e2->flag == PRI && e1->flag == PUB))) {
         parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
-		exit(0); 
-    } else if ((e1->arraytype == 1 || e2->arraytype == 1) && (opid == BOP_land || opid == BOP_lor || opid == BOP_band || opid == BOP_bor)) {
-        parse_error(-1, "Element_wise and logical bitwise is only supported for shift operators. \n"); 
 		exit(0); 
     }
 }

@@ -40,7 +40,6 @@ extern void ast_spec_show(astspec tree);
 extern void ast_ompcon_show(ompcon tree, branchnode current);
 extern void ast_ompdir_show(ompdir t);
 extern void ast_ompclause_show(ompclause t);
-extern void ast_mult_op_batch_expr_show(aststmt main_tree, astexpr tree, int batch_index, int statement_index, int narray_element_index, int private_selection_index, int private_index, branchnode current, int flag, int dir, char *leftop);
 
 extern char *ast_show(aststmt tree, char *output_filename);
 extern void ast_show_stderr(aststmt tree);

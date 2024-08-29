@@ -84,7 +84,8 @@ int total_threads = 0;
 int nu;
 int kappa_nu;
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
-tmp_array_max_size = 1; // Default to 1
+str tmp_array_max_size;
+tmp_array_max_size_int_counter = 1; // Default to 1
 array_tmp_index = 0;
 array_ftmp_index = 0;
 
@@ -531,6 +532,7 @@ int main(int argc, char *argv[]) {
     /*
      * 2. Parse & get the AST
      */
+    tmp_array_max_size = Str("");
     ast = parse_file(filename, &r);
 
     if (technique_var == SHAMIR_SS) {

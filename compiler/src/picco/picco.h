@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "str.h"
 
 #ifdef __APPLE__
 #include <sys/types.h>
@@ -102,11 +103,12 @@ extern int nChoosek(int n, int k);
 extern int technique_var;
 
 // This is to keep track of the max array size used in exoressions and create the tmp array based on that 
-extern int tmp_array_max_size;
+extern str tmp_array_max_size;
+extern int tmp_array_max_size_int_counter;
 
 // These variables are used to store immediate results from batch operations that uses more than two operands
-int array_tmp_index; // int
-int array_ftmp_index; // float
+extern int array_tmp_index; // int
+extern int array_ftmp_index; // float
 
 
 #endif

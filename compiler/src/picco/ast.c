@@ -50,6 +50,7 @@ astexpr Astexpr(enum exprtype type, astexpr left, astexpr right) {
         exit_error(1, "    Invalid initialization using (), line: %d.\n", left->l);
     }
     astexpr n = smalloc(sizeof(struct astexpr_));
+    n->last_op_hit = 0;
     n->type = type;
     n->left = left;
     n->right = right;
@@ -107,6 +108,18 @@ astexpr Operator(enum exprtype type, int opid, astexpr left, astexpr right) {
     astexpr n = Astexpr(type, left, right);
     n->opid = opid;
     n->size = ComputeExprSize(left, right);
+    if (type == UOP) { // do this check only of it is UOP and the opid are lnot and bnot 
+        if (left->size != 1) {
+            if (left->arraytype == 1) {
+                if (opid == UOP_bnot) { 
+                    exit_error(1, "        '~' is only supported on arrays of bits. Line: %d. \n", left->l);
+                } 
+                if (opid == UOP_lnot) {
+                    exit_error(1, "       '!' is only supported on arrays of bits. Line: %d. \n", left->l);
+                }
+            }
+        }
+    }
     return (n);
 }
 
