@@ -357,6 +357,10 @@ public:
     void smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
     // 2) private float && private float
     void smc_land(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+
+    void smc_lnot(priv_int *a, int size, priv_int *result, int alen, int resultlen, std::string type, int threadID);
+    void smc_lnot(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
+
     // 3) private int ^ private int
     // void smc_lxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
     // 4) private float ^ private float

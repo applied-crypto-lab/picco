@@ -918,26 +918,31 @@ void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, i
     LogicalAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
+// batch logical operations
+void SMC_Utils::smc_lnot(priv_int *a, int size, priv_int *result, int alen, int resultlen, std::string type, int threadID) {
+    ss->modSub(result, 1, a, size);
+}
+
 void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 // batch bitwise operations
 void SMC_Utils::smc_band(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 void SMC_Utils::smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
 void SMC_Utils::smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
 #if __SHAMIR__
 
 // bitwise operations
 void SMC_Utils::smc_band(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
 void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
@@ -945,12 +950,16 @@ void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int 
 }
 
 void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
 // logical Operations
 void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+}
+
+void SMC_Utils::smc_lnot(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
+    ss->modSub(result, 1, a);
 }
 
 void SMC_Utils::smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
