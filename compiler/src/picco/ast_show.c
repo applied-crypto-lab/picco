@@ -3892,9 +3892,9 @@ void ast_expr_show(astexpr tree) {
             arg_str = Str("");
             ast_expr_print(arg_str, tree->left);
             if (tree->opid == UOP_inc)
-                fprintf(output, "ss_add_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
+                fprintf(output, "__s->smc_add_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
             else if (tree->opid == UOP_dec)
-                fprintf(output, "ss_sub_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
+                fprintf(output, "__s->smc_sub_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
             str_free(arg_str);
         }
         break;
@@ -3906,9 +3906,9 @@ void ast_expr_show(astexpr tree) {
             arg_str = Str("");
             ast_expr_print(arg_str, tree->left);
             if (tree->opid == UOP_inc)
-                fprintf(output, "ss_add_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
+                fprintf(output, "__s->smc_add_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
             else if (tree->opid == UOP_dec)
-                fprintf(output, "ss_sub_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
+                fprintf(output, "__s->smc_sub_ui(%s, %s, 1)", str_string(arg_str), str_string(arg_str));
             str_free(arg_str);
         }
         break;

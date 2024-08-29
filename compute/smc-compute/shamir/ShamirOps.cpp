@@ -43,13 +43,13 @@ void ss_clear(mpz_t x) {
     mpz_clear(x);
 }
 
-void ss_add_ui(mpz_t rop, mpz_t op1, uint op2) {
-    mpz_add_ui(rop, op1, op2);
-}
+// void ss_add_ui(mpz_t rop, mpz_t op1, uint op2) {
+//     mpz_add_ui(rop, op1, op2);
+// }
 
-void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2) {
-    mpz_sub_ui(rop, op1, op2);
-}
+// void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2) {
+//     mpz_sub_ui(rop, op1, op2);
+// }
 
 long int ss_get_si(mpz_t x) {
     return mpz_get_si(x);

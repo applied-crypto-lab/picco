@@ -216,6 +216,29 @@ void SMC_Utils::smc_input(int id, priv_int **var, int size, std::string type, in
 #endif
 }
 
+#if __SHAMIR__
+
+void SMC_Utils::smc_add_ui(priv_int rop, priv_int op1, uint op2) {
+
+    ss->modAdd(rop, op1, op2);
+}
+void SMC_Utils::smc_sub_ui(priv_int rop, priv_int op1, uint op2) {
+
+    ss->modSub(rop, op1, op2);
+}
+#endif
+#if __RSS__
+
+void SMC_Utils::smc_add_ui(priv_int *rop, priv_int *op1, uint op2) {
+
+    ss->modAdd(rop, op1, op2, 1);
+}
+void SMC_Utils::smc_sub_ui(priv_int *rop, priv_int *op1, uint op2) {
+
+    ss->modSub(rop, op1, op2, 1);
+}
+#endif
+
 void SMC_Utils::smc_input(int id, float *var, int size, std::string type, int threadID) {
     try {
         ss->ss_input(id, var, size, type, inputStreams);
