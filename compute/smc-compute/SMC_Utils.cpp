@@ -977,15 +977,11 @@ void SMC_Utils::smc_shr(priv_int a, int b, priv_int result, int alen, int blen, 
 
 void SMC_Utils::smc_shr(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) { // public b
-        // doOperation_Trunc(result, a, alen, b[0], size, threadID, net, ss);
-
         // check that m is !> k
-
         int *b_tmp = (int *)malloc(sizeof(int) * size);
         for (int i = 0; i < size; i++)
             b_tmp[i] = ss_get_si(b[i]);
         doOperation_Trunc(result, a, alen, b_tmp, size, threadID, net, ss);
-        // smc_shr(a, b_tmp, alen, blen, result, resultlen, size, type, threadID);
         free(b_tmp);
     } else
         doOperation_TruncS(result, a, alen, b, size, threadID, net, ss);
