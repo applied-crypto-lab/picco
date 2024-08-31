@@ -17,8 +17,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _B2A_HPP_
-#define _B2A_HPP_
+#pragma once
+
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
@@ -217,4 +217,3 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     delete[] a_sparse;
 }
 
-#endif // _B2A_HPP_

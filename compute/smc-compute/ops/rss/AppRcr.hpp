@@ -17,8 +17,7 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef _APPRCR_HPP_
-#define _APPRCR_HPP_
+#pragma once
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
@@ -73,4 +72,3 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
     delete[] ai;
 }
 
-#endif // _APPRCR_HPP_
