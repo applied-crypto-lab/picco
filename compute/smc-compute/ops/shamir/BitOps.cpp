@@ -39,282 +39,461 @@ void LogicalOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int result
 
 // bitwise AND
 void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
-    int M = std::max(alen, blen);
-    int M_min = std::min(alen, blen);
-    // int diff = abs(alen - blen); // the amount of upper bits of the longer value which will just be copied into the result
-    mpz_t two, pow_two;
-    mpz_init_set_ui(two, 2);
-    mpz_init(pow_two);
+    if ((alen == 1) and (blen == 1)) {
+        Mult(result, A, B, size, threadID, net, ss);
+    } else {
 
-    mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
-    for (int i = 0; i < M * size; ++i)
-        mpz_init(C[i]);
-    mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
-    for (int i = 0; i < (M + 1); i++) {
-        S[i] = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
-        for (int j = 0; j < 2 * size; j++)
-            mpz_init(S[i][j]);
-    }
-    mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
-    mpz_t *mul_buff_A = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    mpz_t *mul_buff_B = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    for (int i = 0; i < 2 * size; i++)
-        mpz_init(buffer[i]);
+        int M = std::min(alen, blen);
+        int sz_offset = (alen > 1 and blen > 1) ? 2 : 1;
 
-    for (int i = 0; i < M_min * size; i++) {
-        mpz_init(mul_buff_A[i]);
-        mpz_init(mul_buff_B[i]);
-        mpz_init(tmp[i]);
-    }
-    // moving into buffer
-    for (int i = 0; i < size; i++)
-        mpz_set(buffer[i], A[i]);
-    for (int i = 0; i < size; i++)
-        mpz_set(buffer[size + i], B[i]);
+        mpz_t two, pow_two;
+        mpz_init_set_ui(two, 2);
+        mpz_init(pow_two);
 
-    // doing a full bit decompostion on the inputs (cant be done on M_min, since we need ALL the bits for reassembly)
-    doOperation_bitDec(S, buffer, M, M, 2 * size, threadID, net, ss);
+        mpz_t *accum = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int i = 0; i < size; ++i)
+            mpz_init(accum[i]);
 
-    // moving all the "shared" bits into buffers
-    // M_min = min(alen, blen)
-    for (size_t i = 0; i < M_min; i++) {
-        for (size_t j = 0; j < size; j++) {
-            mpz_set(mul_buff_A[i * size + j], S[i][j]);
-            mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
+        mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
+        for (int i = 0; i < (M + 1); i++) {
+            S[i] = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
+            for (int j = 0; j < sz_offset * size; j++)
+                mpz_init(S[i][j]);
         }
-    }
-    int offset = (alen > blen) ? 0 : 1;
+        mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
+        for (int i = 0; i < sz_offset * size; i++)
+            mpz_init(buffer[i]);
 
-    // a*b (only "operation" needed for bitAND)
-    Mult(C, mul_buff_A, mul_buff_B, M_min * size, threadID, net, ss);
+        mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *mul_buff_A = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *mul_buff_B = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        // this stays the same regardless of whether a or b is a single bit
+        for (int i = 0; i < M * size; i++) {
+            mpz_init(C[i]);
+            mpz_init(mul_buff_A[i]);
+            mpz_init(mul_buff_B[i]);
+        }
 
-    // reassembly
-    for (int i = 0; i < M; ++i) {
-        for (int j = 0; j < size; ++j) {
+        // moving into buffer
+        // A will always be in the first position of the buffer
+        // if alen = 1 (and blen > 1, which is only reachable in this block), then we only need to bit-decompose B
+        if (alen > 1) {
+            for (int i = 0; i < size; i++)
+                mpz_set(buffer[i], A[i]);
+        }
+        if (blen > 1) {
+            int offset = (alen == 1) ? 0 : 1;
+            for (int i = 0; i < size; i++)
+                mpz_set(buffer[offset * size + i], B[i]);
+        }
+
+        // doing a full bit decompostion on the inputs (cant be done on M, since we need ALL the bits for reassembly)
+        doOperation_bitDec(S, buffer, M, M, sz_offset * size, threadID, net, ss);
+
+        // moving all the "shared" bits into buffers
+        // for (size_t i = 0; i < M; i++) {
+        //     for (size_t j = 0; j < size; j++) {
+        //         mpz_set(mul_buff_A[i * size + j], S[i][j]);
+        //         mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
+        //     }
+        // }
+        if (alen > 1) {
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(mul_buff_A[i * size + j], S[i][j]);
+        } else {
+            // we didn't bit-decompose A, and can just move A into the buffer directly
+            for (size_t j = 0; j < size; j++)
+                mpz_set(mul_buff_A[j], A[j]);
+        }
+
+        if (blen > 1) {
+            int offset = (alen == 1) ? 0 : 1;
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(mul_buff_B[i * size + j], S[i][offset * size + j]);
+        } else {
+            // we didn't bit-decompose B, and can just move B into the buffer directly
+            for (size_t j = 0; j < size; j++)
+                mpz_set(mul_buff_B[j], B[j]);
+        }
+
+        // a*b (only "operation" needed for bitAND)
+        Mult(mul_buff_A, mul_buff_A, mul_buff_B, M * size, threadID, net, ss);
+
+        // reassembly
+        for (int i = 0; i < M; ++i) {
             ss->modPow(pow_two, two, i);
-            ss->modMul(pow_two, pow_two, C[i * size + j]);
-            ss->modAdd(result[j], result[j], pow_two);
+            for (int j = 0; j < size; ++j) {
+                ss->modMul(pow_two, pow_two, mul_buff_A[i * size + j]);
+                ss->modAdd(result[j], result[j], pow_two);
+            }
         }
-    }
 
-    // free the memory
-    for (int i = 0; i < size; ++i)
-        mpz_clear(buffer[i]);
-    for (int i = 0; i < M * size; ++i) {
-        mpz_clear(C[i]);
-        mpz_clear(mul_buff_A[i]);
-        mpz_clear(mul_buff_B[i]);
-        mpz_clear(tmp[i]);
-    }
-    free(buffer);
-    free(C);
-    free(mul_buff_A);
-    free(mul_buff_B);
-    free(tmp);
-    mpz_clear(two);
-    mpz_clear(pow_two);
+        // this is only needed for XOR and OR
+        // if (alen > blen) {
+        //     for (int i = 0; i < M; ++i) {
+        //         ss->modPow(pow_two, two, i);
+        //         for (int j = 0; j < size; ++j) {
+        //             ss->modMul(pow_two, pow_two, S[i][j]);
+        //             ss->modAdd(accum[j], accum[j], pow_two);
+        //         }
+        //     }
+        //     ss->modSub(accum, A, accum, size);
+        // } else {
+        //     int offset = (alen == 1) ? 0 : 1;
+        //     for (int i = 0; i < M; ++i) {
+        //         ss->modPow(pow_two, two, i);
+        //         for (int j = 0; j < size; ++j) {
+        //             ss->modMul(pow_two, pow_two, S[i][offset * size + j]);
+        //             ss->modAdd(accum[j], accum[j], pow_two);
+        //         }
+        //     }
+        //     ss->modSub(accum, B, accum, size);
+        // }
+        // ss->modAdd(result, result, accum, size);
 
-    // freeing
-    for (int i = 0; i < (M + 1); i++) {
-        for (int j = 0; j < 2 * size; j++)
-            mpz_clear(S[i][j]);
-        free(S[i]);
+        // free the memory
+        for (int i = 0; i < sz_offset * size; ++i)
+            mpz_clear(buffer[i]);
+        for (int i = 0; i < M * size; ++i) {
+            mpz_clear(C[i]);
+            mpz_clear(mul_buff_A[i]);
+            mpz_clear(mul_buff_B[i]);
+        }
+        free(buffer);
+        free(C);
+        free(mul_buff_A);
+        free(mul_buff_B);
+        mpz_clear(two);
+        mpz_clear(pow_two);
+
+        // freeing
+        for (int i = 0; i < (M + 1); i++) {
+            for (int j = 0; j < sz_offset * size; j++)
+                mpz_clear(S[i][j]);
+            free(S[i]);
+        }
+        free(S);
     }
-    free(S);
 }
 
 // bitwise OR, virtually identical to XOR without multiplying the intermediary product by "2"
 void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
-    int M = std::max(alen, blen);
-    int M_min = std::min(alen, blen);
-    // int diff = abs(alen - blen); // the amount of upper bits of the longer value which will just be copied into the result
-    mpz_t two, pow_two;
-    mpz_init_set_ui(two, 2);
-    mpz_init(pow_two);
+    if ((alen == 1) and (blen == 1)) {
+        mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int i = 0; i < size; ++i)
+            mpz_init(C[i]);
+        // (a+b) - ab
+        Mult(C, A, B, size, threadID, net, ss);
+        ss->modAdd(result, A, B, size);
+        ss->modSub(result, result, C, size);
+        // free the memory
+        for (int i = 0; i < size; ++i)
+            mpz_clear(C[i]);
+        free(C);
+    } else {
 
-    mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
-    for (int i = 0; i < M * size; ++i)
-        mpz_init(C[i]);
-    mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
-    for (int i = 0; i < (M + 1); i++) {
-        S[i] = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
-        for (int j = 0; j < 2 * size; j++)
-            mpz_init(S[i][j]);
-    }
-    mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
-    mpz_t *mul_buff_A = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    mpz_t *mul_buff_B = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    for (int i = 0; i < 2 * size; i++)
-        mpz_init(buffer[i]);
+        int M = std::min(alen, blen);
+        int sz_offset = (alen > 1 and blen > 1) ? 2 : 1;
 
-    for (int i = 0; i < M_min * size; i++) {
-        mpz_init(mul_buff_A[i]);
-        mpz_init(mul_buff_B[i]);
-        mpz_init(tmp[i]);
-    }
-    // moving into buffer
-    for (int i = 0; i < size; i++)
-        mpz_set(buffer[i], A[i]);
-    for (int i = 0; i < size; i++)
-        mpz_set(buffer[size + i], B[i]);
+        mpz_t two, pow_two;
+        mpz_init_set_ui(two, 2);
+        mpz_init(pow_two);
 
-    // doing a full bit decompostion on the inputs (cant be done on M_min, since we need ALL the bits for reassembly)
-    doOperation_bitDec(S, buffer, M, M, 2 * size, threadID, net, ss);
+        mpz_t *accum = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int i = 0; i < size; ++i)
+            mpz_init(accum[i]);
 
-    // moving all the "shared" bits into buffers
-    // M_min = min(alen, blen)
-    for (size_t i = 0; i < M_min; i++) {
-        for (size_t j = 0; j < size; j++) {
-            mpz_set(mul_buff_A[i * size + j], S[i][j]);
-            mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
+        mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
+        for (int i = 0; i < (M + 1); i++) {
+            S[i] = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
+            for (int j = 0; j < sz_offset * size; j++)
+                mpz_init(S[i][j]);
         }
-    }
-    int offset = (alen > blen) ? 0 : 1;
+        mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
+        for (int i = 0; i < sz_offset * size; i++)
+            mpz_init(buffer[i]);
 
-    // a + b - a*b
-    Mult(C, mul_buff_A, mul_buff_B, M_min * size, threadID, net, ss);
-    // ss->modMul(C, C, 2, M_min * size);
-    ss->modAdd(tmp, mul_buff_A, mul_buff_B, M_min * size);
-    ss->modSub(C, tmp, C, M_min * size);
+        mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *mul_buff_A = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *mul_buff_B = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        // this stays the same regardless of whether a or b is a single bit
+        for (int i = 0; i < M * size; i++) {
+            mpz_init(C[i]);
+            mpz_init(tmp[i]);
+            mpz_init(mul_buff_A[i]);
+            mpz_init(mul_buff_B[i]);
+        }
 
-    if (alen != blen) {
-        int offset = (alen > blen) ? 0 : 1;
-        for (size_t i = M_min; i < M; i++)
+        // moving into buffer
+        // A will always be in the first position of the buffer
+        // if alen = 1 (and blen > 1, which is only reachable in this block), then we only need to bit-decompose B
+        if (alen > 1) {
+            for (int i = 0; i < size; i++)
+                mpz_set(buffer[i], A[i]);
+        }
+        if (blen > 1) {
+            int offset = (alen == 1) ? 0 : 1;
+            for (int i = 0; i < size; i++)
+                mpz_set(buffer[offset * size + i], B[i]);
+        }
+
+        // doing a full bit decompostion on the inputs (cant be done on M, since we need ALL the bits for reassembly)
+        doOperation_bitDec(S, buffer, M, M, sz_offset * size, threadID, net, ss);
+
+        // moving all the "shared" bits into buffers
+        // for (size_t i = 0; i < M; i++) {
+        //     for (size_t j = 0; j < size; j++) {
+        //         mpz_set(mul_buff_A[i * size + j], S[i][j]);
+        //         mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
+        //     }
+        // }
+        if (alen > 1) {
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(mul_buff_A[i * size + j], S[i][j]);
+        } else {
+            // we didn't bit-decompose A, and can just move A into the buffer directly
             for (size_t j = 0; j < size; j++)
-                mpz_set(C[i * size + j], S[i][offset * size + j]);
-    }
-
-
-    // reassembly
-    for (int i = 0; i < M; ++i) {
-        for (int j = 0; j < size; ++j) {
-            ss->modPow(pow_two, two, i);
-            ss->modMul(pow_two, pow_two, C[i * size + j]);
-            ss->modAdd(result[j], result[j], pow_two);
+                mpz_set(mul_buff_A[j], A[j]);
         }
-    }
 
-    // free the memory
-    for (int i = 0; i < size; ++i)
-        mpz_clear(buffer[i]);
-    for (int i = 0; i < M * size; ++i) {
-        mpz_clear(C[i]);
-        mpz_clear(mul_buff_A[i]);
-        mpz_clear(mul_buff_B[i]);
-        mpz_clear(tmp[i]);
-    }
-    free(buffer);
-    free(C);
-    free(mul_buff_A);
-    free(mul_buff_B);
-    free(tmp);
-    mpz_clear(two);
-    mpz_clear(pow_two);
+        if (blen > 1) {
+            int offset = (alen == 1) ? 0 : 1;
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(mul_buff_B[i * size + j], S[i][offset * size + j]);
+        } else {
+            // we didn't bit-decompose B, and can just move B into the buffer directly
+            for (size_t j = 0; j < size; j++)
+                mpz_set(mul_buff_B[j], B[j]);
+        }
 
-    // freeing
-    for (int i = 0; i < (M + 1); i++) {
-        for (int j = 0; j < 2 * size; j++)
-            mpz_clear(S[i][j]);
-        free(S[i]);
+        // a + b - a*b
+        Mult(mul_buff_A, mul_buff_A, mul_buff_B, M * size, threadID, net, ss);
+        ss->modAdd(tmp, mul_buff_A, mul_buff_B, M * size);
+        ss->modSub(C, tmp, C, M * size);
+
+        // reassembly
+        for (int i = 0; i < M; ++i) {
+            ss->modPow(pow_two, two, i);
+            for (int j = 0; j < size; ++j) {
+                ss->modMul(pow_two, pow_two, mul_buff_A[i * size + j]);
+                ss->modAdd(result[j], result[j], pow_two);
+            }
+        }
+
+        // this is only needed for XOR and OR
+        if (alen > blen) {
+            for (int i = 0; i < M; ++i) {
+                ss->modPow(pow_two, two, i);
+                for (int j = 0; j < size; ++j) {
+                    ss->modMul(pow_two, pow_two, S[i][j]);
+                    ss->modAdd(accum[j], accum[j], pow_two);
+                }
+            }
+            ss->modSub(accum, A, accum, size);
+        } else {
+            int offset = (alen == 1) ? 0 : 1;
+            for (int i = 0; i < M; ++i) {
+                ss->modPow(pow_two, two, i);
+                for (int j = 0; j < size; ++j) {
+                    ss->modMul(pow_two, pow_two, S[i][offset * size + j]);
+                    ss->modAdd(accum[j], accum[j], pow_two);
+                }
+            }
+            ss->modSub(accum, B, accum, size);
+        }
+        ss->modAdd(result, result, accum, size);
+
+        // free the memory
+        for (int i = 0; i < sz_offset * size; ++i)
+            mpz_clear(buffer[i]);
+        for (int i = 0; i < M * size; ++i) {
+            mpz_clear(C[i]);
+            mpz_clear(tmp[i]);
+            mpz_clear(mul_buff_A[i]);
+            mpz_clear(mul_buff_B[i]);
+        }
+        free(buffer);
+        free(C);
+        free(tmp);
+        free(mul_buff_A);
+        free(mul_buff_B);
+        mpz_clear(two);
+        mpz_clear(pow_two);
+
+        // freeing
+        for (int i = 0; i < (M + 1); i++) {
+            for (int j = 0; j < sz_offset * size; j++)
+                mpz_clear(S[i][j]);
+            free(S[i]);
+        }
+        free(S);
     }
-    free(S);
 }
 
 // bitwise XOR
 // work in progress, need to test once compiler/ is consistent with compute/
 void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
-    int M = std::max(alen, blen);
-    int M_min = std::min(alen, blen);
-    // int diff = abs(alen - blen); // the amount of upper bits of the longer value which will just be copied into the result
-    mpz_t two, pow_two;
-    mpz_init_set_ui(two, 2);
-    mpz_init(pow_two);
 
-    mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
-    for (int i = 0; i < M * size; ++i)
-        mpz_init(C[i]);
-    mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
-    for (int i = 0; i < (M + 1); i++) {
-        S[i] = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
-        for (int j = 0; j < 2 * size; j++)
-            mpz_init(S[i][j]);
-    }
-    mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * 2 * size);
-    mpz_t *mul_buff_A = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    mpz_t *mul_buff_B = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * M_min * size);
-    for (int i = 0; i < 2 * size; i++)
-        mpz_init(buffer[i]);
+    if ((alen == 1) and (blen == 1)) {
+        mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int i = 0; i < size; ++i)
+            mpz_init(C[i]);
+        // (a+b) - 2*ab
+        Mult(C, A, B, size, threadID, net, ss);
+        ss->modMul(C, C, 2, size);
+        ss->modAdd(result, A, B, size);
+        ss->modSub(result, result, C, size);
+        // free the memory
+        for (int i = 0; i < size; ++i)
+            mpz_clear(C[i]);
+        free(C);
+    } else {
+        int M = std::min(alen, blen);
+        int sz_offset = (alen > 1 and blen > 1) ? 2 : 1;
 
-    for (int i = 0; i < M_min * size; i++) {
-        mpz_init(mul_buff_A[i]);
-        mpz_init(mul_buff_B[i]);
-        mpz_init(tmp[i]);
-    }
-    // moving into buffer
-    for (int i = 0; i < size; i++)
-        mpz_set(buffer[i], A[i]);
-    for (int i = 0; i < size; i++)
-        mpz_set(buffer[size + i], B[i]);
+        mpz_t two, pow_two;
+        mpz_init_set_ui(two, 2);
+        mpz_init(pow_two);
 
-    // doing a full bit decompostion on the inputs (cant be done on M_min, since we need ALL the bits for reassembly)
-    doOperation_bitDec(S, buffer, M, M, 2 * size, threadID, net, ss);
+        mpz_t *accum = (mpz_t *)malloc(sizeof(mpz_t) * size);
+        for (int i = 0; i < size; ++i)
+            mpz_init(accum[i]);
 
-    // moving all the "shared" bits into buffers
-    // M_min = min(alen, blen)
-    for (size_t i = 0; i < M_min; i++) {
-        for (size_t j = 0; j < size; j++) {
-            mpz_set(mul_buff_A[i * size + j], S[i][j]);
-            mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
+        mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
+        for (int i = 0; i < (M + 1); i++) {
+            S[i] = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
+            for (int j = 0; j < sz_offset * size; j++)
+                mpz_init(S[i][j]);
         }
-    }
-    int offset = (alen > blen) ? 0 : 1;
+        mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
+        for (int i = 0; i < sz_offset * size; i++)
+            mpz_init(buffer[i]);
 
-    // a + b - 2(a*b)
-    Mult(C, mul_buff_A, mul_buff_B, M_min * size, threadID, net, ss);
-    ss->modMul(C, C, 2, M_min * size);
-    ss->modAdd(tmp, mul_buff_A, mul_buff_B, M_min * size);
-    ss->modSub(C, tmp, C, M_min * size);
+        mpz_t *C = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *mul_buff_A = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        mpz_t *mul_buff_B = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        // this stays the same regardless of whether a or b is a single bit
+        for (int i = 0; i < M * size; i++) {
+            mpz_init(C[i]);
+            mpz_init(tmp[i]);
+            mpz_init(mul_buff_A[i]);
+            mpz_init(mul_buff_B[i]);
+        }
 
-    if (alen != blen) {
-        int offset = (alen > blen) ? 0 : 1;
-        for (size_t i = M_min; i < M; i++)
+        // moving into buffer
+        // A will always be in the first position of the buffer
+        // if alen = 1 (and blen > 1, which is only reachable in this block), then we only need to bit-decompose B
+        if (alen > 1) {
+            for (int i = 0; i < size; i++)
+                mpz_set(buffer[i], A[i]);
+        }
+        if (blen > 1) {
+            int offset = (alen == 1) ? 0 : 1;
+            for (int i = 0; i < size; i++)
+                mpz_set(buffer[offset * size + i], B[i]);
+        }
+
+        // doing a full bit decompostion on the inputs (cant be done on M, since we need ALL the bits for reassembly)
+        doOperation_bitDec(S, buffer, M, M, sz_offset * size, threadID, net, ss);
+
+        // moving all the "shared" bits into buffers
+        // for (size_t i = 0; i < M; i++) {
+        //     for (size_t j = 0; j < size; j++) {
+        //         mpz_set(mul_buff_A[i * size + j], S[i][j]);
+        //         mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
+        //     }
+        // }
+        if (alen > 1) {
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(mul_buff_A[i * size + j], S[i][j]);
+        } else {
+            // we didn't bit-decompose A, and can just move A into the buffer directly
             for (size_t j = 0; j < size; j++)
-                mpz_set(C[i * size + j], S[i][offset * size + j]);
-    }
-
-    for (int i = 0; i < M; ++i) {
-        for (int j = 0; j < size; ++j) {
-            ss->modPow(pow_two, two, i);
-            ss->modMul(pow_two, pow_two, C[i * size + j]);
-            ss->modAdd(result[j], result[j], pow_two);
+                mpz_set(mul_buff_A[j], A[j]);
         }
-    }
 
-    // free the memory
-    for (int i = 0; i < size; ++i)
-        mpz_clear(buffer[i]);
-    for (int i = 0; i < M * size; ++i) {
-        mpz_clear(C[i]);
-        mpz_clear(mul_buff_A[i]);
-        mpz_clear(mul_buff_B[i]);
-        mpz_clear(tmp[i]);
-    }
-    free(buffer);
-    free(C);
-    free(mul_buff_A);
-    free(mul_buff_B);
-    free(tmp);
-    mpz_clear(two);
-    mpz_clear(pow_two);
+        if (blen > 1) {
+            int offset = (alen == 1) ? 0 : 1;
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(mul_buff_B[i * size + j], S[i][offset * size + j]);
+        } else {
+            // we didn't bit-decompose B, and can just move B into the buffer directly
+            for (size_t j = 0; j < size; j++)
+                mpz_set(mul_buff_B[j], B[j]);
+        }
 
-    // freeing
-    for (int i = 0; i < (M + 1); i++) {
-        for (int j = 0; j < 2 * size; j++)
-            mpz_clear(S[i][j]);
-        free(S[i]);
+        // a + b - a*b
+        Mult(mul_buff_A, mul_buff_A, mul_buff_B, M * size, threadID, net, ss);
+        ss->modMul(C, C, 2, M * size);
+        ss->modAdd(tmp, mul_buff_A, mul_buff_B, M * size);
+        ss->modSub(C, tmp, C, M * size);
+
+        // reassembly
+        for (int i = 0; i < M; ++i) {
+            ss->modPow(pow_two, two, i);
+            for (int j = 0; j < size; ++j) {
+                ss->modMul(pow_two, pow_two, mul_buff_A[i * size + j]);
+                ss->modAdd(result[j], result[j], pow_two);
+            }
+        }
+
+        // this is only needed for XOR and OR
+        if (alen > blen) {
+            for (int i = 0; i < M; ++i) {
+                ss->modPow(pow_two, two, i);
+                for (int j = 0; j < size; ++j) {
+                    ss->modMul(pow_two, pow_two, S[i][j]);
+                    ss->modAdd(accum[j], accum[j], pow_two);
+                }
+            }
+            ss->modSub(accum, A, accum, size);
+        } else {
+            int offset = (alen == 1) ? 0 : 1;
+            for (int i = 0; i < M; ++i) {
+                ss->modPow(pow_two, two, i);
+                for (int j = 0; j < size; ++j) {
+                    ss->modMul(pow_two, pow_two, S[i][offset * size + j]);
+                    ss->modAdd(accum[j], accum[j], pow_two);
+                }
+            }
+            ss->modSub(accum, B, accum, size);
+        }
+        ss->modAdd(result, result, accum, size);
+
+        // free the memory
+        for (int i = 0; i < sz_offset * size; ++i)
+            mpz_clear(buffer[i]);
+        for (int i = 0; i < M * size; ++i) {
+            mpz_clear(C[i]);
+            mpz_clear(tmp[i]);
+            mpz_clear(mul_buff_A[i]);
+            mpz_clear(mul_buff_B[i]);
+        }
+        free(buffer);
+        free(C);
+        free(tmp);
+        free(mul_buff_A);
+        free(mul_buff_B);
+        mpz_clear(two);
+        mpz_clear(pow_two);
+        for (int i = 0; i <  size; ++i)
+            mpz_clear(accum[i]);
+        free(accum);
+
+        // freeing
+        for (int i = 0; i < (M + 1); i++) {
+            for (int j = 0; j < sz_offset * size; j++)
+                mpz_clear(S[i][j]);
+            free(S[i]);
+        }
+        free(S);
     }
-    free(S);
 }
