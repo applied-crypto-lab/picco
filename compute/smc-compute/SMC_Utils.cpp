@@ -928,29 +928,56 @@ void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, in
 }
 // batch bitwise operations
 void SMC_Utils::smc_band(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    // ensuring the first argument always has the longer bitlength
+    if (blen > alen) {
+        BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    } else {
+        BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    }
 }
 void SMC_Utils::smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    // ensuring the first argument always has the longer bitlength
+    if (blen > alen) {
+        BitXor(b, a, result, blen, alen, resultlen, size, threadID, net, ss);
+    } else {
+
+        BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    }
 }
 
 void SMC_Utils::smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    if (blen > alen) {
+        BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    } else {
+        BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
+    }
 }
 
 #if __SHAMIR__
 
 // bitwise operations
 void SMC_Utils::smc_band(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    if (blen > alen) {
+        BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    } else {
+        BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    }
 }
 
 void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    if (blen > alen) {
+        BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    } else {
+        BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    }
 }
 
 void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    if (blen > alen) {
+        BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    } else {
+        BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
+    }
 }
 
 // logical Operations
@@ -2339,6 +2366,7 @@ void SMC_Utils::smc_test_rss(priv_int *A, int *B, int size, int threadID) {
 
     printf("Intdiv\n");
     doOperation_IntDiv(C, a, b, bitlength, size, -1, net, ss);
+    BitEQZ_fixed(C, a, b, size, ring_size, -1, net, ss);
 
     Open(result, C, size, -1, net, ss);
     Open(result_2, a, size, -1, net, ss);

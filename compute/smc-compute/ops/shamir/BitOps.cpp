@@ -38,6 +38,8 @@ void LogicalOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int result
 }
 
 // bitwise AND
+// we guarantee (in SMC_utils) that the first argument is always the one with the longer bitlength (alen > blen).
+// If in the calling function blen > alen, we reverse the order of the inputs
 void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     if ((alen == 1) and (blen == 1)) {
         Mult(result, A, B, size, threadID, net, ss);
@@ -87,16 +89,8 @@ void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
                 mpz_set(buffer[offset * size + i], B[i]);
         }
 
-        // doing a full bit decompostion on the inputs (cant be done on M, since we need ALL the bits for reassembly)
         doOperation_bitDec(S, buffer, M, M, sz_offset * size, threadID, net, ss);
 
-        // moving all the "shared" bits into buffers
-        // for (size_t i = 0; i < M; i++) {
-        //     for (size_t j = 0; j < size; j++) {
-        //         mpz_set(mul_buff_A[i * size + j], S[i][j]);
-        //         mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
-        //     }
-        // }
         if (alen > 1) {
             for (size_t i = 0; i < M; i++)
                 for (size_t j = 0; j < size; j++)
@@ -129,29 +123,6 @@ void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
                 ss->modAdd(result[j], result[j], pow_two);
             }
         }
-
-        // this is only needed for XOR and OR
-        // if (alen > blen) {
-        //     for (int i = 0; i < M; ++i) {
-        //         ss->modPow(pow_two, two, i);
-        //         for (int j = 0; j < size; ++j) {
-        //             ss->modMul(pow_two, pow_two, S[i][j]);
-        //             ss->modAdd(accum[j], accum[j], pow_two);
-        //         }
-        //     }
-        //     ss->modSub(accum, A, accum, size);
-        // } else {
-        //     int offset = (alen == 1) ? 0 : 1;
-        //     for (int i = 0; i < M; ++i) {
-        //         ss->modPow(pow_two, two, i);
-        //         for (int j = 0; j < size; ++j) {
-        //             ss->modMul(pow_two, pow_two, S[i][offset * size + j]);
-        //             ss->modAdd(accum[j], accum[j], pow_two);
-        //         }
-        //     }
-        //     ss->modSub(accum, B, accum, size);
-        // }
-        // ss->modAdd(result, result, accum, size);
 
         // free the memory
         for (int i = 0; i < sz_offset * size; ++i)
@@ -240,16 +211,8 @@ void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen,
                 mpz_set(buffer[offset * size + i], B[i]);
         }
 
-        // doing a full bit decompostion on the inputs (cant be done on M, since we need ALL the bits for reassembly)
         doOperation_bitDec(S, buffer, M, M, sz_offset * size, threadID, net, ss);
 
-        // moving all the "shared" bits into buffers
-        // for (size_t i = 0; i < M; i++) {
-        //     for (size_t j = 0; j < size; j++) {
-        //         mpz_set(mul_buff_A[i * size + j], S[i][j]);
-        //         mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
-        //     }
-        // }
         if (alen > 1) {
             for (size_t i = 0; i < M; i++)
                 for (size_t j = 0; j < size; j++)
@@ -295,16 +258,6 @@ void BitOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen,
                 }
             }
             ss->modSub(accum, A, accum, size);
-        } else {
-            int offset = (alen == 1) ? 0 : 1;
-            for (int i = 0; i < M; ++i) {
-                ss->modPow(pow_two, two, i);
-                for (int j = 0; j < size; ++j) {
-                    ss->modMul(pow_two, pow_two, S[i][offset * size + j]);
-                    ss->modAdd(accum[j], accum[j], pow_two);
-                }
-            }
-            ss->modSub(accum, B, accum, size);
         }
         ss->modAdd(result, result, accum, size);
 
@@ -399,16 +352,8 @@ void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
                 mpz_set(buffer[offset * size + i], B[i]);
         }
 
-        // doing a full bit decompostion on the inputs (cant be done on M, since we need ALL the bits for reassembly)
         doOperation_bitDec(S, buffer, M, M, sz_offset * size, threadID, net, ss);
 
-        // moving all the "shared" bits into buffers
-        // for (size_t i = 0; i < M; i++) {
-        //     for (size_t j = 0; j < size; j++) {
-        //         mpz_set(mul_buff_A[i * size + j], S[i][j]);
-        //         mpz_set(mul_buff_B[i * size + j], S[i][size + j]);
-        //     }
-        // }
         if (alen > 1) {
             for (size_t i = 0; i < M; i++)
                 for (size_t j = 0; j < size; j++)
@@ -455,16 +400,6 @@ void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
                 }
             }
             ss->modSub(accum, A, accum, size);
-        } else {
-            int offset = (alen == 1) ? 0 : 1;
-            for (int i = 0; i < M; ++i) {
-                ss->modPow(pow_two, two, i);
-                for (int j = 0; j < size; ++j) {
-                    ss->modMul(pow_two, pow_two, S[i][offset * size + j]);
-                    ss->modAdd(accum[j], accum[j], pow_two);
-                }
-            }
-            ss->modSub(accum, B, accum, size);
         }
         ss->modAdd(result, result, accum, size);
 
@@ -484,7 +419,7 @@ void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
         free(mul_buff_B);
         mpz_clear(two);
         mpz_clear(pow_two);
-        for (int i = 0; i <  size; ++i)
+        for (int i = 0; i < size; ++i)
             mpz_clear(accum[i]);
         free(accum);
 
