@@ -150,8 +150,6 @@ float Open_float(mpz_t *var, int threadID, NodeNetwork nodeNet, SecretShare *ss)
             return result;
         }
     }
-
-    return result;
 }
 
 void Open_print(mpz_t *shares, std::string name, int size, int threadID, NodeNetwork nodeNet, SecretShare *ss) {
