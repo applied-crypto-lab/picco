@@ -4162,8 +4162,8 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 	    }
         if (e1->arraytype == 1 || e2->arraytype == 1) {
             if (e->size != 1) {
-                if (opid != BOP_add && opid != BOP_sub && opid != BOP_div && opid != BOP_mul && opid != BOP_dot && opid != BOP_mod && opid != BOP_eqeq && opid != BOP_geq && opid != BOP_leq && opid != BOP_neq && opid != BOP_gt && opid != BOP_lt && opid != BOP_shl && opid != BOP_shr) { // these are the only supported operations on arrays
-                    parse_error(-1, "'%s' is only supported on arrays of bits. \n", BOP_symbols[opid]); // replace &&
+                if (opid != BOP_add && opid != BOP_sub && opid != BOP_div && opid != BOP_mul && opid != BOP_dot && opid != BOP_mod && opid != BOP_eqeq && opid != BOP_geq && opid != BOP_leq && opid != BOP_neq && opid != BOP_gt && opid != BOP_lt && opid != BOP_shl && opid != BOP_shr && opid != BOP_land && opid != BOP_lor && opid != BOP_bxor) { // these are the only supported operations on arrays
+                    parse_error(-1, "'%s' is only supported on arrays of bits. \n", BOP_symbols[opid]);
                     exit(0); 
                 }
             }
@@ -4227,7 +4227,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, "Type mismatch with respect to public/private data in assignment 1.\n");
+		parse_error(-1, " 1 Type mismatch with respect to public/private data in assignment 1.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){

@@ -46,11 +46,12 @@ char *UOP_symbols[11] =
 int default_len = 32;
 str strs;
 astexpr Astexpr(enum exprtype type, astexpr left, astexpr right) {
-    if (type == COMMALIST && left->type == CONSTVAL && right->type == CONSTVAL) {
-        exit_error(1, "    Invalid initialization using (), line: %d.\n", left->l);
-    }
+    // if (type == COMMALIST && left->type == CONSTVAL && right->type == CONSTVAL) {
+    //     exit_error(1, "    Invalid initialization using (), line: %d.\n", left->l);
+    // } // this disallows all initilizations
     astexpr n = smalloc(sizeof(struct astexpr_));
     n->last_op_hit = 0;
+    n->BOP_tree_length = 0;
     n->type = type;
     n->left = left;
     n->right = right;
@@ -114,9 +115,6 @@ astexpr Operator(enum exprtype type, int opid, astexpr left, astexpr right) {
                 if (opid == UOP_bnot) { 
                     exit_error(1, "        '~' is only supported on arrays of bits. Line: %d. \n", left->l);
                 } 
-                if (opid == UOP_lnot) {
-                    exit_error(1, "       '!' is only supported on arrays of bits. Line: %d. \n", left->l);
-                }
             }
         }
     }

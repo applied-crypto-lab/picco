@@ -28,8 +28,8 @@
 #define CHAR_SIZE 8
 #define SHORT_SIZE 16
 #define LONG_SIZE 64
-#define FLOAT_MAN_SIZE 16
-#define FLOAT_EXP_SIZE 64
+#define FLOAT_MAN_SIZE 32
+#define FLOAT_EXP_SIZE 9
 
 #include <stdio.h>
 
@@ -139,7 +139,8 @@ struct astexpr_ {
     int arraytype;     /* if expr represents an array,  arraytype = 1 */
     int ftype;         /* if expr represents a floating point value ftype = 1 */
     int isptr;
-    int last_op_hit; 
+    int last_op_hit;   /* this marks the last operand on the tree, combined with BOP_tree_length it helps to know when the evaluated results be stored on the assigning variable */
+    int BOP_tree_length;   /* this variable is used to save BOP tree length and keep track of the end of the expression */
     union {
         char *str;     /* Used by strings and constants */
         symbol sym;    /* Used by identifiers/fields */
