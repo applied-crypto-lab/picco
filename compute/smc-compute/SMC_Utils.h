@@ -371,12 +371,20 @@ public:
     void smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
 
     // bitwise operators
+    void smc_band(priv_int *a, int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+    void smc_band(int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
     void smc_band(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
-    void smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
-    void smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
     void smc_band(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+
+    void smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
     void smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    void smc_bxor(priv_int *a, int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+    void smc_bxor(int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+
+    void smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
     void smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    void smc_bor(priv_int *a, int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
+    void smc_bor(int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID);
 
     void smc_bnot(priv_int *a, int size, priv_int *result, int resultlen, std::string type, int threadID);
     void smc_bnot(priv_int a, priv_int result, int resultlen, std::string type, int threadID);
@@ -688,8 +696,7 @@ public:
     std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 #if __RSS__
-    void smc_test_rss(priv_int *A, int *B, int size, int threadID);
-
+    void smc_test_rss(int threadID);
     void smc_rss_benchmark(std::string exp_name, int size, int num_iterations);
     uint getNumShares();
     void offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri);
