@@ -673,7 +673,6 @@ void SMC_Utils::smc_lt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, i
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
 
-
 // int
 void SMC_Utils::smc_lt(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
@@ -733,7 +732,7 @@ void SMC_Utils::smc_gt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, i
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 }
 
-// int 
+// int
 void SMC_Utils::smc_gt(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
@@ -742,7 +741,7 @@ void SMC_Utils::smc_gt(priv_int *a, int *b, int alen, int blen, priv_int *result
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
 
-// // float 
+// // float
 // void SMC_Utils::smc_gt(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 // }
@@ -800,7 +799,7 @@ void SMC_Utils::smc_leq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, 
     ss->modSub(result, 1, result, size);
 }
 
-// int 
+// int
 void SMC_Utils::smc_leq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
@@ -811,7 +810,7 @@ void SMC_Utils::smc_leq(priv_int *a, int *b, int alen, int blen, priv_int *resul
     ss->modSub(result, 1, result, size);
 }
 
-// // float 
+// // float
 // void SMC_Utils::smc_leq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
@@ -1426,78 +1425,77 @@ void SMC_Utils::smc_free_ptr(priv_ptr **ptrs, int num) {
 
 #endif
 
-
+#if __SHAMIR__
 // private float = private int
 void SMC_Utils::smc_int2fl(priv_int value, priv_int *result, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, gamma, K, L, threadID, net, ss);
 }
+// private float = public int
+void SMC_Utils::smc_int2fl(int value, priv_int *result, int gamma, int K, int L, int threadID) {
+    ss_int2fl(value, result, gamma, K, L, threadID, net, ss);
+}
+// private int = private int
+void SMC_Utils::smc_int2int(priv_int value, priv_int result, int gamma1, int gamma2, int threadID) {
+    ss_int2int(value, result, gamma1, gamma2, threadID, net, ss);
+}
+// private int = public int
+void SMC_Utils::smc_int2int(int value, priv_int result, int gamma1, int gamma2, int threadID) {
+    ss_int2int(value, result, gamma1, gamma2, threadID, net, ss);
+}
+// private int = private float
+void SMC_Utils::smc_fl2int(priv_int *value, priv_int result, int K, int L, int gamma, int threadID) {
+    ss_fl2int(value, result, K, L, gamma, threadID, net, ss);
+}
+// private int = public float
+void SMC_Utils::smc_fl2int(float value, priv_int result, int K, int L, int gamma, int threadID) {
+    ss_fl2int(value, result, K, L, gamma, threadID, net, ss);
+}
+// Public float casted to private float
+void SMC_Utils::smc_fl2fl(float value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
+    ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, ss);
+}
+// private float = public float
+void SMC_Utils::smc_fl2fl(priv_int *value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
+    ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, ss);
+}
+#endif
 // private float* = private int* -> array
 void SMC_Utils::smc_int2fl(priv_int *value, priv_int **result, int size, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, size, gamma, K, L, threadID, net, ss);
-}
-// private float = public int 
-void SMC_Utils::smc_int2fl(int value, priv_int *result, int gamma, int K, int L, int threadID) {
-    ss_int2fl(value, result, gamma, K, L, threadID, net, ss);
 }
 // private float* = public int* -> array
 void SMC_Utils::smc_int2fl(int *value, priv_int **result, int size, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, size, gamma, K, L, threadID, net, ss);
 }
 
-
-// private int = private int 
-void SMC_Utils::smc_int2int(priv_int value, priv_int result, int gamma1, int gamma2, int threadID) {
-    ss_int2int(value, result, gamma1, gamma2, threadID, net, ss);
-}
 // private int* = private int* -> array
 void SMC_Utils::smc_int2int(priv_int *value, priv_int *result, int size, int gamma1, int gamma2, int threadID) {
     ss_int2int(value, result, size, gamma1, gamma2, threadID, net, ss);
-}
-// private int = public int 
-void SMC_Utils::smc_int2int(int value, priv_int result, int gamma1, int gamma2, int threadID) {
-    ss_int2int(value, result, gamma1, gamma2, threadID, net, ss);
 }
 // private int* = public int* -> array
 void SMC_Utils::smc_int2int(int *value, priv_int *result, int size, int gamma1, int gamma2, int threadID) {
     ss_int2int(value, result, size, gamma1, gamma2, threadID, net, ss);
 }
 
-
-// private int = private float 
-void SMC_Utils::smc_fl2int(priv_int *value, priv_int result, int K, int L, int gamma, int threadID) {
-    ss_fl2int(value, result, K, L, gamma, threadID, net, ss);
-}
 // private int* = private float* -> array
 void SMC_Utils::smc_fl2int(priv_int **value, priv_int *result, int size, int K, int L, int gamma, int threadID) {
     ss_fl2int(value, result, size, K, L, gamma, threadID, net, ss);
 }
-// private int = public float
-void SMC_Utils::smc_fl2int(float value, priv_int result, int K, int L, int gamma, int threadID) {
-    ss_fl2int(value, result, K, L, gamma, threadID, net, ss);
-}
 // private int* = public float* -> array
 void SMC_Utils::smc_fl2int(float *value, priv_int *result, int size, int K, int L, int gamma, int threadID) {
-    ss_fl2int(value, result, size,  K, L, gamma, threadID, net, ss);
+    ss_fl2int(value, result, size, K, L, gamma, threadID, net, ss);
 }
 
-
-// private float = public float 
-void SMC_Utils::smc_fl2fl(priv_int *value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
-    ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, ss);
-}
 // private float* = public float* -> array
 void SMC_Utils::smc_fl2fl(priv_int **value, priv_int **result, int size, int K1, int L1, int K2, int L2, int threadID) {
     ss_fl2fl(value, result, size, K1, L1, K2, L2, threadID, net, ss);
-}
-// Public float casted to private float
-void SMC_Utils::smc_fl2fl(float value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
-    ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, ss);
 }
 // Public float* casted to private float*
 void SMC_Utils::smc_fl2fl(float *value, priv_int **result, int size, int K1, int L1, int K2, int L2, int threadID) {
     ss_fl2fl(value, result, size, K1, L1, K2, L2, threadID, net, ss);
 }
 
+#if __SHAMIR__
 /************************************ INTEGER BATCH ****************************************/
 void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, int index_array_flag_1, int index_array_flag_2, int index_array_flag_3) {
     int index_array_flags[3] = {index_array_flag_1, index_array_flag_2, index_array_flag_3};
@@ -1642,14 +1640,9 @@ void SMC_Utils::smc_batch(priv_int **a, priv_int *b, priv_int *result, int alen,
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
 }
 
-void SMC_Utils::smc_batch_dot(priv_int **a, priv_int **b, int size, int array_size, int *index_array, priv_int *result, int threadID) {
-    ss_batch_dot(a, b, size, array_size, index_array, result, threadID, net, ss);
-}
-
 // first param: two-dim private int
 // second param: two-dim private int
 // assignment param: two-dim private int
-
 void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, int index_array_flag_1, int index_array_flag_2, int index_array_flag_3) {
     int index_array_flags[3] = {index_array_flag_1, index_array_flag_2, index_array_flag_3};
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
@@ -1754,7 +1747,6 @@ void SMC_Utils::smc_batch(priv_int **a, priv_int ***b, priv_int ***result, int a
     int index_array_flags[3] = {index_array_flag_1, index_array_flag_2, index_array_flag_3};
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
 }
-
 // first parameter: two-dim float
 // second parameter: one-dim float
 // assignment parameter: two-dim float
@@ -1829,6 +1821,12 @@ void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int *result, int alen
     int index_array_flags[3] = {index_array_flag_1, index_array_flag_2, index_array_flag_3};
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
 }
+#endif
+
+void SMC_Utils::smc_batch_dot(priv_int **a, priv_int **b, int size, int array_size, int *index_array, priv_int *result, int threadID) {
+    ss_batch_dot(a, b, size, array_size, index_array, result, threadID, net, ss);
+}
+
 
 /* conversion from public integer to private float*/
 void SMC_Utils::smc_batch_int2fl(int *a, priv_int **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
@@ -1948,7 +1946,7 @@ std::string uint8PtrToString(const uint8_t *data, size_t length) {
     return std::string(data, data + length);
 }
 
-// seed_map - contains binary encodings of access sets T 
+// seed_map - contains binary encodings of access sets T
 // (as defined in Baccarini et al., "Multi-Party Replicated Secret Sharing over a Ring with Applications to Privacy-Preserving Machine Learning," 2023)
 // 2*KEYSIZE - 16 bytes for
 void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) {

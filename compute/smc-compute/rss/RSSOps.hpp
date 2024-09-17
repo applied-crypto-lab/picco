@@ -130,7 +130,7 @@ void ss_single_fop_arithmetic(T **result, T **a, T **b, int resultlen_sig, int r
 }
 
 template <typename T>
-void ss_batch_fop_comparison(T **result, float* a, T ***b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_batch_fop_comparison(T **result, float *a, T ***b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 template <typename T>
@@ -300,43 +300,48 @@ void ss_privindex_write(T **indices, T ****array, int len_sig, int len_exp, T **
     return;
 }
 
+// template <typename T>
+// void ss_int2fl(int value, T **result, int gamma, int K, int L, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+//     return;
+// }
+
 template <typename T>
-void ss_int2fl(int value, T **result, int gamma, int K, int L, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_int2fl(int *value, T ***result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_int2fl(T *value, T **result, int gamma, int K, int L, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_int2fl(T **value, T ***result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_int2int(int value, T *result, int gamma1, int gamma2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_int2int(int *value, T **result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_int2int(T *value, T *result, int gamma1, int gamma2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_int2int(T **value, T **result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_fl2int(float value, T *result, int K, int L, int gamma, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_fl2int(float *value, T **result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_fl2int(T **value, T *result, int K, int L, int gamma, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_fl2int(T ***value, T **result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_fl2fl(float value, T **result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_fl2fl(float *value, T ***result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
 template <typename T>
-void ss_fl2fl(T **value, T **result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+void ss_fl2fl(T ***value, T ***result,int size,  int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     return;
 }
 
