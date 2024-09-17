@@ -24,6 +24,7 @@
 #include "Mult.hpp"
 #include "bit_utils.hpp"
 #include <cstdint>
+#include <cstring>
 
 // input:  a_i [numShares][size] of bits shared in Z_2, stored in a T
 // output: out [numShares][1] a bit in Z_2 which is the k-ary OR of all the bits a_i (a_0 | a_1 | ... | a_size)
@@ -47,15 +48,15 @@ void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetw
     int tmp_size = size;
     int new_tmp_size;
 
-    uint8_t idx;
-    uint8_t idx2;
+    uint idx;
+    uint idx2;
     uint8_t bpos_in;
     uint8_t bpos_out;
     // performing the first packing
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            idx = i >> 3;
-            bpos_in = i % 8;
+            idx = (i >> 3);
+            bpos_in = uint8_t(i % 8);
             u[s][idx] = SET_BIT(u[s][idx], bpos_in, uint8_t(GET_BIT(a_i[s][i], 0)));
         }
     }
@@ -74,10 +75,10 @@ void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetw
         }
 
         if (tmp_size & 1) {
-            idx = tmp_size >> 3;
-            idx2 = new_tmp_size >> 3;
-            bpos_in = (tmp_size - 1) % 8;
-            bpos_out = new_tmp_size % 8;
+            idx = (tmp_size >> 3);
+            idx2 = (new_tmp_size >> 3);
+            bpos_in = uint8_t((tmp_size - 1) % 8);
+            bpos_out = uint8_t(new_tmp_size % 8);
 
             for (size_t s = 0; s < numShares; s++) {
                 u[s][idx2] = SET_BIT(u[s][idx2], bpos_out, GET_BIT(u[s][idx], bpos_in));
@@ -122,9 +123,10 @@ void process_bytes(uint8_t **a, uint8_t **b, uint8_t **in_buff, int size, replic
     }
 
     // there are < 16 leftover bits that must be moved/split
-    uint8_t idx_ab = num_bytes; 
+    uint idx_ab = num_bytes;
     // static, since at this point it will always be in the "last " byte position
-    uint8_t j, idx_in;
+    uint8_t j;
+    uint idx_in;
     if (remainder) {
         for (size_t s = 0; s < numShares; s++) {
             j = 0;
@@ -135,7 +137,7 @@ void process_bytes(uint8_t **a, uint8_t **b, uint8_t **in_buff, int size, replic
             }
             for (uint8_t i = (remainder >> 1); i < remainder; i++) {
                 // idx_in may move to the second of the leftover bytes, which is why we need to recompute it each iteration
-                idx_in = 2 * (num_bytes) + (i / 8);
+                idx_in = 2 * (num_bytes) + uint(i / 8);
                 b[s][idx_ab] = SET_BIT(b[s][idx_ab], j, GET_BIT(in_buff[s][idx_in], uint8_t(i % 8)));
                 j++;
             }
