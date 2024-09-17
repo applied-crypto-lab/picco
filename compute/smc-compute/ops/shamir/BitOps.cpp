@@ -37,6 +37,53 @@ void LogicalOr(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int result
     free(C);
 }
 
+// first input is private, second is public
+void BitAnd(mpz_t *A, int *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+    if ((alen == 1) and (blen == 1)) {
+        ss->modMul(result, A, B, size);
+    } else {
+        mpz_t two, pow_two;
+        mpz_init_set_ui(two, 2);
+        mpz_init(pow_two);
+        int M = std::min(alen, blen);
+
+        // will store the product of A's bits and B's bits
+        mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * M * size);
+        for (int i = 0; i < M * size; i++) {
+            mpz_init(tmp[i]);
+        }
+        if (alen > 1) {
+            // we only need to bitDecompose A if alen > 1
+            mpz_t **S = (mpz_t **)malloc(sizeof(mpz_t *) * (M + 1));
+            for (int i = 0; i < (M + 1); i++) {
+                S[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
+                for (int j = 0; j < size; j++)
+                    mpz_init(S[i][j]);
+            }
+            doOperation_bitDec(S, A, M, M, size, threadID, net, ss);
+            for (size_t i = 0; i < M; i++)
+                for (size_t j = 0; j < size; j++)
+                    mpz_set(tmp[i * size + j], S[i][j]);
+            for (int i = 0; i < (M + 1); i++) {
+                for (int j = 0; j < size; j++)
+                    mpz_clear(S[i][j]);
+                free(S[i]);
+            }
+            free(S);
+        } else {
+        }
+
+        // reassembly
+        for (int i = 0; i < M; ++i) {
+            ss->modPow(pow_two, two, i);
+            for (int j = 0; j < size; ++j) {
+                ss->modMul(pow_two, pow_two, tmp[i * size + j]);
+                ss->modAdd(result[j], result[j], pow_two);
+            }
+        }
+    }
+}
+
 // bitwise AND
 // we guarantee (in SMC_utils) that the first argument is always the one with the longer bitlength (alen > blen).
 // If in the calling function blen > alen, we reverse the order of the inputs
@@ -62,6 +109,7 @@ void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
             for (int j = 0; j < sz_offset * size; j++)
                 mpz_init(S[i][j]);
         }
+
         mpz_t *buffer = (mpz_t *)malloc(sizeof(mpz_t) * sz_offset * size);
         for (int i = 0; i < sz_offset * size; i++)
             mpz_init(buffer[i]);
@@ -147,6 +195,9 @@ void BitAnd(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
         }
         free(S);
     }
+}
+
+void BitOr(mpz_t *A, int *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 }
 
 // bitwise OR, virtually identical to XOR without multiplying the intermediary product by "2"
@@ -431,4 +482,7 @@ void BitXor(mpz_t *A, mpz_t *B, mpz_t *result, int alen, int blen, int resultlen
         }
         free(S);
     }
+}
+
+void BitXor(mpz_t *A, int *B, mpz_t *result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 }
