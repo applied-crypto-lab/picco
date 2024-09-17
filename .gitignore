@@ -48,3 +48,8 @@ shares/
 
 compute/Error-Limitations/
 compute/running_files
+compute/RSS_Testing.c
+compute/rss_test.c
+compute/rss_test_data
+compute/compile-usr-prog.sh
+compute/CMakeLists.txt

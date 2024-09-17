@@ -1504,10 +1504,26 @@ replicatedSecretShare<T>::~replicatedSecretShare() {
 
 template <typename T>
 void ss_batch_free_operator(T ***op, int size) {
+    for (int j = 0; j < extra_dim; j++) {
+        for (int i = 0; i < size; i++) {
+            mpz_clear((*op)[j][i]);
+        }
+        free(op[j]);
+    }
+    free(*op)
 }
 
 template <typename T>
 void ss_batch_free_operator(T ****op, int size) {
+    for (int k = 0; k < extra_dim; k++) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < 4; j++)
+                mpz_clear((*op)[k][i][j]);
+            free((*op)[k][i]);
+        }
+        free((*op)[k]);
+    }
+    free(*op);
 }
 
 // takes an array of public values and creates sparse
