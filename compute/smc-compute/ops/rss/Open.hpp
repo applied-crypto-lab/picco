@@ -304,7 +304,7 @@ void Open_print(T **shares,std::string name,  int size, int threadID, NodeNetwor
         }
 
         for (size_t i = 0; i < size; i++) {
-            std::cout << name << "[" << i << "] : " << result[i] << endl;
+            std::cout << name << "[" << i << "]: " << result[i] << endl;
         }
         delete[] result;
     } catch (const std::runtime_error &ex) {
@@ -382,7 +382,7 @@ void Open_Bitwise_print(T **shares, std::string name, int size, int threadID, No
         }
 
         for (size_t i = 0; i < size; i++) {
-            std::cout << name << "[" << i << "] : " << result[i] << endl;
+            std::cout << name << "[" << i << "]: " << result[i] << endl;
         }
         delete[] result;
     } catch (const std::runtime_error &ex) {

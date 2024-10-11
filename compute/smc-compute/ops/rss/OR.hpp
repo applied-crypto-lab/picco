@@ -109,13 +109,11 @@ template <typename T>
 void process_bytes(uint8_t **a, uint8_t **b, uint8_t **in_buff, int size, replicatedSecretShare<T> *ss) {
 
     static uint numShares = ss->getNumShares();
-
     int even_size = size - (size % 2);
     int num_bytes = even_size / 16;
     int remainder = even_size % 16;
 
-    // we have enough data to memcpy
-    if (num_bytes) {
+    if (num_bytes) { // we have enough data to memcpy
         for (size_t s = 0; s < numShares; s++) {
             memcpy(a[s], in_buff[s], num_bytes);
             memcpy(b[s], in_buff[s] + num_bytes, num_bytes);

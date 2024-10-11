@@ -27,7 +27,7 @@
 // v_fixed is a single value (still stored in a 2D array for consistency), which we are comparing to all of the values in v_array
 // NOTE: output is a SINGLE BIT shared in Z_2, but stored in a full-sized priv_int T
 template <typename T>
-void BitEQZ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void BitEQ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     static uint numShares = ss->getNumShares();
     T **xor_res = new T *[numShares];
@@ -38,16 +38,20 @@ void BitEQZ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size,
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, -1);
 
+    // Open_Bitwise_print(v_fixed, "v_fixed", 1, -1, nodeNet, ss);
+    // Open_Bitwise_print(v_array, "v_array", size, -1, nodeNet, ss);
+
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            xor_res[s][i] = v_array[s][i] ^ v_fixed[s][0]; 
+            xor_res[s][i] = v_array[s][i] ^ v_fixed[s][0];
         }
     }
+
     Rss_k_OR_L(output, xor_res, size, ring_size, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            output[s][i] = (T(1) & ai[s]) ^ output[s][i]; 
+            output[s][i] = (T(1) & ai[s]) ^ output[s][i];
         }
     }
 
@@ -57,4 +61,3 @@ void BitEQZ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size,
     }
     delete[] xor_res;
 }
-
