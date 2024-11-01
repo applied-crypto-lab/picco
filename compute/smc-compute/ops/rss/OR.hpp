@@ -57,7 +57,7 @@ void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetw
         for (size_t i = 0; i < size; i++) {
             idx = (i >> 3);
             bpos_in = uint8_t(i % 8);
-            u[s][idx] = SET_BIT(u[s][idx], bpos_in, uint8_t(GET_BIT(a_i[s][i], 0)));
+            u[s][idx] = SET_BIT(u[s][idx], bpos_in, uint8_t(GET_BIT(a_i[s][i], T(0))));
         }
     }
 

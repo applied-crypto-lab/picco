@@ -26,6 +26,7 @@
 #include "../ops/rss/MultSparse.hpp"
 #include "../ops/rss/Norm.hpp"
 #include "../ops/rss/Open.hpp"
+#include "../ops/rss/OR.hpp"
 #include "../ops/rss/Pow2.hpp"
 #include "../ops/rss/PrivIndex.hpp"
 #include "../ops/rss/RNTE.hpp"
