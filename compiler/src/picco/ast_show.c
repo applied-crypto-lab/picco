@@ -63,7 +63,6 @@ int BRACEDINIT_array_decl_tmp_counter = 0; /* This is the counter to keep track 
 int BRACEDINIT_array_decl_tmp_type = 0; /* This is to keep track of the type. */
 int BRACEDINIT_array_decl_tmp_size = 0; /* This is to store the size of these arrays */
 str BRACEDINIT_array_smcset; /* This stores the smc_set functions to print it as needed. */
-int multi_batch_op_flag = 0; /* This flag is used to keeo track of multi op in one line used on a batch statement and handle it differently */
 str index_array_result;
 str index_array_right;
 str index_array_left;
@@ -276,7 +275,7 @@ void ast_multi_op_batch_compute_stmt(aststmt main_tree, aststmt tree, int batch_
             // printf("ASS\n");
             // bb on tree->u.expr->right->right->right->left->u->sym->name -> if the last opid is */ 
             // pb on tree->u.expr->right->right->left->u.sym->name -> if the last opid is +-
-            if (tree->u.expr->right->right->right != NULL && tree->u.expr->right->right->right->left != NULL) {
+            if (tree->u.expr->right->right->right != NULL && tree->u.expr->right->right->right->left != NULL) { /// bbbbbbbbbbbbbbbb
                 tree->u.expr->right->right->right->left->last_op_hit = 1;
                 // printf("\n%s\n", tree->u.expr->right->right->right->left->u.sym->name);
             } else if (tree->u.expr->right->right->left != NULL) {
@@ -285,89 +284,22 @@ void ast_multi_op_batch_compute_stmt(aststmt main_tree, aststmt tree, int batch_
             }
             // count tree length 
             int counter = 0;
-            last_op_on_the_expr_tree(tree->u.expr, &counter);
+            last_op_on_the_expr_tree3(tree->u.expr, &counter);
             tree->u.expr->left->BOP_tree_length = counter;
             int BOP_length_counter = 0;
             (*cast_index)++;
             ast_mult_op_batch_expr_show2(main_tree, tree->u.expr->left, tree->u.expr, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, 0, " ", &index_used, &BOP_length_counter, *cast_index);
+
+            // we need an smcset after this
+            // indent();
+            // indent();
+            // fprintf(output, "__s->smc_set(_picco_batch_tmp_array%d, %s, %d, %d, %s, \"int\", %d);\n", 1, tree->u.expr->left->left->u.sym->name, tree->u.expr->left->left->size, tree->u.expr->left->left->size, tree->u.expr->left->left->arraysize->u.str, tree->u.expr->left->left->thread_id);
+
             break;
         }
         break;
     default:
         break;
-    }
-}
-
-
-void last_op_on_the_expr_tree2(astexpr tree, int *counter) {
-    if (tree == NULL) {
-        return;
-    }
-    switch (tree->type) {
-    case IDENT:
-        break;
-    case CONSTVAL:
-        break;
-    case STRING: 
-        break;
-    case ARRAYIDX:
-        last_op_on_the_expr_tree2(tree->left, counter);
-        if (tree->left != NULL) {
-            last_op_on_the_expr_tree2(tree->left, counter);
-        }
-        if (tree->right != NULL) {
-            last_op_on_the_expr_tree2(tree->right, counter);
-        }
-        break;
-    case BRACEDINIT:
-        break;
-    case CASTEXPR:
-        break;
-    case CONDEXPR:
-        break;
-    case UOP: 
-        break;
-    case BOP:
-        // printf("BOP IS HIT");
-        // if (tree->type == BOP) {
-        //     (*counter)++;
-        // }
-        if (tree->left->flag == PUB && tree->right->flag == PUB) {
-            last_op_on_the_expr_tree2(tree->left, counter);
-            last_op_on_the_expr_tree2(tree->right, counter);
-        } else {
-            (*counter)++;
-            if (tree->left->index > 0) {
-                last_op_on_the_expr_tree2(tree->left, counter);
-            }
-            if (tree->right->index > 0) {
-                last_op_on_the_expr_tree2(tree->right, counter);
-            } 
-            // LEFT
-            if (tree->left->index <= 0) { 
-                if (tree->left->type == IDENT) {
-                } else {
-                    last_op_on_the_expr_tree2(tree->left, counter);
-                }
-            }
-            // RIGHT
-            if (tree->right->index <= 0){ 
-                if (tree->right->type == IDENT) {
-                } else { 
-                    last_op_on_the_expr_tree2(tree->right, counter);
-                }  
-            } 
-            if (tree->opid == BOP_dot) {
-                if (tree->left->arraysize != NULL) 
-                    last_op_on_the_expr_tree2(tree->left->arraysize, counter);
-            } 
-        }
-        break;
-    case ASS:
-        last_op_on_the_expr_tree2(tree->right, counter);
-        break;
-    default:
-        fprintf(stderr, "[last_op_on_the_expr_tree2]: b u g !!\n");
     }
 }
 
@@ -401,6 +333,7 @@ void last_op_on_the_expr_tree(astexpr tree, int *counter) {
     case UOP: 
         break;
     case BOP:
+        // printf("BOP IS HIT");
         // if (tree->type == BOP) {
         //     (*counter)++;
         // }
@@ -444,217 +377,142 @@ void last_op_on_the_expr_tree(astexpr tree, int *counter) {
 }
 
 
+void last_op_on_the_expr_tree3(astexpr tree, int *counter) {
+    if (tree == NULL) {
+        return;
+    }
+    switch (tree->type) {
+    case IDENT:
+        break;
+    case CONSTVAL:
+        break;
+    case STRING: 
+        break;
+    case ARRAYIDX:
+        last_op_on_the_expr_tree3(tree->left, counter);
+        if (tree->left != NULL) {
+            last_op_on_the_expr_tree3(tree->left, counter);
+        }
+        if (tree->right != NULL) {
+            last_op_on_the_expr_tree3(tree->right, counter);
+        }
+        break;
+    case BRACEDINIT:
+        break;
+    case CASTEXPR:
+        break;
+    case CONDEXPR:
+        break;
+    case UOP: 
+        break;
+    case BOP:
+        // if (tree->type == BOP) {
+        //     (*counter)++;
+        // }
+        if (tree->left->flag == PUB && tree->right->flag == PUB) {
+            last_op_on_the_expr_tree3(tree->left, counter);
+            last_op_on_the_expr_tree3(tree->right, counter);
+        } else {
+            (*counter)++;
+            if (tree->left->index > 0) {
+                last_op_on_the_expr_tree3(tree->left, counter);
+            }
+            if (tree->right->index > 0) {
+                last_op_on_the_expr_tree3(tree->right, counter);
+            } 
+            // LEFT
+            if (tree->left->index <= 0) { 
+                if (tree->left->type == IDENT) {
+                } else {
+                    last_op_on_the_expr_tree3(tree->left, counter);
+                }
+            }
+            // RIGHT
+            if (tree->right->index <= 0){ 
+                if (tree->right->type == IDENT) {
+                } else { 
+                    last_op_on_the_expr_tree3(tree->right, counter);
+                }  
+            } 
+            if (tree->opid == BOP_dot) {
+                if (tree->left->arraysize != NULL) 
+                    last_op_on_the_expr_tree3(tree->left->arraysize, counter);
+            } 
+        }
+        break;
+    case ASS:
+        last_op_on_the_expr_tree3(tree->right, counter);
+        break;
+    default:
+        fprintf(stderr, "[last_op_on_the_expr_tree3]: b u g !!\n");
+    }
+}
+
+
 void ast_stmt_batch_show(aststmt tree, branchnode current) {
     int batch_index = 0;
     int statement_index = 0; // this tells us how many tmp array to create for storing the indices 
     int narray_element_index = 0;
     int private_index = 0;
     int private_selection_index = 0;
+    int multi_op_per_line = 0;
     batch_stack = control_sequence_stack_new();
     private_selection_stack = control_sequence_stack_new();
-    ast_batch_iter_tree(tree, &batch_index, &statement_index, &private_selection_index);
+    ast_batch_iter_tree(tree, &batch_index, &statement_index, &private_selection_index, &multi_op_per_line);
     fprintf(output, "{\n");
     indlev++;
     indent();
     // this generates the first counter for batch 
-    ast_batch_declare_counter(tree, "_picco_batch_counter", batch_index, current);
+    ast_batch_declare_counter(tree, "_picco_batch_counter", statement_index, current);
     // this generates the second counter for batch 
-    ast_batch_declare_counter(tree, "_picco_ind", batch_index, current);
+    ast_batch_declare_counter(tree, "_picco_ind", statement_index, current);
     batch_index = 0;
     // this generates the for loop to count the batch counter 
-    ast_batch_compute_counter(tree, &batch_index, current);
+    for (int i = 0; i < statement_index; i++) {    
+        batch_index = i;
+        ast_batch_compute_counter(tree, &batch_index, current);
+    }
     // this allocates memory to the array that will be used 
     ast_batch_allocate_counter();
     // create an array for holding the variables in the expression
     batch_index = 0;
+    printf("narray_element_index %d\n", narray_element_index);
     ast_batch_declare_array_for_narrayelement(tree, &narray_element_index, &private_index, &batch_index);
-
-    if (statement_index == 1) { // if there is only one statement -> it is either the old case or the new case
-        if (tree->body->u.expr->right->left->type == BOP && tree->body->u.expr->right->type == BOP) {
-            multi_batch_op_flag = 1;
-        } else {
-            multi_batch_op_flag = 0;
-        }
-    } else if (statement_index > 1) { // if there is more than one statement -> split the statements and handle each one based on the old case or the new case
-        multi_batch_op_flag = 2;
-    } 
+    printf("narray_element_index %d\n", narray_element_index);
 
     // The newly added version to support multiple batch operations in one line 
-    if (multi_batch_op_flag == 1){
-        // Case 1 - new case to support multiple operations 
-        if (tree->body->u.expr->right != NULL && tree->body->u.expr->right->left != NULL){
-            delete_tmp_array[3 * (narray_element_index)] = tree->body->u.expr->right->left->flag;
-            delete_tmp_array[3 * (narray_element_index) + 1] = tree->body->u.expr->right->left->ftype;
-            delete_tmp_array[3 * (narray_element_index) + 2] = batch_index;
-        }
-        (narray_element_index)++;
-        char *name = (char *)malloc(sizeof(char) * buffer_size);
-        sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", narray_element_index, batch_index);
+    batch_index = 0;
+    statement_index = 0;
+    narray_element_index = 0;
+    private_index = 0;
 
-        // TMP array var for 2nd tmp 
-        indent();
-        fprintf(output, "int _picco_batch_counter%d = 0;\n", 2);
-        ast_batch_compute_counter(tree, &batch_index, current);
-
-        if (tree->body->u.expr->flag == PUB) {
-            indent();
-            if (tree->body->u.expr->ftype == 0)
-                fprintf(output, "int* _picco_batch_tmp_array%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-            else if (tree->body->u.expr->ftype == 1)
-                fprintf(output, "float* _picco_batch_tmp_array%d = (float*)malloc(sizeof(float) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-        } else if (tree->body->u.expr->flag == PRI) {
-            indent();
-            if (tree->body->u.expr->ftype == 0) {
-                fprintf(output, "priv_int* _picco_batch_tmp_array%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-                indent();
-                fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
-                indent();
-                fprintf(output, "{\n");
-                indlev++;
-                indent();
-                fprintf(output, "ss_init(_picco_batch_tmp_array%d[_picco_i]);\n", narray_element_index);
-                indlev--;
-                indent();
-                fprintf(output, "}\n");
-            } else if (tree->body->u.expr->ftype == 1) {
-                fprintf(output, "priv_int** _picco_batch_tmp_array%d = (priv_int**)malloc(sizeof(priv_int*) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-                indent();
-                fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
-                indent();
-                fprintf(output, "{\n");
-                indlev++;
-                indlev++;
-                indent();
-                indent();
-                fprintf(output, "_picco_batch_tmp_array%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n", narray_element_index);
-                indent();
-                fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-                indlev++;
-                indent();
-                indent();
-                fprintf(output, "ss_init(_picco_batch_tmp_array%d[_picco_i][_picco_j]);\n", narray_element_index);
-                indlev--;
-                indent();
-                fprintf(output, "}\n");
-            }
-        }
-        
-        batch_index--;
-        int index_used = 0;
-        int cast_index = 0;
-        int counter = 0;
-        if (tree->body->u.expr->right->right->right != NULL && tree->body->u.expr->right->right->right->left != NULL) {
-            tree->body->u.expr->right->right->right->left->last_op_hit = 1;
-        } else if (tree->body->u.expr->right->right->left != NULL) {
-            tree->body->u.expr->right->right->left->last_op_hit = 1;
-        }
-        last_op_on_the_expr_tree2(tree->body->u.expr, &counter);
-        tree->u.expr->BOP_tree_length = counter;
-        int BOP_length_counter = 0;
-        // printf("\ncounter %d", counter);
-        // printf("tree->u.expr->BOP_tree_length %d\n", tree->u.expr->BOP_tree_length);
-        ast_mult_op_batch_expr_show(tree, tree->body->u.expr, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, 0, " ", &index_used, &BOP_length_counter, cast_index);
-
-        // we need an smcset after this 
-        indent();
-        indent();
-        fprintf(output, "__s->smc_set(%s, _picco_batch_tmp_array%d, %d, %d, %s, \"int\", %d);\n", tree->body->u.expr->left->left->u.sym->name, index_used, tree->body->u.expr->left->left->size, tree->body->u.expr->left->left->size, tree->body->u.expr->left->left->arraysize->u.str, tree->body->u.expr->left->left->thread_id);
-
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", batch_index, batch_index, batch_index);
-        free(name);            
-        batch_index++;
-        // the tmp arrays should get cleared here 
-
-    } else if (multi_batch_op_flag == 2){
-        // Case 2 - new case to support multiple operations that occur in the same loop with other assignment operations of the same or different types 
-        if (tree->u.expr->right != NULL && tree->u.expr->right->left != NULL){
-            delete_tmp_array[3 * (narray_element_index)] = tree->u.expr->right->left->flag;
-            delete_tmp_array[3 * (narray_element_index) + 1] = tree->u.expr->right->left->ftype;
-            delete_tmp_array[3 * (narray_element_index) + 2] = batch_index;
-        }
-        (narray_element_index)++;
-        char *name = (char *)malloc(sizeof(char) * buffer_size);
-        sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", narray_element_index, batch_index);
-
-        // TMP array var for 2nd tmp 
-        indent();
-        fprintf(output, "int _picco_batch_counter%d = 0;\n", 2);
-        ast_batch_compute_counter(tree->body->body, &batch_index, current);
-
-        if (tree->body->body->u.expr->flag == PUB) {
-            indent();
-            if (tree->body->body->u.expr->ftype == 0)
-                fprintf(output, "int* _picco_batch_tmp_array%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-            else if (tree->body->body->u.expr->ftype == 1)
-                fprintf(output, "float* _picco_batch_tmp_array%d = (float*)malloc(sizeof(float) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-        } else if (tree->body->body->u.expr->flag == PRI) {
-            indent();
-            if (tree->body->body->u.expr->ftype == 0) {
-                fprintf(output, "priv_int* _picco_batch_tmp_array%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-                indent();
-                fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
-                indent();
-                fprintf(output, "{\n");
-                indlev++;
-                indent();
-                fprintf(output, "ss_init(_picco_batch_tmp_array%d[_picco_i]);\n", narray_element_index);
-                indlev--;
-                indent();
-                fprintf(output, "}\n");
-            } else if (tree->body->body->u.expr->ftype == 1) {
-                fprintf(output, "priv_int** _picco_batch_tmp_array%d = (priv_int**)malloc(sizeof(priv_int*) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
-                indent();
-                fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
-                indent();
-                fprintf(output, "{\n");
-                indlev++;
-                indlev++;
-                indent();
-                indent();
-                fprintf(output, "_picco_batch_tmp_array%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n", narray_element_index);
-                indent();
-                fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-                indlev++;
-                indent();
-                indent();
-                fprintf(output, "ss_init(_picco_batch_tmp_array%d[_picco_i][_picco_j]);\n", narray_element_index);
-                indlev--;
-                indent();
-                fprintf(output, "}\n");
-            }
-        }
+    // fprintf(output, "AFTER THIS!!!\n");
     
-        // call the function to handle each expression 
-        int cast_index = 0;
-        ast_multi_op_batch_compute_stmt(tree, tree, batch_index, statement_index, private_selection_index, narray_element_index, private_index, current, &cast_index);
+    // This is where the whole for loop, index array creation and old BOP functions gets handled 
+    ast_batch_compute_index(tree, &batch_index, &statement_index, &narray_element_index, delete_tmp_array, &private_index, &private_selection_index, current);
+    
+    // fprintf(output, "BEFORE THIS!!!\n");
 
+    // re-initialize all control variables.
+    batch_index = 0;
+    statement_index = 0;
+    private_selection_index = 0;
+    narray_element_index = 0;
+    private_index = 0;
+    // This is where the smc_batch functions get printed - old code now it is replaced with both ast_batch_compute_index and ast_batch_compute_stmt done inside ast_batch_compute_index for simplicity and for adding support for more than one op used in an expression
+    // ast_batch_compute_stmt(tree, &batch_index, &statement_index, &private_selection_index, &narray_element_index, &private_index, current);
+    if (tree->body->type == SELECTION) { 
+        indlev++;
         indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", batch_index, batch_index, batch_index);
-        batch_index++;
-        // the tmp arrays should get cleared here 
-    } else { 
-        // Case 3 - old code is used for the old case that handles single op only 
-        batch_index = 0;
-        statement_index = 0;
-        narray_element_index = 0;
-        private_index = 0;
-        
-        // This is where the whole for loop, index array creation and old BOP functions gets handled 
-        ast_batch_compute_index(tree, &batch_index, &statement_index, &narray_element_index, delete_tmp_array, &private_index);
-
-        // re-initialize all control variables.
-        batch_index = 0;
-        statement_index = 0;
-        private_selection_index = 0;
-        narray_element_index = 0;
-        private_index = 0;
-        // This is where the smc_batch functions get printed 
+        fprintf(output, "_picco_ind%d++;\n", batch_index);
+        indlev--;
+        indent();
+        fprintf(output, "}\n");
+        indlev--;
         ast_batch_compute_stmt(tree, &batch_index, &statement_index, &private_selection_index, &narray_element_index, &private_index, current);
-        ast_batch_clear_counter(private_selection_index, narray_element_index, delete_tmp_array);
     }
+    ast_batch_clear_counter(private_selection_index, narray_element_index, delete_tmp_array);
 
-    // Need this part for both versions
     indlev--;
     indent();
     fprintf(output, "}\n");
@@ -883,13 +741,13 @@ void ast_batch_print_stmt_BOP(astexpr tree, int batch_index, int *narray_element
         ast_batch_print_stmt_dimension(rightdim, tree->right);
         strcpy(op, BOP_symbols[tree->opid]);
     } else if ((tree->left->type == ARRAYIDX && tree->left->flag == PRI) && !(tree->right->type == ARRAYIDX && tree->right->flag == PRI)) {
-        (*narray_element_index)++;
+        // (*narray_element_index)++;
         str_printf(rightop, "_picco_batch_tmp_array%d", *narray_element_index);
         ast_batch_print_stmt_operator(leftop, batch_index, private_index, tree->left);
         ast_batch_print_stmt_dimension(leftdim, tree->left);
         strcpy(op, BOP_symbols[tree->opid]);
     } else if (!(tree->left->type == ARRAYIDX && tree->left->flag == PRI) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) {
-        (*narray_element_index)++;
+        // (*narray_element_index)++;
         str_printf(leftop, "_picco_batch_tmp_array%d", *narray_element_index);
         ast_batch_print_stmt_operator(rightop, batch_index, private_index, tree->right);
         ast_batch_print_stmt_dimension(rightdim, tree->right);
@@ -983,7 +841,7 @@ void ast_compute_var_size(astexpr tree, char *var_size) {
     else
         sprintf(var_size, "%d, %d, %d, %d, %d, %d", alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp);
 }
-// aaaaaaaaaaaaaaaaaaaaaaaaaaa
+
 void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, int *narray_element_index, int *private_index, branchnode current) {
     str leftop, rightop, assignop;
     str leftdim, rightdim, assigndim;
@@ -1040,7 +898,7 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
 
     if (tree->u.expr->type == ASS && tree->u.expr->opid == ASS_eq) {
         // for smc_set
-        if (is_private_indexed(tree->u.expr->left)) {
+        if (tree->u.expr->left != NULL && is_private_indexed(tree->u.expr->left)) {
             (*private_index)++;
             privindex = (*private_index);
             sprintf(name, "_picco_private_indexed_outputarray%d", privindex);
@@ -1084,7 +942,7 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
         op[strlen(ASS_symbols[tree->u.expr->opid]) - 1] = '\0';
 
         if (tree->u.expr->left->type == ARRAYIDX) {
-            if (is_private_indexed(tree->u.expr->left)) {
+            if (tree->u.expr->left != NULL && is_private_indexed(tree->u.expr->left)) {
                 (*private_index)++;
                 privindex = (*private_index);
                 sprintf(name, "_picco_private_indexed_outputarray%d", privindex);
@@ -1137,7 +995,7 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
         else if (!strcmp(str_string(rightop), "") && !strcmp(str_string(leftop), ""))
             fprintf(output, "__s->smc_batch(NULL, NULL, %s, %s, %s, %s, %s, %s, %s, %s, _picco_batch_index_array%d, _picco_batch_counter%d, \"%s\", %d, 1, 1, 1);\n", str_string(assignop), var_size, str_string(leftdim), str_string(rightdim), str_string(assigndim), buf1, buf2, buf3, statement_index, batch_index, type, tree->u.expr->thread_id);
         // write back the privately indexed assignment op
-        if (is_private_indexed(tree->u.expr->left)) {
+        if (tree->u.expr->left != NULL && is_private_indexed(tree->u.expr->left)) {
             char *input_index = (char *)malloc(sizeof(char) * buffer_size);
             char *output_result = (char *)malloc(sizeof(char) * buffer_size);
             sprintf(input_index, "_picco_private_indexed_inputarray%d", privindex);
@@ -1355,107 +1213,614 @@ void ast_batch_print_index_operator(str op, astexpr tree, int batch_index, int *
     }
 }
 
-void ast_batch_print_index_BOP(astexpr tree, int *narray_element_index, int statement_index, int batch_index, str leftop, str rightop, int *private_index) {
-    if ((tree->left->type == ARRAYIDX && tree->left->flag == PRI) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) {
-        ast_batch_print_index_operator(leftop, tree->left, batch_index, private_index);
-        ast_batch_print_index_operator(rightop, tree->right, batch_index, private_index);
-    } else if ((tree->left->type == ARRAYIDX && tree->left->flag == PRI) && (!(tree->right->type == ARRAYIDX) || tree->right->flag == PUB)) {
-        delete_tmp_array[3 * (*narray_element_index)] = tree->right->flag;
-        delete_tmp_array[3 * (*narray_element_index) + 1] = tree->right->ftype;
-        delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
-        (*narray_element_index)++;
-        char *name = (char *)malloc(sizeof(char) * buffer_size);
-        sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", *narray_element_index, batch_index);
-        astexpr e0 = String(name);
-        e0->ftype = tree->right->ftype;
-        e0->flag = tree->right->flag;
-        e0->size = tree->left->size;
-        e0->sizeexp = tree->left->sizeexp;
-        astexpr e1 = Assignment(e0, ASS_eq, tree->right);
-        e1->thread_id = tree->thread_id;
-        e1->ftype = e0->ftype;
-        indent();
-        ast_expr_show(e1);
-        fprintf(output, ";\n");
-        ast_batch_print_index_operator(leftop, tree->left, batch_index, private_index);
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
-        free(name);
-    }
+ // Index array for intermediate results, Index array for closed, Smc_batch, print all the ops including the last op
+void ast_mult_operation_batch_expr_show(aststmt stmt_tree, astexpr tree, int batch_index, int statement_index, int narray_element_index, int private_selection_index, int private_index, branchnode current, int flag, int dir, char *leftop, int *index_used, int *BOP_length_counter, int cast_index) {
+    int flag_single_var = 0;
+    int last_op_is_hit = 0;
+    int index_array_flags[3] = {0, 0, 0};
+    char *buf1 = (char *)malloc(sizeof(char) * buffer_size);
+    char *buf2 = (char *)malloc(sizeof(char) * buffer_size);
+    char *buf3 = (char *)malloc(sizeof(char) * buffer_size);
+    int count = 0;
 
-    else if ((!(tree->left->type == ARRAYIDX) || tree->left->flag == PUB) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) { // this is the place where the functions get called 
-        // if ((tree->left->type == BOP || tree->left->flag == PRI) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) // aaaaaaaaaaaa
-        delete_tmp_array[3 * (*narray_element_index)] = tree->left->flag;
-        delete_tmp_array[3 * (*narray_element_index) + 1] = tree->left->ftype;
-        delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
-        (*narray_element_index)++;
-        char *name = (char *)malloc(sizeof(char) * buffer_size);
-        sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", *narray_element_index, batch_index);
-        astexpr e0 = String(name);
-        e0->ftype = tree->left->ftype;
-        e0->flag = tree->left->flag;
-        e0->size = tree->right->size;
-        e0->sizeexp = tree->right->sizeexp;
-        astexpr e1 = Assignment(e0, ASS_eq, tree->left);
-        e1->thread_id = tree->thread_id;
-        e1->ftype = e0->ftype;
-        indent();
-        ast_expr_show(e1);
-        fprintf(output, ";\n");
-        ast_batch_print_index_operator(rightop, tree->right, batch_index, private_index);
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
-        free(name);
-    } else if ((!(tree->left->type == ARRAYIDX) || tree->left->flag == PUB) && (!(tree->right->type == ARRAYIDX) || tree->right->flag == PUB)) {
-        if (tree->left->flag == PRI || tree->right->flag == PRI)
-            delete_tmp_array[3 * (*narray_element_index)] = PRI;
-        else
-            delete_tmp_array[3 * (*narray_element_index)] = PUB;
-        delete_tmp_array[3 * (*narray_element_index) + 1] = tree->ftype;
-        delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
-        (*narray_element_index)++;
-        char *name = (char *)malloc(sizeof(char) * buffer_size);
-        sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", *narray_element_index, batch_index);
-        astexpr e0 = String(name);
-        e0->ftype = tree->ftype;
-        e0->flag = tree->flag;
-        if (tree->left->flag == PUB && tree->right->flag == PUB) {
-            e0->size = -1;
-            e0->sizeexp = -1;
-        } else if (tree->left->flag == PRI && tree->right->flag == PUB) {
-            e0->size = tree->left->size;
-            e0->sizeexp = tree->left->sizeexp;
-        } else if (tree->left->flag == PUB && tree->right->flag == PRI) {
-            e0->size = tree->right->size;
-            e0->sizeexp = tree->right->sizeexp;
+    switch (tree->type) {
+    case IDENT:
+        if (flag == 1) {
+            if (dir == 0)
+                str_printf(index_array_left, "%s", tree->u.sym->name);
+            else 
+                str_printf(index_array_right, "%s", tree->u.sym->name);
         } else {
-            e0->size = 32;
-            e0->sizeexp = 9;
+            str_printf(batch_output, "%s", tree->u.sym->name);
         }
-        astexpr e1 = Assignment(e0, ASS_eq, tree);
-        e1->thread_id = tree->thread_id;
-        e1->ftype = e0->ftype;
-        indent();
-        ast_expr_show(e1);
-        fprintf(output, ";\n");
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
-        free(name);
+        break;
+    case CONSTVAL:
+        if (flag == 1) {
+            if (dir == 0)
+                str_printf(index_array_left, "%s", tree->u.str);
+            else 
+                str_printf(index_array_right, "%s", tree->u.str);
+        } else {
+            str_printf(batch_output, "%s", tree->u.str);
+        }
+        break;
+    case STRING: 
+        if (flag == 1) {
+            if (dir == 0)
+                str_printf(index_array_left, "%s", tree->u.str);
+            else 
+                str_printf(index_array_right, "%s", tree->u.str);
+        } else {
+            str_printf(batch_output, "%s", tree->u.str);
+        }
+        break;
+    case ARRAYIDX:
+        if (tree->left != NULL) {
+            ast_mult_operation_batch_expr_show(stmt_tree, tree->left, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, leftop, index_used, BOP_length_counter, cast_index);
+        }
+        if (tree->right != NULL) {
+            ast_mult_operation_batch_expr_show(stmt_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 1, dir, leftop, index_used, BOP_length_counter, cast_index);
+        }
+        break;
+    case BOP:
+        /* for pub operation */
+        if (tree->left->flag == PUB && tree->right->flag == PUB) {
+            ast_mult_operation_batch_expr_show(stmt_tree, tree->left, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 1, dir, leftop, index_used, BOP_length_counter, cast_index);
+            if (dir == 0)
+                str_printf(index_array_left, " %s ", BOP_symbols[tree->opid]);
+            else 
+                str_printf(index_array_right, " %s ", BOP_symbols[tree->opid]);
+            ast_mult_operation_batch_expr_show(stmt_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 1, dir, leftop, index_used, BOP_length_counter, cast_index);
+        }
+        /* for pri operation */
+        else {
+            str left_dim = Str("");
+            str right_dim = Str("");
+            str assign_dim = Str("");
+            str left_size = Str("");
+            str right_size = Str("");
+
+            if (tree->left->index > 0) {
+                ast_mult_operation_batch_expr_show(stmt_tree, tree->left, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, leftop, index_used, BOP_length_counter, cast_index);
+            }
+            if (tree->right->index > 0) {
+                if (tree->left->index > 0)
+                    indent();
+                ast_mult_operation_batch_expr_show(stmt_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, leftop, index_used, BOP_length_counter, cast_index);
+            } 
+            if (tree->right == NULL) { // this was added to add support for printing the c at the end and avoid using smc_set, but it does not work
+                last_op_is_hit = 1;
+            }
+            // for correct indentation
+            if (tree->left->index > 0 || tree->right->index > 0)
+                indent();
+            // /*check if any of the operands is privately indexed*/
+            // ast_expr_priv_index(tree);
+            // /*check if any of the operands is pointer dereferenced*/
+            // ast_expr_ptr_dereference(tree, -1);
+            // /*check if any of the operands is a struct field referenced by private pointer*/
+            // ast_expr_refer_struct_field(tree, -1);
+            
+            str_printf(batch_output, "      __s->smc_batch(");
+
+            if (tree->flag == PUB || tree->right->flag == PUB || tree->left->flag == PUB) {
+                if (tree->right != NULL && tree->right->left != NULL && tree->right->left->last_op_hit == 1) {
+                    str_printf(batch_output, "%s, ", leftop);
+                } else if (tree->right->left->u.sym == NULL && tree->left->u.sym == NULL) {
+                    str_printf(batch_output, "%s, ", leftop);
+                } else {
+                    str_printf(batch_output, "_picco_batch_tmp_array%d, ", tree->index);
+                    (*index_used) = tree->index;
+                }
+            }
+
+            // print two operands (consider if the operator is privately indexed) 
+            // LEFT
+            if (tree->left->index <= 0) { 
+                if (tree->left->type == IDENT) {
+                    flag_single_var = 1;
+                    str_printf(batch_output, "_picco_batch_tmp_assign_array%d", narray_element_index);
+                } else {
+                    ast_mult_operation_batch_expr_show(stmt_tree, tree->left, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, 1, leftop, index_used, BOP_length_counter, cast_index);
+                    
+                }
+            } else { // batch array falls in this else to print the tmp stuff 
+                str_printf(batch_output, "_picco_batch_tmp_array%d", tree->left->index);
+            }
+            str_printf(batch_output, ", ");
+            // RIGHT
+            if (tree->right->index <= 0){ 
+                if (tree->right->type == IDENT) {
+                    flag_single_var = 2;
+                    str_printf(batch_output, "_picco_batch_tmp_assign_array%d", narray_element_index);
+                } else { 
+                    ast_mult_operation_batch_expr_show(stmt_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, leftop, index_used, BOP_length_counter, cast_index);
+                }  
+            } else {
+                str_printf(batch_output, "_picco_batch_tmp_array%d", tree->right->index);
+            }
+            str_printf(batch_output, ", ");
+            // if the operation is a dot product
+            if (tree->opid == BOP_dot) {
+                if (tree->left->arraysize != NULL) 
+                    ast_mult_operation_batch_expr_show(stmt_tree, tree->left->arraysize, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, leftop, index_used, BOP_length_counter, cast_index);
+                str_printf(batch_output, ", ");
+            } else {
+                if (tree->left->type == IDENT) {
+                    str_printf(left_dim, "0");
+                } else {
+                    ast_batch_print_stmt_dimension(left_dim, tree->left);
+                }
+
+                if (tree->right->type == IDENT) {
+                    str_printf(right_dim, "0");
+                    str_printf(assign_dim, str_string(assign_size));
+                } else {
+                    ast_batch_print_stmt_dimension(right_dim, tree->right);
+                    ast_batch_print_stmt_dimension(assign_dim, tree->right);
+                } 
+
+                // This logic below is used to make sure even tmp arrays have a dim assigned. 
+                // This will work cause the array dim should be the same between all the operands 
+                const char *non_empty = strcmp(str_string(left_dim), "") ? left_dim :
+                        strcmp(str_string(right_dim), "") ? right_dim :
+                        strcmp(str_string(assign_dim), "") ? assign_dim : NULL;
+
+                // If any dimension is empty, assign it the non-empty value
+                if (non_empty) {
+                    if (!strcmp(str_string(left_dim), "")) {
+                        left_dim = non_empty;
+                    }
+                    if (!strcmp(str_string(right_dim), "")) {
+                        right_dim = non_empty;
+                    }
+                    if (!strcmp(str_string(assign_dim), "")) {
+                        assign_dim = non_empty;
+                    }
+                }
+
+                if (control_sequence_stack_length(private_selection_stack) != 0) {
+                    private_selection_index = private_selection_stack->head->index;
+                    count = private_selection_stack->head->batch_index;
+                }
+
+                if (private_selection_index == 0 && if_branchnode_height(current) == 0) {
+                    sprintf(buf1, "NULL");
+                    sprintf(buf2, "NULL");
+                    sprintf(buf3, "-1");
+                } else if (private_selection_index == 0 && if_branchnode_height(current) != 0) {
+                    sprintf(buf1, "_picco_condtmp%d", if_branchnode_height(current));
+                    sprintf(buf2, "NULL");
+                    sprintf(buf3, "-1");
+                } else {
+                    sprintf(buf1, "NULL");
+                    sprintf(buf2, "_picco_batch_array%d", private_selection_index);
+                    sprintf(buf3, "_picco_batch_counter%d", count);
+                }
+
+                if (tree->flag == PRI && tree->right->flag == PRI && tree->left->flag == PRI) {
+                    // below I keep counting till I hit the end of the BOP statement then I print the last assigning variable name instead of using smc_set
+                    (*BOP_length_counter)++;
+                    // printf("\n%d", *BOP_length_counter);
+                    // printf(", %d\n", tree->BOP_tree_length);
+                    if (tree->right != NULL && tree->right->left != NULL && tree->right->left->last_op_hit == 1) {
+                        if (*BOP_length_counter == tree->BOP_tree_length) {
+                            str_printf(batch_output, "%s, ", leftop);
+                        } else {
+                            printf("\n1-> %d", *BOP_length_counter);
+                            printf(", -> %d\n", tree->BOP_tree_length);
+                            str_printf(batch_output, "_picco_batch_tmp_array%d, ", tree->index);
+                            (*index_used) = tree->index;
+                        }
+                    } else if (tree->right->left->u.sym == NULL && tree->left->u.sym == NULL) {
+                        if (*BOP_length_counter == tree->BOP_tree_length) {
+                            str_printf(batch_output, "%s, ", leftop);
+                        } else {
+                            printf("\n2-> %d", *BOP_length_counter);
+                            printf(", 2-> %d\n", tree->BOP_tree_length);
+                            str_printf(batch_output, "_picco_batch_tmp_array%d, ", tree->index);
+                            (*index_used) = tree->index;
+                        }
+                    } else {
+                         if (*BOP_length_counter == tree->BOP_tree_length) {
+                            str_printf(batch_output, "%s, ", leftop);
+                        } else {
+                            printf("\n3-> %d", *BOP_length_counter);
+                            printf(", 3-> %d\n", tree->BOP_tree_length);
+                            str_printf(batch_output, "_picco_batch_tmp_array%d, ", tree->index);
+                            (*index_used) = tree->index;
+                        }
+                    }
+                }
+
+                if (tree->right->ftype == 1 || tree->left->ftype == 1) {
+                    str_printf(batch_output, "%d, %d, %d, %d, %d, %d, %s, %s, %s, %s, %s, %s, _picco_batch_index_array%d, _picco_batch_counter%d, \"%s\", \"float\", %d, ", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp, tree->left->size, tree->left->sizeexp, str_string(left_dim), str_string(right_dim), str_string(assign_dim), buf1, buf2, buf3, statement_index, batch_index, BOP_symbols[tree->opid], tree->thread_id);
+                } else 
+                    str_printf(batch_output, "%d, %d, %d, %s, %s, %s, %s, %s, %s, _picco_batch_index_array%d, _picco_batch_counter%d, \"%s\", \"int\", %d, ", tree->left->size, tree->right->size, tree->left->size, str_string(left_dim), str_string(right_dim), str_string(assign_dim), buf1, buf2, buf3, statement_index, batch_index, BOP_symbols[tree->opid], tree->thread_id);
+            }
+        
+            // Print the first line index initilizing loop 
+            if (flag_single_var == 1 || flag_single_var == 2) { // this might work but it will be more work 
+                indent();
+                if (tree->flag == PUB) {
+                    indent();
+                    if (tree->ftype == 0)
+                        fprintf(output, "int* _picco_batch_tmp_assign_array%d = (int*)malloc(sizeof(int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
+                    else if (tree->ftype == 1)
+                        fprintf(output, "float* _picco_batch_tmp_assign_array%d = (float*)malloc(sizeof(float) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
+                } else if (tree->flag == PRI) {
+                    indent();
+                    if (tree->ftype == 0) {
+                        fprintf(output, "priv_int* _picco_batch_tmp_assign_array%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
+                        indent();
+                        fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
+                        indent();
+                        fprintf(output, "{\n");
+                        indlev++;
+                        indent();
+                        fprintf(output, "ss_init(_picco_batch_tmp_assign_array%d[_picco_i]);\n", narray_element_index);
+                        indlev--;
+                        indent();
+                        fprintf(output, "}\n");
+                    } else if (tree->ftype == 1) {
+                        fprintf(output, "priv_int** _picco_batch_tmp_assign_array%d = (priv_int**)malloc(sizeof(priv_int*) * _picco_batch_counter%d);\n", narray_element_index, batch_index);
+                        indent();
+                        fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", batch_index);
+                        indent();
+                        fprintf(output, "{\n");
+                        indlev++;
+                        indlev++;
+                        indent();
+                        indent();
+                        fprintf(output, "_picco_batch_tmp_assign_array%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n", narray_element_index);
+                        indent();
+                        fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
+                        indlev++;
+                        indent();
+                        indent();
+                        fprintf(output, "ss_init(_picco_batch_tmp_assign_array%d[_picco_i][_picco_j]);\n", narray_element_index);
+                        indlev--;
+                        indent();
+                        fprintf(output, "}\n");
+                    }
+                }
+            }
+
+            // ast_batch_print_cond2(tree);
+            fprintf(output, "for (i = 0; i < %s; i++)\n", str_string(assign_dim));
+            // ast_batch_print_cond(main_tree);
+            control_sequence_push(&batch_index, batch_stack);
+            fprintf(output, "{\n");
+            indlev++;
+
+            // Store the indices on the array index 1 - only one will be used 
+            index_array_flags[0] = 0;
+            index_array_flags[1] = 0;
+            index_array_flags[2] = 0;
+            // 1
+            if (strcmp(str_string(index_array_right), "")) {
+                indent();
+                fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = %s;\n", batch_index, batch_index, str_string(index_array_right));
+                index_array_flags[0] = 1;
+            } 
+
+            // 2
+            if (tree->right->type == ARRAYIDX && tree->right->left->u.sym != NULL) {
+                if (!strcmp(str_string(index_array_left), "")) {
+                    indent();
+                    fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", batch_index, batch_index, str_string(index_array_result));
+                } else {
+                    indent();
+                    fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", batch_index, batch_index, str_string(index_array_left));
+                }
+                index_array_flags[1] = 1;
+            }
+
+            // 3
+            if (*BOP_length_counter == tree->BOP_tree_length) {
+                indent();
+                fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = %s;\n", batch_index, batch_index, str_string(index_array_result));
+                index_array_flags[2] = 1;
+            }
+
+
+
+            if (tree->left->type == IDENT) {
+                indent();
+                fprintf(output, "__s->smc_set(%s, _picco_batch_tmp_assign_array%d[_picco_ind%d], %d, %d, \"int\", %d);\n", tree->left->u.sym->name, narray_element_index, batch_index, tree->left->size, tree->right->size, tree->thread_id);
+            }
+            if (tree->right->type == IDENT) {
+                indent();
+                fprintf(output, "__s->smc_set(%s, _picco_batch_tmp_assign_array%d[_picco_ind%d], %d, %d, \"int\", %d);\n", tree->right->u.sym->name, narray_element_index, batch_index, tree->left->size, tree->right->size, tree->thread_id);
+            }
+            
+            // End part of the index initilizing loop 
+            indent();
+            fprintf(output, "_picco_ind%d++;\n", batch_index);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+            fprintf(output, "_picco_ind%d = 0;\n", batch_index);
+            indlev--;
+
+            // Print the last part and the stored batch code to the stream
+            str_printf(batch_output, "%d, %d, %d);\n", index_array_flags[0], index_array_flags[1], index_array_flags[2]);
+            fprintf(output, str_string(batch_output));
+
+            (batch_index)++;
+            control_sequence_pop(batch_stack);
+
+            // re-initialize all control variables.
+            (batch_index) = 0;
+            (statement_index) = 0;
+            (private_selection_index) = 0;
+            (narray_element_index) = 0;
+            (private_index) = 0;
+            index_array_left = Str("");
+            index_array_right = Str("");
+            batch_output = Str("");
+        }
+        break;
+    case ASS:
+        ast_mult_operation_batch_expr_show(stmt_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, str_string(leftop), index_used, BOP_length_counter, cast_index);
+        break;
+    default:
+        fprintf(stderr, "[ast_mult_operation_batch_expr_show]: b u g !!\n");
     }
 }
 
-void ast_batch_print_index(aststmt tree, int batch_index, int statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index, int _multi_batch_op_flag) {
+void ast_batch_print_index_BOP(aststmt stmt_tree, astexpr tree, int *narray_element_index, int statement_index, int batch_index, str leftop, str rightop, int *private_index, int *multi_op_flag, branchnode current, int *private_selection_index) {
+    if ((tree->left->type == ARRAYIDX && tree->left->flag == PRI) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) {
+        *multi_op_flag = 0;
+        printf("case 1\n\n"); // Left untouched 
+        // fprintf(output, "1 INNER!!!\n");
+        ast_batch_print_index_operator(leftop, tree->left, batch_index, private_index);
+        ast_batch_print_index_operator(rightop, tree->right, batch_index, private_index);
+        // fprintf(output, "2 OUTER!!!\n");
+    } else if ((tree->left->type == ARRAYIDX && tree->left->flag == PRI) && (!(tree->right->type == ARRAYIDX) || tree->right->flag == PUB)) {
+        printf("case 2\n\n"); // Needed to be changed to handle intermediate results and operations using smc_batch (This case handles things like a+b*c or a-b/c)
+        // New case that will handle more than one operator used 
+        if (tree->left->type == BOP || tree->right->type == BOP) { // BOP is encountered 
+            *multi_op_flag = 1;
+            // I am inside the loop, so I need to print the index arrays
+            // I need to print the smc_batch right after the index arrays in here
+            // cause when we get to the next line it will print the instructions for that last 
+            // line and it will also print the index array. SO, I need to add this in sor of the 
+            // middle before the end is printed.    
+            printf("Case 2.1\n\n"); 
+            index_array_right = Str("");
+            index_array_left = Str("");
+            index_array_result = Str("");
+            batch_output = Str("");
+            str leftop = Str("");
+            assign_size = Str(""); 
+
+            if (stmt_tree->u.expr->left->right->type == BOP) {
+                str_printf(index_array_result, "%s %s %s", stmt_tree->u.expr->left->right->left->u.sym->name, BOP_symbols[stmt_tree->u.expr->left->right->opid], stmt_tree->u.expr->left->right->right->u.str); 
+            } else if (stmt_tree->u.expr->left->right->type == CONSTVAL) {
+                str_printf(index_array_result, "%s", stmt_tree->u.expr->left->right->u.str);
+            } else if (stmt_tree->u.expr->left->right->type == IDENT) {
+                str_printf(index_array_result, "%s", stmt_tree->u.expr->left->right->u.sym->name);
+            }
+
+            // if (stmt_tree->u.expr->left->left->type == CONSTVAL) {
+            //     str_printf(leftop, stmt_tree->u.expr->left->left->u.str);
+            // } else if (stmt_tree->u.expr->left->left->type == IDENT) {
+            str_printf(leftop, stmt_tree->u.expr->left->left->u.sym->name);
+            // }
+
+            // if (stmt_tree->u.expr->left->type == CONSTVAL) {
+            str_printf(assign_size, "%s", stmt_tree->u.expr->left->arraysize->u.str);
+            // } else if (stmt_tree->u.expr->left->type == IDENT) {
+            // str_printf(assign_size, "%s", stmt_tree->u.expr->left->arraysize->u.sym->name);
+            // }
+
+            batch_output = Str("");
+            int index_used = 0, BOP_length_counter = 0, cast_index = 0, counter = 0;
+            last_op_on_the_expr_tree(tree, &counter);
+            tree->BOP_tree_length = counter;
+            ast_mult_operation_batch_expr_show(stmt_tree, tree, batch_index, statement_index, narray_element_index, 0, private_index, current, 0, 0, str_string(leftop), &index_used, &BOP_length_counter, cast_index);
+        } else { // Old case that handles the use of tmp arrays for other things 
+            printf("Case 2.2\n\n"); 
+            // fprintf(output, "2 INNER!!!\n");
+            if (tree->left->arraysize->type == IDENT) {
+                fprintf(output, "for (i = 0; i < %s; i++){\n", tree->left->arraysize->u.sym->name);
+            } else if (tree->left->arraysize->type == CONSTVAL) {
+                fprintf(output, "for (i = 0; i < %s; i++){\n", tree->left->arraysize->u.str);
+            }
+            *multi_op_flag = 0;
+            delete_tmp_array[3 * (*narray_element_index)] = tree->right->flag;
+            delete_tmp_array[3 * (*narray_element_index) + 1] = tree->right->ftype;
+            delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
+            (*narray_element_index)++;
+            char *name = (char *)malloc(sizeof(char) * buffer_size);
+            sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", *narray_element_index, batch_index);
+            astexpr e0 = String(name);
+            e0->ftype = tree->right->ftype;
+            e0->flag = tree->right->flag;
+            e0->size = tree->left->size;
+            e0->sizeexp = tree->left->sizeexp;
+            astexpr e1 = Assignment(e0, ASS_eq, tree->right);
+            e1->thread_id = tree->thread_id;
+            e1->ftype = e0->ftype;
+            indent();
+            ast_expr_show(e1);
+            fprintf(output, ";\n");
+            ast_batch_print_index_operator(leftop, tree->left, batch_index, private_index);
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+            free(name);
+            // fprintf(output, "2 OUTER!!!\n");
+            fprintf(output, "_picco_ind%d++;\n}\n_picco_ind%d = 0;\n", batch_index, batch_index);
+        }
+    } else if ((!(tree->left->type == ARRAYIDX) || tree->left->flag == PUB) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) { // this is the place where the functions get called 
+        printf("case 3\n\n"); // Needed to be changed to handle intermediate results and operations using smc_batch (This case handles things like a+b-c or a*b/c or a*b+c)
+        if (tree->left->type == BOP || tree->right->type == BOP) { // BOP is encountered 
+            // fprintf(output, "3 INNER!!!\n");
+            
+            printf("Case 3.1\n\n"); 
+            *multi_op_flag = 1;
+            index_array_right = Str("");
+            index_array_left = Str("");
+            index_array_result = Str("");
+            batch_output = Str("");
+            str leftop = Str("");
+            assign_size = Str(""); 
+
+            if (stmt_tree->u.expr->left->right->type == BOP) {
+                str_printf(index_array_result, "%s %s %s", stmt_tree->u.expr->left->right->left->u.sym->name, BOP_symbols[stmt_tree->u.expr->left->right->opid], stmt_tree->u.expr->left->right->right->u.str); 
+            } else if (stmt_tree->u.expr->left->right->type == CONSTVAL) {
+                str_printf(index_array_result, "%s", stmt_tree->u.expr->left->right->u.str);
+            } else if (stmt_tree->u.expr->left->right->type == IDENT) {
+                str_printf(index_array_result, "%s", stmt_tree->u.expr->left->right->u.sym->name);
+            }
+
+            // if (stmt_tree->u.expr->left->left->type == CONSTVAL) {
+            //     str_printf(leftop, stmt_tree->u.expr->left->left->u.str);
+            // } else if (stmt_tree->u.expr->left->left->type == IDENT) {
+            str_printf(leftop, stmt_tree->u.expr->left->left->u.sym->name);
+            // }
+
+            // if (stmt_tree->u.expr->left->type == CONSTVAL) {
+            str_printf(assign_size, "%s", stmt_tree->u.expr->left->arraysize->u.str);
+            // } else if (stmt_tree->u.expr->left->type == IDENT) {
+                // str_printf(assign_size, "%s", stmt_tree->u.expr->left->arraysize->u.sym->name);
+            // }
+
+            batch_output = Str("");
+            int index_used = 0, BOP_length_counter = 0, cast_index = 0, counter = 0;
+            last_op_on_the_expr_tree(tree, &counter);
+            tree->BOP_tree_length = counter;
+            ast_mult_operation_batch_expr_show(stmt_tree, tree, batch_index, statement_index, narray_element_index, 0, private_index, current, 0, 0, str_string(leftop), &index_used, &BOP_length_counter, cast_index);
+            // fprintf(output, "3 OUTER!!!\n");
+        } else {
+            printf("Case 3.2\n\n"); 
+            // fprintf(output, "4 INNER!!!\n");
+            if (tree->right->arraysize->type == IDENT) {
+                fprintf(output, "for (i = 0; i < %s; i++){\n", tree->right->arraysize->u.sym->name);
+            } else if (tree->right->arraysize->type == CONSTVAL) {
+                fprintf(output, "for (i = 0; i < %s; i++){\n", tree->right->arraysize->u.str);
+            }
+            *multi_op_flag = 0;
+            // if ((tree->left->type == BOP || tree->left->flag == PRI) && (tree->right->type == ARRAYIDX && tree->right->flag == PRI)) // aaaaaaaaaaaa
+            delete_tmp_array[3 * (*narray_element_index)] = tree->left->flag;
+            delete_tmp_array[3 * (*narray_element_index) + 1] = tree->left->ftype;
+            delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
+            (*narray_element_index)++;
+            char *name = (char *)malloc(sizeof(char) * buffer_size);
+            sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", *narray_element_index, batch_index);
+            astexpr e0 = String(name);
+            e0->ftype = tree->left->ftype;
+            e0->flag = tree->left->flag;
+            e0->size = tree->right->size;
+            e0->sizeexp = tree->right->sizeexp;
+            astexpr e1 = Assignment(e0, ASS_eq, tree->left);
+            e1->thread_id = tree->thread_id;
+            e1->ftype = e0->ftype;
+            indent();
+            ast_expr_show(e1);
+            fprintf(output, ";\n");
+            ast_batch_print_index_operator(rightop, tree->right, batch_index, private_index);
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+            free(name);
+            fprintf(output, "_picco_ind%d++;\n}\n_picco_ind%d = 0;\n", batch_index, batch_index);
+            // fprintf(output, "4 OUTER!!!\n");
+        }
+    } else if ((!(tree->left->type == ARRAYIDX) || tree->left->flag == PUB) && (!(tree->right->type == ARRAYIDX) || tree->right->flag == PUB)) {
+        printf("case 4\n\n"); // Needed to be changed to handle intermediate results and operations using smc_batch (This case handles long cases with multiple operators)
+        if (tree->left->type == BOP || tree->right->type == BOP) { // BOP is encountered 
+            printf("Case 4.1\n\n"); 
+            *multi_op_flag = 1;
+            index_array_right = Str("");
+            index_array_left = Str("");
+            index_array_result = Str("");
+            batch_output = Str("");
+            str leftop = Str("");
+            assign_size = Str(""); 
+
+            if (stmt_tree->u.expr->left->right->type == BOP) {
+                str_printf(index_array_result, "%s %s %s", stmt_tree->u.expr->left->right->left->u.sym->name, BOP_symbols[stmt_tree->u.expr->left->right->opid], stmt_tree->u.expr->left->right->right->u.str); 
+            } else if (stmt_tree->u.expr->left->right->type == CONSTVAL) {
+                str_printf(index_array_result, "%s", stmt_tree->u.expr->left->right->u.str);
+            } else if (stmt_tree->u.expr->left->right->type == IDENT) {
+                str_printf(index_array_result, "%s", stmt_tree->u.expr->left->right->u.sym->name);
+            }
+
+            // if (stmt_tree->u.expr->left->left->type == CONSTVAL) {
+            //     str_printf(leftop, stmt_tree->u.expr->left->left->u.str);
+            // } else if (stmt_tree->u.expr->left->left->type == IDENT) {
+            str_printf(leftop, stmt_tree->u.expr->left->left->u.sym->name);
+            // }
+
+            // if (stmt_tree->u.expr->left->type == CONSTVAL) {
+            str_printf(assign_size, "%s", stmt_tree->u.expr->left->arraysize->u.str);
+            // } else if (stmt_tree->u.expr->left->type == IDENT) {
+            //     str_printf(assign_size, "%s", stmt_tree->u.expr->left->arraysize->u.sym->name);
+            // }
+
+            batch_output = Str("");
+            int index_used = 0, BOP_length_counter = 0, cast_index = 0, counter = 0;
+            last_op_on_the_expr_tree(tree, &counter);
+            tree->BOP_tree_length = counter;
+            ast_mult_operation_batch_expr_show(stmt_tree, tree, batch_index, statement_index, narray_element_index, 0, private_index, current, 0, 0, str_string(leftop), &index_used, &BOP_length_counter, cast_index); 
+        } else {
+            printf("Case 4.2\n\n");
+            *multi_op_flag = 0;
+            if (tree->left->flag == PRI || tree->right->flag == PRI)
+                delete_tmp_array[3 * (*narray_element_index)] = PRI;
+            else
+                delete_tmp_array[3 * (*narray_element_index)] = PUB;
+            delete_tmp_array[3 * (*narray_element_index) + 1] = tree->ftype;
+            delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
+            (*narray_element_index)++;
+            char *name = (char *)malloc(sizeof(char) * buffer_size);
+            sprintf(name, "_picco_batch_tmp_array%d[_picco_ind%d]", *narray_element_index, batch_index);
+            astexpr e0 = String(name);
+            e0->ftype = tree->ftype;
+            e0->flag = tree->flag;
+            if (tree->left->flag == PUB && tree->right->flag == PUB) {
+                e0->size = -1;
+                e0->sizeexp = -1;
+            } else if (tree->left->flag == PRI && tree->right->flag == PUB) {
+                e0->size = tree->left->size;
+                e0->sizeexp = tree->left->sizeexp;
+            } else if (tree->left->flag == PUB && tree->right->flag == PRI) {
+                e0->size = tree->right->size;
+                e0->sizeexp = tree->right->sizeexp;
+            } else {
+                e0->size = 32;
+                e0->sizeexp = 9;
+            }
+            astexpr e1 = Assignment(e0, ASS_eq, tree);
+            e1->thread_id = tree->thread_id;
+            e1->ftype = e0->ftype;
+            indent();
+            ast_expr_show(e1);
+            fprintf(output, ";\n");
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+            free(name);
+        }
+    }
+}
+
+void ast_batch_print_index(aststmt tree, int batch_index, int statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index, branchnode current, int *private_selection_index) {
     // only deals with assignment expression
     str leftop, rightop, assignop, tmp;
     leftop = Str("");
     rightop = Str("");
     assignop = Str("");
     tmp = Str("");
+    int multi_op_flag = 0;
 
     if (tree->u.expr->type == ASS) {
+        printf("Case 1\n\n"); 
         ast_batch_print_index_operator(assignop, tree->u.expr->left, batch_index, private_index);
         // right operator is public
         if (tree->u.expr->right->flag == PUB || (tree->u.expr->right->type == CASTEXPR && tree->u.expr->right->left->flag == PUB)) {
+            printf("Case 1.1\n\n"); 
+            multi_op_flag = 2;
             astexpr tree1 = tree->u.expr->right->flag == PUB ? tree->u.expr->right : tree->u.expr->right->left;
             delete_tmp_array[3 * (*narray_element_index)] = PUB;
             delete_tmp_array[3 * (*narray_element_index) + 1] = tree1->ftype;
@@ -1467,12 +1832,18 @@ void ast_batch_print_index(aststmt tree, int batch_index, int statement_index, i
             fprintf(output, ";\n");
             indent();
             fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+            // fprintf(output, "1BEFORE THIS!!!\n");
         } else if (tree->u.expr->right->flag == PRI) {
+            printf("Case 1.2\n\n"); 
             if (tree->u.expr->right->type != BOP && tree->u.expr->opid == ASS_eq) {
+                printf("Case 1.2.1\n\n"); 
                 astexpr tree1 = tree->u.expr->right->type == CASTEXPR ? tree->u.expr->right->left : tree->u.expr->right;
-                if (tree1->type == ARRAYIDX)
+                if (tree1->type == ARRAYIDX){
+                    printf("Case 1.2.1.1\n\n"); 
                     ast_batch_print_index_operator(leftop, tree1, batch_index, private_index);
-                else if (tree1->type != ARRAYIDX) {
+                    // fprintf(output, "2BEFORE THIS!!!\n");
+                } else if (tree1->type != ARRAYIDX) {
+                    printf("Case 1.2.1.2\n\n");
                     delete_tmp_array[3 * (*narray_element_index)] = tree1->flag;
                     delete_tmp_array[3 * (*narray_element_index) + 1] = tree1->ftype;
                     delete_tmp_array[3 * (*narray_element_index) + 2] = batch_index;
@@ -1492,77 +1863,141 @@ void ast_batch_print_index(aststmt tree, int batch_index, int statement_index, i
                     indent();
                     fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
                     free(name);
+                    // fprintf(output, "3BEFORE THIS!!!\n");
                 }
             } else if (tree->u.expr->opid != ASS_eq) {
+                printf("Case 1.2.2\n\n"); 
                 astexpr e = BinaryOperator(BOP_add, tree->u.expr->left, tree->u.expr->right);
-                ast_batch_print_index_BOP(e, narray_element_index, statement_index, batch_index, leftop, rightop, private_index);
-            } else if (tree->u.expr->right->type == BOP) // This is where the regular functions were generated for batch
-                ast_batch_print_index_BOP(tree->u.expr->right, narray_element_index, statement_index, batch_index, leftop, rightop, private_index);
+                ast_batch_print_index_BOP(tree, e, narray_element_index, statement_index, batch_index, leftop, rightop, private_index, &multi_op_flag, current, private_selection_index);
+                // fprintf(output, "4BEFORE THIS!!!\n");
+            } else if (tree->u.expr->right->type == BOP) { // This is where the regular functions were generated for batch
+                printf("Case 1.2.3\n\n"); 
+                // The function bellow will be edited to add the rest of batch handlings, this way the old code is untouched and the new code will become part of whatever is already done
+                ast_batch_print_index_BOP(tree, tree->u.expr->right, narray_element_index, statement_index, batch_index, leftop, rightop, private_index, &multi_op_flag, current, private_selection_index);
+                // this is end of the functions for all batch operations 
+                // fprintf(output, "5BEFORE THIS!!!\n");
+            }
         }
     }
     // for if condition (it only works for two operator comparison with each of them being an identifier)
-    else if (tree->u.expr->type == BOP)
-        ast_batch_print_index_BOP(tree->u.expr, narray_element_index, statement_index, batch_index, leftop, rightop, private_index);
+    else if (tree->u.expr->type == BOP) {
+        printf("Case 2\n\n"); 
+        ast_batch_print_index_BOP(tree, tree->u.expr, narray_element_index, statement_index, batch_index, leftop, rightop, private_index, &multi_op_flag, current, private_selection_index);
+    }
     // print the array index
-    if (strcmp(str_string(leftop), "")) {
+    if (multi_op_flag == 0) {
+        printf("Case 3\n\n"); 
+
+        // ast_batch_print_cond2(tree); 
+        if (tree->u.expr->left->arraysize->type == CONSTVAL) {
+            fprintf(output, "for (i = 0; i < %s; i++)\n", tree->u.expr->left->arraysize->u.str);
+        } else if (tree->u.expr->left->arraysize->type == IDENT) {
+            fprintf(output, "for (i = 0; i < %s; i++)\n", tree->u.expr->left->arraysize->u.sym->name);
+        }
+
+        fprintf(output, "{\n");
+        if (strcmp(str_string(leftop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = %s;\n", statement_index, batch_index, str_string(leftop));
+        } else if (!strcmp(str_string(leftop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        }
+
+        if (strcmp(str_string(rightop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", statement_index, batch_index, str_string(rightop));
+        } else if (!strcmp(str_string(rightop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        }
+        if (strcmp(str_string(assignop), "")) {
+            indent();
+            
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = %s;\n", statement_index, batch_index, str_string(assignop));
+        } else if (!strcmp(str_string(assignop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        }
+        indlev++;
         indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = %s;\n", statement_index, batch_index, str_string(leftop));
-    } else if (!strcmp(str_string(leftop), "")) {
+        fprintf(output, "_picco_ind%d++;\n", batch_stack->head->index);
+        indlev--;
         indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        fprintf(output, "}\n");
+        indlev--;
+        // In here I should take care of the rest of the smc_batchs, but I need to have different index for all 
+        ast_batch_print_stmt(tree, batch_stack->head->index, statement_index, narray_element_index, private_index, current);
+    } else if (multi_op_flag == 2) {
+        printf("Case 4\n\n"); 
+        if (strcmp(str_string(leftop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = %s;\n", statement_index, batch_index, str_string(leftop));
+        } else if (!strcmp(str_string(leftop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        }
+
+        if (strcmp(str_string(rightop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", statement_index, batch_index, str_string(rightop));
+        } else if (!strcmp(str_string(rightop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        }
+        if (strcmp(str_string(assignop), "")) {
+            indent();
+            
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = %s;\n", statement_index, batch_index, str_string(assignop));
+        } else if (!strcmp(str_string(assignop), "")) {
+            indent();
+            fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
+        }
     }
 
-    if (strcmp(str_string(rightop), "")) {
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = %s;\n", statement_index, batch_index, str_string(rightop));
-    } else if (!strcmp(str_string(rightop), "")) {
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+1] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
-    }
-    if (strcmp(str_string(assignop), "")) {
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = %s;\n", statement_index, batch_index, str_string(assignop));
-    } else if (!strcmp(str_string(assignop), "")) {
-        indent();
-        fprintf(output, "_picco_batch_index_array%d[3*_picco_ind%d+2] = _picco_ind%d;\n", statement_index, batch_index, batch_index);
-    }
     str_free(leftop);
     str_free(rightop);
     str_free(assignop);
     str_free(tmp);
 }
 
-void ast_batch_print_prefix_index(aststmt tree, int *batch_index, int *statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index) {
-    (*batch_index)++;
-    control_sequence_push(*batch_index, batch_stack);
-    fprintf(output, "{\n");
-    indlev++;
+void ast_batch_print_prefix_index(aststmt tree, int *batch_index, int *statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index, int *private_selection_index, branchnode current) {
+    if (tree->type == SELECTION) {
+        fprintf(output, "{\n");
+        indlev++;
+        (*batch_index)++;
+        control_sequence_push(*batch_index, batch_stack);
+    }
     // does the main work 
-    ast_batch_compute_index(tree, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-    indent();
-    fprintf(output, "_picco_ind%d++;\n", batch_stack->head->index);
-    indlev--;
-    indent();
-    fprintf(output, "}\n");
-    indlev--;
-    control_sequence_pop(batch_stack);
+    ast_batch_compute_index(tree, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
+    // indent();
+    // fprintf(output, "_picco_ind%d++;\n", batch_stack->head->index);
+    // indlev--;
+    // indent();
+    // fprintf(output, "}\n");
+    // indlev--;
+    if (tree->type == SELECTION) {
+        control_sequence_pop(batch_stack);
+    }
 }
 
-void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index) {
+// Index array generator 
+void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_index, int *narray_element_index, int *delete_tmp_array, int *private_index, int *private_selection_index, branchnode current) {
+    int is_private_selection = 0;
     switch (tree->type) {
     case COMPOUND:
-        ast_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
+        ast_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
         break;
     case STATEMENTLIST:
-        ast_batch_compute_index(tree->u.next, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-        ast_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
+        ast_batch_compute_index(tree->u.next, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
+        ast_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
         break;
-    case BATCH:
-        // only prints the inner loop itself that handles the picco batch index array inside a batch statement 
-        ast_batch_print_cond(tree); 
-        // handles everything that goes inside the loop (storing the indices and calling the regular op functions )
-        // this also calls the {} and the 
-        ast_batch_print_prefix_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);  
+    case BATCH: 
+        if (tree->body->type == SELECTION) {
+            ast_batch_print_cond(tree);
+        }
+        // handles everything that goes inside the loop (storing the indices and calling the regular op functions, this also calls the {} and 
+        ast_batch_print_prefix_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);  
         break;
     case SELECTION: {
         if (tree->u.selection.cond->flag == PUB) {
@@ -1572,23 +2007,24 @@ void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_inde
             ast_expr_show(tree->u.selection.cond);
             fprintf(output, ")\n");
             indent();
-            ast_batch_print_prefix_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
+            ast_batch_print_prefix_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
             if (tree->u.selection.elsebody) {
                 indlev++;
                 indent();
                 fprintf(output, "else\n");
                 indent();
-                ast_batch_print_prefix_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
+                ast_batch_print_prefix_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
             }
         }
         if (tree->u.selection.cond->flag == PRI) {
+            is_private_selection = 1;
             (*statement_index)++;
-            ast_batch_print_index(Expression(tree->u.selection.cond), batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index, 0);
-            ast_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
+            ast_batch_print_index(Expression(tree->u.selection.cond), batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index, current, private_selection_index);
+            ast_batch_compute_index(tree->body, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
 
             if (tree->u.selection.elsebody) {
                 (*statement_index)++;
-                ast_batch_compute_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
+                ast_batch_compute_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index, private_selection_index, current);
             }
         }
     }
@@ -1596,8 +2032,16 @@ void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_inde
         switch (tree->u.expr->type) {
         // if the selection is expression
         case ASS:
+            // this prints the individual loops and index arrays and the smc_batch functions
             (*statement_index)++;
-            ast_batch_print_index(tree, batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index, 0);
+            if (is_private_selection == 0) {
+                (*batch_index)++;
+                control_sequence_push(*batch_index, batch_stack);
+            }
+            ast_batch_print_index(tree, batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index, current, private_selection_index);
+            if (is_private_selection == 0) {
+                control_sequence_pop(batch_stack);
+            }
             break;
         }
         break;
@@ -1982,6 +2426,7 @@ void ast_batch_declare_array_for_narrayelement_BOP(astexpr tree, int batch_index
     }
 }
 
+// THe last thing I was working on was fixing the last part of the code related to the segfault
 void ast_batch_declare_array_for_narrayelement(aststmt tree, int *narray_element_index, int *private_index, int *batch_index) {
     // get the statement information
     switch (tree->type) {
@@ -2197,6 +2642,35 @@ void ast_batch_allocate_array_for_narrayelement(astexpr tree, int batch_index, i
     }
 }
 
+// void ast_batch_print_cond2(aststmt tree) {
+//     fprintf(output, "for (i = 0; i < 3; i++)\n");
+    // indent();
+    // fprintf(output, "for (");
+    // if (tree->u.iteration.init != NULL) {
+    //     if (tree->u.iteration.init->type == EXPRESSION) {
+    //         if (tree->u.iteration.init->u.expr != NULL)
+    //             ast_expr_show(tree->u.iteration.init->u.expr);
+    //     } else /* Declaration */
+    //     {
+    //         ast_spec_show(tree->u.iteration.init->u.declaration.spec);
+    //         if (tree->u.iteration.init->u.declaration.decl) {
+    //             fprintf(output, " ");
+    //             // ast_decl_show(tree->u.iteration.init->u.declaration.decl);
+    //         }
+    //     }
+    //     fprintf(output, "; ");
+    // } else
+    //     fprintf(output, " ; ");
+    // if (tree->u.iteration.cond != NULL)
+    //     ast_expr_show(tree->u.iteration.cond);
+    // fprintf(output, "; ");
+    // if (tree->u.iteration.incr != NULL)
+    //     ast_expr_show(tree->u.iteration.incr);
+    // fprintf(output, ")\n");
+    // indlev++;
+    // indent();
+// }
+
 void ast_batch_print_cond(aststmt tree) {
     indent();
     fprintf(output, "for (");
@@ -2225,14 +2699,14 @@ void ast_batch_print_cond(aststmt tree) {
     indent();
 }
 
-void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, int *private_selection_index) {
+void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, int *private_selection_index, int *multi_op_per_line) {
     switch (tree->type) {
     case COMPOUND:
-        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
+        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index, multi_op_per_line);
         break;
     case STATEMENTLIST:
-        ast_batch_iter_tree(tree->u.next, batch_index, statement_index, private_selection_index);
-        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
+        ast_batch_iter_tree(tree->u.next, batch_index, statement_index, private_selection_index, multi_op_per_line);
+        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index, multi_op_per_line);
         break;
     case BATCH: {
         // store the batch condition
@@ -2240,7 +2714,7 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
         control_sequence_push(*batch_index, batch_stack);
         iteration iter = create_iteration(tree->u.iteration.init, tree->u.iteration.cond, tree->u.iteration.incr);
         batch_condition_push(iter, bcs);
-        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
+        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index, multi_op_per_line);
         control_sequence_pop(batch_stack);
     } break;
     case SELECTION: {
@@ -2248,12 +2722,12 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
         if (tree->u.selection.cond->flag == PUB) {
             (*batch_index)++;
             control_sequence_push(*batch_index, batch_stack);
-            ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
+            ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index, multi_op_per_line);
             control_sequence_pop(batch_stack);
             if (tree->u.selection.elsebody) {
                 (*batch_index)++;
                 control_sequence_push(*batch_index, batch_stack);
-                ast_batch_iter_tree(tree->u.selection.elsebody, batch_index, statement_index, private_selection_index);
+                ast_batch_iter_tree(tree->u.selection.elsebody, batch_index, statement_index, private_selection_index, multi_op_per_line);
                 control_sequence_pop(batch_stack);
             }
         }
@@ -2262,21 +2736,40 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
             (*private_selection_index)++;
             (*statement_index)++;
             batch_statement_push(Expression(tree->u.selection.cond), *statement_index, batch_stack->head->index, 1, bss);
-            ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
+            ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index, multi_op_per_line);
             if (tree->u.selection.elsebody) {
                 (*private_selection_index)++;
                 (*statement_index)++;
                 batch_statement_push(Expression(tree->u.selection.cond), *statement_index, batch_stack->head->index, 1, bss);
-                ast_batch_iter_tree(tree->u.selection.elsebody, batch_index, statement_index, private_selection_index);
+                ast_batch_iter_tree(tree->u.selection.elsebody, batch_index, statement_index, private_selection_index, multi_op_per_line);
             }
         }
     } break;
     case ITERATION:
-        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
+        ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index, multi_op_per_line);
         break;
     case EXPRESSION:
         switch (tree->u.expr->type) {
         case ASS:
+
+            // In here I have to compute if there is a long expression 
+            if (tree->u.expr->right->right != NULL && tree->u.expr->right->right->right != NULL && tree->u.expr->right->right->right->left != NULL) {
+                tree->u.expr->right->right->right->left->last_op_hit = 1;
+            } else if (tree->u.expr->right->right != NULL && tree->u.expr->right->right->left != NULL) {
+                tree->u.expr->right->right->left->last_op_hit = 1;
+            }
+
+            int tree_length = 0;
+            last_op_on_the_expr_tree(tree->u.expr, &tree_length);
+
+            tree->u.expr->BOP_tree_length = tree_length;
+
+            if (tree_length > 1) {
+                multi_op_per_line = 1;
+            } else {
+                multi_op_per_line = 0; 
+            }
+
             (*statement_index)++;
             batch_statement_push(tree, *statement_index, batch_stack->head->index, 0, bss);
             break;
@@ -3704,7 +4197,7 @@ void ast_expr_show(astexpr tree) {
             str array_size = Str("");
             if (tree->left->arraysize->type == IDENT) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.sym->name);
-            } else if (tree->left->arraysize->u.str) {
+            } else if (tree->left->arraysize->u.str == CONSTVAL) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.str);
             }
             /* conversion to float */
@@ -3987,11 +4480,14 @@ void ast_expr_show(astexpr tree) {
                     // The rest of the code that prints the sizes and int/float 
                     if (tree->right->ftype == 1) {
                         if (tree->right->opid != BOP_lt && tree->right->opid != BOP_gt && tree->right->opid != BOP_leq && tree->right->opid != BOP_geq && tree->right->opid != BOP_eqeq && tree->right->opid != BOP_neq)
-                            fprintf(output, "%d, ", tree->left->size); // fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                            if (tree->left->flag == PRI)
+                                fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                            else 
+                                fprintf(output, "%d, %d, ", tree->right->size, tree->right->sizeexp);
                         else
-                            fprintf(output, "1, ");
+                            fprintf(output, "1, 1, ");
                     } else
-                        fprintf(output, "%d, ", tree->left->size);
+                        fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
 
                     if (tree->left->arraysize != NULL) {
                         ast_expr_show(tree->left->arraysize);
@@ -4536,7 +5032,7 @@ void ast_mult_op_batch_expr_show(aststmt main_tree, astexpr tree, int batch_inde
                 }
             }
 
-            ast_batch_print_cond(main_tree);
+            // ast_batch_print_cond(main_tree);
             control_sequence_push(&batch_index, batch_stack);
             fprintf(output, "{\n");
             indlev++;
@@ -4621,15 +5117,15 @@ void ast_mult_op_batch_expr_show(aststmt main_tree, astexpr tree, int batch_inde
         assign_size = Str(""); 
         // str_printf(index_array_result, main_tree->u.iteration.init->u.expr->left->u.sym->name); // this has the loop init value 
         // str_printf(index_array_right, "%s %s %s", main_tree->body->u.expr->left->right->left->u.sym->name, BOP_symbols[main_tree->body->u.expr->left->right->opid], main_tree->body->u.expr->left->right->right->u.str); 
-        if (main_tree->body->u.expr->left->right->type == BOP) {
-            str_printf(index_array_result, "%s %s %s", main_tree->body->u.expr->left->right->left->u.sym->name, BOP_symbols[main_tree->body->u.expr->left->right->opid], main_tree->body->u.expr->left->right->right->u.str); 
-        } else if (main_tree->body->u.expr->left->right->type == CONSTVAL) {
-            str_printf(index_array_result, "%s", main_tree->body->u.expr->left->right->u.str);
-        } else if (main_tree->body->u.expr->left->right->type == IDENT) {
-            str_printf(index_array_result, "%s", main_tree->body->u.expr->left->right->u.sym->name);
-        }
-        str_printf(leftop, main_tree->body->u.expr->left->left->u.sym->name);
-        str_printf(assign_size, "%s", main_tree->body->u.expr->left->arraysize->u.str);
+        // if (main_tree->body->u.expr->left->right->type == BOP) {
+        //     str_printf(index_array_result, "%s %s %s", main_tree->body->u.expr->left->right->left->u.sym->name, BOP_symbols[main_tree->body->u.expr->left->right->opid], main_tree->body->u.expr->left->right->right->u.str); 
+        // } else if (main_tree->body->u.expr->left->right->type == CONSTVAL) {
+        //     str_printf(index_array_result, "%s", main_tree->body->u.expr->left->right->u.str);
+        // } else if (main_tree->body->u.expr->left->right->type == IDENT) {
+        //     str_printf(index_array_result, "%s", main_tree->body->u.expr->left->right->u.sym->name);
+        // }
+        // str_printf(leftop, main_tree->body->u.expr->left->left->u.sym->name);
+        // str_printf(assign_size, "%s", main_tree->body->u.expr->left->arraysize->u.str);
 
         ast_mult_op_batch_expr_show(main_tree, tree->right, batch_index, statement_index, narray_element_index, private_selection_index, private_index, current, 0, dir, str_string(leftop), index_used, BOP_length_counter, cast_index);
         
@@ -7654,7 +8150,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                     str array_size = Str("");
                     if (tree->left->arraysize->type == IDENT) {
                         str_printf(array_size, "%s", tree->left->arraysize->u.sym->name);
-                    } else if (tree->left->arraysize->u.str) {
+                    } else if (tree->left->arraysize->type == CONSTVAL) {
                         str_printf(array_size, "%s", tree->left->arraysize->u.str);
                     }
                     if (tree->right->flag == PRI) { // PRI
@@ -7717,7 +8213,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                             str array_Size = Str("");
                             if (tree->left->arraysize->type == IDENT)
                                 str_printf(array_Size, tree->left->arraysize->u.sym->name);
-                            else 
+                            else if (tree->left->arraysize->type == CONSTVAL)
                                 str_printf(array_Size, tree->left->arraysize->u.str);
 
                             // The code below is needed that in case if the type if of comparison, the left side should be checked, casue the right side could be anything 
@@ -7755,7 +8251,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                             } else if (tree->left != NULL && tree->left->arraysize != NULL) {
                                 if (tree->left->arraysize->type == IDENT)
                                     str_printf(array_Size, tree->left->arraysize->u.sym->name);
-                                else 
+                                else if (tree->left->arraysize->type == CONSTVAL)
                                     str_printf(array_Size, tree->left->arraysize->u.str);
                             }
 

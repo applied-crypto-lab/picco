@@ -4152,11 +4152,12 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
                         if (atoi(e1->arraysize->u.str) && atoi(e2->arraysize->u.str)) {
                             if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str))
-                                parse_error(-1, "Array sizes in expression do not match.\n");
-                        } else {
-                            if (strcmp(e1->arraysize->u.sym->name, e2->arraysize->u.sym->name) != 0)
-                                parse_error(-1, "Array sizes in expression do not match.\n");
-                        }
+                                parse_error(-1, "1Array sizes in expression do not match.\n");
+                        } 
+                        //else {
+                         //   if (strcmp(e1->arraysize->u.sym->name, e2->arraysize->u.sym->name) != 0)
+                          //      parse_error(-1, "2Array sizes in expression do not match.\n");
+                        //}
                     }
                 //e->arraysize = e1->arraysize;   
 	    }
