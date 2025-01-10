@@ -74,6 +74,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 
 // initialize input and output streams (deployment mode only)
 #if __DEPLOYMENT__
+// #if __SHAMIR__
     try {
         inputStreams = new std::ifstream[numOfInputPeers];
         outputStreams = new std::ofstream[numOfOutputPeers];
