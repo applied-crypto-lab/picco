@@ -166,15 +166,15 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
 
-        /*
-        ANB, 3/4/24
-        - there is a VERY strange "bug", where if the array sizes of the shifts below are declared to be of length sizeof(priv_int) * 8, and the subsequent for loops which populate each element with the corresponding mask
-        - if the for loop is upper bounded by sizeof(priv_int) * 8 + 1 (1 larger than allowed), it DOES NOT CAUSE A SEGFAULT
-        - e.g. if k = 32, and we declare SHIFT_RSS to be of length 32
-        - and the for loop is upper bounded by 32 INCLUSIVE, then we are accessing the following:
-            SHIFT_RSS[32]
-        - which is out of bounds, and should've ended in a segfault
-         */
+    /*
+    ANB, 3/4/24
+    - there is a VERY strange "bug", where if the array sizes of the shifts below are declared to be of length sizeof(priv_int) * 8, and the subsequent for loops which populate each element with the corresponding mask
+    - if the for loop is upper bounded by sizeof(priv_int) * 8 + 1 (1 larger than allowed), it DOES NOT CAUSE A SEGFAULT
+    - e.g. if k = 32, and we declare SHIFT_RSS to be of length 32
+    - and the for loop is upper bounded by 32 INCLUSIVE, then we are accessing the following:
+        SHIFT_RSS[32]
+    - which is out of bounds, and should've ended in a segfault
+     */
 #if __RSS__
     SHIFT_RSS = new priv_int_t[sizeof(priv_int_t) * 8 + 1];
     for (priv_int_t i = 0; i <= sizeof(priv_int_t) * 8; i++) {
@@ -857,9 +857,36 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             if (priRkey == NULL)
                 throw std::runtime_error("Read Private Key for RSA");
             char *buffer = (char *)malloc(RSA_size(priRkey));
-            int n = read(sockfd[i], buffer, RSA_size(priRkey));
-            if (n < 0)
-                throw std::runtime_error("reading from socket 1");
+            // int num_tries = 0;
+
+            int n;
+            while (true) {
+                n = read(sockfd[i], buffer, RSA_size(priRkey));
+
+                if (n < 0) {
+                    if (num_tries < MAX_RETRIES) {
+                        // cross platform version of sleep(), C++14 and onward
+                        std::this_thread::sleep_for(WAIT_INTERVAL);
+                        num_tries += 1;
+                    } else {
+                        throw std::runtime_error("timeout, error recieving secret key  " + std::to_string(errno) + " - " + strerror(errno));
+                    }
+                } else{
+                    break;
+                }
+            }
+            // int n;
+            // while ((n = read(sockfd[i], buffer, RSA_size(priRkey))) < 0) {
+            //     continue;
+            // }
+
+            // int n;
+            // while ((n = read(sockfd[i], buffer, RSA_size(priRkey))) < 0) {
+            //     continue;
+            // }
+            // int n = read(sockfd[i], buffer, RSA_size(priRkey));
+            // if (n < 0)
+            //     throw std::runtime_error("reading from socket 1");
             char *decrypt = (char *)malloc(n);
             memset(decrypt, 0x00, n);
             int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
@@ -1271,7 +1298,6 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
             }
         }
     }
-
 }
 
 // used for Open (5 and 7 pc)
@@ -1291,7 +1317,6 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **SendData, priv_int_t **Rec
             }
         }
     }
-
 }
 
 void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size) {
@@ -1394,7 +1419,6 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvDat
             getDataFromPeer_bit(send_recv_map[1][i], RecvData, k * count, count, size);
         }
     }
-
 }
 
 // used for multiplication
@@ -1481,8 +1505,5 @@ void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
     else
         *rounds = size / (*count) - 1;
 }
-
-
-
 
 #endif
