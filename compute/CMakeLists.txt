@@ -92,7 +92,7 @@ if(DEPLOYMENT)
 else()
       add_definitions(-D__DEPLOYMENT__=0)
 endif()
-unset(DEPLOYMENT CACHE) # <---- this is the important!!
+unset(DEPLOYMENT CACHE) 
 
 set(LIBS
       ${CMAKE_THREAD_LIBS_INIT}
@@ -108,13 +108,13 @@ if(SHAMIR)
       add_executable(shamir_main shamir_main.cpp ${SOURCES} ${TECHNIQUE})
       target_link_libraries(shamir_main ${LIBS})
 endif()
-unset(SHAMIR CACHE) # <---- this is the important!!
+unset(SHAMIR CACHE) 
 
 if(RSS)
       add_executable(rss_main rss_main.cpp ${SOURCES} ${TECHNIQUE})
       target_link_libraries(rss_main ${LIBS})
 endif()
-unset(RSS CACHE) # <---- this is the important!!
+unset(RSS CACHE) 
 
 add_custom_target(clean-all
       make clean && rm -fR ${CMAKE_BINARY_DIR}/CMakeCache.txt
