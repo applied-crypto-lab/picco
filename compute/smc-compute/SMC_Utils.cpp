@@ -2145,3 +2145,10 @@ std::vector<int> SMC_Utils::generateCoefficients(std::vector<int> T_set, int thr
     }
     return coefficients;
 }
+
+#if __RSS__
+uint SMC_Utils::getNumShares() {
+    return ss->getNumShares();
+}
+#endif
+
