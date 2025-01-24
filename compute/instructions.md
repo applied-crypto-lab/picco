@@ -1,5 +1,7 @@
 This is a supplemental document for compiling and running RSS protocols for development. It assumes you've read the main PICCO README and are familiar with terms like "runtime config" and  "public-private key pairs."
 
+The specific file that is used for testing correctness of RSS operations is `smc-compute/RSS_testing.cpp`. The code is heavily documented, outlining the process for verifying a protocol is correctly implemented. It should ideally be read before proceeding with the remainder of the instructions to compile/run the code.
+
 The compilation script `compile-rss.sh` utilizes an existing `CMakeLists.txt` file present in the `compute` directory (NOT the template `.CMAKE_TEMPLATE`). To compile the repo, run the following command:
 ```
 ./compiled-rss.sh <ring_size>

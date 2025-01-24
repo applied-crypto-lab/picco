@@ -1,4 +1,7 @@
-// this file is to be used for development testing of RSS operations
+// this file is to be used for development testing of RSS operations. If you
+// have created a new file in the ops/rss directory, you will need to add the
+// new files name to the rss/RSSheaders.hpp file. Otherwise, the code will not
+// successfully compile.
 
 #include "RSS_types.hpp"
 #include "SMC_Utils.h"
@@ -15,7 +18,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     printf("----\n\n");
 
     // this is the setup process for producing secret shares. You can ignore
-    // the key initalization, as it's not particularly relevant
+    // the key initialization, as it's not particularly relevant
     __m128i *key_prg;
     uint8_t key_raw[] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
     key_prg = offline_prg_keyschedule(key_raw);
@@ -116,9 +119,16 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         }
     }
 
-    // array initalization
+    // Private array initalization
     // for RSS, priv_int is typedef (in RSS_types.hpp) as either a 32- or 64-bit POINTER
     // so these variables are actually two-dimensional arrays
+    // The dimensions of RSS variables are
+    //
+    // var[numShares][batch_size]
+    //
+    // This is so we are guaranteed to have large contiguous blocks of memory, which improves 
+    // performance.
+
     priv_int *in_1 = new priv_int[ss->getNumShares()];
     priv_int *in_2 = new priv_int[ss->getNumShares()];
     priv_int *out_1 = new priv_int[ss->getNumShares()];
