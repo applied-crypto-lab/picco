@@ -4,7 +4,7 @@ The specific file that is used for testing correctness of RSS operations is `smc
 
 The compilation script `compile-rss.sh` utilizes an existing `CMakeLists.txt` file present in the `compute` directory (NOT the template `.CMAKE_TEMPLATE`). To compile the repo, run the following command:
 ```
-./compiled-rss.sh <ring_size>
+./compile-rss.sh <ring_size>
 ```
 where `ring_size` is the bitlength of the ring. **NOTE**, if you want to test another ring size (e.g., 32-bit), you must re-compile the entire repository.
 
