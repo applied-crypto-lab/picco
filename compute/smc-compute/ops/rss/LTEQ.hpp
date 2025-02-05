@@ -66,7 +66,7 @@ for (i = 0; i < size; i++) {
         // sum[1][i] = (a[1][i] + edaBit_r[1][i]) << T(1);
     }
 }
-
+// testing
 // line 3
 Open(c, sum, size, -1, nodeNet, ss);
 
