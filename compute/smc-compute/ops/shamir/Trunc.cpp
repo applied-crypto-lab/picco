@@ -18,8 +18,16 @@
   along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "Trunc.h"
+#include <cstdio>
+#include <iostream>
 
-void doOperation_Trunc(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+void doOperation_Trunc(mpz_t *result, mpz_t *input, int K, int M, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++) {
+        mpz_init(temp[i]);
+    }
+
     mpz_t const2, power, const2M, constInv2M;
     // initialization
     mpz_init(const2M);
@@ -31,20 +39,26 @@ void doOperation_Trunc(mpz_t *result, mpz_t *shares, int K, int M, int size, int
 
     // start computation
     if (M > 1) {
-        doOperation_Mod2M(result, shares, K, M, size, threadID, net, ss);
+        doOperation_Mod2M(temp, input, K, M, size, threadID, net, ss);
     } else {
-        // special case, significantly cheaper than mod2m
-        doOperation_Mod2(result, shares, K, size, threadID, net, ss);
+        doOperation_Mod2(temp, input, K, size, threadID, net, ss);
     }
-    ss->modSub(result, shares, result, size);
-    ss->modMul(result, result, constInv2M, size);
+
+    ss->modSub(temp, input, temp, size);
+    ss->modMul(result, temp, constInv2M, size);
 
     // free memory
     mpz_clear(const2);
     mpz_clear(power);
     mpz_clear(const2M);
     mpz_clear(constInv2M);
+
+    for (int i = 0; i < size; i++) {
+        mpz_clear(temp[i]);
+    }
+    free(temp);
 }
+
 
 void doOperation_Trunc(mpz_t *result, mpz_t *shares, int K, int *M, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     int same = 1;
