@@ -1801,16 +1801,51 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, i
 }
 
 /* conversion from public integer to private float*/
+// this needs to be cleaned up, because currently it converts an int array, to mpz_t array, to 2d
+// but the challenge is that we cant directly replace certain mpz_t casts (specifically from 2d->1d) with
+// int equivalents
 void ss_batch_int2fl(int *a, mpz_t **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 
+    mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *a_tmp_tmp;
     for (int i = 0; i < size; i++)
-        convertFloat((float)a[i], 32, 9, &result[i]);
+        mpz_init_set_si(a_tmp[i], a[i]);
+    ss_convert_operator(&a_tmp_tmp, a_tmp, index_array, adim, size, 1);
 
-    // mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    // for (int i = 0; i < size; i++)
-    //     mpz_init_set_si(a_tmp[i], a[i]);
-    // ss_batch_int2fl(a_tmp, result, size, resultdim, 32, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
-    // ss_batch_free_operator(&a_tmp, size);
+    mpz_t **result_tmp = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+    for (int i = 0; i < size; i++) {
+        result_tmp[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++)
+            mpz_init(result_tmp[i][j]);
+    }
+
+    int temp_a;
+    for (int i = 0; i < size; i++) {
+        temp_a = mpz_get_si(a_tmp_tmp[i]);
+        convertFloat((float)temp_a, 32, 9, &result_tmp[i]);
+    }
+
+    /* consider the private condition */
+    mpz_t *result_new = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
+    mpz_t *result_org = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
+
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_init_set(result_new[4 * i + j], result_tmp[i][j]);
+            mpz_init_set(result_org[4 * i + j], result[index_array[3 * i + 2]][j]);
+        }
+    }
+
+    ss_batch_handle_priv_cond(result_new, result_org, out_cond, priv_cond, counter, 4 * size, threadID, net, ss);
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < 4; j++)
+            mpz_set(result[index_array[3 * i + 2]][j], result_new[4 * i + j]);
+
+    ss_batch_free_operator(&a_tmp_tmp, size);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_new, 4 * size);
+    ss_batch_free_operator(&result_org, 4 * size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 /* conversion from private integer to private float */
@@ -1848,22 +1883,28 @@ void ss_batch_int2fl(mpz_t *a, mpz_t **result, int adim, int resultdim, int alen
 }
 
 void ss_batch_int2fl(int *a, mpz_t ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+    // this functionality is non-interactive
 
+    mpz_t **result_tmp;
     int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
 
     for (int i = 0; i < size; i++) {
         result_index_array[i] = index_array[3 * i + 2];
         index_array[3 * i + 2] = i;
     }
-
+    /* call one-dimensional int array + one-dimensional float array */
+    ss_batch_int2fl(a, result_tmp, adim, size, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    /* set the results back */
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < 4; j++) {
             int dim1 = result_index_array[i] / resultdim;
             int dim2 = result_index_array[i] % resultdim;
-            // mpz_set(result[dim1][dim2][j], result_tmp[i][j]);
-            convertFloat((float)a[i], 32, 9, &result[dim1][dim2]);
+            mpz_set(result[dim1][dim2][j], result_tmp[i][j]);
         }
     }
+    free(result_index_array);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // one-dimensional int array to two-dimensional float array
