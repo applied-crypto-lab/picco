@@ -99,6 +99,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     priv_int_t fixed_secret = 1; // an example, fixed secret value
     for (int i = 0; i < batch_size; i++) {
         // generating the random shares by calling our PRG
+        // don't modify
         for (size_t j = 0; j < totalNumShares - 1; j++) {
             prg_aes_ni(Data1[j] + i, k1, key_prg);
             prg_aes_ni(Data2[j] + i, k2, key_prg);
@@ -198,9 +199,9 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
             //
             // print_binary(result[i], ring_size);
             //
-            printf("(input)    [%lu]: %u\n", i, res_2[i]);
-            printf("(expect)   [%lu]: %u\n", i, res_1[i]);
-            printf("(actual)   [%lu]: %u\n", i, check);
+            printf("(input)      [%lu]: %u\n", i, res_2[i]);
+            printf("(actual)     [%lu]: %u\n", i, res_1[i]);
+            printf("(expected)   [%lu]: %u\n", i, check);
         }
     }
 
