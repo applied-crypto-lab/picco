@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "technique": 2,
+    "bits": 33,
+    "peers": 3,
+    "threshold": 1,
+    "inputs": 1,
+    "outputs": 1,
+    "modulus":4294967311
+  },
+
+  "variables": [
+    {
+      "name": "sized_array_int",
+      "type": "int",
+      "bit_len1": 7,
+      "bit_len2": 0,
+      "size1": 65,
+      "size2": 1,
+      "dimension": 1,
+      "input_party": 1,
+      "label": "Write an input for sized_array_int: (Expecting an array of Type: int, with Bit length of: <7>, Dimension: [65])"
+    }
+  ]
+}

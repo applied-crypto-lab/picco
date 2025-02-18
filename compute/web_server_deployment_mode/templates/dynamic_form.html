@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Form</title>
+</head>
+<body>
+    <h1>Provide your input here: </h1>
+    <form id="dynamic-form">
+        {% for var in config_data['variables'] if var['name'] %}
+            <div class="input-group">
+                <label for="{{ var['name'] }}" style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px;">
+                    Write an input for <strong>{{ var['name'] }}</strong>
+                    <br>
+                    <span style="font-size: 0.8em; color: #7f8c8d;">
+                        (Expecting 
+                        {% if var['dimension'] == 1 %}
+                            an array of Type: <strong>{{ var['type'] }}</strong>, 
+                            Bit length: <strong>{{ var['bit_len1'] if var['type'] == 'int' else var['bit_len1'] ~ ', ' ~ var['bit_len2'] }}</strong>, 
+                            Dimension: <strong>[{{ var['size1'] }}]</strong>
+                        {% elif var['dimension'] == 2 %}
+                            a matrix of Type: <strong>{{ var['type'] }}</strong>, 
+                            Bit length: <strong>{{ var['bit_len1'] if var['type'] == 'int' else var['bit_len1'] ~ ', ' ~ var['bit_len2'] }}</strong>, 
+                            Dimensions: <strong>[{{ var['size1'] }}][{{ var['size2'] }}]</strong>
+                        {% else %}
+                            a value of Type: <strong>{{ var['type'] }}</strong>, 
+                            Bit length: <strong>{{ var['bit_len1'] if var['type'] == 'int' else var['bit_len1'] ~ ', ' ~ var['bit_len2'] }}</strong>
+                        {% endif %}
+                        )
+                    </span>
+                </label>
+                <br>
+                
+                <!-- <p>Debug: Name={{ var['name'] }}, Type={{ var['type'] }}, Dimension={{ var['dimension'] }}</p> -->
+
+                {% if var['dimension'] == 0 %}
+                    {% if var['type'] == 'int' %}
+                        <input type="number" name="{{ var['name'] }}" step="1" required>
+                    {% elif var['type'] == 'float' %}
+                        <input type="number" name="{{ var['name'] }}" step="any" required>
+                    {% else %}
+                        <input type="text" name="{{ var['name'] }}" required>
+                    {% endif %}
+                {% elif var['dimension'] > 0 %}
+                    <input type="file" name="file_{{ var['name'] }}" accept=".csv" required>
+                {% else %}
+                    <input type="text" name="{{ var['name'] }}" required>
+                {% endif %}
+            </div>
+            <br>
+        {% endfor %}
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="stored-data"></div>
+
+    <!-- Link external JavaScript file -->
+    <script src="{{ url_for('static', filename='js/form_handler.js') }}"></script>
+
+    <script>
+        // To reset the url and the page 
+        window.onload = function () {
+            if (window.location.search) {
+                window.location.href = window.location.pathname; // Reload the page without query parameters
+            }
+        };
+    </script>
+</body>
+</html>
