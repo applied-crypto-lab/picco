@@ -49,6 +49,8 @@ void ss_convert_operator(mpz_t ***result, mpz_t **op, int *index_array, int dim,
 void ss_convert_operator(mpz_t ***result, mpz_t ***op, int *index_array, int dim, int size, int flag);
 
 void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_single_fop_comparison(mpz_t result, mpz_t *a, int *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_single_fop_comparison(mpz_t result, int *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
 
 void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);

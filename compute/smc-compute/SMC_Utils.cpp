@@ -633,261 +633,392 @@ void SMC_Utils::smc_div(float *a, priv_int **b, int alen_sig, int alen_exp, int 
 
 /* All Comparisons */
 #if __SHAMIR__
+// Int
+// 1) private int < private int
 void SMC_Utils::smc_lt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
-
+// 2) private int < public int
 void SMC_Utils::smc_lt(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
 }
-
+// 3) public int < private int
 void SMC_Utils::smc_lt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
 #endif
 
+// Float
+// 4) private float < private float
 void SMC_Utils::smc_lt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
 }
-
+// take b turn to array of 4 ints, using convertfloat same like the flltz and tq. 
+// float can be larger than priv below -> but the size can be different for float, so we can use
+// same as a or float -> so if the float is larger than a then it can change the size of the private a -> so we keeep the size same for both a and pub b
+// 5) private float < public float -> (a, pb)
 void SMC_Utils::smc_lt(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&btmp, 4);
-}
+  
+    // int *btmp = new int[4]; // add memory for btmp
+    // long long *elements = new long long[4];
+    // convertFloat(b, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     btmp[j] = (int)elements[j]; 
+    // }
 
+    // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
+
+    // delete[] btmp;
+    // delete[] elements;
+}
+// 6) public float < private float -> (pa, b) -> Flip the order (b, pa) and the result (modSub)
 void SMC_Utils::smc_lt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&atmp, 4);
+
+    // int *atmp = new int[4]; // add memory for atmp
+    // long long *elements = new long long[4];
+    // convertFloat(a, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     atmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
+    
+    // delete[] atmp;
+    // delete[] elements;
 }
 
-// batch operations of comparisons
+    /************ batch operations *********/
+// 1) private *int = private *int < private *int
 void SMC_Utils::smc_lt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-
+// 2) private *int = private *float < private *float
 void SMC_Utils::smc_lt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
 
 
 // int
+// 3) private *int = public *int < private *int
 void SMC_Utils::smc_lt(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-
+// 4) private *int = private *int < public *int
 void SMC_Utils::smc_lt(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
 
 // float
+// 5) private *int = public *float < private *float
 void SMC_Utils::smc_lt(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
-
+// 6) private *int = private *float < public *float
 void SMC_Utils::smc_lt(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
-    ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
+    ss_batch_fop_comparison(result, b, a, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
 
 #if __SHAMIR__
+// 1) private int > private int
 void SMC_Utils::smc_gt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
 }
-
+// 2) private int > public int
 void SMC_Utils::smc_gt(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&b, MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
 }
-
+// 3) public int > private int
 void SMC_Utils::smc_gt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
 }
 #endif
-
+// 4) private float > private float
 void SMC_Utils::smc_gt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
 }
-
-void SMC_Utils::smc_gt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
-    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
-    ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
-    ss_batch_free_operator(&atmp, 4);
-}
-
+// 5) private float > public float
 void SMC_Utils::smc_gt(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&btmp, 4);
+
+    // New version that uses the new protocol between private and public 
+    // int *btmp = new int[4]; 
+
+    // long long *elements = new long long[4];
+    // convertFloat(b, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     btmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
+
+    // delete[] btmp;
+    // delete[] elements;
+}
+// 6) public float > private float
+void SMC_Utils::smc_gt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
+    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
+    ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
+    ss_batch_free_operator(&atmp, 4);
+
+    // New version that uses the new protocol between private and public 
+    // int *atmp = new int[4];
+
+    // long long *elements = new long long[4];
+    // convertFloat(a, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     atmp[j] = (int)elements[j]; 
+    // }
+    
+    // ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
+
+    // delete[] atmp;
+    // delete[] elements;
 }
 
-// batch operations of gt
+    /************ batch operations *********/
+// 1) private *int = private *int > private *int
 void SMC_Utils::smc_gt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
-
+// 2) private *int = private *float > private *float
 void SMC_Utils::smc_gt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 }
 
 // int 
+// 3) private *int = public *int > private *int
 void SMC_Utils::smc_gt(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
-
+// 4) private *int = private *int > public *int
 void SMC_Utils::smc_gt(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
 
-// // float 
+// float 
+// 5) private *int = public *float > private *float
 // void SMC_Utils::smc_gt(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 // }
-
+// 6) private *int = private *float > public *float
 // void SMC_Utils::smc_gt(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 // }
 
 #if __SHAMIR__
+// 1) private int <= private int
 void SMC_Utils::smc_leq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
+// 2) private int <= public int
 void SMC_Utils::smc_leq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&b, MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
+// 3) public int <= private int
 void SMC_Utils::smc_leq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
 #endif
-
+// 4) private float <= private float
 void SMC_Utils::smc_leq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
-void SMC_Utils::smc_leq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
-    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
-    ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
-    ss->modSub(result, 1, result);
-    ss_batch_free_operator(&atmp, 4);
-}
-
+// 5) private float <= public float
 void SMC_Utils::smc_leq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&btmp, 4);
+
+    // int *btmp = new int[4]; 
+
+    // long long *elements = new long long[4];
+    // convertFloat(b, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     btmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
+    // ss->modSub(result, 1, result);
+
+    // delete[] btmp;
+    // delete[] elements;
 }
 
-// batch operations of leq
+// 6) public float <= private float
+void SMC_Utils::smc_leq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
+    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
+    ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
+    ss->modSub(result, 1, result);
+    ss_batch_free_operator(&atmp, 4);
+
+    // int *atmp = new int[4];
+
+    // long long *elements = new long long[4];
+    // convertFloat(a, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     atmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
+    // ss->modSub(result, 1, result);
+
+    // delete[] atmp;
+    // delete[] elements;
+}
+
+    /************ batch operations *********/
+// 1) private *int = private *int <= private *int
 void SMC_Utils::smc_leq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-
+// 2) private *int = private *float <= private *float
 void SMC_Utils::smc_leq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
 // int 
+// 3) private *int = public *int <= private *int
 void SMC_Utils::smc_leq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-
+// 4) private *int = private *int <= public *int
 void SMC_Utils::smc_leq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
-// // float 
-// void SMC_Utils::smc_leq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
-//     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
-//     ss->modSub(result, 1, result, size);
-// }
-
-// void SMC_Utils::smc_leq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
-//     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
-//     ss->modSub(result, 1, result, size);
-// }
+// float 
+// 5) private *int = public *float <= private *float
+void SMC_Utils::smc_leq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
+    ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
+    ss->modSub(result, 1, result, size);
+}
+// 6) private *int = private *float <= public *float
+void SMC_Utils::smc_leq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
+    ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
+    ss->modSub(result, 1, result, size);
+}
 
 #if __SHAMIR__
+// 1) private int >= private int
 void SMC_Utils::smc_geq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
+// 2) private int >= public int
 void SMC_Utils::smc_geq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
+// 3) public int >= private int
 void SMC_Utils::smc_geq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
 #endif
-
+// 4) private float >= private float
 void SMC_Utils::smc_geq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
-void SMC_Utils::smc_geq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
-    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
-    ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
-    ss->modSub(result, 1, result);
-    ss_batch_free_operator(&atmp, 4);
-}
-
+// 5) private float >= public float
 void SMC_Utils::smc_geq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&btmp, 4);
+
+    // int *btmp = new int[4]; 
+
+    // long long *elements = new long long[4];
+    // convertFloat(b, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     btmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
+    // ss->modSub(result, 1, result); 
+
+    // delete[] btmp;
+    // delete[] elements;
+}
+// 6) public float >= private float
+void SMC_Utils::smc_geq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
+    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
+    ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
+    ss->modSub(result, 1, result);
+    ss_batch_free_operator(&atmp, 4);
+
+    // int *atmp = new int[4];
+
+    // long long *elements = new long long[4];
+    // convertFloat(a, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     atmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
+    // ss->modSub(result, 1, result);
+    
+    // delete[] atmp;
+    // delete[] elements;
 }
 
-// batch operations of geq
+    /************ batch operations *********/
+// 1) private *int = private *int >= private *int
 void SMC_Utils::smc_geq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-
+// 2) private *int = private *float >= private *float
 void SMC_Utils::smc_geq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
 // int
+// 3) private *int = public *int >= private *int
 void SMC_Utils::smc_geq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-
+// 4) private *int = private *int >= public *int
 void SMC_Utils::smc_geq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
-// // float
+// float
+// 5) private *int = public *float >= private *float
 // void SMC_Utils::smc_geq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
 // }
-
+// 6) private *int = private *float >= public *float
 // void SMC_Utils::smc_geq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
@@ -895,126 +1026,188 @@ void SMC_Utils::smc_geq(priv_int *a, int *b, int alen, int blen, priv_int *resul
 
 #if __SHAMIR__
 // Equality and Inequality
+// 1) private int == private int
 void SMC_Utils::smc_eqeq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
-
+// 2) private int == public int
 void SMC_Utils::smc_eqeq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
 }
-
+// 3) public int == private int
 void SMC_Utils::smc_eqeq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
 }
 #endif
-
+// 4) private float == private float
 void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
 }
-
+// 5) private float == public float
 void SMC_Utils::smc_eqeq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "==", threadID, net, ss);
     ss_batch_free_operator(&btmp, 4);
-}
 
+    // int *btmp = new int[4]; 
+    // long long *elements = new long long[4];
+    // convertFloat(b, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     btmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "==", threadID, net, ss);
+    
+    // delete[] btmp;
+    // delete[] elements;
+}
+// 6) public float == private float
 void SMC_Utils::smc_eqeq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
     ss_batch_free_operator(&atmp, 4);
+
+    // int *atmp = new int[4];
+    // long long *elements = new long long[4];
+    // convertFloat(a, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     atmp[j] = (int)elements[j]; 
+    // }
+
+    // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "==", threadID, net, ss);
+   
+    // delete[] atmp;
+    // delete[] elements;
 }
 
-// batch operations of eqeq
+    /************ batch operations *********/
+// 1) private *int == private *int
 void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-
+// 2) private *float == private *float
+void SMC_Utils::smc_eqeq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
+    ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
+}
+// 3) private *int == public *int
 void SMC_Utils::smc_eqeq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-
+// 4) public *int == private *int
 void SMC_Utils::smc_eqeq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, b, a, alen, blen, resultlen, size, threadID, net, ss);
 }
-
-void SMC_Utils::smc_eqeq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
+// 5) public *float == private **float
+void SMC_Utils::smc_eqeq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
+    ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
+}
+// 6) private **float == public *float
+void SMC_Utils::smc_eqeq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 }
 
 #if __SHAMIR__
+// 1) private int != private int
 void SMC_Utils::smc_neq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
+// 2) private int != public int
 void SMC_Utils::smc_neq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
+// 3) public int != private int
 void SMC_Utils::smc_neq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
 #endif
-
+// 4) private float != private float
 void SMC_Utils::smc_neq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-
-void SMC_Utils::smc_neq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
-    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
-    ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
-    ss->modSub(result, 1, result);
-    ss_batch_free_operator(&atmp, 4);
-}
-
+// 5) private float != public float
 void SMC_Utils::smc_neq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "==", threadID, net, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&btmp, 4);
+
+    // int *btmp = new int[4]; 
+
+    // long long *elements = new long long[4];
+    // convertFloat(b, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     btmp[j] = (int)elements[j]; 
+    // }
+    // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "==", threadID, net, ss);
+    // ss->modSub(result, 1, result);
+    // delete[] btmp;
+    // delete[] elements;
+}
+// 6) public float != private float
+void SMC_Utils::smc_neq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
+    priv_int *atmp;
+    ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
+    ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
+    ss->modSub(result, 1, result);
+    ss_batch_free_operator(&atmp, 4);
+
+    // int *atmp = new int[4];
+    // long long *elements = new long long[4];
+    // convertFloat(a, alen_sig, alen_exp, &elements);
+    // for (int j = 0; j < 4; ++j) {
+    //     atmp[j] = (int)elements[j]; 
+    // }
+    // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "==", threadID, net, ss);    
+    // ss->modSub(result, 1, result);
+    // delete[] atmp;
+    // delete[] elements;
 }
 
-// batch operations of neq
+    /************ batch operations *********/
+// 1) private *int != private *int
 void SMC_Utils::smc_neq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-
+// 2) private *float != private *float
 void SMC_Utils::smc_neq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
-// // int
+// int
+// 3) private *int != public *int
 // void SMC_Utils::smc_neq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
 // }
-
+// 4) public *int != private *int
 // void SMC_Utils::smc_neq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
 // }
 
 // float
+// 5) private *float != public *float
 // void SMC_Utils::smc_neq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
 // }
-
+// 6) public *float != private *float
 // void SMC_Utils::smc_neq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
 //     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 //     ss->modSub(result, 1, result, size);
 // }
 
 // batch logical operations
+// 2) private float && private float 
 void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
@@ -1101,6 +1294,7 @@ void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int b
 }
 
 // logical Operations
+// 1) private int && private int 
 void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }

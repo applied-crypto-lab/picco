@@ -56,6 +56,7 @@ long int ss_get_si(mpz_t x) {
 }
 
 // Computes the longer of the the two values based on the man and adjust if they are not equal
+// conversion before this, and in here we will have int of b (size 4)
 void ss_process_operands(mpz_t **a1, mpz_t **b1, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int *len_sig, int *len_exp, int size, SecretShare *ss) {
     mpz_t **a = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **b = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
@@ -234,6 +235,83 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
     ss_batch_free_operator(&as, 1);
     ss_batch_free_operator(&bs, 1);
 }
+
+void ss_single_fop_comparison(mpz_t result, mpz_t *a, int *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
+
+    std::cout << "\n ss_single_fop_comparison mpz_t *a, int *b called! \n";
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    mpz_t **as = (mpz_t **)malloc(sizeof(mpz_t *));
+    // bs needs to be replaced from mpz_T to int 
+    int **bs = (int **)malloc(sizeof(int *)); // this should be float * to use flltz and fleqz
+
+    as[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+    bs[0] = (int *)malloc(sizeof(int) * 4);
+
+    for (int i = 0; i < 4; i++) {
+        mpz_init_set(as[0][i], a[i]);
+        // mpz_init_set(bs[0][i], b[i]); // b in will be arr int size 4 
+        bs[0][i] = b[i];
+    }
+
+    mpz_init(results[0]);
+
+    /***********************************************/
+    // int len_sig = 0, len_exp = 0;
+    // ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss); // thid wont need to be called casue the sizes will be the same for float and priv
+    /***********************************************/
+
+    if (!strcmp(op.c_str(), "<0"))
+        doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+    else if (!strcmp(op.c_str(), "=="))
+        doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+
+    mpz_set(result, results[0]);
+    gmp_printf("\nss_single_fop_comparison->%Zd\n", result);
+
+
+    // free the memory
+    ss_batch_free_operator(&results, 1);
+    ss_batch_free_operator(&as, 1);
+    // ss_batch_free_operator(&bs, 1);
+}
+
+
+void ss_single_fop_comparison(mpz_t result, int *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
+
+    std::cout << "\n ss_single_fop_comparison int *a, mpz_t *b called! \n";
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+    int **as = (int **)malloc(sizeof(int *)); 
+    mpz_t **bs = (mpz_t **)malloc(sizeof(mpz_t *));
+
+    as[0] = (int *)malloc(sizeof(int) * 4);
+    bs[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+
+    for (int i = 0; i < 4; i++) {
+        as[0][i] = a[i];
+        mpz_init_set(bs[0][i], b[i]);
+    }
+
+    mpz_init(results[0]);
+
+    /***********************************************/
+    // int len_sig = 0, len_exp = 0;
+    // ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss); // thid wont need to be called casue the sizes will be the same for float and priv
+    /***********************************************/
+
+    if (!strcmp(op.c_str(), "<0"))
+        doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+    else if (!strcmp(op.c_str(), "=="))
+        doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+
+    mpz_set(result, results[0]);
+
+    // free the memory
+    ss_batch_free_operator(&results, 1);
+    // ss_batch_free_operator(&as, 1);
+    ss_batch_free_operator(&bs, 1);
+}
+
+
 void ss_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *));
@@ -289,10 +367,10 @@ void ss_batch_fop_comparison(mpz_t *result, float *a, mpz_t **b, int resultlen_s
     // call FLLTZ
     int len_sig = 0, len_exp = 0;
     // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
-    if (!strcmp(op.c_str(), "<0"))
-        doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+    // if (!strcmp(op.c_str(), "<0"))
+    //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
     // else if (!strcmp(op.c_str(), "=="))
-    //     doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+    //     doOperation_FLEQZ(b, a, result, len_sig, len_exp, size, threadID, net, ss);
 }
 
 
@@ -300,8 +378,10 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, float *b, int resultlen_s
 
     int len_sig = 0, len_exp = 0;
     // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
-    if (!strcmp(op.c_str(), "<0"))
-        doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+
+    // commented out to get the single version working
+    // if (!strcmp(op.c_str(), "<0"))
+    //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
     // else if (!strcmp(op.c_str(), "=="))
     //     doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 }
@@ -1224,47 +1304,45 @@ void ss_batch_BOP_float_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resu
 
 /************************************ INTEGER BATCH ****************************************/
 void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
-    mpz_t *a_tmp = nullptr;
-    mpz_t *b_tmp = nullptr;
-    mpz_t *result_tmp = nullptr;
+   mpz_t *a_tmp, *b_tmp, *result_tmp;
 
     // Conditionally create and convert arrays based on the flags
-    if (index_array_flags[0]) {
+    // if (index_array_flags[0]) {
         ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
-    } else {
-        a_tmp = a;  // Use the original array
-    }
+    // } else {
+    //     a_tmp = a;  // Use the original array
+    // }
 
-    if (index_array_flags[1]) {
+    // if (index_array_flags[1]) {
         ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
-    } else {
-        b_tmp = b;  // Use the original array
-    }
+    // } else {
+    //     b_tmp = b;  // Use the original array
+    // }
 
-    if (index_array_flags[2]) {
+    // if (index_array_flags[2]) {
         ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
-    } else {
-        result_tmp = result;  // Use the original array
-    }
-
+    // } else {
+    //     result_tmp = result;  // Use the original array
+    // }
+    // print the shares before and after 
     ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
 
     // Copy the result back if a temporary array was used
-    if (index_array_flags[2]) {
+    // if (index_array_flags[2]) {
         for (int i = 0; i < size; ++i) {
             mpz_set(result[index_array[3 * i + 2]], result_tmp[i]);
         }
         ss_batch_free_operator(&result_tmp, size);
-    }
+    // }
 
     // Free the temporary arrays if they were created
-    if (index_array_flags[0]) {
+    // if (index_array_flags[0]) {
         ss_batch_free_operator(&a_tmp, size);
-    }
+    // }
     
-    if (index_array_flags[1]) {
+    // if (index_array_flags[1]) {
         ss_batch_free_operator(&b_tmp, size);
-    }
+    // }
 }
 
 // used to compute 1-priv_cond in a batch stmt
@@ -1520,29 +1598,27 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen, int blen, int resul
 // assignment param: two-dim private int
 void ss_batch(mpz_t *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
     int dim1, dim2;
-    mpz_t *a_tmp = nullptr;
-    mpz_t *b_tmp = nullptr;
-    mpz_t *result_tmp = nullptr;
+    mpz_t *a_tmp, *b_tmp, *result_tmp;
 
-    if (index_array_flags[0] == 1) {
+    // if (index_array_flags[0] == 1) {
         ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
-    } else {
-        a_tmp = a;  // Use the original array
-    }
+    // } else {
+    //     a_tmp = a;  // Use the original array
+    // }
 
-    if (index_array_flags[1] == 1) {
+    // if (index_array_flags[1] == 1) {
         ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
-    } else {
-        b_tmp = b;  // Use the original array
-    }
+    // } else {
+    //     b_tmp = b;  // Use the original array
+    // }
 
-    if (index_array_flags[2] == 1) {
+    // if (index_array_flags[2] == 1) {
         ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
-    }
+    // }
 
     ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
 
-    if (index_array_flags[2] == 1) {
+    // if (index_array_flags[2] == 1) {
         if (resultdim != 0) {
             for (int i = 0; i < size; ++i) {
                 dim1 = index_array[3 * i + 2] / resultdim;
@@ -1550,17 +1626,17 @@ void ss_batch(mpz_t *a, mpz_t *b, mpz_t **result, int alen, int blen, int result
                 mpz_set(result[dim1][dim2], result_tmp[i]);
             }
         }
-    }
+    // }
 
-    if (index_array_flags[0] == 1) {
+    // if (index_array_flags[0] == 1) {
         ss_batch_free_operator(&a_tmp, size);
-    }
-    if (index_array_flags[1] == 1) {
+    // }
+    // if (index_array_flags[1] == 1) {
         ss_batch_free_operator(&b_tmp, size);
-    }
-    if (index_array_flags[2] == 1) {
+    // }
+    // if (index_array_flags[2] == 1) {
         ss_batch_free_operator(&result_tmp, size);
-    }
+    // }
 }
 // first param: one-dim private int
 // second param: two-dim private int
