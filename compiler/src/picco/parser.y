@@ -3967,7 +3967,6 @@ void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
       astspec spec = NULL;
       astdecl decl = NULL;
       struct_field field;
- // bbbbbb
       if(is_su_field)
       {
                 field = get_struct_field_info(e);
@@ -4228,7 +4227,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, " 1 Type mismatch with respect to public/private data in assignment 1.\n");
+		parse_error(-1, "Type mismatch with respect to public/private data in assignment.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){
@@ -4545,7 +4544,7 @@ int check_func_param(astexpr funcname, astexpr arglist){
         }
         // for the leftmost var
         if((decl->type == DLIST && arglist->type != COMMALIST) || (decl->type == DPARAM && arglist->type == COMMALIST)){
-            parse_error(1, "111 Too many or too few arguments to function '%s'\n", funcname);
+            parse_error(1, "Too many or too few arguments to function '%s'\n", funcname);
         }
         else{
             spec = decl->spec;
