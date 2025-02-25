@@ -8,7 +8,7 @@
 #include "RandBit.hpp"
 // In Protocol 9 , to Return results I used [cLT],[cEQ]
 template <typename T>
-void doOperation_LTEQ(T **a, T **b, T **cLT,T **cEQ ,int ring_size, int size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void doOperation_LTEQ(T **a, T **b, T **cLT,T **cEQ ,int ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
 // line 1 & 2 (Generate ℓ random bits [r0 ]1 , . . . , [rℓ−1 ]1 in Z2 and one random bit [ b ] over Z2k)
 uint numShares = ss->getNumShares();
@@ -23,7 +23,7 @@ rprime[i]: Stores the transformed random bits [r'].
 c: Stores the opened result of [a] - [b] + [r].
 e: Stores the opened result of [d] + 2^(ℓ−1)[b].
 */
-T **b = new T *[numShares];
+T **b_local = new T *[numShares];
 T **sum = new T *[numShares];
 T **u_2 = new T *[numShares];
 T **edaBit_r = new T *[numShares];
@@ -34,7 +34,7 @@ T *c = new T[size];
 T *e = new T[size];
 
 for (i = 0; i < numShares; i++) {
-    b[i] = new T[size];
+    b_local[i] = new T[size];
     edaBit_r[i] = new T[size];
     edaBit_b_2[i] = new T[size];
     sum[i] = new T[size];
@@ -43,13 +43,20 @@ for (i = 0; i < numShares; i++) {
     rprime[i] = new T[size];
 }
 
+T **v = new T *[numShares];
+T **u = new T *[numShares];
+for (size_t s = 0; s < numShares; s++) {
+    v[s] = new T[size];
+    u[s] = new T[size];
+}
+
 T *ai = new T[numShares];
 memset(ai, 0, sizeof(T) * numShares);
 ss->sparsify_public(ai, 1);
 
 // stays the same
 //This generates one random bit [b]
-Rss_RandBit(b, size, ring_size, nodeNet, ss);
+Rss_RandBit(b_local, size, ring_size, nodeNet, ss);
 
 // generating a full-sized edaBit
 edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
@@ -66,7 +73,7 @@ for (i = 0; i < size; i++) {
         // sum[1][i] = (a[1][i] + edaBit_r[1][i]) << T(1);
     }
 }
-// testing
+
 // line 3
 Open(c, sum, size, -1, nodeNet, ss);
 
@@ -109,7 +116,7 @@ T **resultBuffer = new T *[numShares];
 for (size_t s = 0; s < numShares; s++) {
     buffer[s] = new T[2 * size];
     resultBuffer[s] = new T[2 * size];
-    for (int i = 0; i < size; i++) {
+    for (i = 0; i < size; i++) {
         buffer[s][i] = u_2[s][i];         // First half for u
         buffer[s][i + size] = v[s][i];    // Second half for cEQ
     }
@@ -145,8 +152,6 @@ for (size_t s = 0; s < numShares; s++) {
     }
 } 
 // line  10
-
-
 for (i = 0; i < size; ++i) {
     // cant do this because we modify edaBit_b_2 earlier
     // for (size_t s = 0; s < numShares; s++)
@@ -173,7 +178,7 @@ for (i = 0; i < size; ++i) {
     for (i = 0; i < numShares; i++) {
         delete[] edaBit_r[i];
         delete[] edaBit_b_2[i];
-        delete[] b[i];
+        delete[] b_local;
         delete[] sum[i];
         delete[] u_2[i];
         delete[] rprime[i];
