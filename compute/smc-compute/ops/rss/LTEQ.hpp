@@ -4,6 +4,7 @@
 #include "../../rss/RepSecretShare.hpp"
 #include "BitLT.hpp"
 #include "B2A.hpp"
+#include "EQZ.hpp"
 #include "EdaBit.hpp"
 #include "RandBit.hpp"
 // In Protocol 9 , to Return results I used [cLT],[cEQ]
@@ -23,7 +24,7 @@ rprime[i]: Stores the transformed random bits [r'].
 c: Stores the opened result of [a] - [b] + [r].
 e: Stores the opened result of [d] + 2^(ℓ−1)[b].
 */
-T **b_local = new T *[numShares];
+T **b_prime = new T *[numShares];
 T **sum = new T *[numShares];
 T **u_2 = new T *[numShares];
 T **edaBit_r = new T *[numShares];
@@ -34,7 +35,7 @@ T *c = new T[size];
 T *e = new T[size];
 
 for (i = 0; i < numShares; i++) {
-    b_local[i] = new T[size];
+    b_prime[i] = new T[size];
     edaBit_r[i] = new T[size];
     edaBit_b_2[i] = new T[size];
     sum[i] = new T[size];
@@ -50,18 +51,18 @@ for (size_t s = 0; s < numShares; s++) {
     u[s] = new T[size];
 }
 
-T *ai = new T[numShares];
+ T *ai = new T[numShares];
 memset(ai, 0, sizeof(T) * numShares);
 ss->sparsify_public(ai, 1);
 
 // stays the same
 //This generates one random bit [b]
-Rss_RandBit(b_local, size, ring_size, nodeNet, ss);
+Rss_RandBit(b_prime, size, ring_size, nodeNet, ss);
 
 // generating a full-sized edaBit
 edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 
-for (i = 0; i < size; i++) {
+ for (i = 0; i < size; i++) {
     for (size_t s = 0; s < numShares; s++) {
         rprime[s][i] = edaBit_r[s][i] - (GET_BIT(edaBit_b_2[s][i], T(ring_size - 1)) << T(ring_size - 1));
         // rprime[1][i] = edaBit_r[1][i] - (GET_BIT(edaBit_b_2[1][i], T(ring_size - 1)) << T(ring_size - 1));
@@ -106,7 +107,7 @@ Rss_k_OR_L(v, rprime, size, ring_size, nodeNet, ss);
         }
     }
 
-// 
+
 
 // Line 7: Convert binary shares to arithmetic shares Only one time call
 // Replaced the two separate B2A calls with a single buffered call
@@ -126,13 +127,13 @@ for (size_t s = 0; s < numShares; s++) {
 Rss_B2A(resultBuffer, buffer, 2 * size, ring_size, nodeNet, ss);
 
 // Extract results back to u and cEQ
-/*for (size_t s = 0; s < numShares; s++) {
+for (size_t s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         u[s][i] = resultBuffer[s][i];          // First half contains u
         cEQ[s][i] = resultBuffer[s][i + size]; // Second half contains cEQ
     }
 }
-*/
+
 
 // Line 8: Compute [a'] = c' - [r'] + 2^(l-1)[u]
 T **a_prime = new T *[numShares];
@@ -148,15 +149,17 @@ T **d = new T *[numShares];
 for (size_t s = 0; s < numShares; s++) {
     d[s] = new T[size];
     for (int i = 0; i < size; i++) {
-        d[s][i] = a[s][i] - a_prime[s][i];
+        d[s][i] = (a[s][i] - b[s][i]) - a_prime[s][i];
     }
 } 
 // line  10
+
+
 for (i = 0; i < size; ++i) {
     // cant do this because we modify edaBit_b_2 earlier
     // for (size_t s = 0; s < numShares; s++)
     for (size_t s = 0; s < numShares; s++)
-        sum[s][i] = a[s][i] - c[i] * ai[s] + rprime[s][i] - (u_2[s][i] << T(ring_size - 1)) + (b[s][i] << T(ring_size - 1));
+        sum[s][i] = a[s][i] - c[i] * ai[s] + rprime[s][i] - (u_2[s][i] << T(ring_size - 1)) + (b_prime[s][i] << T(ring_size - 1));
     // sum[1][i] = a[1][i] - c[i] * a2 + rprime[1][i] - (u_2[1][i] << T(ring_size - 1)) + (b[1][i] << T(ring_size - 1));
 }   
 Open(e, sum, size, -1, nodeNet, ss);
@@ -166,26 +169,25 @@ T e_bit;
 for (i = 0; i < size; ++i) {
     e_bit = GET_BIT(e[i], T(ring_size - 1)); // getting the (k-1)th bit
     for (size_t s = 0; s < numShares; s++) {
-        cLT[s][i] = e_bit * ai[s] + b[s][i] - (e_bit * b[s][i] << T(1));
+        cLT[s][i] = e_bit * ai[s] + b_prime[s][i] - (e_bit * b_prime[s][i] << T(1));
     }
     // res[1][i] = e_bit * a2 + b[1][i] - (e_bit * b[1][i] << T(1));
 }
     // cleanup
     delete[] ai;
-    delete[] c;
+   delete[] c;
     delete[] e;
 
     for (i = 0; i < numShares; i++) {
         delete[] edaBit_r[i];
         delete[] edaBit_b_2[i];
-        delete[] b_local;
+        delete[] b_prime;
         delete[] sum[i];
         delete[] u_2[i];
         delete[] rprime[i];
     }
     delete[] edaBit_r;
     delete[] edaBit_b_2;
-    delete[] b;
     delete[] sum;
     delete[] u_2;
     delete[] rprime;
@@ -196,12 +198,6 @@ for (size_t s = 0; s < numShares; s++) {
 }
 delete[] buffer;
 delete[] resultBuffer;
-
-
-
-
-
-
 
 }
 
