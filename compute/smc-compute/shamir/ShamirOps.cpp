@@ -43,13 +43,13 @@ void ss_clear(mpz_t x) {
     mpz_clear(x);
 }
 
-// void ss_add_ui(mpz_t rop, mpz_t op1, uint op2) {
-//     mpz_add_ui(rop, op1, op2);
-// }
+void ss_add_ui(mpz_t rop, mpz_t op1, uint op2) {
+    mpz_add_ui(rop, op1, op2);
+}
 
-// void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2) {
-//     mpz_sub_ui(rop, op1, op2);
-// }
+void ss_sub_ui(mpz_t rop, mpz_t op1, uint op2) {
+    mpz_sub_ui(rop, op1, op2);
+}
 
 long int ss_get_si(mpz_t x) {
     return mpz_get_si(x);
@@ -236,80 +236,81 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
     ss_batch_free_operator(&bs, 1);
 }
 
-void ss_single_fop_comparison(mpz_t result, mpz_t *a, int *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
+// New code
+// void ss_single_fop_comparison(mpz_t result, mpz_t *a, int *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
-    std::cout << "\n ss_single_fop_comparison mpz_t *a, int *b called! \n";
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    mpz_t **as = (mpz_t **)malloc(sizeof(mpz_t *));
-    // bs needs to be replaced from mpz_T to int 
-    int **bs = (int **)malloc(sizeof(int *)); // this should be float * to use flltz and fleqz
+//     std::cout << "\n ss_single_fop_comparison mpz_t *a, int *b called! \n";
+//     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+//     mpz_t **as = (mpz_t **)malloc(sizeof(mpz_t *));
+//     // bs needs to be replaced from mpz_T to int 
+//     int **bs = (int **)malloc(sizeof(int *)); // this should be float * to use flltz and fleqz
 
-    as[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-    bs[0] = (int *)malloc(sizeof(int) * 4);
+//     as[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+//     bs[0] = (int *)malloc(sizeof(int) * 4);
 
-    for (int i = 0; i < 4; i++) {
-        mpz_init_set(as[0][i], a[i]);
-        // mpz_init_set(bs[0][i], b[i]); // b in will be arr int size 4 
-        bs[0][i] = b[i];
-    }
+//     for (int i = 0; i < 4; i++) {
+//         mpz_init_set(as[0][i], a[i]);
+//         // mpz_init_set(bs[0][i], b[i]); // b in will be arr int size 4 
+//         bs[0][i] = b[i];
+//     }
 
-    mpz_init(results[0]);
+//     mpz_init(results[0]);
 
-    /***********************************************/
-    // int len_sig = 0, len_exp = 0;
-    // ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss); // thid wont need to be called casue the sizes will be the same for float and priv
-    /***********************************************/
+//     /***********************************************/
+//     // int len_sig = 0, len_exp = 0;
+//     // ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss); // thid wont need to be called casue the sizes will be the same for float and priv
+//     /***********************************************/
 
-    if (!strcmp(op.c_str(), "<0"))
-        doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
-    else if (!strcmp(op.c_str(), "=="))
-        doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+//     if (!strcmp(op.c_str(), "<0"))
+//         doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+//     else if (!strcmp(op.c_str(), "=="))
+//         doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
 
-    mpz_set(result, results[0]);
-    gmp_printf("\nss_single_fop_comparison->%Zd\n", result);
-
-
-    // free the memory
-    ss_batch_free_operator(&results, 1);
-    ss_batch_free_operator(&as, 1);
-    // ss_batch_free_operator(&bs, 1);
-}
+//     mpz_set(result, results[0]);
+//     gmp_printf("\nss_single_fop_comparison->%Zd\n", result);
 
 
-void ss_single_fop_comparison(mpz_t result, int *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // free the memory
+//     ss_batch_free_operator(&results, 1);
+//     ss_batch_free_operator(&as, 1);
+//     // ss_batch_free_operator(&bs, 1);
+// }
 
-    std::cout << "\n ss_single_fop_comparison int *a, mpz_t *b called! \n";
-    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
-    int **as = (int **)malloc(sizeof(int *)); 
-    mpz_t **bs = (mpz_t **)malloc(sizeof(mpz_t *));
+// New code
+// void ss_single_fop_comparison(mpz_t result, int *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
-    as[0] = (int *)malloc(sizeof(int) * 4);
-    bs[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+//     std::cout << "\n ss_single_fop_comparison int *a, mpz_t *b called! \n";
+//     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
+//     int **as = (int **)malloc(sizeof(int *)); 
+//     mpz_t **bs = (mpz_t **)malloc(sizeof(mpz_t *));
 
-    for (int i = 0; i < 4; i++) {
-        as[0][i] = a[i];
-        mpz_init_set(bs[0][i], b[i]);
-    }
+//     as[0] = (int *)malloc(sizeof(int) * 4);
+//     bs[0] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
 
-    mpz_init(results[0]);
+//     for (int i = 0; i < 4; i++) {
+//         as[0][i] = a[i];
+//         mpz_init_set(bs[0][i], b[i]);
+//     }
 
-    /***********************************************/
-    // int len_sig = 0, len_exp = 0;
-    // ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss); // thid wont need to be called casue the sizes will be the same for float and priv
-    /***********************************************/
+//     mpz_init(results[0]);
 
-    if (!strcmp(op.c_str(), "<0"))
-        doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
-    else if (!strcmp(op.c_str(), "=="))
-        doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+//     /***********************************************/
+//     // int len_sig = 0, len_exp = 0;
+//     // ss_process_operands(as, bs, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, 1, ss); // thid wont need to be called casue the sizes will be the same for float and priv
+//     /***********************************************/
 
-    mpz_set(result, results[0]);
+//     if (!strcmp(op.c_str(), "<0"))
+//         doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+//     else if (!strcmp(op.c_str(), "=="))
+//         doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
 
-    // free the memory
-    ss_batch_free_operator(&results, 1);
-    // ss_batch_free_operator(&as, 1);
-    ss_batch_free_operator(&bs, 1);
-}
+//     mpz_set(result, results[0]);
+
+//     // free the memory
+//     ss_batch_free_operator(&results, 1);
+//     // ss_batch_free_operator(&as, 1);
+//     ss_batch_free_operator(&bs, 1);
+// }
 
 
 void ss_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
@@ -361,30 +362,31 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_
         doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 }
 
-void ss_batch_fop_comparison(mpz_t *result, float *a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Do the conversion here, to avoid doing the same change in all the functions 
-    // this also allows to make sure the man range is good by calling ss_process_operands then 
-    // call FLLTZ
-    int len_sig = 0, len_exp = 0;
-    // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
-    // if (!strcmp(op.c_str(), "<0"))
-    //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
-    // else if (!strcmp(op.c_str(), "=="))
-    //     doOperation_FLEQZ(b, a, result, len_sig, len_exp, size, threadID, net, ss);
-}
+// New Code 
+// void ss_batch_fop_comparison(mpz_t *result, float *a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Do the conversion here, to avoid doing the same change in all the functions 
+//     // this also allows to make sure the man range is good by calling ss_process_operands then 
+//     // call FLLTZ
+//     int len_sig = 0, len_exp = 0;
+//     // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
+//     // if (!strcmp(op.c_str(), "<0"))
+//     //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+//     // else if (!strcmp(op.c_str(), "=="))
+//     //     doOperation_FLEQZ(b, a, result, len_sig, len_exp, size, threadID, net, ss);
+// }
 
+// New Code 
+// void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, float *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
-void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, float *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
+//     int len_sig = 0, len_exp = 0;
+//     // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
 
-    int len_sig = 0, len_exp = 0;
-    // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
-
-    // commented out to get the single version working
-    // if (!strcmp(op.c_str(), "<0"))
-    //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
-    // else if (!strcmp(op.c_str(), "=="))
-    //     doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
-}
+//     // commented out to get the single version working
+//     // if (!strcmp(op.c_str(), "<0"))
+//     //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+//     // else if (!strcmp(op.c_str(), "=="))
+//     //     doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+// }
 
 void ss_batch_fop_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
@@ -760,9 +762,10 @@ void ss_int2fl(int value, mpz_t *result, int gamma, int K, int L, int threadID, 
     // mpz_clear(val);
 }
 
-void ss_int2fl(int *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
+// New code 
+// void ss_int2fl(int *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
     // Needs to be implemented 
-}
+// }
 
 void ss_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *));
@@ -782,98 +785,101 @@ void ss_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID
     ss_batch_free_operator(&results, 1);
 }
 
-void ss_int2fl(mpz_t *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-    mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-    mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
+// New Code 
+// void ss_int2fl(mpz_t *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+//     mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+//     mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
-    for (int i = 0; i < size; i++) {
-        temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        for (int j = 0; j < 4; j++) {
-            mpz_init(temp_results[i][j]);
-        }
-        mpz_init_set(temp_values[i], value[i]);
-    }
+//     for (int i = 0; i < size; i++) {
+//         temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+//         for (int j = 0; j < 4; j++) {
+//             mpz_init(temp_results[i][j]);
+//         }
+//         mpz_init_set(temp_values[i], value[i]);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        doOperation_Int2FL(&temp_values[i], &temp_results[i], gamma, K, 1, threadID, net, ss);
-    }
+//     for (int i = 0; i < size; i++) {
+//         doOperation_Int2FL(&temp_values[i], &temp_results[i], gamma, K, 1, threadID, net, ss);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_set(result[i][j], temp_results[i][j]);
-        }
-    }
+//     for (int i = 0; i < size; i++) {
+//         for (int j = 0; j < 4; j++) {
+//             mpz_set(result[i][j], temp_results[i][j]);
+//         }
+//     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_clear(temp_results[i][j]);
-        }
-        free(temp_results[i]);
-        mpz_clear(temp_values[i]);
-    }
-    free(temp_results);
-    free(temp_values);
-}
+//     for (int i = 0; i < size; i++) {
+//         for (int j = 0; j < 4; j++) {
+//             mpz_clear(temp_results[i][j]);
+//         }
+//         free(temp_results[i]);
+//         mpz_clear(temp_values[i]);
+//     }
+//     free(temp_results);
+//     free(temp_values);
+// }
 
 void ss_int2int(int value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_set_si(result, value);
 }
 
-void ss_int2int(int *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-    mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    int *temp_values = (int *)malloc(sizeof(int) * size);
+// New Code 
+// void ss_int2int(int *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+//     mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
+//     int *temp_values = (int *)malloc(sizeof(int) * size);
 
-    for (int i = 0; i < size; i++) {
-        mpz_init(temp_results[i]);
-        temp_values[i] = value[i];
-    }
+//     for (int i = 0; i < size; i++) {
+//         mpz_init(temp_results[i]);
+//         temp_values[i] = value[i];
+//     }
 
-    for (int i = 0; i < size; i++) {
-        ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
-    }
+//     for (int i = 0; i < size; i++) {
+//         ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        mpz_set(result[i], temp_results[i]);
-    }
+//     for (int i = 0; i < size; i++) {
+//         mpz_set(result[i], temp_results[i]);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        mpz_clear(temp_results[i]);
-    }
-    free(temp_results);
-    free(temp_values);
-}
+//     for (int i = 0; i < size; i++) {
+//         mpz_clear(temp_results[i]);
+//     }
+//     free(temp_results);
+//     free(temp_values);
+// }
 
 void ss_int2int(mpz_t value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_set(result, value);
 }
 
-void ss_int2int(mpz_t *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-    mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
+// New Code 
+// void ss_int2int(mpz_t *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+//     mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
+//     mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
-    for (int i = 0; i < size; i++) {
-        mpz_init(temp_results[i]);
-        mpz_init_set(temp_values[i], value[i]);
-    }
+//     for (int i = 0; i < size; i++) {
+//         mpz_init(temp_results[i]);
+//         mpz_init_set(temp_values[i], value[i]);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
-    }
+//     for (int i = 0; i < size; i++) {
+//         ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        mpz_set(result[i], temp_results[i]);
-    }
+//     for (int i = 0; i < size; i++) {
+//         mpz_set(result[i], temp_results[i]);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        mpz_clear(temp_results[i]);
-        mpz_clear(temp_values[i]);
-    }
-    free(temp_results);
-    free(temp_values);
-}
+//     for (int i = 0; i < size; i++) {
+//         mpz_clear(temp_results[i]);
+//         mpz_clear(temp_values[i]);
+//     }
+//     free(temp_results);
+//     free(temp_values);
+// }
 
 void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_set_si(result, (int)value);
@@ -887,9 +893,10 @@ void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID,
     // free(val);
 }
 
-void ss_fl2int(float *value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-}
+// New Code 
+// void ss_fl2int(float *value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+// }
 
 void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **values = (mpz_t **)malloc(sizeof(mpz_t *));
@@ -905,10 +912,11 @@ void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID
     ss_batch_free_operator(&results, 1);
 }
 
-void ss_fl2int(mpz_t **value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-    doOperation_FL2Int(value, result, K, L, gamma, size, threadID, net, ss);
-}
+// New Code 
+// void ss_fl2int(mpz_t **value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+//     doOperation_FL2Int(value, result, K, L, gamma, size, threadID, net, ss);
+// }
 
 void ss_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * 4);
@@ -921,35 +929,36 @@ void ss_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int th
     free(val);
 }
 
-void ss_fl2fl(float *value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-    mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+// New Code 
+// void ss_fl2fl(float *value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+//     mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
 
-    for (int i = 0; i < size; i++) {
-        temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        for (int j = 0; j < 4; j++) {
-            mpz_init(temp_results[i][j]);
-        }
-    }
+//     for (int i = 0; i < size; i++) {
+//         temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+//         for (int j = 0; j < 4; j++) {
+//             mpz_init(temp_results[i][j]);
+//         }
+//     }
 
-    for (int i = 0; i < size; i++) {
-        ss_fl2fl(value[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
-    }
+//     for (int i = 0; i < size; i++) {
+//         ss_fl2fl(value[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_set(result[i][j], temp_results[i][j]);
-        }
-    }
+//     for (int i = 0; i < size; i++) {
+//         for (int j = 0; j < 4; j++) {
+//             mpz_set(result[i][j], temp_results[i][j]);
+//         }
+//     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_clear(temp_results[i][j]);
-        }
-        free(temp_results[i]);
-    }
-    free(temp_results);
-}
+//     for (int i = 0; i < size; i++) {
+//         for (int j = 0; j < 4; j++) {
+//             mpz_clear(temp_results[i][j]);
+//         }
+//         free(temp_results[i]);
+//     }
+//     free(temp_results);
+// }
 
 void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
     if (K1 >= K2)
@@ -968,41 +977,42 @@ void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int t
     mpz_set(result[3], value[3]);
 }
 
-void ss_fl2fl(mpz_t **value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-    mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-    mpz_t **temp_values = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+// New Code 
+// void ss_fl2fl(mpz_t **value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
+//     // Needs to be implemented 
+//     mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+//     mpz_t **temp_values = (mpz_t **)malloc(sizeof(mpz_t *) * size);
 
-    for (int i = 0; i < size; i++) {
-        temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        temp_values[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        for (int j = 0; j < 4; j++) {
-            mpz_init(temp_results[i][j]);
-            mpz_init_set(temp_values[i][j], value[i][j]);
-        }
-    }
+//     for (int i = 0; i < size; i++) {
+//         temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+//         temp_values[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+//         for (int j = 0; j < 4; j++) {
+//             mpz_init(temp_results[i][j]);
+//             mpz_init_set(temp_values[i][j], value[i][j]);
+//         }
+//     }
 
-    for (int i = 0; i < size; i++) {
-        ss_fl2fl(temp_values[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
-    }
+//     for (int i = 0; i < size; i++) {
+//         ss_fl2fl(temp_values[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
+//     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_set(result[i][j], temp_results[i][j]);
-        }
-    }
+//     for (int i = 0; i < size; i++) {
+//         for (int j = 0; j < 4; j++) {
+//             mpz_set(result[i][j], temp_results[i][j]);
+//         }
+//     }
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_clear(temp_results[i][j]);
-            mpz_clear(temp_values[i][j]);
-        }
-        free(temp_results[i]);
-        free(temp_values[i]);
-    }
-    free(temp_results);
-    free(temp_values);
-}
+//     for (int i = 0; i < size; i++) {
+//         for (int j = 0; j < 4; j++) {
+//             mpz_clear(temp_results[i][j]);
+//             mpz_clear(temp_values[i][j]);
+//         }
+//         free(temp_results[i]);
+//         free(temp_values[i]);
+//     }
+//     free(temp_results);
+//     free(temp_values);
+// }
 
 void ss_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1303,50 +1313,24 @@ void ss_batch_BOP_float_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resu
 }
 
 /************************************ INTEGER BATCH ****************************************/
-void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
-   mpz_t *a_tmp, *b_tmp, *result_tmp;
+void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t *a_tmp, *b_tmp, *result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
 
-    // Conditionally create and convert arrays based on the flags
-    // if (index_array_flags[0]) {
-        ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
-    // } else {
-    //     a_tmp = a;  // Use the original array
-    // }
-
-    // if (index_array_flags[1]) {
-        ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
-    // } else {
-    //     b_tmp = b;  // Use the original array
-    // }
-
-    // if (index_array_flags[2]) {
-        ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
-    // } else {
-    //     result_tmp = result;  // Use the original array
-    // }
-    // print the shares before and after 
     ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
 
-    // Copy the result back if a temporary array was used
-    // if (index_array_flags[2]) {
-        for (int i = 0; i < size; ++i) {
-            mpz_set(result[index_array[3 * i + 2]], result_tmp[i]);
-        }
-        ss_batch_free_operator(&result_tmp, size);
-    // }
+    for (int i = 0; i < size; ++i)
+        mpz_set(result[index_array[3 * i + 2]], result_tmp[i]);
 
-    // Free the temporary arrays if they were created
-    // if (index_array_flags[0]) {
-        ss_batch_free_operator(&a_tmp, size);
-    // }
-    
-    // if (index_array_flags[1]) {
-        ss_batch_free_operator(&b_tmp, size);
-    // }
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // used to compute 1-priv_cond in a batch stmt
-void ss_batch(int a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *out_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
@@ -1367,7 +1351,7 @@ void ss_batch(int a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, 
     ss_batch_free_operator(&out_tmp, size);
 }
 
-void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
     if (counter == size)
         ss->modSub(result, a, b, size);
     else {
@@ -1382,7 +1366,7 @@ void ss_batch(mpz_t *a, mpz_t *b, mpz_t *result, mpz_t out_cond, mpz_t *priv_con
 // first param: int array
 // second param: int array
 // third param: one-dim private int array
-void ss_batch(int *a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1391,7 +1375,7 @@ void ss_batch(int *a, int *b, mpz_t *result, int alen, int blen, int resultlen, 
         mpz_init_set_si(b_tmp[i], b[i]);
     }
 
-    ss_batch(a_tmp, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a_tmp, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 
     ss_batch_free_operator(&a_tmp, size);
     ss_batch_free_operator(&b_tmp, size);
@@ -1400,7 +1384,7 @@ void ss_batch(int *a, int *b, mpz_t *result, int alen, int blen, int resultlen, 
 // first param: int array
 // second param: int array
 // third param: two-dim private int array
-void ss_batch(int *a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
@@ -1410,7 +1394,7 @@ void ss_batch(int *a, int *b, mpz_t **result, int alen, int blen, int resultlen,
         mpz_init_set_si(b_tmp[i], b[i]);
     }
 
-    ss_batch(a_tmp, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a_tmp, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&a_tmp, size);
     ss_batch_free_operator(&b_tmp, size);
 }
@@ -1418,96 +1402,96 @@ void ss_batch(int *a, int *b, mpz_t **result, int alen, int blen, int resultlen,
 // first param: int array
 // second param: one-dim private int array
 // third param: one-dim private int array
-void ss_batch(int *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(a_tmp[i], a[i]);
-    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&a_tmp, size);
 }
 
 // first param: int array
 // second param: one-dim private int array
 // third param: two-dim private int array
-void ss_batch(int *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(a_tmp[i], a[i]);
-    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&a_tmp, size);
 }
 
 // first param: one-dim private int array
 // second param: int array
 // third param: one-dim private int array
-void ss_batch(mpz_t *a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t *a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(b_tmp[i], b[i]);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&b_tmp, size);
 }
 
 // first param: one-dim private int array
 // second param: int array
 // third param: two-dim private int array
-void ss_batch(mpz_t *a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t *a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(b_tmp[i], b[i]);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&b_tmp, size);
 }
 
 // first param: integer array
 // second param: two-dim private int
 // assignment param: one-dim private int
-void ss_batch(int *a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(a_tmp[i], a[i]);
-    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&a_tmp, size);
 }
 
 // first param: integer array
 // second param: two-dim private int
 // assignment param: two-dim private int
-void ss_batch(int *a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(a_tmp[i], a[i]);
-    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&a_tmp, size);
 }
 
 // first param: two-dim private int
 // second param: integer array
 // assignment param: one-dim private int
-void ss_batch(mpz_t **a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, int *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(b_tmp[i], b[i]);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&b_tmp, size);
 }
 
 // first param: two-dim private int
 // second param: integer array
 // assignment param: two-dim private int
-void ss_batch(mpz_t **a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, int *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *b_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++)
         mpz_init_set_si(b_tmp[i], b[i]);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     // free the memory
     ss_batch_free_operator(&b_tmp, size);
 }
@@ -1515,7 +1499,7 @@ void ss_batch(mpz_t **a, int *b, mpz_t **result, int alen, int blen, int resultl
 // first param: one-dim private int
 // second param: two-dim private int
 // assignment param: two-dim private int
-void ss_batch(mpz_t *a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t *a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     int dim1, dim2;
     mpz_t *a_tmp, *b_tmp, *result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1540,7 +1524,7 @@ void ss_batch(mpz_t *a, mpz_t **b, mpz_t **result, int alen, int blen, int resul
 // first param: two-dim private int
 // second param: one-dim private int
 // assignment param: two-dim private int
-void ss_batch(mpz_t **a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     int dim1, dim2;
     mpz_t *a_tmp, *b_tmp, *result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1565,13 +1549,13 @@ void ss_batch(mpz_t **a, mpz_t *b, mpz_t **result, int alen, int blen, int resul
 // first param: two-dim private int
 // second param: two-dim private int
 // assignment param: one-dim private int
-void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     if (op == "@") {
         mpz_t **result_tmp = (mpz_t **)malloc(sizeof(mpz_t *));
         result_tmp[0] = (mpz_t *)malloc(sizeof(mpz_t) * resultdim);
         for (int i = 0; i < resultdim; i++)
             mpz_init_set(result_tmp[0][i], result[i]);
-        ss_batch(a, b, result_tmp, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+        ss_batch(a, b, result_tmp, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
         for (int i = 0; i < resultdim; i++)
             mpz_set(result[i], result_tmp[0][i]);
         ss_batch_free_operator(&(result_tmp[0]), resultdim);
@@ -1596,52 +1580,31 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen, int blen, int resul
 // first param: one-dim private int
 // second param: one-dim private int
 // assignment param: two-dim private int
-void ss_batch(mpz_t *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t *a, mpz_t *b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     int dim1, dim2;
     mpz_t *a_tmp, *b_tmp, *result_tmp;
-
-    // if (index_array_flags[0] == 1) {
-        ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
-    // } else {
-    //     a_tmp = a;  // Use the original array
-    // }
-
-    // if (index_array_flags[1] == 1) {
-        ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
-    // } else {
-    //     b_tmp = b;  // Use the original array
-    // }
-
-    // if (index_array_flags[2] == 1) {
-        ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
-    // }
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
 
     ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
 
-    // if (index_array_flags[2] == 1) {
-        if (resultdim != 0) {
-            for (int i = 0; i < size; ++i) {
-                dim1 = index_array[3 * i + 2] / resultdim;
-                dim2 = index_array[3 * i + 2] % resultdim;
-                mpz_set(result[dim1][dim2], result_tmp[i]);
-            }
+    if (resultdim != 0) {
+        for (int i = 0; i < size; ++i) {
+            dim1 = index_array[3 * i + 2] / resultdim;
+            dim2 = index_array[3 * i + 2] % resultdim;
+            mpz_set(result[dim1][dim2], result_tmp[i]);
         }
-    // }
+    }
 
-    // if (index_array_flags[0] == 1) {
-        ss_batch_free_operator(&a_tmp, size);
-    // }
-    // if (index_array_flags[1] == 1) {
-        ss_batch_free_operator(&b_tmp, size);
-    // }
-    // if (index_array_flags[2] == 1) {
-        ss_batch_free_operator(&result_tmp, size);
-    // }
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 // first param: one-dim private int
 // second param: two-dim private int
 // assignment param: one-dim private int
-void ss_batch(mpz_t *a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t *a, mpz_t **b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *a_tmp, *b_tmp, *result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1661,7 +1624,7 @@ void ss_batch(mpz_t *a, mpz_t **b, mpz_t *result, int alen, int blen, int result
 // first param: two-dim private int
 // second param: one-dim private int
 // assignment param: one-dim private int
-void ss_batch(mpz_t **a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t *b, mpz_t *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t *a_tmp, *b_tmp, *result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1712,7 +1675,7 @@ void ss_batch_dot(mpz_t **a, mpz_t **b, int size, int array_size, int *index_arr
 // second param: two-dim private int
 // assignment param: two-dim private int
 
-void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     int dim1, dim2;
     mpz_t *a_tmp, *b_tmp, *result_tmp, *result_org;
     if (op == "@") {
@@ -1756,135 +1719,135 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen, int blen, int resu
 
 /*********************************************** FLOAT BATCH ****************************************************/
 // public + private one-dimension float - arithmetic
-void ss_batch(float *a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
-    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(mpz_t **a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
-void ss_batch(float *a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
-    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(mpz_t **a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 // public to private assignments
-void ss_batch(float *a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     // mainly used for assignments, which means b will not be necessary
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, resultlen_sig, resultlen_exp, size, ss);
-    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(int *a, int *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, int *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     float *a1 = (float *)malloc(sizeof(float) * size);
     for (int i = 0; i < size; i++)
         a1[i] = a[i];
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a1, &atmp, resultlen_sig, resultlen_exp, size, ss);
-    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
     free(a1);
 }
 
-void ss_batch(float *a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, resultlen_sig, resultlen_exp, size, ss);
-    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(int *a, int *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(int *a, int *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     float *a1 = (float *)malloc(sizeof(float) * size);
     for (int i = 0; i < size; i++)
         a1[i] = a[i];
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a1, &atmp, resultlen_sig, resultlen_exp, size, ss);
-    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
     free(a1);
 }
 
 // public + private two-dimension float - arithmetic
-void ss_batch(float *a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
-    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(mpz_t ***a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, float *b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
-void ss_batch(float *a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
-    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(mpz_t ***a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, float *b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     op = (op == "/") ? "/P" : op;
-    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
 // public + private one-dimension float - comparison
-void ss_batch(float *a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
-    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(mpz_t **a, float *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, float *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
-    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
 // public + private two-dimension float - comparison
-void ss_batch(float *a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(float *a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
-    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&atmp, size);
 }
 
-void ss_batch(mpz_t ***a, float *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, float *b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
-    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss, index_array_flags);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
-void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1906,7 +1869,7 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, 
 // second parameter: two-dim float
 // assignment parameter: two-dim float
 
-void ss_batch(mpz_t **a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     int dim1, dim2;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1932,7 +1895,7 @@ void ss_batch(mpz_t **a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp
 // second parameter: one-dim float
 // assignment parameter: two-dim float
 
-void ss_batch(mpz_t ***a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     int dim1, dim2;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -1958,7 +1921,7 @@ void ss_batch(mpz_t ***a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp
 // second parameter: two-dim float
 // assignment parameter: one-dim float
 
-void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
     ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
@@ -1979,7 +1942,7 @@ void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp
 // second parameter: one-dim float
 // assignment parameter: one-dim float
 
-void ss_batch(mpz_t ***a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
     ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
@@ -2000,7 +1963,7 @@ void ss_batch(mpz_t ***a, mpz_t **b, mpz_t **result, int alen_sig, int alen_exp,
 // second parameter: two-dim float
 // assignment parameter: one-dim float
 
-void ss_batch(mpz_t **a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -2022,7 +1985,7 @@ void ss_batch(mpz_t **a, mpz_t ***b, mpz_t **result, int alen_sig, int alen_exp,
 // second parameter: one-dim float
 // assignment parameter: two-dim float
 
-void ss_batch(mpz_t **a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t **a_tmp, **b_tmp, **result_tmp;
     int dim1, dim2;
@@ -2047,7 +2010,7 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t ***result, int alen_sig, int alen_exp,
 }
 
 // two dimension float general computation
-void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     int dim1, dim2;
     mpz_t **a_tmp, **b_tmp, **result_tmp;
@@ -2071,7 +2034,7 @@ void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t ***result, int alen_sig, int alen_ex
 }
 
 // two-dimensional float comparison
-void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
     ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
@@ -2082,7 +2045,7 @@ void ss_batch(mpz_t ***a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp,
 }
 
 // one-dimensional float and two-dimensional float comparison
-void ss_batch(mpz_t **a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
     ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
@@ -2093,7 +2056,7 @@ void ss_batch(mpz_t **a, mpz_t ***b, mpz_t *result, int alen_sig, int alen_exp, 
 }
 
 // two-dimensional float and one-dimensional float comparison
-void ss_batch(mpz_t ***a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t ***a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **a_tmp, **b_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
     ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2);
@@ -2104,7 +2067,7 @@ void ss_batch(mpz_t ***a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, 
 }
 
 // one-dimensional float and one-dimensional float comparison
-void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss, int *index_array_flags) {
+void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
 
     mpz_t **a_tmp, **b_tmp;
     ss_convert_operator(&a_tmp, a, index_array, adim, size, 1);
@@ -2117,16 +2080,51 @@ void ss_batch(mpz_t **a, mpz_t **b, mpz_t *result, int alen_sig, int alen_exp, i
 }
 
 /* conversion from public integer to private float*/
+// this needs to be cleaned up, because currently it converts an int array, to mpz_t array, to 2d
+// but the challenge is that we cant directly replace certain mpz_t casts (specifically from 2d->1d) with
+// int equivalents
 void ss_batch_int2fl(int *a, mpz_t **result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 
+    mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *a_tmp_tmp;
     for (int i = 0; i < size; i++)
-        convertFloat((float)a[i], 32, 9, &result[i]);
+        mpz_init_set_si(a_tmp[i], a[i]);
+    ss_convert_operator(&a_tmp_tmp, a_tmp, index_array, adim, size, 1);
 
-    // mpz_t *a_tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    // for (int i = 0; i < size; i++)
-    //     mpz_init_set_si(a_tmp[i], a[i]);
-    // ss_batch_int2fl(a_tmp, result, size, resultdim, 32, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
-    // ss_batch_free_operator(&a_tmp, size);
+    mpz_t **result_tmp = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+    for (int i = 0; i < size; i++) {
+        result_tmp[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++)
+            mpz_init(result_tmp[i][j]);
+    }
+
+    int temp_a;
+    for (int i = 0; i < size; i++) {
+        temp_a = mpz_get_si(a_tmp_tmp[i]);
+        convertFloat((float)temp_a, 32, 9, &result_tmp[i]);
+    }
+
+    /* consider the private condition */
+    mpz_t *result_new = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
+    mpz_t *result_org = (mpz_t *)malloc(sizeof(mpz_t) * 4 * size);
+
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_init_set(result_new[4 * i + j], result_tmp[i][j]);
+            mpz_init_set(result_org[4 * i + j], result[index_array[3 * i + 2]][j]);
+        }
+    }
+
+    ss_batch_handle_priv_cond(result_new, result_org, out_cond, priv_cond, counter, 4 * size, threadID, net, ss);
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < 4; j++)
+            mpz_set(result[index_array[3 * i + 2]][j], result_new[4 * i + j]);
+
+    ss_batch_free_operator(&a_tmp_tmp, size);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_new, 4 * size);
+    ss_batch_free_operator(&result_org, 4 * size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 /* conversion from private integer to private float */
@@ -2164,22 +2162,28 @@ void ss_batch_int2fl(mpz_t *a, mpz_t **result, int adim, int resultdim, int alen
 }
 
 void ss_batch_int2fl(int *a, mpz_t ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+    // this functionality is non-interactive
 
+    mpz_t **result_tmp;
     int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3);
 
     for (int i = 0; i < size; i++) {
         result_index_array[i] = index_array[3 * i + 2];
         index_array[3 * i + 2] = i;
     }
-
+    /* call one-dimensional int array + one-dimensional float array */
+    ss_batch_int2fl(a, result_tmp, adim, size, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    /* set the results back */
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < 4; j++) {
             int dim1 = result_index_array[i] / resultdim;
             int dim2 = result_index_array[i] % resultdim;
-            // mpz_set(result[dim1][dim2][j], result_tmp[i][j]);
-            convertFloat((float)a[i], 32, 9, &result[dim1][dim2]);
+            mpz_set(result[dim1][dim2][j], result_tmp[i][j]);
         }
     }
+    free(result_index_array);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // one-dimensional int array to two-dimensional float array
