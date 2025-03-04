@@ -17,8 +17,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _BITDEC_HPP_
-#define _BITDEC_HPP_
+#pragma once
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
@@ -82,4 +81,3 @@ void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeN
     delete[] sum;
 }
 
-#endif // _BITDEC_HPP_

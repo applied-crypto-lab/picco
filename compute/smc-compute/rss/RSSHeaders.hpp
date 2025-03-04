@@ -5,6 +5,7 @@
 #include "../ops/rss/AppRcr.hpp"
 #include "../ops/rss/B2A.hpp"
 #include "../ops/rss/BitDec.hpp"
+#include "../ops/rss/BitEQZ.hpp"
 #include "../ops/rss/BitOps.hpp"
 #include "../ops/rss/DotProduct.hpp"
 #include "../ops/rss/EQZ.hpp"

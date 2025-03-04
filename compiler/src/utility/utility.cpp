@@ -897,6 +897,9 @@ void loadConfig() {
  * In particular, each floating point number is represented as a 4-tuple (v, p, s, z) where v is
  * an l-bit significand, p is a k-bit exponent, and s and z are sign and
  * zero bits, respectively (2013 CCS paper).
+ * 
+ * K is a parameter that represents the number of bits used for the significand in the target representation.
+ * L is a parameter used to control the range of the exponent in the target representation.
  *
  * The integers that will be stored in elements are as follows:
  * 1. Significand part (significand)
@@ -906,11 +909,11 @@ void loadConfig() {
  */
 void convertFloat(float value, int K, int L, long long **elements) {
     unsigned int *newptr = (unsigned int *)&value;
-    int s = *newptr >> 31;
-    int e = *newptr & 0x7f800000;
+    int s = *newptr >> 31; // Extract the sign bit
+    int e = *newptr & 0x7f800000; // Extract the exponent
     e >>= 23;
     int m = 0;
-    m = *newptr & 0x007fffff;
+    m = *newptr & 0x007fffff; // Extract the significand (mantissa)
 
     int z;
     long v, p, k;
