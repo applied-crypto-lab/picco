@@ -24,6 +24,6 @@
 #include "BitLTC.h"
 #include "Operation.h"
 #include "Random.h"
-void doOperation_Mod2M(mpz_t *result, mpz_t *shares, int K, int M, int size, int threadID,NodeNetwork net,  SecretShare *ss);
+void doOperation_Mod2M(mpz_t *result, mpz_t *input, int K, int M, int size, int threadID,NodeNetwork net,  SecretShare *ss);
 
 #endif /* MOD2M_SHAMIR_H_ */

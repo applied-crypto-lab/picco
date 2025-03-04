@@ -4033,9 +4033,8 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
                 fprintf(output, "\n\n");
                 if (technique_var == SHAMIR_SS)
                     fprintf(output, "ss_clear(%s%s);\n", struct_name, tree->decl->u.id->name);
-                else if (technique_var == REPLICATED_SS) {
+                else if (technique_var == REPLICATED_SS)
                     ast_decl_memory_free_rss_var_int(tree);
-                }
             }
             break;
         }
@@ -4988,6 +4987,146 @@ void ast_decl_memory_assign_rss_var_int(astdecl tree) {
         str_printf(global_string, "%s = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", tree->decl->u.id->name);
     } else {
         fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", tree->decl->u.id->name);
+    }
+
+    indent();
+    if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
+    } else 
+        fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
+
+    indlev++;
+    indent();
+    if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "__s->ss_init(%s[_picco_i], 1);\n", tree->decl->u.id->name);
+    } else {
+        fprintf(output, "__s->ss_init(%s[_picco_i], 1);\n", tree->decl->u.id->name);
+    }
+    indlev--;
+}
+
+void ast_decl_memory_free_rss_var_int(astdecl tree) {
+    fprintf(output, "\n");
+    indent();
+    fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
+    indlev++;
+    indent();
+    fprintf(output, "__s->ss_clear(%s[_picco_i], 1);\n", tree->decl->u.id->name);
+    indlev--;
+    indent();
+    fprintf(output, "free(%s);\n", tree->decl->u.id->name);
+}
+
+
+void ast_decl_memory_assign_rss_var_float(astdecl tree) {
+    indent();
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "%s = (priv_int**)malloc(sizeof(priv_int*) * (4));\n", tree->decl->u.id->name);
+    } else 
+        fprintf(output, "%s = (priv_int**)malloc(sizeof(priv_int*) * (4));\n", tree->decl->u.id->name);
+    
+    indent();
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "for (int _picco_i = 0; _picco_i < 4; _picco_i++){\n");
+    } else 
+        fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++){\n");
+
+    indlev++;
+    indlev++;
+    indent();
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", tree->decl->u.id->name);
+    } else {
+        fprintf(output, "%s[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", tree->decl->u.id->name);
+    }
+
+    indent();
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
+    } else {
+        fprintf(output, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
+    }
+
+    indlev--;
+    indent();
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "__s->ss_init(%s[_picco_i][_picco_j], 1);\n", tree->decl->u.id->name);
+    } else {
+        fprintf(output, "__s->ss_init(%s[_picco_i][_picco_j], 1);\n", tree->decl->u.id->name);
+    }
+
+    indlev--;
+    indent();
+    if (gf == 1) {
+        indent_global_string(global_string);
+        str_printf(global_string, "}\n");
+    } else 
+        fprintf(output, "}\n");
+    indlev--;
+}
+
+void ast_decl_memory_free_rss_var_float(astdecl tree) {
+    indent();
+    fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+    indlev++;
+    indent();
+    fprintf(output, "{\n");
+    indlev++;
+    indlev++;
+    indent();
+    fprintf(output, "for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
+    indent();
+    fprintf(output, "__s->ss_clear(%s[_picco_i][_picco_j], 1);\n", tree->decl->u.id->name);
+    indlev++;
+    indent();
+    fprintf(output, "free(%s[_picco_i]);\n", tree->decl->u.id->name);
+    indlev--;
+    indent();
+    fprintf(output, "}\n");
+    indent();
+    fprintf(output, "free(%s);\n", tree->decl->u.id->name);
+}
+
+
+void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
+    indent();
+    if (tree->decl->type == DIDENT) {
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
+            if (technique_var == SHAMIR_SS) 
+                ast_expr_show(tree->u.expr);
+            else if (technique_var == REPLICATED_SS)
+                str_printf(global_string, "__s->getNumShares()");
+        } else {
+            fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (", prefix, tree->decl->u.id->name);
+            if (technique_var == SHAMIR_SS) 
+                ast_expr_show(tree->u.expr);
+            else if (technique_var == REPLICATED_SS)
+                fprintf(output, "__s->getNumShares()");
+        }
+    } else if (tree->decl->type == DARRAY) {
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
+            if (technique_var == SHAMIR_SS) 
+                ast_expr_show(tree->decl->u.expr);
+            else if (technique_var == REPLICATED_SS)
+                str_printf(global_string, "__s->getNumShares()");
+        } else {
+            fprintf(output, "%s%s = (priv_int**)malloc(sizeof(priv_int*) * (", prefix, tree->decl->decl->u.id->name);
+            if (technique_var == SHAMIR_SS) 
+                ast_expr_show(tree->decl->u.expr);
+            else if (technique_var == REPLICATED_SS)
+                fprintf(output, "__s->getNumShares()");
+        }
     }
 
     indent();

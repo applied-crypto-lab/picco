@@ -6,13 +6,19 @@ void mergesort(public int l, public int r) {
   public int i, j, k, m, size;
   size = r - l + 1;
   int tmp[size];
-  if (r > l){
+  
+  if (r > l) {
     m = (r + l) / 2;
     mergesort(l, m);
     mergesort(m + 1, r);
+    for (i = 0; i < r-m; i++)
+      tmp[i] = A[r-i];
+    for (i = 0; i < r-m; i++)
+      A[m+1+i] = tmp[i];
+    
     for (i = size >> 1; i > 0; i = i >> 1) 
-      for (j = 0; j < size; j += 2 * i)[
-        for (k = j; k < j + i; k++)[
+      for (j = 0; j < size; j += 2 * i) [
+        for (k = j; k < j + i; k++) [
           tmp[k] = A[k + l];
           if (A[k + l] > A[k + i + l]) {
             A[k + l] = A[k + i + l];

@@ -217,3 +217,4 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     delete[] a_sparse;
 }
 
+#endif // _B2A_HPP_

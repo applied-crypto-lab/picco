@@ -337,3 +337,4 @@ void Rss_BitAdd_RNTE(T **res, T **res_carry, T **a, T **b, uint alen, uint blen,
     }
     delete[] d;
 }
+#endif

@@ -759,7 +759,8 @@ public:
     std::vector<int> generateCoefficients(std::vector<int> T_set, int threshold);
 
 #if __RSS__
-    void smc_test_rss(int threadID);
+    void smc_test_rss(priv_int *A, int *B, int size, int threadID);
+  
     void smc_rss_benchmark(std::string exp_name, int size, int num_iterations);
     uint getNumShares();
     void offline_prg(uint8_t *dest, uint8_t *src, __m128i *ri);

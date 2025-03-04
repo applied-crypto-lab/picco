@@ -196,7 +196,6 @@ public:
     inline bool chi_pid_is_T(int& pid, std::vector<int> &T_map);
     std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> &input_parties);
 
-
     T *SHIFT;
     T *ODD;
     T *EVEN;
