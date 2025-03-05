@@ -276,6 +276,10 @@ astdecl FuncDecl(astdecl decl, astdecl p) {
 astdecl InitDecl(astdecl decl, astexpr e) {
     astdecl d = Decl(DINIT, 0, decl, NULL);
     d->u.expr = e;
+    // The code below stores all the variables with thier values to the table to be able to use them for init of temp arrays for the case if arrays in a program is init using a variable and not a constant -> this was needed because we added support for temp arrays and we needed a max size to initilize them 
+    if (e && decl->decl) {
+	    insert_variable(decl->decl->u.id->name, e->u.str);
+    }
     return (d);
 }
 

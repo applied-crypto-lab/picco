@@ -112,6 +112,16 @@ int     pointer_flag = 0;
 int     declis = 0;
  
 struct_node_stack struct_table = NULL;
+
+// Structure for storing variables that will be declared in the program -> this table will be used to get the max array size for temp array in case the user creates arrays with a variable size and not a constant size. 
+typedef struct VarEntry {
+    char *name;
+    int value;
+    struct VarEntry *next;
+} VarEntry;
+
+// Head of the linked list above -> I used linked list since we don't know how many variables will be there
+VarEntry *VarEntry_var_list = NULL;
  
 char    *parsingstring;       /* For error reporting when parsing string */
 FILE 	*var_file; 
@@ -1286,8 +1296,8 @@ init_declarator:
     }
     initializer
     {
+      // This is where DINIT or variables in a program that are either init in one line or not gets handles 
       $$ = InitDecl($1, $4);
-	
     }
 ;
 
@@ -4118,44 +4128,37 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
                     if(e1->arraysize != NULL && e2->arraysize != NULL) {
                             e->arraysize = ast_expr_copy(e1->arraysize);
 
-                        // printf("e1: %s, e2: %s\n", e1->arraysize->u.str, e2->arraysize->u.str);
-
+                        // This code determines the array size for tmp arrays that will be used for storing immediate results -> I need to check both e1 and e2 sizes 
+                        // Also, keep in mind we are only concerned about array we are operation on not all the declared arrays!
                         tmp_array_max_size = Str("");
-                        str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
-                        if (atoi(e1->arraysize->u.str)) {
-                            if (atoi(e1->arraysize->u.str) > tmp_array_max_size_int_counter) {
-                                tmp_array_max_size = Str("");
-                                tmp_array_max_size_int_counter = atoi(e1->arraysize->u.str);
-                                str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
-                            } 
-                            if (atoi(e2->arraysize->u.str) > tmp_array_max_size_int_counter) {
-                                tmp_array_max_size = Str("");
-                                tmp_array_max_size_int_counter = atoi(e2->arraysize->u.str) ;
-                                str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
-                            }
-                        } else { // THe code below has an issue with the array size. 
-                            // if (atoi(e1->arraysize->u.sym->name) > tmp_array_max_size_int_counter) {
-                            //     tmp_array_max_size = Str("");
-                            //     // tmp_array_max_size_int_counter = ;
-                            //     str_printf(tmp_array_max_size, "%s", e1->arraysize->u.sym->name);
-                            // } 
-                            // if (atoi(e2->arraysize->u.sym->name) > tmp_array_max_size_int_counter) {
-                                tmp_array_max_size = Str("");
-                                // tmp_array_max_size_int_counter = ;
-                                str_printf(tmp_array_max_size, "%s", e2->arraysize->u.sym->name);
-                            // } 
+                        if (atoi(e1->arraysize->u.str) || atoi(e2->arraysize->u.str)) { // The case where all arrays are init using a constant, it stores the max size and writes it when needed 
+                            insert_variable(e1->arraysize->u.str, e1->arraysize->u.str);
+                            insert_variable(e2->arraysize->u.str, e2->arraysize->u.str);
+                        }
+                        
+                        // This part can not be check in the time of parsing, since at this time we can only see the variable name and not the value associated with it. So, I created a table that has all the variables and their values and I just choose the max from them to handle all possible cases where a tmp array will be used                             
+                        // Use this function to find the maximum varible used in the program
+                        int max_val = get_max_value();
+
+                        if (max_val > tmp_array_max_size_int_counter) {
+                            tmp_array_max_size_int_counter = max_val;
                         }
 
+                        str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
+
+                        // Clean the memory after the max value is found
+                        void free_variables();
+                        
                         array_tmp_index = 1;
                         array_ftmp_index = 1;
 
                         if (atoi(e1->arraysize->u.str) && atoi(e2->arraysize->u.str)) {
                             if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str))
-                                parse_error(-1, "1Array sizes in expression do not match.\n");
+                                parse_error(-1, "Array sizes in expression do not match.\n");
                         } 
                         //else {
                          //   if (strcmp(e1->arraysize->u.sym->name, e2->arraysize->u.sym->name) != 0)
-                          //      parse_error(-1, "2Array sizes in expression do not match.\n");
+                          //      parse_error(-1, "Array sizes in expression do not match.\n");
                         //}
                     }
                 //e->arraysize = e1->arraysize;   
@@ -4763,4 +4766,48 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 		exit(0); 
     }
 }
-	
+
+// Function to insert a variable into the list of VarEntry_var_list
+void insert_variable(const char *var_name, const char *value_str) {
+    int value = atoi(value_str); // Convert string to int
+
+    // Print debug information
+    // printf("Inserting variable: %s with value (string): %s, converted to int: %d\n", var_name, value_str, value);
+
+    // Create a new variable entry
+    VarEntry *new_entry = (VarEntry *)malloc(sizeof(VarEntry));
+    new_entry->name = strdup(var_name); // Duplicate string
+    new_entry->value = value;
+    new_entry->next = VarEntry_var_list; // Insert at head
+    VarEntry_var_list = new_entry;
+}
+
+// Function to find and return the maximum value from VarEntry_var_list
+int get_max_value() {
+    if (!VarEntry_var_list) {
+        return -1; // Return a sentinel value indicating no variables exist
+    }
+
+    int max_value = VarEntry_var_list->value;
+    VarEntry *current = VarEntry_var_list;
+
+    while (current) {
+        if (current->value > max_value) {
+            max_value = current->value;
+        }
+        current = current->next;
+    }
+    return max_value;
+}
+
+// Cleanup function to free allocated memory used by VarEntry_var_list
+void free_variables() {
+    VarEntry *current = VarEntry_var_list;
+    while (current) {
+        VarEntry *temp = current;
+        current = current->next;
+        free(temp->name);
+        free(temp);
+    }
+    VarEntry_var_list = NULL;
+}
