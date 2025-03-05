@@ -3593,18 +3593,26 @@ void ast_expr_show(astexpr tree) {
                         fprintf(output, "_picco_arr_tmp%d, ", tree->index);
                     }
                     // The rest of the code that prints the sizes and int/float 
-                    if (tree->right->ftype == 1) {
-                        if (tree->right->opid != BOP_lt && tree->right->opid != BOP_gt && tree->right->opid != BOP_leq && tree->right->opid != BOP_geq && tree->right->opid != BOP_eqeq && tree->right->opid != BOP_neq)
+                    if (tree->right->ftype == 1) { // float
+                        if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq) {
                             if (tree->left->flag == PRI){
                                 fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
                             } else {
                                 fprintf(output, "%d, %d, ", tree->right->size, tree->right->sizeexp);
                             }
-                        else {
-                            fprintf(output, "1, 1, ");
+                        } else {
+                            if (tree->left->flag == PRI){
+                                fprintf(output, "%d, ", tree->left->size);
+                            } else {
+                                fprintf(output, "%d, ", tree->right->size);
+                            }
                         }
-                    } else {
-                        fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                    } else { // int
+                        if (tree->left->flag == PRI){
+                            fprintf(output, "%d, ", tree->left->size);
+                        } else {
+                            fprintf(output, "%d, ", tree->right->size);
+                        }
                     }
                     if (tree->left->arraysize != NULL) {
                         ast_expr_show(tree->left->arraysize);
@@ -3634,7 +3642,7 @@ void ast_expr_show(astexpr tree) {
                         ast_expr_show(tree->right->arraysize);
                     }
                     fprintf(output, ", ");
-                    // The rest of the code that prints the sizes and int/float 
+                    // The rest of the code that prints the sizes and int/float -> Find why was this deleted? 
                     // if (tree->right->ftype == 1) {
                     //     if (tree->right->opid != BOP_lt && tree->right->opid != BOP_gt && tree->right->opid != BOP_leq && tree->right->opid != BOP_geq && tree->right->opid != BOP_eqeq && tree->right->opid != BOP_neq)
                     //         fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
@@ -3662,7 +3670,7 @@ void ast_expr_show(astexpr tree) {
                 }
 
                 fprintf(output, ", %s, %d);\n", type, tree->right->thread_id);
-            } // if the operation is on variables 
+            } // if the operation is on variables and not constants
             else if (immresulttype == 0) {
                 if (technique_var == SHAMIR_SS) {
                     if (tree->ftype == 1){
