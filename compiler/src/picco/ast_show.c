@@ -2468,15 +2468,12 @@ void ast_stmt_show(aststmt tree, branchnode current) {
             if (ch->type != DECLARATION)
                 lastdef = 1;
         }
-        if (declared == 0 && enterfunc == 1) { // The code below is not fully bug free -> array size for tmp arrays is not fully correct and tested 
+        if (declared == 0 && enterfunc == 1) {
             if (tree->body->u.expr->left != NULL && tree->body->u.expr->left->arraytype == 1) { // if there is an expression that involve arrays
-                // atoi(tree->body->u.expr->left->arraysize->u.str); // this has the array size 
                 array_tmp_index = 0; // this is needed to make sure incase if there is another expr, these tmp variables don't get updated 
                 array_ftmp_index = 0;
-                // if (tree->u.expr->left->ftype == 1) // this would disallow it from being updated 
-                    array_ftmp_index++;
-                // else if (tree->u.expr->left->ftype == 0) 
-                    array_tmp_index++;
+                array_ftmp_index++;
+                array_tmp_index++;
             }
             ast_temporary_variable_declaration();
             declared = 1;
@@ -3308,9 +3305,9 @@ void ast_expr_show(astexpr tree) {
         if (tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_int || (tree->u.dtype->spec->subtype == SPEC_Rlist && tree->u.dtype->spec->body->subtype == SPEC_private)) {
             // Calculating array size
             str array_size = Str("");
-            if (tree->left->arraysize->type == IDENT) {
+            if (tree->left->arraysize && tree->left->arraysize->type == IDENT) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.sym->name);
-            } else if (tree->left->arraysize->u.str == CONSTVAL) {
+            } else if (tree->left->arraysize && tree->left->arraysize->u.str == CONSTVAL) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.str);
             }
             /* conversion to float */
@@ -5983,7 +5980,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                 if (tree->index > 0) {
                     tree_index = tree->index;
                 }
-                if (tree->left->arraysize->u.str) {
+                if (tree->left->arraysize && tree->left->arraysize->u.str) {
                     if (tree->right->ftype == 1)
                         fprintf(output, "__s->smc_bnot(%s, %d, _picco_ftmp%d, %s, \"float\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->arraysize->u.str, tree->right->thread_id);
                     else if (tree->right->ftype == 0) {
@@ -6171,9 +6168,9 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                     }
                     // Calculating array size
                     str array_size = Str("");
-                    if (tree->left->arraysize->type == IDENT) {
+                    if (tree->left->arraysize && tree->left->arraysize->type == IDENT) {
                         str_printf(array_size, "%s", tree->left->arraysize->u.sym->name);
-                    } else if (tree->left->arraysize->type == CONSTVAL) {
+                    } else if (tree->left->arraysize && tree->left->arraysize->type == CONSTVAL) {
                         str_printf(array_size, "%s", tree->left->arraysize->u.str);
                     }
                     if (tree->right->flag == PRI) { // PRI
@@ -6234,9 +6231,9 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                             }
                         } else if (immresulttype == 1) { // print the rest of the instruction for smc_set - newly added to support multiple operations on batch arrays -> we needed this cause it was not implemented before 
                             str array_Size = Str("");
-                            if (tree->left->arraysize->type == IDENT)
+                            if (tree->left->arraysize && tree->left->arraysize->type == IDENT)
                                 str_printf(array_Size, tree->left->arraysize->u.sym->name);
-                            else if (tree->left->arraysize->type == CONSTVAL)
+                            else if (tree->left->arraysize && tree->left->arraysize->type == CONSTVAL)
                                 str_printf(array_Size, tree->left->arraysize->u.str);
 
                             // The code below is needed that in case if the type if of comparison, the left side should be checked, casue the right side could be anything 
@@ -6272,9 +6269,9 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                             if (tree->left->arraysize == NULL) {
                                 str_printf(array_Size, "1");
                             } else if (tree->left != NULL && tree->left->arraysize != NULL) {
-                                if (tree->left->arraysize->type == IDENT)
+                                if (tree->left->arraysize && tree->left->arraysize->type == IDENT)
                                     str_printf(array_Size, tree->left->arraysize->u.sym->name);
-                                else if (tree->left->arraysize->type == CONSTVAL)
+                                else if (tree->left->arraysize && tree->left->arraysize->type == CONSTVAL)
                                     str_printf(array_Size, tree->left->arraysize->u.str);
                             }
 
