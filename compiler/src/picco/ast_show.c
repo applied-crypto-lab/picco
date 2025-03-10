@@ -5982,15 +5982,15 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                 }
                 if (tree->left->arraysize && tree->left->arraysize->u.str) {
                     if (tree->right->ftype == 1)
-                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_ftmp%d, %s, \"float\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->arraysize->u.str, tree->right->thread_id);
+                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_ftmp%d, %d, \"float\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->right->size, tree->right->thread_id);
                     else if (tree->right->ftype == 0) {
-                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_tmp%d, %s, \"int\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->arraysize->u.str, tree->right->thread_id);
+                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_tmp%d, %d, \"int\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->right->size, tree->right->thread_id);
                     }
                 } else {
                     if (tree->right->ftype == 1)
-                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_ftmp%d, %s, \"float\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->arraysize->u.sym->name, tree->right->thread_id);
+                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_ftmp%d, %d, \"float\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->right->size, tree->right->thread_id);
                     else if (tree->right->ftype == 0) {
-                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_tmp%d, %s, \"int\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->left->arraysize->u.sym->name, tree->right->thread_id);
+                        fprintf(output, "__s->smc_bnot(%s, %d, _picco_tmp%d, %d, \"int\", %d);\n", str_string(rightop), tree->right->size, tree_index, tree->right->size, tree->right->thread_id);
                     }
                 }
             }

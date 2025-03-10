@@ -278,7 +278,15 @@ astdecl InitDecl(astdecl decl, astexpr e) {
     d->u.expr = e;
     // The code below stores all the variables with thier values to the table to be able to use them for init of temp arrays for the case if arrays in a program is init using a variable and not a constant -> this was needed because we added support for temp arrays and we needed a max size to initilize them 
     if (e && decl->decl) {
-	    insert_variable(decl->decl->u.id->name, e->u.str);
+        if (e->u.str && decl->decl->u.id) { // Rest
+            insert_variable(decl->decl->u.id->name, e->u.str);
+        } else { // Dynamic array init that has an expression after the assignment
+            if (decl->decl->u.expr->type == CONSTVAL) { // if Const
+                insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
+            } else {
+                insert_variable(decl->decl->u.expr->u.sym->name, decl->decl->u.expr->u.sym->name);
+            }
+        }
     }
     return (d);
 }
