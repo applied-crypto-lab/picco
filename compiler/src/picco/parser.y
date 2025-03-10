@@ -4718,6 +4718,8 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 				modulus = fmax(modulus, len+kappa_nu); 
 			else if ( ( opid == BOP_eqeq || opid == BOP_neq ) && len > 1)
 				modulus = fmax(modulus, len+kappa_nu); 
+			else if(opid == BOP_div)
+				modulus = fmax(modulus, 2*len+kappa_nu+8);
 			else if(opid == BOP_shr){ // checking for right shifts, 
                 // if shifting by public amount --> truncation (Catrina and de Hoogh, 2010)
                 // if shifting by a private amount, the security of the first argument doesnt matter, and we call truncation by a private value in floating point paper (Aliasgari et al., 2013)
