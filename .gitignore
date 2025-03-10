@@ -46,10 +46,5 @@ shares/
 .cache/
 # share directories
 
-compute/Error-Limitations/
 compute/running_files
 compute/Testing
-compute/picco_script.sh
-compute/test_utility_conf
-compute/test_utility.cpp
-compute/steps.sh
