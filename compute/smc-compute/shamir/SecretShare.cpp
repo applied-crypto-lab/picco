@@ -985,6 +985,7 @@ void SecretShare::reconstructSecret(mpz_t *result, mpz_t **y, int size) {
 void SecretShare::reconstructSecretMult(mpz_t *result, mpz_t **y, int size) {
     mpz_t temp;
     mpz_init(temp);
+    // sanitizing destionation
     for (int i = 0; i < size; i++)
         mpz_set_ui(result[i], 0);
     for (int i = 0; i < size; i++) {

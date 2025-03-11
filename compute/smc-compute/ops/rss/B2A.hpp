@@ -17,8 +17,8 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _B2A_HPP_
-#define _B2A_HPP_
+#pragma once
+
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"

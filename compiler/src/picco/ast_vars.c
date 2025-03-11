@@ -305,7 +305,12 @@ void ast_expr_vars(astexpr t) {
     case CONDEXPR:
         ast_expr_vars(t->u.cond);
     case ARRAYIDX:
-        ast_expr_vars(t->arraysize);
+        // original - segfaulting
+        // ast_expr_vars(t->arraysize); 
+
+        // This segfaults when I do intptr[10] = 1;
+        if (t->arraysize != NULL)
+            ast_expr_vars(t->arraysize); 
     case ASS:
     case BOP:
     case DESIGNATED:
@@ -324,7 +329,7 @@ void ast_expr_vars(astexpr t) {
     case UOP: /* sly bug was here! */
         if (t->opid != UOP_sizeoftype && t->opid != UOP_typetrick)
             ast_expr_vars(t->left);
-        break;
+        break;   
     }
 }
 

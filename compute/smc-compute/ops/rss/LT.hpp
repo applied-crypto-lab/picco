@@ -25,7 +25,7 @@
 #include "MSB.hpp"
 
 // evaluates the boolean expression (a <? b) and returns a bit (not the larger/smaller of the two)
-template <typename T>
+template <typename T> // a priv/ b priv -> all for int
 void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint numShares = ss->getNumShares();
@@ -48,7 +48,7 @@ void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen,
     delete[] diff;
 }
 
-template <typename T>
+template <typename T> // a pub/ b priv
 void doOperation_LT(T **result, int *a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
@@ -75,7 +75,7 @@ void doOperation_LT(T **result, int *a, T **b, int alen, int blen, int resultlen
     delete[] ai;
 }
 
-template <typename T>
+template <typename T> // a priv , b pub
 void doOperation_LT(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;

@@ -49,9 +49,13 @@ void ss_convert_operator(mpz_t ***result, mpz_t **op, int *index_array, int dim,
 void ss_convert_operator(mpz_t ***result, mpz_t ***op, int *index_array, int dim, int size, int flag);
 
 void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_single_fop_comparison(mpz_t result, mpz_t *a, int *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_single_fop_comparison(mpz_t result, int *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_single_fop_arithmetic(mpz_t *result, mpz_t *a, mpz_t *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
 
 void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_batch_fop_comparison(mpz_t *result, float *a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, float *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_batch_fop_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net,  SecretShare *ss);
 
 void ss_set(mpz_t *a, mpz_t *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID, NodeNetwork net,  SecretShare *ss);
@@ -94,13 +98,28 @@ void ss_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig, int len_exp
 void ss_privindex_write(mpz_t *indices, mpz_t ***array, int len_sig, int len_exp, mpz_t **values, int dim1, int dim2, int size, mpz_t out_cond, mpz_t *priv_cond, int counter, std::string type, int threadID, NodeNetwork net,  SecretShare *ss);
 
 void ss_int2fl(int value, mpz_t *result, int gamma, int K, int L, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_int2fl(int *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_int2fl(mpz_t *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net,  SecretShare *ss);
+
+
 void ss_int2int(int value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_int2int(int *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_int2int(mpz_t value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_int2int(mpz_t *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net,  SecretShare *ss);
+
+
 void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_fl2int(float *value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_fl2int(mpz_t **value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
+
+
 void ss_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_fl2fl(float *value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net,  SecretShare *ss);
+void ss_fl2fl(mpz_t **value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net,  SecretShare *ss);
+
 
 void ss_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_batch_BOP_float_arithmetic(mpz_t **result, mpz_t **a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, std::string op, std::string type, int threadID, NodeNetwork net,  SecretShare *ss);

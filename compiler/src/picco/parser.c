@@ -162,7 +162,8 @@ enum yytokentype {
     OMPIX_WORKERS = 353,
     OMPIX_LOCAL = 354,
     OMPIX_GLOBAL = 355,
-    OMPIX_TIED = 356
+    OMPIX_TIED = 356,
+    CHAR = 365
 };
 #endif
 /* Tokens.  */
@@ -265,6 +266,7 @@ enum yytokentype {
 #define OMPIX_LOCAL 354
 #define OMPIX_GLOBAL 355
 #define OMPIX_TIED 356
+#define CHAR 365 
 
 /* Copy the first part of user declarations.  */
 #line 1 "parser.y"
@@ -2851,8 +2853,8 @@ yyreduce:
 #line 711 "parser.y"
     {
         decrease_index((yyvsp[(1) - (4)].expr));
-        (yyval.expr) = BinaryOperator(BOP_xor, (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr));
-        set_security_flag_expr((yyval.expr), (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr), BOP_xor);
+        (yyval.expr) = BinaryOperator(BOP_bxor, (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr));
+        set_security_flag_expr((yyval.expr), (yyvsp[(1) - (4)].expr), (yyvsp[(4) - (4)].expr), BOP_bxor);
     } break;
 
     case 66:

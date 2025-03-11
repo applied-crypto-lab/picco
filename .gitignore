@@ -46,5 +46,5 @@ shares/
 .cache/
 # share directories
 
-compute/Error-Limitations/
-compute/Testing/
+compute/running_files
+compute/Testing

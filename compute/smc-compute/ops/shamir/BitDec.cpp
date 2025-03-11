@@ -22,6 +22,7 @@
 
 // Source: Catrina and Saxena, "Secure Computation With Fixed-Point Numbers," 2010
 // Protocol 2.1, page 7
+// S [K+1][size], where S is one bit larger because the result of BitAdd may be one bit longer than K if carry occurs
 void doOperation_bitDec(mpz_t **S, mpz_t *A, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     int peers = ss->getPeers();
     int threshold = ss->getThreshold();

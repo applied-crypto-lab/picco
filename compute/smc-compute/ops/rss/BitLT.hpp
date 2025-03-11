@@ -217,7 +217,7 @@ void Rss_CarryOutAux(T **res, T **d, uint size, uint ring_size, NodeNetwork node
         // checking if we have an unused (p,g) pair
         // if yes, move it to new_r_size's position
         // and update the new_r_size by 1
-        if ((r_size & 1)) {
+        if (r_size & 1) {
             for (i = 0; i < size; ++i) {
                 for (j = 0; j < 2 * numShares; ++j) {
                     // getting the unused p (or g) from d and

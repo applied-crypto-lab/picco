@@ -25,4 +25,7 @@
 #include "Operation.h"
 
 void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net,  SecretShare *ss) ;
+void doOperation_FLEQZ(mpz_t **A1, int **B1, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net,  SecretShare *ss) ;
+void doOperation_FLEQZ(int **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID,  NodeNetwork net,  SecretShare *ss) ;
+
 #endif /* FLOATEQZ_SHAMIR_H_ */
