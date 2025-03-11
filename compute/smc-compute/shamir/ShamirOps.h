@@ -108,10 +108,13 @@ void ss_int2int(int *value, mpz_t *result, int size, int gamma1, int gamma2, int
 void ss_int2int(mpz_t value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net,  SecretShare *ss);
 void ss_int2int(mpz_t *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net,  SecretShare *ss);
 
-
+// private int = public float
 void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
+// private int* = public float -> array
 void ss_fl2int(float *value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
+// private int = private float
 void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
+// private int* = private float -> array
 void ss_fl2int(mpz_t **value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net,  SecretShare *ss);
 
 
