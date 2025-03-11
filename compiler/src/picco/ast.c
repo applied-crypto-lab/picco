@@ -280,11 +280,9 @@ astdecl InitDecl(astdecl decl, astexpr e) {
     if (e && decl->decl) {
         if (e->u.str && decl->decl->u.id) { // Rest
             insert_variable(decl->decl->u.id->name, e->u.str);
-        } else { // Dynamic array init that has an expression after the assignment
+        } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
             if (decl->decl->u.expr->type == CONSTVAL) { // if Const
                 insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
-            } else {
-                insert_variable(decl->decl->u.expr->u.sym->name, decl->decl->u.expr->u.sym->name);
             }
         }
     }
