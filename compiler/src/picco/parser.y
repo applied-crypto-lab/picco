@@ -4051,7 +4051,7 @@ void set_bitlength_expr(astexpr e, astexpr e1, astexpr e2)
 		// if((e1->ftype != e2->ftype))
 		// {
             // printf("\n\ne1 Type: %d, e2 Type: %d\n\n", e1->ftype, e2->ftype); 
-            // parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
+            // parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 
 		// }
 		if(e1->ftype == 0) 
@@ -4228,7 +4228,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
 void security_check_for_assignment(astexpr le, astexpr re){
 	if(le->flag == PUB && re->flag == PRI) 
-		parse_error(-1, "Type mismatch with respect to public/private data in assignment.\n");
+		parse_error(-1, "Information flow from private to public variables is not permitted.\n");
 } 
 
 void security_check_for_declaration(astspec spec, astdecl decl){
@@ -4260,7 +4260,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                     flag2 = 1;
             }
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "A: Type mismatch with respect to public/private data in assignment.\n");
+                parse_error(-1, "Information flow from private to public variables is not permitted.\n");
             decl = decl->u.next;
         }
         
@@ -4270,7 +4270,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
                 flag2 = 1;
             
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "B: Type mismatch with respect to public/private data in assignment.\n");
+                parse_error(-1, "Information flow from private to public variables is not permitted.\n");
         }
     
     }
@@ -4280,7 +4280,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
             if(decl->u.expr->flag == PRI)
                 flag2 = 1;
             if(flag1 == 0 && flag2 == 1)
-                parse_error(-1, "C: Type mismatch with respect to public/private data in assignment.\n");
+                parse_error(-1, "Information flow from private to public variables is not permitted.\n");
         }
     }
   
@@ -4756,13 +4756,13 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 		else if(opid == BOP_div)
 			modulus = fmax(modulus, 2*len+kappa_nu+1);  
 	} else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
-		parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
+		parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
 	} else if (((e1->flag == PRI && e2->flag == PUB) || (e1->flag == PUB && e2->flag == PRI)) && (opid == BOP_neq || opid == BOP_eqeq)) {
-        parse_error(-1, " Operands of the same type are expected (use casting).\n"); 
+        parse_error(-1, " Operands of the same type are expected (use casting or change the variable type).\n"); 
         exit(0); 
     } else if (opid == BOP_dot && ((e1->flag == PRI && e2->flag == PUB) || (e2->flag == PRI && e1->flag == PUB))) {
-        parse_error(-1, "Operands of the same type are expected (use casting).\n"); 
+        parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
     }
 }
