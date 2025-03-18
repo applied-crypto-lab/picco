@@ -297,63 +297,66 @@ void SMC_Utils::smc_output(int id, float *var, int size, std::string type, int t
 }
 
 /* SMC Addition */
+/********* singular operations *******/
+// 1) private int = private int + private int
 void SMC_Utils::smc_add(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, a, b);
 }
-
+// 3) private int = private int + public int
 void SMC_Utils::smc_add(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, a, b);
 }
-
+// 4) private int = public int + private int
 void SMC_Utils::smc_add(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, b, a);
 }
-
+// 5) private float = private float + public float
 void SMC_Utils::smc_add(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     priv_int *btmp;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_add(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
-
+// 6) private float = private float + public float
 void SMC_Utils::smc_add(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     priv_int *atmp;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_add(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
-
+// 2) private float = private float + private float
 void SMC_Utils::smc_add(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "+", threadID, net, ss);
 }
 
-// batch version of smc_add
+/************ batch operations *********/
+// 1) private *int = public *int + private *int
 void SMC_Utils::smc_add(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, b, a, size);
 }
-
+// 2) private *int = private *int + public *int
 void SMC_Utils::smc_add(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, a, b, size);
 }
-
+// 3) private *int = private *int + private *int
 void SMC_Utils::smc_add(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, a, b, size);
 }
-
+// 6) private *float = private *float + public *floats
 void SMC_Utils::smc_add(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     priv_int **btmp;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     smc_add(a, btmp, alen_sig, alen_exp, alen_sig, alen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&btmp, size);
 }
-
+// 5) private *float = public *float + private *float
 void SMC_Utils::smc_add(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     priv_int **atmp;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_add(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
-
+// 4) private *float = private *float + private *float
 void SMC_Utils::smc_add(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "+", threadID, net, ss);
 }

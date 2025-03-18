@@ -4710,7 +4710,27 @@ void compute_modulus_for_declaration(astspec spec){
 	}
 }
 
+bool is_float_literal(const char *literal) {
+    return (strchr(literal, '.') != NULL || strchr(literal, 'e') != NULL || strchr(literal, 'E') != NULL);
+}
+
 void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
+
+    // Update the ftype of float and int constants 
+    if (e1->flag == PUB && e1->type == CONSTVAL) { // if the value is public and constant, find if it is float or int
+        if (is_float_literal(e1->u.str)) 
+            e1->ftype = 1; // float
+        else 
+            e1->ftype = 0; // int
+    }
+    
+    if (e2->flag == PUB && e2->type == CONSTVAL) { // if the value is public and constant, find if it is float or int
+        if (is_float_literal(e2->u.str)) 
+            e2->ftype = 1; // float
+        else 
+            e2->ftype = 0; // int
+    }
+        
 	if(e1->ftype == 0 && e2->ftype == 0){ // integer computation
 		int len = fmax(e1->size, e2->size); 
 		if(e1->flag == PRI || e2->flag == PRI){
@@ -4728,9 +4748,8 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 			else if(opid == BOP_shl && e2->flag == PRI) // checking for private left shift
                 // left shifting by a private number of bits, call pow2 (Aliasgari et al., 2013)
 				modulus = fmax(modulus, e2->size+kappa_nu);
-
 		}		
-	}else if(e1->ftype == 1 && e2->ftype == 1){ // floating-point
+	} else if(e1->ftype == 1 && e2->ftype == 1){ // floating-point
 		int len = 0, k = 0; 
 		if(e1->size == e2->size && e1->sizeexp == e2->sizeexp){
 			len = e1->size; 
@@ -4758,13 +4777,18 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 	} else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
 		parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
-	} else if (((e1->flag == PRI && e2->flag == PUB) || (e1->flag == PUB && e2->flag == PRI)) && (opid == BOP_neq || opid == BOP_eqeq)) {
-        parse_error(-1, " Operands of the same type are expected (use casting or change the variable type).\n"); 
-        exit(0); 
+	// } else if (((e1->flag == PRI && e2->flag == PUB) || (e1->flag == PUB && e2->flag == PRI)) && (opid == BOP_neq || opid == BOP_eqeq)) {
+    //    parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
+    //    exit(0); 
     } else if (opid == BOP_dot && ((e1->flag == PRI && e2->flag == PUB) || (e2->flag == PRI && e1->flag == PUB))) {
         parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
-    }
+    } else if(((e1->flag == PRI && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1)) || (e2->flag == PRI && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1) || (e1->flag == PUB && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1) || (e2->flag == PUB && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1)){
+		if (!(((e1->flag == PRI || e1->flag == PUB) && e1->ftype == 1 && e1->type == IDENT) && (e2->type == CONSTVAL)) || (((e2->flag == PRI || e2->flag == PUB) && e2->ftype == 1 && e2->type == IDENT) && (e1->type == CONSTVAL))) {
+            parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
+            exit(0); 
+        }
+	}
 }
 
 // Function to insert a variable into the list of VarEntry_var_list
