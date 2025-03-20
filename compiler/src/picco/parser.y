@@ -4118,6 +4118,10 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
         if(e1->flag == PUB && e2->flag == PUB){
             e->flag = PUB;
             e->index = -1;
+            if (e1->arraytype == 1 && e2->arraytype == 1) {
+                parse_error(-1, "Array operations are supported only for private data. \n");
+                exit(0); 
+            }
         } else {
             e->flag = PRI;
             if(e->ftype == 0)
@@ -4179,7 +4183,7 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
             if (e1->type == BOP || e2->type == BOP) {
                 // Handle binary operations to ensure constants aren't used with arrays
                 if (contains_constant(e1) || contains_constant(e2)) {
-                    parse_error(-1, "Array operations are not supported when a scalar constant is involved.\n");
+                    parse_error(-1, "Array operations are not supported between an array and a scalar.\n");
                     exit(0);
                 }
             }
@@ -4784,11 +4788,14 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
         parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
     } else if(((e1->flag == PRI && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1)) || (e2->flag == PRI && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1) || (e1->flag == PUB && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1) || (e2->flag == PUB && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1)){
-		if (!(((e1->flag == PRI || e1->flag == PUB) && e1->ftype == 1 && e1->type == IDENT) && (e2->type == CONSTVAL)) || (((e2->flag == PRI || e2->flag == PUB) && e2->ftype == 1 && e2->type == IDENT) && (e1->type == CONSTVAL))) {
+		if (!(((e1->flag == PRI || e1->flag == PUB) && e1->ftype == 1 && e1->type == IDENT) && (e2->type == CONSTVAL)) || (((e2->flag == PRI || e2->flag == PUB) && e2->ftype == 1 && e2->type == IDENT) && (e1->type == CONSTVAL))) { // THe exception case for "Private float + constant int"
             parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
             exit(0); 
         }
-	}
+    } else if ((e1->arraytype == 1 && e2->arraytype == 1) && ((e1->ftype == 1 && e2->ftype == 0) || (e1->ftype == 0 && e2->ftype == 1))) { // if it is that case of exception, but on array -> prevent this too! -> a user should just use a float array instead 
+        parse_error(-1, "New Operands of the same type are expected (use casting or change the variable type).\n"); 
+        exit(0); 
+    }
 }
 
 // Function to insert a variable into the list of VarEntry_var_list
