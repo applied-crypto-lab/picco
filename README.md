@@ -94,9 +94,9 @@ To **compile** the translated program, the program should be placed in the `comp
 The binary executable of the translated program is produced by running the following script from the `compute/` directory:
 
 ```
-./compile-usr-prog.sh [-d | -m] <user_program> <user_program_config>
+./compile-usr-prog.sh [-d | -m] <user_program> <utility_config>
 ```
-where `-d` and `-m` are the compilation mode flags, `user_program` is the name of the translated program generated earlier (note, without the `.cpp` extension), and `user_program_config` is the name of the utility program generated earlier. The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
+where `-d` and `-m` are the compilation mode flags, `user_program` is the name of the translated program generated earlier (note, without the `.cpp` extension), and `utility_config` is the name of the utility file generated for this user program in the previous step. The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
 
 The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
 
