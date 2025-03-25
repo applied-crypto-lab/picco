@@ -236,7 +236,7 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
     ss_batch_free_operator(&bs, 1);
 }
 
-// New code
+// New_A_code
 // void ss_single_fop_comparison(mpz_t result, mpz_t *a, int *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
 //     std::cout << "\n ss_single_fop_comparison mpz_t *a, int *b called! \n";
@@ -276,7 +276,7 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
 //     // ss_batch_free_operator(&bs, 1);
 // }
 
-// New code
+// New_A_code
 // void ss_single_fop_comparison(mpz_t result, int *a, mpz_t *b, int resultlen, int alen_sig, int alen_exp, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
 //     std::cout << "\n ss_single_fop_comparison int *a, mpz_t *b called! \n";
@@ -362,7 +362,7 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_
         doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 }
 
-// New Code 
+// New_A_Code 
 // void ss_batch_fop_comparison(mpz_t *result, float *a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 //     // Do the conversion here, to avoid doing the same change in all the functions 
 //     // this also allows to make sure the man range is good by calling ss_process_operands then 
@@ -375,7 +375,7 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_
 //     //     doOperation_FLEQZ(b, a, result, len_sig, len_exp, size, threadID, net, ss);
 // }
 
-// New Code 
+// New_A_Code 
 // void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, float *b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 
 //     int len_sig = 0, len_exp = 0;
@@ -762,10 +762,11 @@ void ss_int2fl(int value, mpz_t *result, int gamma, int K, int L, int threadID, 
     // mpz_clear(val);
 }
 
-// New code 
-// void ss_int2fl(int *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
-    // Needs to be implemented 
-// }
+void ss_int2fl(int *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
+    for (int i = 0; i < size; i++) {
+        convertFloat((float)value[i], 32, 9, &result[i]);
+    }
+}
 
 void ss_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **results = (mpz_t **)malloc(sizeof(mpz_t *));
@@ -785,102 +786,97 @@ void ss_int2fl(mpz_t value, mpz_t *result, int gamma, int K, int L, int threadID
     ss_batch_free_operator(&results, 1);
 }
 
-// New Code 
-// void ss_int2fl(mpz_t *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-//     mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-//     mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
+void ss_int2fl(mpz_t *value, mpz_t **result, int size, int gamma, int K, int L, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+    mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
-//     for (int i = 0; i < size; i++) {
-//         temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-//         for (int j = 0; j < 4; j++) {
-//             mpz_init(temp_results[i][j]);
-//         }
-//         mpz_init_set(temp_values[i], value[i]);
-//     }
+    for (int i = 0; i < size; i++) {
+        temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++) {
+            mpz_init(temp_results[i][j]);
+        }
+        mpz_init_set(temp_values[i], value[i]);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         doOperation_Int2FL(&temp_values[i], &temp_results[i], gamma, K, 1, threadID, net, ss);
-//     }
+    for (int i = 0; i < size; i++) {
+        doOperation_Int2FL(&temp_values[i], &temp_results[i], gamma, K, 1, threadID, net, ss);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         for (int j = 0; j < 4; j++) {
-//             mpz_set(result[i][j], temp_results[i][j]);
-//         }
-//     }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_set(result[i][j], temp_results[i][j]);
+        }
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         for (int j = 0; j < 4; j++) {
-//             mpz_clear(temp_results[i][j]);
-//         }
-//         free(temp_results[i]);
-//         mpz_clear(temp_values[i]);
-//     }
-//     free(temp_results);
-//     free(temp_values);
-// }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_clear(temp_results[i][j]);
+        }
+        free(temp_results[i]);
+        mpz_clear(temp_values[i]);
+    }
+    free(temp_results);
+    free(temp_values);
+}
 
 void ss_int2int(int value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_set_si(result, value);
 }
 
-// New Code 
-// void ss_int2int(int *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-//     mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     int *temp_values = (int *)malloc(sizeof(int) * size);
+void ss_int2int(int *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) { 
+    mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    int *temp_values = (int *)malloc(sizeof(int) * size);
 
-//     for (int i = 0; i < size; i++) {
-//         mpz_init(temp_results[i]);
-//         temp_values[i] = value[i];
-//     }
+    for (int i = 0; i < size; i++) {
+        mpz_init(temp_results[i]);
+        temp_values[i] = value[i];
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
-//     }
+    for (int i = 0; i < size; i++) {
+        ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         mpz_set(result[i], temp_results[i]);
-//     }
+    for (int i = 0; i < size; i++) {
+        mpz_set(result[i], temp_results[i]);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         mpz_clear(temp_results[i]);
-//     }
-//     free(temp_results);
-//     free(temp_values);
-// }
+    for (int i = 0; i < size; i++) {
+        mpz_clear(temp_results[i]);
+    }
+    free(temp_results);
+    free(temp_values);
+}
 
 void ss_int2int(mpz_t value, mpz_t result, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_set(result, value);
 }
 
-// New Code 
-// void ss_int2int(mpz_t *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-//     mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
+void ss_int2int(mpz_t *value, mpz_t *result, int size, int gamma1, int gamma2, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t *temp_results = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *temp_values = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
-//     for (int i = 0; i < size; i++) {
-//         mpz_init(temp_results[i]);
-//         mpz_init_set(temp_values[i], value[i]);
-//     }
+    for (int i = 0; i < size; i++) {
+        mpz_init(temp_results[i]);
+        mpz_init_set(temp_values[i], value[i]);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
-//     }
+    for (int i = 0; i < size; i++) {
+        ss_int2int(temp_values[i], temp_results[i], gamma1, gamma2, threadID, net, ss);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         mpz_set(result[i], temp_results[i]);
-//     }
+    for (int i = 0; i < size; i++) {
+        mpz_set(result[i], temp_results[i]);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         mpz_clear(temp_results[i]);
-//         mpz_clear(temp_values[i]);
-//     }
-//     free(temp_results);
-//     free(temp_values);
-// }
+    for (int i = 0; i < size; i++) {
+        mpz_clear(temp_results[i]);
+        mpz_clear(temp_values[i]);
+    }
+    free(temp_results);
+    free(temp_values);
+}
 
+// private int = public float
 void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_set_si(result, (int)value);
     // mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * 4);
@@ -893,11 +889,30 @@ void ss_fl2int(float value, mpz_t result, int K, int L, int gamma, int threadID,
     // free(val);
 }
 
-// New Code 
-// void ss_fl2int(float *value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-// }
+// private int* = public float -> array
+void ss_fl2int(float *value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t **values = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    
+    for (int i = 0; i < size; i++) {
+        values[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++)
+            mpz_init(values[i][j]);
+        convertFloat(value[i], K, L, &values[i]);
+        mpz_init(results[i]);
+    }
+    
+    doOperation_FL2Int(values, results, K, L, gamma, size, threadID, net, ss);
+    
+    for (int i = 0; i < size; i++) {
+        mpz_set(result[i], results[i]);
+    }
+    
+    ss_batch_free_operator(&values, size);
+    ss_batch_free_operator(&results, size);
+}
 
+// private int = private float
 void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t **values = (mpz_t **)malloc(sizeof(mpz_t *));
     mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t));
@@ -912,11 +927,27 @@ void ss_fl2int(mpz_t *value, mpz_t result, int K, int L, int gamma, int threadID
     ss_batch_free_operator(&results, 1);
 }
 
-// New Code 
-// void ss_fl2int(mpz_t **value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-//     doOperation_FL2Int(value, result, K, L, gamma, size, threadID, net, ss);
-// }
+// private int* = private float -> array 
+void ss_fl2int(mpz_t **value, mpz_t *result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t **values = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+    mpz_t *results = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    
+    for (int i = 0; i < size; i++) {
+        values[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++)
+            mpz_init_set(values[i][j], value[i][j]);
+        mpz_init(results[i]);
+    }
+    
+    doOperation_FL2Int(values, results, K, L, gamma, size, threadID, net, ss);
+    
+    for (int i = 0; i < size; i++) {
+        mpz_set(result[i], results[i]);
+    }
+    
+    ss_batch_free_operator(&values, size);
+    ss_batch_free_operator(&results, size); 
+}
 
 void ss_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *val = (mpz_t *)malloc(sizeof(mpz_t) * 4);
@@ -929,36 +960,34 @@ void ss_fl2fl(float value, mpz_t *result, int K1, int L1, int K2, int L2, int th
     free(val);
 }
 
-// New Code 
-// void ss_fl2fl(float *value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-//     mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+void ss_fl2fl(float *value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
 
-//     for (int i = 0; i < size; i++) {
-//         temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-//         for (int j = 0; j < 4; j++) {
-//             mpz_init(temp_results[i][j]);
-//         }
-//     }
+    for (int i = 0; i < size; i++) {
+        temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++) {
+            mpz_init(temp_results[i][j]);
+        }
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         ss_fl2fl(value[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
-//     }
+    for (int i = 0; i < size; i++) {
+        ss_fl2fl(value[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         for (int j = 0; j < 4; j++) {
-//             mpz_set(result[i][j], temp_results[i][j]);
-//         }
-//     }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_set(result[i][j], temp_results[i][j]);
+        }
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         for (int j = 0; j < 4; j++) {
-//             mpz_clear(temp_results[i][j]);
-//         }
-//         free(temp_results[i]);
-//     }
-//     free(temp_results);
-// }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_clear(temp_results[i][j]);
+        }
+        free(temp_results[i]);
+    }
+    free(temp_results);
+}
 
 void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
     if (K1 >= K2)
@@ -977,42 +1006,40 @@ void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int t
     mpz_set(result[3], value[3]);
 }
 
-// New Code 
-// void ss_fl2fl(mpz_t **value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
-//     // Needs to be implemented 
-//     mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-//     mpz_t **temp_values = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+void ss_fl2fl(mpz_t **value, mpz_t **result, int size, int K1, int L1, int K2, int L2, int threadID, NodeNetwork net, SecretShare *ss) {
+    mpz_t **temp_results = (mpz_t **)malloc(sizeof(mpz_t *) * size);
+    mpz_t **temp_values = (mpz_t **)malloc(sizeof(mpz_t *) * size);
 
-//     for (int i = 0; i < size; i++) {
-//         temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-//         temp_values[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-//         for (int j = 0; j < 4; j++) {
-//             mpz_init(temp_results[i][j]);
-//             mpz_init_set(temp_values[i][j], value[i][j]);
-//         }
-//     }
+    for (int i = 0; i < size; i++) {
+        temp_results[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        temp_values[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
+        for (int j = 0; j < 4; j++) {
+            mpz_init(temp_results[i][j]);
+            mpz_init_set(temp_values[i][j], value[i][j]);
+        }
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         ss_fl2fl(temp_values[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
-//     }
+    for (int i = 0; i < size; i++) {
+        ss_fl2fl(temp_values[i], temp_results[i], K1, L1, K2, L2, threadID, net, ss);
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         for (int j = 0; j < 4; j++) {
-//             mpz_set(result[i][j], temp_results[i][j]);
-//         }
-//     }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_set(result[i][j], temp_results[i][j]);
+        }
+    }
 
-//     for (int i = 0; i < size; i++) {
-//         for (int j = 0; j < 4; j++) {
-//             mpz_clear(temp_results[i][j]);
-//             mpz_clear(temp_values[i][j]);
-//         }
-//         free(temp_results[i]);
-//         free(temp_values[i]);
-//     }
-//     free(temp_results);
-//     free(temp_values);
-// }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            mpz_clear(temp_results[i][j]);
+            mpz_clear(temp_values[i][j]);
+        }
+        free(temp_results[i]);
+        free(temp_values[i]);
+    }
+    free(temp_results);
+    free(temp_values);
+}
 
 void ss_batch_handle_priv_cond(mpz_t *result, mpz_t *result_org, mpz_t out_cond, mpz_t *priv_cond, int counter, int size, int threadID, NodeNetwork net, SecretShare *ss) {
     mpz_t *tmp = (mpz_t *)malloc(sizeof(mpz_t) * size);

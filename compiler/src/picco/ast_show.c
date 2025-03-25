@@ -6150,14 +6150,14 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                     ast_assignment_prefix_show(tree); // call smc_set 
                     if (tree->left->ftype == 1) { // float 
                         if (is_init_decl == 1)
-                            str_printf(global_string, "(_picco_ftmp%d, %s, %d, %d, %d, %d, \"float\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->left->size, tree->left->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->thread_id);
+                            str_printf(global_string, "(%s, _picco_ftmp%d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), new_tree_index_for_auto_cast, tree->left->size, tree->left->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->thread_id);
                         else 
-                            fprintf(output, "(_picco_ftmp%d, %s, %d, %d, %d, %d, \"float\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->left->size, tree->left->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->thread_id);
+                            fprintf(output, "(%s, _picco_ftmp%d, %d, %d, %d, %d, \"float\", %d)", str_string(leftop), new_tree_index_for_auto_cast, tree->left->size, tree->left->sizeexp, tree->left->size, tree->left->sizeexp, tree->left->thread_id);
                     } else { // int
                         if (is_init_decl == 1)
-                            str_printf(global_string, "(_picco_tmp%d, %s, %d, %d, \"int\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->left->size, tree->left->size, tree->left->thread_id);
+                            str_printf(global_string, "(%s, _picco_tmp%d, %d, %d, \"int\", %d)", str_string(leftop), new_tree_index_for_auto_cast, tree->left->size, tree->left->size, tree->left->thread_id);
                         else 
-                            fprintf(output, "(_picco_tmp%d, %s, %d, %d, \"int\", %d)", new_tree_index_for_auto_cast, str_string(leftop), tree->left->size, tree->left->size, tree->left->thread_id);
+                            fprintf(output, "(%s, _picco_tmp%d, %d, %d, \"int\", %d)", str_string(leftop), new_tree_index_for_auto_cast, tree->left->size, tree->left->size, tree->left->thread_id);
                     }
                 } else if (tree->left->arraytype == 1 && tree->right->ftype != tree->left->ftype) {
                     // the new array auto casting version 
@@ -6179,14 +6179,22 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                             /* Int2FL */
                             fprintf(stdout, "\nConverting array of int to an array of float for '%s'!\n", str_string(leftop)); // this is needed cause we want the statement to be printed to the user in stdout
                             fprintf(output, "__s->smc_int2fl(");
-                            fprintf(output, "%s, _picco_arr_ftmp%d, %s, %d, %d, %d, %d);\n  ", str_string(rightop), new_tree_index_for_auto_cast, str_string(array_size), tree->size, tree->left->size, tree->left->sizeexp, tree->thread_id);
+                            if (tree->right->type == BOP) {
+                                fprintf(output, "_picco_arr_tmp%d, _picco_arr_ftmp%d, %s, %d, %d, %d, %d);\n  ", new_tree_index_for_auto_cast, new_tree_index_for_auto_cast, str_string(array_size), tree->size, tree->left->size, tree->left->sizeexp, tree->thread_id);
+                            } else {
+                                fprintf(output, "%s, _picco_arr_ftmp%d, %s, %d, %d, %d, %d);\n  ", str_string(rightop), new_tree_index_for_auto_cast, str_string(array_size), tree->size, tree->left->size, tree->left->sizeexp, tree->thread_id);
+                            }
                         }
                         /* conversion to int */
                         if (tree->left->ftype == 0) {
                             /* FL2Int */
                             fprintf(stdout, "\nConverting array of float to an array of int for '%s'!\n", str_string(leftop)); // this is needed cause we want the statement to be printed to the user in stdout
                             fprintf(output, "__s->smc_fl2int(");
-                            fprintf(output, "%s, _picco_arr_tmp%d, %s, %d, %d, %d, %d);\n   ", str_string(rightop),  new_tree_index_for_auto_cast, str_string(array_size), tree->right->size, tree->right->sizeexp, tree->size, tree->thread_id);
+                            if (tree->right->type == BOP) {
+                                fprintf(output, "_picco_arr_ftmp%d, _picco_arr_tmp%d, %s, %d, %d, %d, %d);\n   ", new_tree_index_for_auto_cast, new_tree_index_for_auto_cast, str_string(array_size), tree->right->size, tree->right->sizeexp, tree->size, tree->thread_id);
+                            } else {
+                                fprintf(output, "%s, _picco_arr_tmp%d, %s, %d, %d, %d, %d);\n   ", new_tree_index_for_auto_cast, str_string(array_size), tree->right->size, tree->right->sizeexp, tree->size, tree->thread_id);
+                            }
                         } 
                     }
                     ast_assignment_prefix_show(tree); // call smc_set 
