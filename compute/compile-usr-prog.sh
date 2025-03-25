@@ -1,7 +1,7 @@
 #!/bin/bash
 
 print_usage() {
-  printf "Usage: $0 [-d | -m] <user_program.cpp> <user_program_config>\n"
+  printf "Usage: $0 [-d | -m] <user_program.cpp> <utility_config>\n"
 }
 #  [-S (Shamir SS)]\n"
 
@@ -11,7 +11,7 @@ if test "$#" -ne 3; then
     exit 1
 fi
 
-# Parse user_program_config
+# Parse user_program_config(utility_config)
 bits=""
 technique=""
 config_file="$3"
