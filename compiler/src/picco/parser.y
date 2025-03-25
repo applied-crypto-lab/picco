@@ -4788,12 +4788,14 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
         parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
     } else if(((e1->flag == PRI && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1)) || (e2->flag == PRI && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1) || (e1->flag == PUB && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1) || (e2->flag == PUB && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1)){
-		if (!(((e1->flag == PRI || e1->flag == PUB) && e1->ftype == 1 && e1->type == IDENT) && (e2->type == CONSTVAL)) || (((e2->flag == PRI || e2->flag == PUB) && e2->ftype == 1 && e2->type == IDENT) && (e1->type == CONSTVAL))) { // THe exception case for "Private float + constant int"
-            parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
-            exit(0); 
+		if (!(((e1->flag == PRI || e1->flag == PUB) && e1->ftype == 1 && e1->type == IDENT) && (e2->type == CONSTVAL)) || (((e2->flag == PRI || e2->flag == PUB) && e2->ftype == 1 && e2->type == IDENT) && (e1->type == CONSTVAL))) { // The exception case for "Private float + constant int"
+		    if (!(e1->flag == PUB && e1->flag == PUB)) { // The exception case for "Public"
+                parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
+                exit(0); 
+            }
         }
     } else if ((e1->arraytype == 1 && e2->arraytype == 1) && ((e1->ftype == 1 && e2->ftype == 0) || (e1->ftype == 0 && e2->ftype == 1))) { // if it is that case of exception, but on array -> prevent this too! -> a user should just use a float array instead 
-        parse_error(-1, "New Operands of the same type are expected (use casting or change the variable type).\n"); 
+        parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
         exit(0); 
     }
 }
