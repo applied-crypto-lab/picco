@@ -30,8 +30,12 @@
 #include "Mult.hpp"
 #include <cstdint>
 
-// trunation of all data by a single M
 // this protocol requires that the bitlength of the input is at least one bit shorter than the ring size, i.e. MSB(input) = 0
+// This function as additional functionality in that it returns two values, result and result_prime
+// result: input >> m
+// result_prime: input >> (m-2), where the LSB is set if and only if any 
+// of the lower (m-2) bits of the input are set 
+// this is referred to as the "sticky bit" (in floating-point parlance)
 template <typename T>
 void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int m, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -95,6 +99,7 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     edaBit_RNTE(edaBit_r, r_hat, r_hat_hat, b_2, b_km1, m, size, ring_size, nodeNet, ss);
 
     // computing the sum of input and edabit_r
+    // unmodified from Trunc
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             sum[s][i] = (input[s][i] + edaBit_r[s][i]);
@@ -104,6 +109,7 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     Open(c, sum, size, threadID, nodeNet, ss);
 
     // (c / 2^m) mod 2^(k-m-1)
+    // (d / 2^m) mod 2^(k-m-3)
     for (size_t i = 0; i < size; i++) {
         c_prime[i] = (c[i] >> T(m)) & ss->SHIFT[ring_size - m - 1];
         d_prime[i] = (c[i] >> T(m2)) & ss->SHIFT[ring_size - m2 - 1];
@@ -126,27 +132,37 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     Rss_BitLT(u_2, c, b_2, size, m, nodeNet, ss);
     Rss_BitLT(v_2, c, b_2, size, m2, nodeNet, ss);
 
+    // we only need the LSB of the computed value
+    // need 0th bit of [b_2]
+    // v_2 is already a bit in Z_2
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            r_hat[s][i] = (c[i] & ai[s]) ^ b_2[s][i];              // reusing r_hat
-            b2a_buff[s][3 * size + i] = (r_hat[s][i]) ^ v_2[s][i]; // computing (c_0 ^ b_0) ^ v (in Z2), and storing it in the last (size) elements
+            // computing (c_0 ^ b_0) ^ v (in Z2), and storing it in the last (size) elements
+            r_hat[s][i] = (c[i] & ai[s]) ^ b_2[s][i]; // reusing r_hat
+            // we only care about the LSB, which is why we AND the result from the previous line with 1
+            b2a_buff[s][3 * size + i] = (r_hat[s][i] & T(1)) ^ v_2[s][i];
         }
     }
 
+    // computing [w], a bit
     Rss_k_OR_L(b2a_buff, r_hat, size, m2, nodeNet, ss); // checking if any of the m-2 lower bits of the input are set
     // stores "w" in the first (size) elements
 
     for (size_t s = 0; s < numShares; s++) {
-        memcpy(b2a_buff[s] + size, u_2[s], sizeof(T) * size);
-        memcpy(b2a_buff[s] + 2 * size, v_2[s] + size, sizeof(T) * size);
+        memcpy(b2a_buff[s] + size, u_2[s], sizeof(T) * size);            // bit, [u]_1
+        memcpy(b2a_buff[s] + 2 * size, v_2[s] + size, sizeof(T) * size); // bit, [v]_1
     }
 
-    Rss_B2A(b2a_buff, b2a_buff, size, ring_size, nodeNet, ss);
+    Rss_B2A(b2a_buff, b2a_buff, 4 * size, ring_size, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
-            result[s][i] = result[s][i] - b2a_buff[s][size + i];
-            result_prime[s][i] = result_prime[s][i] - b2a_buff[s][2 * size + i] + b2a_buff[s][i] - b2a_buff[s][3 * size + i];
+            result[s][i] = result[s][i] - b2a_buff[s][size + i]; // result of normal truncation
+
+            // result of truncation by two fewer bits, and 
+            // setting the LSB of result_prime (the "sticky bit") 
+            // iff any of the lower (m-2) bits of the input are set 
+            result_prime[s][i] = result_prime[s][i] - b2a_buff[s][2 * size + i] + b2a_buff[s][i] - b2a_buff[s][3 * size + i]; 
         }
     }
 
