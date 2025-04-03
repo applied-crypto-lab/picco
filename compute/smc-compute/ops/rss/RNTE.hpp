@@ -138,7 +138,7 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             // computing (c_0 ^ b_0) ^ v (in Z2), and storing it in the last (size) elements
-            r_hat[s][i] = (c[i] & ai[s]) ^ b_2[s][i]; // reusing r_hat
+            r_hat[s][i] = (c[i] & (ai[s]*T(-1))) ^ b_2[s][i]; // reusing r_hat
             // we only care about the LSB, which is why we AND the result from the previous line with 1
             b2a_buff[s][3 * size + i] = (r_hat[s][i] & T(1)) ^ v_2[s][i];
         }
