@@ -30,7 +30,7 @@ T **u_2 = new T *[numShares];
 T **edaBit_r = new T *[numShares];
 T **edaBit_b_2 = new T *[numShares];
 T **rprime = new T *[numShares];
-
+T **r_prime = new T *[numShares];
 T *c = new T[size];
 T *e = new T[size];
 
@@ -42,6 +42,7 @@ for (i = 0; i < numShares; i++) {
     u_2[i] = new T[size];
 
     rprime[i] = new T[size];
+    r_prime[i] = new T[size];
 }
 
 T **v = new T *[numShares];
@@ -78,9 +79,13 @@ edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 // line 3
 
 Open(c, sum, size, -1, nodeNet, ss);
-
-// line 4 // Problem 
-
+// line 5
+    for (size_t s = 0; s < numShares; s++) {
+        for (i = 0; i < size; i++) {
+            r_prime[s][i] = (c[i] & (ai[s]*T(-1))) ^ edaBit_b_2[s][i]; // computing XOR in Z2
+        }
+    }
+// line 4
  for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)
             edaBit_b_2[s][i] = edaBit_b_2[s][i] & ss->SHIFT[ring_size - 1];
@@ -94,12 +99,7 @@ Open(c, sum, size, -1, nodeNet, ss);
         // c[i] = c[i] >> T(1);
     }
 
-// line 5
-    for (size_t s = 0; s < numShares; s++) {
-        for (i = 0; i < size; i++) {
-            rprime[s][i] = (c[i] & ai[s]) ^ edaBit_b_2[s][i]; // computing XOR in Z2
-        }
-    }
+
 
 //line 6
 // Rss_Open_Bitwise(r_2_open, edaBit_b_2, size, ring_size, nodeNet, ss);
@@ -108,11 +108,12 @@ Open(c, sum, size, -1, nodeNet, ss);
 // which may not be desierable
 
 Rss_BitLT(u_2, c, edaBit_b_2, size, ring_size, nodeNet, ss); 
-Rss_k_OR_L(v, rprime, size, ring_size, nodeNet, ss);
+Rss_k_OR_L(v, r_prime, size, ring_size, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
         for (i = 0; i < size; i++) {
-            v[s][i] = (T(1) & ai[s]) ^ v[s][i]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
+            v[s][i] = (T(1) & (ai[s]*T(-1)))
+            ^ v[s][i]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
         }
     }
 
@@ -143,22 +144,8 @@ for (size_t s = 0; s < numShares; s++) {
 
 
 // // Line 8: Compute [a'] = c' - [r'] + 2^(l-1)[u]
-// T **a_prime = new T *[numShares];
-// for (size_t s = 0; s < numShares; s++) {
-//     a_prime[s] = new T[size];
-//     for (i = 0; i < size; i++) {
-//         a_prime[s][i] = c[i] - rprime[s][i] + (u[s][i] << (ring_size - 1));
-//     }
-// }
-
 // // Line 9: Compute [d] = ([a] -[b])- [a']
-// T **d = new T *[numShares];
-// for (size_t s = 0; s < numShares; s++) {
-//     d[s] = new T[size];
-//     for (i = 0; i < size; i++) {
-//         d[s][i] = (a[s][i] - b[s][i]) - a_prime[s][i];
-//     }
-// } 
+//combining them in one line in 10
 //line  10
 for (i = 0; i < size; ++i) 
 {
@@ -168,12 +155,6 @@ for (i = 0; i < size; ++i)
         sum[s][i] = (a[s][i] - b[s][i])-c[i] * ai[s] + rprime[s][i] - (u_2[s][i] << T(ring_size - 1)) + (b_prime[s][i] << T(ring_size - 1));
     // sum[1][i] = a[1][i] - c[i] * a2 + rprime[1][i] - (u_2[1][i] << T(ring_size - 1)) + (b_prime[1][i] << T(ring_size - 1));
 }   
-// for (i = 0; i < size; ++i) {
-//     for (size_t s = 0; s < numShares; s++) {
-//         // Add 2^(ℓ−1) * [b_prime] to [d] (shift [b_prime] by (ring_size - 1) bits)
-//         sum[s][i] = d[s][i] + (b_prime[s][i] << T(ring_size - 1));
-//     }
-// }
 Open(e, sum, size, -1, nodeNet, ss);
 
 // line 11 
