@@ -33,8 +33,8 @@
 // this protocol requires that the bitlength of the input is at least one bit shorter than the ring size, i.e. MSB(input) = 0
 // This function as additional functionality in that it returns two values, result and result_prime
 // result: input >> m
-// result_prime: input >> (m-2), where the LSB is set if and only if any 
-// of the lower (m-2) bits of the input are set 
+// result_prime: input >> (m-2), where the LSB is set if and only if any
+// of the lower (m-2) bits of the input are set
 // this is referred to as the "sticky bit" (in floating-point parlance)
 template <typename T>
 void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int m, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
@@ -138,7 +138,7 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             // computing (c_0 ^ b_0) ^ v (in Z2), and storing it in the last (size) elements
-            r_hat[s][i] = (c[i] & (ai[s]*T(-1))) ^ b_2[s][i]; // reusing r_hat
+            r_hat[s][i] = (c[i] & (ai[s] * T(-1))) ^ b_2[s][i]; // reusing r_hat
             // we only care about the LSB, which is why we AND the result from the previous line with 1
             b2a_buff[s][3 * size + i] = (r_hat[s][i] & T(1)) ^ v_2[s][i];
         }
@@ -149,8 +149,8 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     // stores "w" in the first (size) elements
 
     for (size_t s = 0; s < numShares; s++) {
-        memcpy(b2a_buff[s] + size, u_2[s], sizeof(T) * size);            // bit, [u]_1
-        memcpy(b2a_buff[s] + 2 * size, v_2[s] + size, sizeof(T) * size); // bit, [v]_1
+        memcpy(b2a_buff[s] + size, u_2[s], sizeof(T) * size);     // bit, [u]_1
+        memcpy(b2a_buff[s] + 2 * size, v_2[s], sizeof(T) * size); // bit, [v]_1
     }
 
     Rss_B2A(b2a_buff, b2a_buff, 4 * size, ring_size, nodeNet, ss);
@@ -159,10 +159,11 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
         for (size_t i = 0; i < size; i++) {
             result[s][i] = result[s][i] - b2a_buff[s][size + i]; // result of normal truncation
 
-            // result of truncation by two fewer bits, and 
-            // setting the LSB of result_prime (the "sticky bit") 
-            // iff any of the lower (m-2) bits of the input are set 
-            result_prime[s][i] = result_prime[s][i] - b2a_buff[s][2 * size + i] + b2a_buff[s][i] - b2a_buff[s][3 * size + i]; 
+            // result of truncation by two fewer bits, and
+            // setting the LSB of result_prime (the "sticky bit")
+            // iff any of the lower (m-2) bits of the input are set
+            result_prime[s][i] = result_prime[s][i] - b2a_buff[s][2 * size + i] + b2a_buff[s][i] - b2a_buff[s][3 * size + i];
+            // result_prime[s][i] = result_prime[s][i] - b2a_buff[s][2 * size + i] ;
         }
     }
 
