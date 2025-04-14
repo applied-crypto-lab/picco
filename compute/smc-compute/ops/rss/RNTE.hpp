@@ -208,9 +208,9 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
     T **a_pp = new T *[numShares];
     T **a_bits = new T *[numShares];
 
-    uint8_t **A_buff = new T *[numShares];
-    uint8_t **B_buff = new T *[numShares];
-    uint8_t **C_buff = new T *[numShares];
+    uint8_t **A_buff = new uint8_t *[numShares];
+    uint8_t **B_buff = new uint8_t *[numShares];
+    uint8_t **C_buff = new uint8_t *[numShares];
     for (size_t s = 0; s < numShares; s++) {
         A_buff[s] = new uint8_t[num_uints];
         memset(A_buff[s], 0, sizeof(uint8_t) * num_uints);
