@@ -237,8 +237,8 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
         for (uint i = 0; i < size; i++) {
             bit_idx = i & 7;
             byte_idx = i >> 3;
-            A_buff[s][byte_idx] = SET_BIT(A_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(a_bits[s][i], uint8_t(0)));
-            B_buff[s][byte_idx] = SET_BIT(B_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(a_bits[s][i], uint8_t(2)));
+            A_buff[s][byte_idx] = SET_BIT(A_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(uint8_t(a_bits[s][i]), uint8_t(0)));
+            B_buff[s][byte_idx] = SET_BIT(B_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(uint8_t(a_bits[s][i]), uint8_t(2)));
         }
     }
 
@@ -257,7 +257,7 @@ void RNTE(T **result, T **input, int K, int m, int size, int threadID, NodeNetwo
         for (uint i = 0; i < size; i++) {
             bit_idx = i & 7;
             byte_idx = i >> 3;
-            B_buff[s][byte_idx] = SET_BIT(B_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(a_bits[s][i], uint8_t(1)));
+            B_buff[s][byte_idx] = SET_BIT(B_buff[s][byte_idx], uint8_t(bit_idx), GET_BIT(uint8_t(a_bits[s][i]), uint8_t(1)));
         }
     }
 
