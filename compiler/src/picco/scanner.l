@@ -552,6 +552,9 @@ static int  start_token = 0;   // For starting with a particular token
 "sizeof"	       { count(); return(SIZEOF);}
 "pmalloc"              { count(); return(PMALLOC);} 
 "pfree"                { count(); return(PFREE);}
+"char"                 { count(); return(CHAR); } 
+"short"                 { count(); return(SHORT); } 
+"long"                 { count(); return(LONG); } 
 
 
   /*
@@ -604,6 +607,7 @@ static int  start_token = 0;   // For starting with a particular token
 "]"                    { count(); return(']'); }
 "."		       { count(); return('.'); }
 "-"                    { count(); return('-'); }
+"~"                    { count(); return('~'); }
 "+"                    { count(); return('+'); }
 "*"                    { count(); return('*'); }
 "/"                    { count(); return('/'); }

@@ -46,7 +46,12 @@ char *UOP_symbols[11] =
 int default_len = 32;
 str strs;
 astexpr Astexpr(enum exprtype type, astexpr left, astexpr right) {
+    // if (type == COMMALIST && left->type == CONSTVAL && right->type == CONSTVAL) {
+    //     exit_error(1, "    Invalid initialization using (), line: %d.\n", left->l);
+    // } // this disallows all initilizations
     astexpr n = smalloc(sizeof(struct astexpr_));
+    n->last_op_hit = 0;
+    n->BOP_tree_length = 0;
     n->type = type;
     n->left = left;
     n->right = right;
@@ -55,7 +60,9 @@ astexpr Astexpr(enum exprtype type, astexpr left, astexpr right) {
     n->sizeexp = -1;
     n->arraytype = 0;
     n->arraysize = NULL;
+    n->computingarraysize = 0;
     n->thread_id = -1;
+    n->ftype = 0;
     n->l = sc_original_line();
     n->c = sc_column();
     n->file = Symbol(sc_original_file());
@@ -102,6 +109,15 @@ astexpr Operator(enum exprtype type, int opid, astexpr left, astexpr right) {
     astexpr n = Astexpr(type, left, right);
     n->opid = opid;
     n->size = ComputeExprSize(left, right);
+    if (type == UOP) { // do this check only of it is UOP and the opid are lnot and bnot 
+        if (left->size != 1) {
+            if (left->arraytype == 1) {
+                if (opid == UOP_bnot) { 
+                    exit_error(1, "        '~' is only supported on arrays of bits. Line: %d. \n", left->l);
+                } 
+            }
+        }
+    }
     return (n);
 }
 
@@ -235,6 +251,17 @@ astdecl IdentifierDecl(symbol s) {
 }
 
 astdecl ArrayDecl(astdecl decl, astspec s, astexpr e) {
+    if (e != NULL) {
+        if (e->flag == PRI){ // array length cannot be private var
+            if (e->ftype == 1)
+                exit_error(1, "     Size of array '%s' has non-integer type and cannot be private.\n", decl->u.id->name);
+            exit_error(1, "     Size of allocated memory (array '%s') cannot be private.\n", decl->u.id->name);
+        } else if (e->flag == PUB && e->ftype == 1) {
+            exit_error(1, "     Size of array '%s' has non-integer type.\n", decl->u.id->name);
+        }
+    } else if (e == NULL) {
+        exit_error(1, "     Array size missing in '%s'\n", decl->u.id->name);
+    }
     astdecl d = Decl(DARRAY, 0, decl, s);
     d->u.expr = e;
     return (d);
@@ -249,6 +276,16 @@ astdecl FuncDecl(astdecl decl, astdecl p) {
 astdecl InitDecl(astdecl decl, astexpr e) {
     astdecl d = Decl(DINIT, 0, decl, NULL);
     d->u.expr = e;
+    // The code below stores all the variables with thier values to the table to be able to use them for init of temp arrays for the case if arrays in a program is init using a variable and not a constant -> this was needed because we added support for temp arrays and we needed a max size to initilize them 
+    if (e && decl->decl) {
+        if (e->u.str && decl->decl->u.id) { // Rest
+            insert_variable(decl->decl->u.id->name, e->u.str);
+        } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
+            if (decl->decl->u.expr->type == CONSTVAL) { // if Const
+                insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
+            }
+        }
+    }
     return (d);
 }
 
@@ -857,8 +894,13 @@ struct_field struct_field_lookup(struct_node node, char *name) {
                 field_name = field->name->decl;
         } else
             field_name = field->name;
-        if (!strcmp(name, field_name->decl->u.id->name))
-            return field;
+        if (field_name->decl->u.id) {
+            if (!strcmp(name, field_name->decl->u.id->name)) {
+                return field;
+            }
+        } else {
+            exit_error(1, "Struct %s has no member named %s.\n", node->name->name->name, name); // the node->name->name->name is the name of the struct 
+        }
         field = field->next;
     }
     return NULL;

@@ -16,8 +16,7 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef _ADDBITWISE_HPP_
-#define _ADDBITWISE_HPP_
+#pragma once
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"

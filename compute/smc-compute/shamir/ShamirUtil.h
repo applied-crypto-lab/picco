@@ -35,6 +35,7 @@ void ss_batch_free_operator(mpz_t **op, int size);
 void ss_batch_free_operator(mpz_t ***op, int size);
 int smc_compute_len(int alen, int blen);
 
+void convertFloat(float value, int K, int L, long long **elements);
 void convertFloat(float value, int K, int L, mpz_t **elements);
 void convertDouble(double value, int K, int L, mpz_t **elements);
 

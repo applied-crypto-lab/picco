@@ -1504,10 +1504,12 @@ replicatedSecretShare<T>::~replicatedSecretShare() {
 
 template <typename T>
 void ss_batch_free_operator(T ***op, int size) {
+    
 }
 
 template <typename T>
 void ss_batch_free_operator(T ****op, int size) {
+    
 }
 
 // takes an array of public values and creates sparse

@@ -155,14 +155,14 @@ void Rss_k_OR_L(T **res, T **r, uint size, uint ring_size, NodeNetwork nodeNet, 
 
         Mult_Byte(u, a, b, num, nodeNet, ss);
 
-        for (i = 0; i < num; ++i) {
-            for (s = 0; s < numShares; s++) {
+        for (s = 0; s < numShares; s++) {
+            for (i = 0; i < num; ++i) {
                 u[s][i] = a[s][i] ^ b[s][i] ^ u[s][i];
             }
         }
 
-        for (i = 0; i < size; ++i) {
-            for (s = 0; s < numShares; s++) {
+        for (s = 0; s < numShares; s++) {
+            for (i = 0; i < size; ++i) {
                 memcpy(temp_res[s] + i, u[s] + i * n_uints, n_uints);
                 temp_res[s][i] = temp_res[s][i];
             }

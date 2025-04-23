@@ -240,7 +240,7 @@ int xar_calc_int_expr(astexpr tree, int *error) {
             return (t1 & t2);
         case BOP_bor:
             return (t1 | t2);
-        case BOP_xor:
+        case BOP_bxor:
             return (t1 ^ t2);
         case BOP_add:
             return (t1 + t2);

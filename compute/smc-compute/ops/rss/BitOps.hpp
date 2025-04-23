@@ -38,11 +38,21 @@ void LogicalAnd(T **A, T **B, T **result, int alen, int blen, int resultlen, int
 template <typename T>
 void LogicalOr(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
+
+template <typename T>
+void BitAnd(T **A, int *B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+
 template <typename T>
 void BitAnd(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 template <typename T>
+void BitOr(T **A, int *B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+
+template <typename T>
 void BitOr(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+
+template <typename T>
+void BitXor(T **A, int *B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
 
 template <typename T>
 void BitXor(T **A, T **B, T **result, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
