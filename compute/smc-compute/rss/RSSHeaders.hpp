@@ -15,6 +15,7 @@
 #include "../ops/rss/FLDiv.hpp"
 #include "../ops/rss/FLEQZ.hpp"
 #include "../ops/rss/FLLTZ.hpp"
+#include "../ops/rss/FLLT.hpp"
 #include "../ops/rss/FLMult.hpp"
 #include "../ops/rss/FLRound.hpp"
 #include "../ops/rss/Input.hpp"
