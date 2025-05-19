@@ -141,7 +141,7 @@ for (uint s = 0; s < numShares; s++) {
 
 // Call Mult function with buffer size 2
 Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, ring_size, nodeNet, ss);
-T combined_result
+T combined_result;
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         combined_result = mult_result[s][i] +  // Result from part 4
