@@ -761,6 +761,8 @@ public:
     __m128i *offline_prg_keyschedule(uint8_t *src);
     void prg_aes_ni(priv_int_t *destination, uint8_t *seed, __m128i *key);
 
+    void q_digest();
+
 #endif
 
 private:

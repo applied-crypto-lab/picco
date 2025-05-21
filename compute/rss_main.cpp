@@ -55,8 +55,9 @@ int main(int argc, char **argv) {
     int _xval = 0;
 
     gettimeofday(&tv1, NULL);
-    __s->smc_test_rss(-1, batch_size);
+    // __s->smc_test_rss(-1, batch_size);
+    __s->q_digest();
     gettimeofday(&tv2, NULL);
-    std::cout << "Time: " << __s->time_diff(&tv1, &tv2) << " seconds " << std::endl;
+    // std::cout << "Time: " << __s->time_diff(&tv1, &tv2) << " seconds " << std::endl;
     return (_xval);
 }
