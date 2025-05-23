@@ -1508,8 +1508,9 @@ constexpr T *b_alloc(const U &dim) {
     return op;
 }
 
+// zeroes the memory we allocate
 template <typename T, typename U>
-constexpr T *b_alloc_zero(const U &dim) {
+constexpr T *b_alloc_z(const U &dim) {
     T *op = new T[dim];
     memset(op, 0, sizeof(T) * dim);
     return op;
@@ -1519,19 +1520,48 @@ template <typename T, typename U>
 constexpr T **b_alloc(const U &dim1, const U &dim2) {
     T **op = new T *[dim1];
     for (U i = 0; i < dim1; i++) {
-        op[i] = new T[dim2];
+        op[i] = b_alloc(dim2);
+    }
+    return op;
+}
+
+// zeroes the memory we allocate
+template <typename T, typename U>
+constexpr T **b_alloc_z(const U &dim1, const U &dim2) {
+    T **op = new T *[dim1];
+    for (U i = 0; i < dim1; i++) {
+        op[i] = b_alloc_z(dim2);
     }
     return op;
 }
 
 template <typename T, typename U>
-constexpr T **b_alloc_zero(const U &dim1, const U &dim2) {
-    T **op = new T *[dim1];
+constexpr T ***b_alloc(const U &dim1, const U &dim2, const U &dim3) {
+    T ***op = new T **[dim1];
     for (U i = 0; i < dim1; i++) {
-        op[i] = new T[dim2];
-        memset(op[i], 0, sizeof(T) * dim2);
+        op[i] = b_alloc(dim2, dim3);
     }
     return op;
+}
+
+// zeroes the memory we allocate
+template <typename T, typename U>
+constexpr T ***b_alloc_z(const U &dim1, const U &dim2, const U &dim3) {
+    T ***op = new T **[dim1];
+    for (U i = 0; i < dim1; i++) {
+        op[i] = b_alloc_z(dim2, dim3);
+    }
+    return op;
+}
+
+template <typename T, typename U>
+constexpr void b_free(T **op, const U &dim1, const U &dim2) {
+    for (U i = 0; i < dim1; i++) {
+        for (U j = 0; j < dim2; j++)
+            delete[] op[i][j];
+        delete[] op[i];
+    }
+    delete[] op;
 }
 
 template <typename T, typename U>
@@ -1545,7 +1575,6 @@ template <typename T>
 constexpr void b_free(T *op) {
     delete[] op;
 }
-
 
 template <typename T>
 void ss_batch_free_operator(T ***op, int size) {
