@@ -26,9 +26,7 @@
 #include "bit_utils.hpp"
 
 template <typename T>
-void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, uint numShares) ;
-
-
+void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, uint numShares);
 
 // performs a "reverse" parallel prefix, i.e. a_8, a_8 | a_7, a_8 | a_7 | a_6, ...
 // directly on bits
@@ -37,14 +35,14 @@ void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, 
 // follows similar logic to that in BitAdd implementation
 // although, there isn't a protocol which directly uses it
 template <typename T>
-void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     static uint numShares = ss->getNumShares();
 
     for (size_t s = 0; s < numShares; s++) {
         memcpy(result[s], input[s], sizeof(T) * size);
     }
-    
+
     T i, j, l, y, z, op_r; // used for loops
     uint r_size = ring_size;
     uint idx_1, idx_2;
@@ -152,22 +150,12 @@ void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork n
             }
         }
 
-        for (i = 0; i < numShares; i++) {
-            delete[] buffer[i];
-            delete[] buffer[numShares + i];
-            delete[] a[i];
-            delete[] b[i];
-            delete[] u[i];
-        }
-        for (i = 0; i < 2; i++) {
-            delete[] index_array[i];
-        }
+        b_free(buffer, 2*numShares);
+        b_free(a, numShares);
+        b_free(b, numShares);
+        b_free(u, numShares);
+        b_free(index_array, 2);
 
-        delete[] a;
-        delete[] b;
-        delete[] u;
-        delete[] index_array;
-        delete[] buffer;
     }
 }
 

@@ -193,7 +193,7 @@ public:
     std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
 
     inline bool pid_in_T(int &pid, std::vector<int> &T_map);
-    inline bool chi_pid_is_T(int& pid, std::vector<int> &T_map);
+    inline bool chi_pid_is_T(int &pid, std::vector<int> &T_map);
     std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> &input_parties);
 
     T *SHIFT;
@@ -1502,14 +1502,57 @@ replicatedSecretShare<T>::~replicatedSecretShare() {
     delete[] EVEN;
 }
 
+template <typename T, typename U>
+constexpr T *b_alloc(const U &dim) {
+    T *op = new T[dim];
+    return op;
+}
+
+template <typename T, typename U>
+constexpr T *b_alloc_zero(const U &dim) {
+    T *op = new T[dim];
+    memset(op, 0, sizeof(T) * dim);
+    return op;
+}
+
+template <typename T, typename U>
+constexpr T **b_alloc(const U &dim1, const U &dim2) {
+    T **op = new T *[dim1];
+    for (U i = 0; i < dim1; i++) {
+        op[i] = new T[dim2];
+    }
+    return op;
+}
+
+template <typename T, typename U>
+constexpr T **b_alloc_zero(const U &dim1, const U &dim2) {
+    T **op = new T *[dim1];
+    for (U i = 0; i < dim1; i++) {
+        op[i] = new T[dim2];
+        memset(op[i], 0, sizeof(T) * dim2);
+    }
+    return op;
+}
+
+template <typename T, typename U>
+constexpr void b_free(T **op, const U &size) {
+    for (U i = 0; i < size; i++)
+        delete[] op[i];
+    delete[] op;
+}
+
+template <typename T>
+constexpr void b_free(T *op) {
+    delete[] op;
+}
+
+
 template <typename T>
 void ss_batch_free_operator(T ***op, int size) {
-    
 }
 
 template <typename T>
 void ss_batch_free_operator(T ****op, int size) {
-    
 }
 
 // takes an array of public values and creates sparse
