@@ -16,6 +16,7 @@
    You should have received a copy of the GNU General Public License
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
+
 #ifndef _PREOR_HPP_
 #define _PREOR_HPP_
 
@@ -150,12 +151,11 @@ void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nod
             }
         }
 
-        b_free(buffer, 2*numShares);
+        b_free(buffer, 2 * numShares);
         b_free(a, numShares);
         b_free(b, numShares);
         b_free(u, numShares);
         b_free(index_array, 2);
-
     }
 }
 

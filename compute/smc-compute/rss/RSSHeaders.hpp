@@ -2,6 +2,7 @@
 #define _RSSHEADERS_HPP_
 
 #include "../ops/rss/AddBitwise.hpp"
+#include "../ops/rss/B2A.hpp"
 #include "../ops/rss/AppRcr.hpp"
 #include "../ops/rss/B2A.hpp"
 #include "../ops/rss/BitDec.hpp"
