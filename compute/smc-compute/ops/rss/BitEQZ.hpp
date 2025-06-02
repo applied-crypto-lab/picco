@@ -27,37 +27,37 @@
 // v_fixed is a single value (still stored in a 2D array for consistency), which we are comparing to all of the values in v_array
 // NOTE: output is a SINGLE BIT shared in Z_2, but stored in a full-sized priv_int T
 template <typename T>
-void BitEQ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void BitEQ_fixed(T **output, T **v_fixed, T **v_array, int size, int num_fixed, int output_size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // output MUST be of size [numShares][size*num_fixed]
+    assertm((output_size == (size * num_fixed)), "the destination for BitEQ_fixed has insufficient memory allocated");
 
     static uint numShares = ss->getNumShares();
-    T **xor_res = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        xor_res[i] = new T[size];
-    }
-    T *ai = new T[numShares];
-    memset(ai, 0, sizeof(T) * numShares);
+
+    T **xor_res = b_alloc<T>(numShares, uint(size * num_fixed));
+    T *ai = b_alloc<T>(numShares);
     ss->sparsify_public(ai, -1);
 
     // Open_Bitwise_print(v_fixed, "v_fixed", 1, -1, nodeNet, ss);
     // Open_Bitwise_print(v_array, "v_array", size, -1, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            xor_res[s][i] = v_array[s][i] ^ v_fixed[s][0];
+        for (size_t j = 0; j < num_fixed; j++) {
+            for (size_t i = 0; i < size; i++) {
+                xor_res[s][j * size + i] = v_array[s][i] ^ v_fixed[s][j];
+            }
         }
     }
 
-    Rss_k_OR_L(output, xor_res, size, ring_size, nodeNet, ss);
+    Rss_k_OR_L(output, xor_res, size * num_fixed, ring_size, nodeNet, ss);
 
     for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            output[s][i] = (T(1) & ai[s]) ^ output[s][i];
+        for (size_t j = 0; j < num_fixed; j++) {
+            for (size_t i = 0; i < size; i++) {
+                output[s][j * size + i] = (T(1) & ai[s]) ^ output[s][j * size + i];
+            }
         }
     }
 
-    delete[] ai;
-    for (size_t i = 0; i < numShares; i++) {
-        delete[] xor_res[i];
-    }
-    delete[] xor_res;
+    b_free<T>(ai);
+    b_free<T>(xor_res, numShares);
 }

@@ -127,7 +127,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     //
     // var[numShares][batch_size]
     //
-    // This is so we are guaranteed to have large contiguous blocks of memory, which improves 
+    // This is so we are guaranteed to have large contiguous blocks of memory, which improves
     // performance.
 
     priv_int *in_1 = new priv_int[ss->getNumShares()];
@@ -177,8 +177,12 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     // implementation will be performing (b_size) many operations in parallel.
     // The secret-shared result is stored in out_1.
 
-    doOperation_EQZ(in_1, out_1, ring_size, batch_size, -1, net, ss);
+    uint out_size = uint(2 * batch_size);
+    priv_int_t **biteq_out = b_alloc<priv_int_t>(numShares, out_size);
 
+    BitEQ_fixed(out_1, in_1, in_2, batch_size, 2, out_size, ring_size, -1, net, ss);
+
+    b_free<priv_int_t>(biteq_out, numShares);
     // Once we have obtained the output of the protocol, let's reconstruct the
     // result to verify correctness of our implementation. We also open the
     // secret input (in_1), since we need to know what input was supplied to

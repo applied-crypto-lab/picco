@@ -151,11 +151,11 @@ void Rss_PreOR(T **result, T **input, uint size, uint ring_size, NodeNetwork nod
             }
         }
 
-        b_free(buffer, 2 * numShares);
-        b_free(a, numShares);
-        b_free(b, numShares);
-        b_free(u, numShares);
-        b_free(index_array, 2);
+        b_free<T>(buffer, 2 * numShares);
+        b_free<uint8_t>(a, numShares);
+        b_free<uint8_t>(b, numShares);
+        b_free<uint8_t>(u, numShares);
+        b_free<uint>(index_array, 2);
     }
 }
 
