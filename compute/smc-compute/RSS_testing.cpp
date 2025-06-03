@@ -1,6 +1,7 @@
 #include "RSS_types.hpp"
 #include "SMC_Utils.h"
 #include "ops/rss/FLLT.hpp"
+#include <cfloat>
 
 void convertFloat(float value, int K, int L, long long **elements) {
     unsigned int *newptr = (unsigned int *)&value;
@@ -85,8 +86,45 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint ring_size = ss->ring_size;
 
     // Test input floats
-    float numbers_1[10] = {1.45, 3.67, 2.34, 5.89, 0.76, 8.12, 9.67, 3.21, 4.56, 7.89};
-    float numbers_2[10] = {1.10, 4.67, 5.34, 2.89, 1.76, 8.12, 9.67, 3.21, 4.56, 7.89};
+    float numbers_1[26] = {
+        1.45, 3.67, 2.34, 5.89, 0.76, 8.12, 9.67, 3.21, 4.56, 7.89,
+        0.0f,    // Zero
+        -0.0f,   // Negative zero
+        -2.0f,   // Negative
+        1000.0f, // Large positive
+        -9999.0f, // Large negative
+        1e-6f,   // Small positive
+        -1e-6f,  // Small negative
+        1.45f,   // Regular positive
+        1.45f,   // Equal to pair value
+        1.45f,   // Equal to pair value
+        2.0f,    // Positive
+        -2.0f,   // Negative (compared with same value)
+        FLT_MAX, // Maximum float value
+        -FLT_MAX, // Minimum (negative) float value
+        3.4028235e+38f, // Another max float
+        1.17549435e-38f // Minimum positive normal float
+    };
+    
+    float numbers_2[26] = {
+        1.10, 4.67, 5.34, 2.89, 1.76, 8.12, 9.67, 3.21, 4.56, 7.89,
+        0.0f,    // Zero
+        0.0f,    // Zero (compare -0.0 with 0.0)
+        2.0f,    // Positive vs negative
+        999.0f,  // Another large positive
+        -10000.0f, // Slightly less negative
+        2e-6f,   // Slightly larger small positive
+        -2e-6f,  // More negative
+        1.1f,    // Regular positive
+        1.45f,   // Exactly equal (should return 0)
+        2.45f,   // numbers_1 < numbers_2
+        2.0f,    // Equal
+        -2.0f,   // Equal
+        FLT_MAX, // Equal max
+        -FLT_MAX, // Equal min
+        1e+30f,   // Smaller than max float
+        -1.17549435e-38f // Negative min positive normal
+    };
 
     // Allocate input arrays: [4][numShares][batch_size]
     priv_int_t ***in_1 = new priv_int_t **[4];
