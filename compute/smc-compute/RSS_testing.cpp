@@ -27,8 +27,8 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     // Convert floats to 4-tuple and fill the secret shares
     for (int i = 0; i < batch_size; ++i) {
         long long elements_1[4], elements_2[4];
-        convertFloat(numbers_1[i], 32, 8, elements_1);
-        convertFloat(numbers_2[i], 32, 8, elements_2);
+        convertFloat(numbers_1[i], 32, 8, &elements_1);
+        convertFloat(numbers_2[i], 32, 8, &elements_2);
         // === [START] Print the original float and its 4-part converted representation ===
         std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
         for (int j = 0; j < 4; j++) std::cout << elements_1[j] << " ";
