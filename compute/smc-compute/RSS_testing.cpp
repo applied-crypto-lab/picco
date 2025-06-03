@@ -1,7 +1,7 @@
 #include "RSS_types.hpp"
 #include "SMC_Utils.h"
 #include "ops/rss/FLLT.hpp"
-#include "../../compiler/src/utility/utility.h"
+#include "../../compiler/src/utility/utility.hpp"
 
 void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint numShares = ss->getNumShares();

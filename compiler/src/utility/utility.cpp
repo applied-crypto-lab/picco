@@ -18,7 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "utility.h"
+#include "utility.hpp"
 #include "../../../common/shared.h"
 #include "SecretShare.h"
 #include <cmath>
