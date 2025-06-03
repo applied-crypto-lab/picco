@@ -18,6 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "utility.h"
 #include "../../../common/shared.h"
 #include "SecretShare.h"
 #include <cmath>
@@ -60,7 +61,7 @@ void produceInputs(std::ifstream[], std::ofstream[], std::string, std::string, i
 void openInputOutputFiles(std::string, std::string, std::ifstream *, std::ofstream *, int);
 void readVarList(std::ifstream &, std::ifstream[], std::ofstream[], int);
 void writeToOutputFile(std::ofstream &, std::string, std::string, int, int, int);
-void convertFloat(float value, int K, int L, long long **elements);
+// void convertFloat(float value, int K, int L, long long **elements);
 bool createDirectory(const std::string& path);
 void pathCreator(const std::string& file_name);
 
