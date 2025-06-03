@@ -1,7 +1,83 @@
 #include "RSS_types.hpp"
 #include "SMC_Utils.h"
 #include "ops/rss/FLLT.hpp"
-#include "../../compiler/src/utility/utility.hpp"
+
+void convertFloat(float value, int K, int L, long long **elements) {
+    unsigned int *newptr = (unsigned int *)&value;
+    int s = *newptr >> 31; // Extract the sign bit
+    int e = *newptr & 0x7f800000; // Extract the exponent
+    e >>= 23;
+    int m = 0;
+    m = *newptr & 0x007fffff; // Extract the significand (mantissa)
+
+    int z;
+    long v, p, k;
+    long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
+
+    if (e == 0 && m == 0) {
+        s = 0;
+        z = 1;
+        significand = 0;
+        p = 0;
+    } else {
+        z = 0;
+        if (L < 8) {
+            k = (1 << L) - 1; // Raise two to the power of L using shifting and subtract 1, then store it to k
+            if (e - 127 - K + 1 > k) {
+                p = k;
+                significand = one << K;        // Raise one to the power of K and store it to significand
+                significand = significand - 1; // Sub 1
+            } else if (e - 127 - K + 1 < -k) {
+                p = -k;
+                significand = 1; // Set the value of significand to 1
+            } else {
+                p = e - 127 - K + 1;
+                m = m + (1 << 23);
+                tmpm = m; // Set the value of tmpm to m
+                if (K < 24) {
+                    try {
+                        tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                    } catch(const std::exception& e) {
+                        throw std::runtime_error("An exception occurred during pow operation: " + std::string(e.what()));
+                    }
+                    if (tmp == 0) // Division by zero check
+                        throw std::runtime_error("Division by zero: overflow in significand calculation");
+                    significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
+                } else {
+                    significand = tmpm << (K - 24); // Raise tmpm to the power of (K - 24) and store it to significand
+                }
+            }
+        } else {
+            p = e - 127 - K + 1;
+            m = m + (1 << 23);
+            tmpm = m; // Set the value of tmpm to m
+            if (K < 24) {
+                try {
+                    tmp = pow(two, (24 - K)); // Raise two to the power of (24 - K) using shifting and store it to tmp
+                } catch(const std::exception& e) {
+                    throw std::runtime_error("An exception occurred during pow operation: " + std::string(e.what()));
+                }
+                if (tmp == 0) // Division by zero check
+                    throw std::runtime_error("Division by zero: overflow in significand calculation");
+                significand = tmpm / tmp; // Perform division of tmpm to tmp and store it to significand
+            } else {
+                significand = tmpm;                    // Set significand to tmpm
+                significand = significand << (K - 24); // Raise significand to the power of (K - 24) and store it to significand
+            }
+        }
+    }
+
+    // printf("sig  %lli\n", significand);
+    // printf("p    %li\n", p);
+    // printf("z    %i\n", z);
+    // printf("sgn  %i\n", s);
+    // Set the significand, p, z, and s value directly to the long long array of elements.
+    (*elements)[0] = significand;
+    (*elements)[1] = p;
+    (*elements)[2] = z;
+    (*elements)[3] = s;
+
+}
 
 void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint numShares = ss->getNumShares();
