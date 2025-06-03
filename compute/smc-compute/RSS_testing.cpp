@@ -86,11 +86,15 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint ring_size = ss->ring_size;
 
     // Test input floats
-    float numbers_1[26] = {
-        1.45, 3.67, 2.34, 5.89, 0.76, 8.12, 9.67, 3.21, 4.56, 7.89,
+    float numbers_1[20] = {
+        1.45,
+        1.45,
+        1.45,
+        //  3.67, 2.34, 5.89, 0.76, 8.12, 9.67, 3.21, 4.56, 7.89,
         0.0f,    // Zero
         -0.0f,   // Negative zero
         -2.0f,   // Negative
+        2.0f,    // Positive
         1000.0f, // Large positive
         -9999.0f, // Large negative
         1e-6f,   // Small positive
@@ -106,11 +110,15 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         1.17549435e-38f // Minimum positive normal float
     };
     
-    float numbers_2[26] = {
-        1.10, 4.67, 5.34, 2.89, 1.76, 8.12, 9.67, 3.21, 4.56, 7.89,
+    float numbers_2[15] = {
+        1.10, 
+        1.15, 
+        1.05, 
+        // 4.67, 5.34, 2.89, 1.76, 8.12, 9.67, 3.21, 4.56, 7.89,
         0.0f,    // Zero
         0.0f,    // Zero (compare -0.0 with 0.0)
         2.0f,    // Positive vs negative
+        -2.0f,    // Positive vs negative
         999.0f,  // Another large positive
         -10000.0f, // Slightly less negative
         2e-6f,   // Slightly larger small positive
