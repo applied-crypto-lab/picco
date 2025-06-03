@@ -110,7 +110,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         1.17549435e-38f // Minimum positive normal float
     };
     
-    float numbers_2[15] = {
+    float numbers_2[20] = {
         1.10, 
         1.15, 
         1.05, 
