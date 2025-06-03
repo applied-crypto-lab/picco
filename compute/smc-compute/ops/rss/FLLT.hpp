@@ -160,6 +160,25 @@ T part1 , part2;
 // Extract results from previous computations
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
+        
+        int az = a[2][0][i]; // a zero flag
+        int bz = b[2][0][i]; // b zero flag
+        int as = a[3][0][i]; // a sign bit
+        int bs = b[3][0][i]; // b sign bit
+
+        if (az == 1 && bz == 1) {
+            result[0][i] = 0; // both zero: result = 0
+            continue;
+        }
+        if (az == 1 && bz == 0) {
+            result[0][i] = (bs == 0) ? 1 : 0; // a zero, b nonzero
+            continue;
+        }
+        if (az == 0 && bz == 1) {
+            result[0][i] = (as == 1) ? 1 : 0; // a nonzero, b zero
+            continue;
+        }
+
          part1 = mult_result[s][i + 2*size];     // (a.z - a.z*b.z) * (1 - b.s)
          part2 = mult_result[s][i + 3*size];     // (b.z - a.z*b.z) * a.s
 
