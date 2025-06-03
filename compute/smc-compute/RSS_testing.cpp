@@ -7,8 +7,6 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
     uint ring_size = ss->ring_size;
-    int id = ss->getPartyNum(); // Party index (1-based)
-    NodeNetwork &net = *network;
 
     // Test input floats
     float numbers_1[10] = {1.45, 3.67, 2.34, 5.89, 0.76, 8.12, 9.67, 3.21, 4.56, 7.89};
@@ -31,10 +29,21 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         long long elements_1[4], elements_2[4];
         convertFloat(numbers_1[i], 32, 8, elements_1);
         convertFloat(numbers_2[i], 32, 8, elements_2);
-        for (int k = 0; k < 4; ++k) {
-            for (uint s = 0; s < numShares; ++s) {
-                in_1[k][s][i] = elements_1[k];
-                in_2[k][s][i] = elements_2[k];
+        // === [START] Print the original float and its 4-part converted representation ===
+        std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        for (int j = 0; j < 4; j++) std::cout << elements_1[j] << " ";
+        std::cout << std::endl;
+
+        std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        for (int j = 0; j < 4; j++) std::cout << elements_2[j] << " ";
+        std::cout << std::endl;
+        // === [END] Print section ===
+
+        // Store the converted values into the in_1 and in_2 arrays
+        for (uint s = 0; s < numShares; ++s) {
+            for (int j = 0; j < 4; j++) {
+                in_1[j][s][i] = elements_1[j];
+                in_2[j][s][i] = elements_2[j];
             }
         }
     }
