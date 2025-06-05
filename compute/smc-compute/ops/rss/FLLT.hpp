@@ -161,6 +161,15 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             int bz = b[2][0][i]; // zero flag for b
             int as = a[3][0][i]; // sign for a
             int bs = b[3][0][i]; // sign for b
+            bool equal = true;
+
+            for (int j = 0; j < 4; ++j) {
+                if (a[j][0][i] != b[j][0][i]) { 
+                    equal = false; 
+                    printf("Inputs are not equal at index %d: a[%d]=%d, b[%d]=%d\n", i, j, a[j][0][i], j, b[j][0][i]);
+                    break; 
+                }
+            }
 
             // Both zero
             if (az == 1 && bz == 1) {
@@ -169,34 +178,30 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
                 continue;
             }
             // a is zero, b is not zero
-            if (az == 1 && bz == 0) {
+            else if (az == 1 && bz == 0) {
                 int val = (bs == 0) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 printf("Input a is zero at index %d, b is not zero\n", i);
                 continue;
             }
             // a is not zero, b is zero
-            if (az == 0 && bz == 1) {
+            else if (az == 0 && bz == 1) {
                 int val = (as == 1) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 printf("Input b is zero at index %d, a is not zero\n", i);
                 continue;
             }
-            // Both are bitwise equal (including sign!)
-            bool equal_all = true;
-            for (int j = 0; j < 4; ++j) {
-                if (a[j][0][i] != b[j][0][i]) { 
-                    equal_all = false; 
-                    printf("Inputs are not equal at index %d: a[%d]=%d, b[%d]=%d\n", i, j, a[j][0][i], j, b[j][0][i]);
-                    break; }
-            }
-            if (equal_all) {
+            else if (equal_all) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 printf("Inputs are bitwise equal at index %d\n", i);
                 continue;
             }
-            // Combine results from parts 1, 2, and 3
-            result[s][i] += part3_result[s][i];
+            else {
+                // If both are non-zero and not equal, we proceed with the result from part 3
+                printf("Inputs are non-zero and not equal at index %d\n", i);
+                // Combine results from parts 1, 2, and 3
+                result[s][i] += part3_result[s][i];
+            }
         }
     }
 
