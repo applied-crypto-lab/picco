@@ -119,8 +119,8 @@ for (uint s = 0; s < numShares; s++) {
         part1 = mult_result[s][i + 2*size];     // (a.z - a.z*b.z) * (1 - b.s)
         part2 = mult_result[s][i + 3*size];     // (b.z - a.z*b.z) * a.s
 
-        b_plus[s][i] = temp1 + temp2;
-        b_minus[s][i] = temp1 - temp2 + ((ai[s]*T(1))- eEQ[s][i]);
+        b_plus[s][i] = temp1[s][i] + temp2[s][i];
+        b_minus[s][i] = temp1[s][i] - temp2[s][i] + ((ai[s]*T(1))- eEQ[s][i]);
 
         // Store part1 and part2 for later use in the final result computation
         // You may need to create new arrays to store these values if they're needed later
@@ -134,8 +134,8 @@ for (uint s = 0; s < numShares; s++) {
         mult_buffer1[s][i] = (ai[s]*T(1)) - b[3][s][i] - a[3][s][i]+ as_bs[s][i];  // (1 - b.s - a.s + a.s * b.s) part 4
         mult_buffer2[s][i] = b_plus[s][i];  // [b+]
 
-        mult_buffer1[s][i+size] = as_bs[s][i];  // [a.s]*[b.s] part 5
-        mult_buffer2[s][i+size] = b_minus[s][i];  // [b-]
+        mult_buffer1[s][i + size] = as_bs[s][i];  // [a.s]*[b.s] part 5
+        mult_buffer2[s][i + size] = b_minus[s][i];  // [b-]
     }
 }
 
@@ -144,13 +144,13 @@ Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, ring_size, nodeNet, ss);
 T combined_result;
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
-        combined_result = mult_result[s][i] +  // Result from part 4
-                            mult_result[s][i+size] +  // Result from part 5
+        combined_result[s][i] = mult_result[s][i] +  // Result from part 4
+                            mult_result[s][i + size] +  // Result from part 5
                             (a[3][s][i] - as_bs[s][i]);  // (a.s - a.s * b.s)
 
     // Multiply with (1 - b.z - a.z + a.z * b.z)
-    mult_buffer1[s][i] = ((ai[s]*T(1)) - b[2][s][i] - a[2][s][i] + az_bz[s][i]);  // (1 - b.z - a.z + a.z * b.z)
-    mult_buffer2[s][i] = combined_result;
+    mult_buffer1[s][i] = ((ai[s] * T(1)) - b[2][s][i] - a[2][s][i] + az_bz[s][i]);  // (1 - b.z - a.z + a.z * b.z)
+    mult_buffer2[s][i] = combined_result[s][i];
 }
 }
 
@@ -160,7 +160,7 @@ Mult(part3_result, mult_buffer1, mult_buffer2, size, ring_size, nodeNet, ss);
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         // Combine results from parts 1, 2, and 3
-        result[s][i] = part1 + part2 + part3_result[s][i];
+        result[s][i] = part1[s][i] + part2[s][i] + part3_result[s][i];
     }
 }
 
