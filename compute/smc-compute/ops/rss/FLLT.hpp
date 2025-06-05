@@ -79,6 +79,16 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
 
+    printf("signed_a_exp with: \n");
+    for (int i = 0; i < size; ++i) {
+        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], static_cast<int32_t>(signed_a_exp[0][i]), (long long)a[2][0][i], (long long)a[3][0][i]);
+    }
+
+    printf("signed_b_exp with: \n");
+    for (int i = 0; i < size; ++i) {
+        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], static_cast<int32_t>(signed_b_exp[0][i]), (long long)b[2][0][i], (long long)b[3][0][i]);
+    }
+
     doOperation_LTEQ(signed_a_exp, signed_b_exp, eLT, eEQ, ring_size, size, nodeNet, ss);
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
