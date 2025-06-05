@@ -158,6 +158,23 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
+            int az = a[2][0][i];
+            int bz = b[2][0][i];
+            int as = a[3][0][i];
+            int bs = b[3][0][i];
+
+            if (az == 1 && bz == 1) {
+                result[0][i] = 0; // both zero: result = 0
+                continue;
+            }
+            if (az == 1 && bz == 0) {
+                result[0][i] = (bs == 0) ? 1 : 0; // a zero, b nonzero
+                continue;
+            }
+            if (az == 0 && bz == 1) {
+                result[0][i] = (as == 1) ? 1 : 0; // a nonzero, b zero
+                continue;
+            }
             // Combine results from parts 1, 2, and 3
             result[s][i] += part3_result[s][i];
         }
