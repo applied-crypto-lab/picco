@@ -68,6 +68,8 @@ void convertFloat(float value, int K, int L, long long **elements) {
         }
     }
 
+    printf("DEBUG convertFloat: float=%f, e=%d, K=%d, L=%d, p=%ld\n", value, e, K, L, p);
+
     // printf("sig  %lli\n", significand);
     // printf("p    %li\n", p);
     // printf("z    %i\n", z);
@@ -122,7 +124,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     };
 
     // Allocate input arrays: [4][numShares][batch_size]
-    priv_int_t ***in_1 = new priv_int_t **[4];
+   " priv_int_t ***in_1 = new priv_int_t **[4];
     priv_int_t ***in_2 = new priv_int_t **[4];
     for (int k = 0; k < 4; ++k) {
         in_1[k] = new priv_int_t *[numShares];
@@ -131,7 +133,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
             in_1[k][s] = new priv_int_t[batch_size]();
             in_2[k][s] = new priv_int_t[batch_size]();
         }
-    }
+    }"
 
     // Convert floats to 4-tuple and fill the secret shares
     for (int i = 0; i < batch_size; ++i) {
