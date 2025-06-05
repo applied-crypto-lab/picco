@@ -123,7 +123,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             b_minus[s][i] = temp1 - temp2 + ((ai[s] * T(1)) - eEQ[s][i]); // eEQ * mLT + (1 - eEQ) * (1 - eLT)
 
             result[s][i] = part1 + part2; // Combine results from part 1 and part 2
-            printf("result[%d][%d] = %f\n", s, i, result[s][i]); // Debugging output
         }
     }
 
@@ -158,21 +157,26 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
-            int az = a[2][0][i];
-            int bz = b[2][0][i];
-            int as = a[3][0][i];
-            int bs = b[3][0][i];
+            int az = a[2][0][i]; // a zero flag (from any share, e.g. 0)
+            int bz = b[2][0][i]; // b zero flag
+            int as = a[3][0][i]; // a sign bit
+            int bs = b[3][0][i]; // b sign bit
 
             if (az == 1 && bz == 1) {
-                result[0][i] = 0; // both zero: result = 0
+                // Both zero: result = 0 in all shares
+                for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 continue;
             }
             if (az == 1 && bz == 0) {
-                result[0][i] = (bs == 0) ? 1 : 0; // a zero, b nonzero
+                // a zero, b nonzero: result = 1 if b positive, else 0
+                int val = (bs == 0) ? 1 : 0;
+                for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 continue;
             }
             if (az == 0 && bz == 1) {
-                result[0][i] = (as == 1) ? 1 : 0; // a nonzero, b zero
+                // a nonzero, b zero: result = 1 if a negative, else 0
+                int val = (as == 1) ? 1 : 0;
+                for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 continue;
             }
             // Combine results from parts 1, 2, and 3
