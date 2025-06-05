@@ -177,10 +177,23 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         int64_t corrected = (output_vals[i] < (1ULL << 63)) ? output_vals[i] : (int64_t)(output_vals[i] - (1ULL << 64));
         int expected = (numbers_1[i] < numbers_2[i]) ? 1 : 0;
         if (corrected != expected) {
-            printf("[i=%d] num1=%f (m=%lld,e=%lld,z=%lld,s=%lld) num2=%f (m=%lld,e=%lld,z=%lld,s=%lld) => FLLT=%ld (expected: %d)\n",
-                i, numbers_1[i], elements_1[0], elements_1[1], elements_1[2], elements_1[3],
-                numbers_2[i], elements_2[0], elements_2[1], elements_2[2], elements_2[3],
-                corrected, expected);
+            printf("####### Test Failure at index %d ###\n", i);
+            printf("Test failed for index %d: Expected %d, got %lld\n", i, expected, corrected);
+            printf("Input 1: %f, Input 2: %f\n", numbers_1[i], numbers_2[i]);
+            printf("Converted 1: (%lld, %lld, %lld, %lld)\n", in_1[0][0][i], in_1[1][0][i], in_1[2][0][i], in_1[3][0][i]);
+            printf("Converted 2: (%lld, %lld, %lld, %lld)\n", in_2[0][0][i], in_2[1][0][i], in_2[2][0][i], in_2[3][0][i]);
+            printf("Output: %lld\n", corrected);
+            printf("Expected: %d\n", expected);
+            printf("Output value: %lld\n", output_vals[i]);
+            printf("Expected value: %d\n", expected);
+            printf("Batch size: %d, Ring size: %d, Thread ID: %d\n", batch_size, ring_size, threadID);
+            printf("Number 1: %f, Number 2: %f\n", numbers_1[i], numbers_2[i]);
+            printf("Error: The output does not match the expected result.\n");
+            printf("Please check the input values and the FLLT implementation.\n");
+            printf("This is a critical error in the FLLT implementation.\n");
+            printf("###### FLLT Test Failed #######\n");
+        } else {
+            printf("Test passed for index %d: Expected %d, got %lld\n", i, expected, corrected);
         } 
     }
 
