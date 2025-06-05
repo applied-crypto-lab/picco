@@ -16,6 +16,15 @@ template <typename T>
 void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, NodeNetwork &nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
 
+    printf("numbers a with: \n");
+    for (int i = 0; i < size; ++i) {
+        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], (int32_t)a[1][0][i], (long long)a[2][0][i], (long long)a[3][0][i]);
+    }
+    printf("numbers b with: \n");
+    for (int i = 0; i < size; ++i) {
+        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], (int32_t)b[1][0][i], (long long)b[2][0][i], (long long)b[3][0][i]);
+    }
+
     // Allocate arrays for all intermediate values
     T **eLT = new T *[numShares];
     T **eEQ = new T *[numShares];
@@ -60,10 +69,10 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Step 1: Compare exponents
     for (int i = 0; i < size; ++i) {
         printf("\n--- FLLT DEBUG: Index %d ---\n", i);
-        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], (int32_t)a[1][0][i], (long long)a[2][0][i], (long long)a[3][0][i]);
-        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], (int32_t)b[1][0][i], (long long)b[2][0][i], (long long)b[3][0][i]);
+        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], (long long)a[1][0][i], (long long)a[2][0][i], (long long)a[3][0][i]);
+        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], (long long)b[1][0][i], (long long)b[2][0][i], (long long)b[3][0][i]);
     }
-    doOperation_LTEQ((int32_t) a[1], (int32_t) b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
+    doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
 
     for (int i = 0; i < size; ++i) {
         printf("eLT[%d]=%lld, eEQ[%d]=%lld\n", i, (long long)eLT[0][i], i, (long long)eEQ[0][i]);
