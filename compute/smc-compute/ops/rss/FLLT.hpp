@@ -82,8 +82,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         for (int i = 0; i < size; i++) {
             az_bz[s][i] = mult_result[s][i];              // [a.z]*[b.z]
             as_bs[s][i] = mult_result[s][i + size];       // [a.s]*[b.s]
-            m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0
-            m1[s][i] = mult_result[s][i + 3 * size];        // mantissa m1
+            m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
+            m1[s][i] = mult_result[s][i + 3 * size];        // mantissa m1 = [b.m] * (1 - 2 * [b.s])
         }
     }
     // Step 4: Mantissa comparison
@@ -115,12 +115,12 @@ T temp1, temp2, part1, part2;
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         temp1 = mult_result[s][i];              // eEQ * mLT
-        temp2 = mult_result[s][i + size];       // (1-eEQ) * eLT
-        part1 = mult_result[s][i + 2*size];     // (a.z - a.z*b.z) * (1 - b.s)
-        part2 = mult_result[s][i + 3*size];     // (b.z - a.z*b.z) * a.s
+        temp2 = mult_result[s][i + size];       // (1 - eEQ) * eLT
+        part1 = mult_result[s][i + 2*size];     // (a.z - a.z * b.z) * (1 - b.s)
+        part2 = mult_result[s][i + 3*size];     // (b.z - a.z * b.z) * a.s
 
         b_plus[s][i] = temp1 + temp2;
-        b_minus[s][i] = temp1 - temp2 + ((ai[s]*T(1))- eEQ[s][i]);
+        b_minus[s][i] = temp1 - temp2 + ((ai[s] * T(1)) - eEQ[s][i]);
 
         // Store part1 and part2 for later use in the final result computation
         // You may need to create new arrays to store these values if they're needed later
@@ -132,7 +132,7 @@ for (uint s = 0; s < numShares; s++) {
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         // Pack remaining multiplications
-        mult_buffer1[s][i] = (ai[s]*T(1)) - b[3][s][i] - a[3][s][i]+ as_bs[s][i];  // (1 - b.s - a.s + a.s * b.s) part 4
+        mult_buffer1[s][i] = (ai[s] * T(1)) - b[3][s][i] - a[3][s][i]+ as_bs[s][i];  // (1 - b.s - a.s + a.s * b.s) part 4
         mult_buffer2[s][i] = b_plus[s][i];  // [b+]
 
         mult_buffer1[s][i + size] = as_bs[s][i];  // [a.s]*[b.s] part 5
@@ -148,11 +148,10 @@ for (uint s = 0; s < numShares; s++) {
         combined_result = mult_result[s][i] +  // Result from part 4
                             mult_result[s][i + size] +  // Result from part 5
                             (a[3][s][i] - as_bs[s][i]);  // (a.s - a.s * b.s)
-
-    // Multiply with (1 - b.z - a.z + a.z * b.z)
-    mult_buffer1[s][i] = ((ai[s] * T(1)) - b[2][s][i] - a[2][s][i] + az_bz[s][i]);  // (1 - b.z - a.z + a.z * b.z)
-    mult_buffer2[s][i] = combined_result;
-}
+        // Multiply with (1 - b.z - a.z + a.z * b.z)
+        mult_buffer1[s][i] = ((ai[s] * T(1)) - b[2][s][i] - a[2][s][i] + az_bz[s][i]);  // (1 - b.z - a.z + a.z * b.z)
+        mult_buffer2[s][i] = combined_result;
+    }
 }
 
 // Final multiplication
