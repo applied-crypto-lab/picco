@@ -15,8 +15,6 @@
 template <typename T>
 void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, NodeNetwork &nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
-    std::vector<bool> early_out_flag(size, false);
-    std::vector<int> early_out_val(size, 0);
 
     // Allocate arrays for all intermediate values
     T **eLT = new T *[numShares];
@@ -58,34 +56,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     T *ai = new T[numShares];
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, 1);
-
-    for (int i = 0; i < size; ++i) {
-        int az = a[2][0][i];
-        int bz = b[2][0][i];
-        int as = a[3][0][i];
-        int bs = b[3][0][i];
-
-        if (az == 1 && bz == 1) {
-            early_out_flag[i] = true;
-            early_out_val[i] = 0;
-        } else if (az == 1 && bz == 0) {
-            early_out_flag[i] = true;
-            early_out_val[i] = (bs == 0) ? 1 : 0;
-        } else if (az == 0 && bz == 1) {
-            early_out_flag[i] = true;
-            early_out_val[i] = (as == 1) ? 1 : 0;
-        } else {
-            // Check if all four elements are bitwise equal
-            bool equal_all = true;
-            for (int j = 0; j < 4; ++j) {
-                if (a[j][0][i] != b[j][0][i]) { equal_all = false; break; }
-            }
-            if (equal_all) {
-                early_out_flag[i] = true;
-                early_out_val[i] = 0;
-            }
-        }
-    }
 
     // Step 1: Compare exponents
     doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
@@ -187,11 +157,38 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
-            if (early_out_flag[i]) {
-                for (uint s = 0; s < numShares; ++s)
-                    result[s][i] = early_out_val[i];
+            int az = a[2][0][i]; // zero flag for a
+            int bz = b[2][0][i]; // zero flag for b
+            int as = a[3][0][i]; // sign for a
+            int bs = b[3][0][i]; // sign for b
+
+            // Both zero
+            if (az == 1 && bz == 1) {
+                for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 continue;
             }
+            // a is zero, b is not zero
+            if (az == 1 && bz == 0) {
+                int val = (bs == 0) ? 1 : 0;
+                for (uint s = 0; s < numShares; ++s) result[s][i] = val;
+                continue;
+            }
+            // a is not zero, b is zero
+            if (az == 0 && bz == 1) {
+                int val = (as == 1) ? 1 : 0;
+                for (uint s = 0; s < numShares; ++s) result[s][i] = val;
+                continue;
+            }
+            // Both are bitwise equal (including sign!)
+            bool equal_all = true;
+            for (int j = 0; j < 4; ++j) {
+                if (a[j][0][i] != b[j][0][i]) { equal_all = false; break; }
+            }
+            if (equal_all) {
+                for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
+                continue;
+            }
+            // Combine results from parts 1, 2, and 3
             result[s][i] += part3_result[s][i];
         }
     }
