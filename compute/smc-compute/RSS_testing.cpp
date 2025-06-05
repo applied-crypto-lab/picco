@@ -189,8 +189,10 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     for (int i = 0; i < batch_size; ++i) {
         int64_t corrected = (output_vals[i] < (1ULL << 63)) ? output_vals[i] : (int64_t)(output_vals[i] - (1ULL << 64));
         int expected = (numbers_1[i] < numbers_2[i]) ? 1 : 0;
-        printf("[i=%d] num1=%.6f num2=%.6f => FLLT result = %ld (expected: %d)\n",
-               i, numbers_1[i], numbers_2[i], corrected, expected);
+        if (corrected != expected) {
+            printf("[i=%d] num1=%.6f num2=%.6f => FLLT result = %ld (expected: %d)\n",
+                   i, numbers_1[i], numbers_2[i], corrected, expected);
+        }
     }
 
     delete[] output_vals;
