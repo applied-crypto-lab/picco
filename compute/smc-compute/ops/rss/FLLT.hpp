@@ -67,9 +67,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             mult_buffer2[s][i] = b[2][s][i];                    // [b.z]
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
             mult_buffer2[s][i + size] = b[3][s][i];             // [b.s]
-            mult_buffer1[s][i + 2 * size] = (ai[s]*T(1)) - (T(2) * a[3][s][i]);  // 1-2[ā.s]
+            mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1-2[ā.s]
             mult_buffer2[s][i + 2 * size] = a[0][s][i];                  // [ā.m]
-            mult_buffer1[s][i + 3 * size] = (ai[s]*T(1)) - T(2) * b[3][s][i];  // 1-2[b̄.s]
+            mult_buffer1[s][i + 3 * size] = (ai[s] * T(1)) - (T(2) * b[3][s][i]);  // 1-2[b̄.s]
             mult_buffer2[s][i + 3 * size] = b[0][s][i];                  // [b̄.m]
         }
     }
@@ -97,13 +97,13 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             mult_buffer1[s][i] = eEQ[s][i];                    // For eEQ * mLT
             mult_buffer2[s][i] = mLT[s][i];
 
-            mult_buffer1[s][i + size] = (ai[s]*T(1)) - eEQ[s][i];      // For (1-eEQ) * eLT
+            mult_buffer1[s][i + size] = (ai[s] * T(1)) - eEQ[s][i];      // For (1-eEQ) * eLT
             mult_buffer2[s][i + size] = eLT[s][i];
 
-            mult_buffer1[s][i + 2*size] = a[2][s][i] - az_bz[s][i];  // (a.z - a.z*b.z)
-            mult_buffer2[s][i + 2*size] = (ai[s]*T(1))- b[3][s][i];         // (1 - b.s)
+            mult_buffer1[s][i + 2*size] = a[2][s][i] - az_bz[s][i];  // (a.z - a.z * b.z)
+            mult_buffer2[s][i + 2*size] = (ai[s] * T(1))- b[3][s][i];         // (1 - b.s)
 
-            mult_buffer1[s][i + 3*size] = b[2][s][i] - az_bz[s][i];  // (b.z - a.z*b.z)
+            mult_buffer1[s][i + 3*size] = b[2][s][i] - az_bz[s][i];  // (b.z - a.z * b.z)
             mult_buffer2[s][i + 3*size] = a[3][s][i];                // a.s
         }
     }
@@ -122,7 +122,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             b_plus[s][i] = temp1 + temp2; // eEQ * mLT + (1 - eEQ) * eLT
             b_minus[s][i] = temp1 - temp2 + ((ai[s] * T(1)) - eEQ[s][i]); // eEQ * mLT + (1 - eEQ) * (1 - eLT)
 
-            result[s][i] = part1 + part2; // Combine results from part 1 and part 2
+            part3_result[s][i] = part1 + part2; // Combine results from part 1 and part 2
         }
     }
 
@@ -153,18 +153,14 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     // Final multiplication
-    Mult(part3_result, mult_buffer1, mult_buffer2, size, ring_size, nodeNet, ss);
+    Mult(mult_result, mult_buffer1, mult_buffer2, size, ring_size, nodeNet, ss);
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
-            int az = a[2][0][i]; // zero flag for a
-            int bz = b[2][0][i]; // zero flag for b
-            int as = a[3][0][i]; // sign for a
-            int bs = b[3][0][i]; // sign for b
             bool equal = true;
 
             for (int j = 0; j < 4; ++j) {
-                if (a[j][0][i] != b[j][0][i]) { 
+                if (a[j][s][i] != b[j][s][i]) { 
                     equal = false; 
                     printf("Inputs are not equal at index %d: a[%d]=%d, b[%d]=%d\n", i, j, a[j][0][i], j, b[j][0][i]);
                     break; 
@@ -172,21 +168,21 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             }
 
             // Both zero
-            if (az == 1 && bz == 1) {
+            if (a[2][s][i] == 1 && b[2][s][i] == 1) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 printf("Both inputs are zero at index %d\n", i);
                 continue;
             }
             // a is zero, b is not zero
-            else if (az == 1 && bz == 0) {
-                int val = (bs == 0) ? 1 : 0;
+            else if (a[2][s][i] == 1 && b[2][s][i] == 0) {
+                int val = (b[3][s][i] == 0) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 printf("Input a is zero at index %d, b is not zero\n", i);
                 continue;
             }
             // a is not zero, b is zero
-            else if (az == 0 && bz == 1) {
-                int val = (as == 1) ? 1 : 0;
+            else if (a[2][s][i] == 0 && b[2][s][i] == 1) {
+                int val = (a[3][s][i] == 1) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 printf("Input b is zero at index %d, a is not zero\n", i);
                 continue;
@@ -200,7 +196,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
                 // If both are non-zero and not equal, we proceed with the result from part 3
                 printf("Inputs are non-zero and not equal at index %d\n", i);
                 // Combine results from parts 1, 2, and 3
-                result[s][i] += part3_result[s][i];
+                result[s][i] = mult_result[s][i] + part3_result[s][i];
             }
         }
     }
