@@ -191,7 +191,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
                 printf("Input b is zero at index %d, a is not zero\n", i);
                 continue;
             }
-            else if (equal_all) {
+            else if (equal) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 printf("Inputs are bitwise equal at index %d\n", i);
                 continue;
