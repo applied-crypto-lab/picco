@@ -18,11 +18,11 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     printf("numbers a with: \n");
     for (int i = 0; i < size; ++i) {
-        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], static_cast<int32_t>(a[1][0][i]);, (long long)a[2][0][i], (long long)a[3][0][i]);
+        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], static_cast<int32_t>(a[1][0][i]), (long long)a[2][0][i], (long long)a[3][0][i]);
     }
     printf("numbers b with: \n");
     for (int i = 0; i < size; ++i) {
-        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], static_cast<int32_t>(b[1][0][i]);, (long long)b[2][0][i], (long long)b[3][0][i]);
+        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], static_cast<int32_t>(b[1][0][i]), (long long)b[2][0][i], (long long)b[3][0][i]);
     }
 
     // Allocate arrays for all intermediate values
