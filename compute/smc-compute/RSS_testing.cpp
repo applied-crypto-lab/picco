@@ -124,14 +124,14 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     };
 
     // Allocate input arrays: [4][numShares][batch_size]
-    priv_int_t ***in_1 = new priv_int_t **[4];
-    priv_int_t ***in_2 = new priv_int_t **[4];
+    int32_t ***in_1 = new int32_t **[4];
+    int32_t ***in_2 = new int32_t **[4];
     for (int k = 0; k < 4; ++k) {
-        in_1[k] = new priv_int_t *[numShares];
-        in_2[k] = new priv_int_t *[numShares];
+        in_1[k] = new int32_t *[numShares];
+        in_2[k] = new int32_t *[numShares];
         for (uint s = 0; s < numShares; ++s) {
-            in_1[k][s] = new priv_int_t[batch_size]();
-            in_2[k][s] = new priv_int_t[batch_size]();
+            in_1[k][s] = new int32_t[batch_size]();
+            in_2[k][s] = new int32_t[batch_size]();
         }
     }
 
@@ -162,9 +162,9 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     }
 
     // Output array: [numShares][batch_size]
-    priv_int_t **out_1 = new priv_int_t *[numShares];
+    int32_t **out_1 = new int32_t *[numShares];
     for (uint s = 0; s < numShares; ++s)
-        out_1[s] = new priv_int_t[batch_size]();
+        out_1[s] = new int32_t[batch_size]();
 
     printf("FLLT Started running...\n");
     FLLT(in_1, in_2, out_1, batch_size, ring_size, threadID, net, ss);
@@ -172,7 +172,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
 
     // Reveal and print
     printf("\n====== FLLT Final Output ======\n");
-    priv_int_t *output_vals = new priv_int_t[batch_size];
+    int32_t *output_vals = new int32_t[batch_size];
     Open(output_vals, out_1, batch_size, -1, net, ss);
 
     for (int i = 0; i < batch_size; ++i) {
