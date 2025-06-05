@@ -110,14 +110,14 @@ for (uint s = 0; s < numShares; s++) {
 
 // Single Mult call for all four computations
 Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, ring_size, nodeNet, ss);
-T temp1, temp2;
+T temp1, temp2, part1, part2;
 // Extract results and compute b+ and b-
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
-         temp1 = mult_result[s][i];              // eEQ * mLT
-         temp2 = mult_result[s][i + size];       // (1-eEQ) * eLT
-        // T part1 = mult_result[s][i + 2*size];     // (a.z - a.z*b.z) * (1 - b.s)
-        // T part2 = mult_result[s][i + 3*size];     // (b.z - a.z*b.z) * a.s
+        temp1 = mult_result[s][i];              // eEQ * mLT
+        temp2 = mult_result[s][i + size];       // (1-eEQ) * eLT
+        part1 = mult_result[s][i + 2*size];     // (a.z - a.z*b.z) * (1 - b.s)
+        part2 = mult_result[s][i + 3*size];     // (b.z - a.z*b.z) * a.s
 
         b_plus[s][i] = temp1 + temp2;
         b_minus[s][i] = temp1 - temp2 + ((ai[s]*T(1))- eEQ[s][i]);
@@ -131,7 +131,7 @@ for (uint s = 0; s < numShares; s++) {
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         // Pack remaining multiplications
-        mult_buffer1[s][i] = (ai[s]*T(1)) - b[3][s][i] - a[3][s][i]+ as_bs[s][i];  // (1-b.s-a.s+a.s*b.s) part 4
+        mult_buffer1[s][i] = (ai[s]*T(1)) - b[3][s][i] - a[3][s][i]+ as_bs[s][i];  // (1 - b.s - a.s + a.s * b.s) part 4
         mult_buffer2[s][i] = b_plus[s][i];  // [b+]
 
         mult_buffer1[s][i+size] = as_bs[s][i];  // [a.s]*[b.s] part 5
@@ -146,10 +146,10 @@ for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
         combined_result = mult_result[s][i] +  // Result from part 4
                             mult_result[s][i+size] +  // Result from part 5
-                            (a[3][s][i] - as_bs[s][i]);  // (a.s - a.s*b.s)
+                            (a[3][s][i] - as_bs[s][i]);  // (a.s - a.s * b.s)
 
-    // Multiply with (1-b.z-a.z+a.z*b.z)
-    mult_buffer1[s][i] = ((ai[s]*T(1)) - b[2][s][i] - a[2][s][i] + az_bz[s][i]);  // (1-b.z-a.z+a.z*b.z)
+    // Multiply with (1 - b.z - a.z + a.z * b.z)
+    mult_buffer1[s][i] = ((ai[s]*T(1)) - b[2][s][i] - a[2][s][i] + az_bz[s][i]);  // (1 - b.z - a.z + a.z * b.z)
     mult_buffer2[s][i] = combined_result;
 }
 }
@@ -160,28 +160,6 @@ T part1 , part2;
 // Extract results from previous computations
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
-        
-        int az = a[2][0][i]; // a zero flag
-        int bz = b[2][0][i]; // b zero flag
-        int as = a[3][0][i]; // a sign bit
-        int bs = b[3][0][i]; // b sign bit
-
-        if (az == 1 && bz == 1) {
-            result[0][i] = 0; // both zero: result = 0
-            continue;
-        }
-        if (az == 1 && bz == 0) {
-            result[0][i] = (bs == 0) ? 1 : 0; // a zero, b nonzero
-            continue;
-        }
-        if (az == 0 && bz == 1) {
-            result[0][i] = (as == 1) ? 1 : 0; // a nonzero, b zero
-            continue;
-        }
-
-         part1 = mult_result[s][i + 2*size];     // (a.z - a.z*b.z) * (1 - b.s)
-         part2 = mult_result[s][i + 3*size];     // (b.z - a.z*b.z) * a.s
-
         // Combine results from parts 1, 2, and 3
         result[s][i] = part1 + part2 + part3_result[s][i];
     }
