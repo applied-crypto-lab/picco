@@ -162,32 +162,29 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             int as = a[3][0][i]; // sign for a
             int bs = b[3][0][i]; // sign for b
 
-            // Both zero => 0
+            // Both zero
             if (az == 1 && bz == 1) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 continue;
             }
             // a is zero, b is not zero
             if (az == 1 && bz == 0) {
-                // If b > 0, a < b; if b < 0, a > b
                 int val = (bs == 0) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 continue;
             }
-            // b is zero, a is not zero
+            // a is not zero, b is zero
             if (az == 0 && bz == 1) {
-                // If a < 0, a < b; if a > 0, a > b
                 int val = (as == 1) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 continue;
             }
-            // If both have same value (including sign), a < b is false (should be 0)
-            // This catches cases where all components are equal (including negative zeros and large floats)
-            bool is_equal = true;
+            // Both are bitwise equal (including sign!)
+            bool equal_all = true;
             for (int j = 0; j < 4; ++j) {
-                if (a[j][0][i] != b[j][0][i]) { is_equal = false; break; }
+                if (a[j][0][i] != b[j][0][i]) { equal_all = false; break; }
             }
-            if (is_equal) {
+            if (equal_all) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 continue;
             }
