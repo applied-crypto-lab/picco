@@ -162,7 +162,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             for (int j = 0; j < 4; ++j) {
                 if (a[j][s][i] != b[j][s][i]) { 
                     equal = false; 
-                    printf("Inputs are not equal at index %d: a[%d]=%d, b[%d]=%d\n", i, j, a[j][0][i], j, b[j][0][i]);
                     break; 
                 }
             }
@@ -170,31 +169,26 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             // Both zero
             if (a[2][s][i] == 1 && b[2][s][i] == 1) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
-                printf("Both inputs are zero at index %d\n", i);
                 continue;
             }
             // a is zero, b is not zero
             else if (a[2][s][i] == 1 && b[2][s][i] == 0) {
                 int val = (b[3][s][i] == 0) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
-                printf("Input a is zero at index %d, b is not zero\n", i);
                 continue;
             }
             // a is not zero, b is zero
             else if (a[2][s][i] == 0 && b[2][s][i] == 1) {
                 int val = (a[3][s][i] == 1) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
-                printf("Input b is zero at index %d, a is not zero\n", i);
                 continue;
             }
             else if (equal) {
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
-                printf("Inputs are bitwise equal at index %d\n", i);
                 continue;
             }
             else {
                 // If both are non-zero and not equal, we proceed with the result from part 3
-                printf("Inputs are non-zero and not equal at index %d\n", i);
                 // Combine results from parts 1, 2, and 3
                 result[s][i] = mult_result[s][i] + part3_result[s][i];
             }

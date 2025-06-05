@@ -86,60 +86,40 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint ring_size = ss->ring_size;
 
     // Test input floats
-    float numbers_1[24] = {
-        1.0f,        // normal
-        -1.0f,       // negative normal
-        0.0f,        // zero
-        -0.0f,       // negative zero
-        1.000001f,   // very close positive numbers
-        1.000002f,
-        1.0e-45f,    // smallest positive subnormal float
-        -1.0e-45f,   // smallest negative subnormal float
-        FLT_MIN,     // smallest positive normalized float
-        -FLT_MIN,    // smallest negative normalized float
-        FLT_MAX,     // largest positive float
-        -FLT_MAX,    // largest negative float
-        INFINITY,    // positive infinity
-        -INFINITY,   // negative infinity
-        NAN,         // not a number
-        3.4028235e+38f, // max float (may differ by platform)
-        -3.4028235e+38f,
-        2.0f,        // same as below, for sign checks
+    // These arrays include only the (num1, num2) pairs for which FLLT failed:
+    float numbers_1[14] = {
+        1.45f,
+        1.45f,
         -2.0f,
-        16777216.0f, // 2^24, integer that can be exactly represented
-        16777217.0f, // next float, can't be exactly represented
-        1.19209290e-7f, // FLT_EPSILON
-        0.9999999f,  // slightly less than 1
-        -0.9999999f,
-    };
-    
-    float numbers_2[24] = {
-        1.0f,         // equal
-        1.0f,         // opposite sign
-        0.0f,         // zero comparison
-        0.0f,         // negative zero vs zero
-        1.000002f,    // ULP up
-        1.000001f,    // ULP down
-        2.0e-45f,     // next subnormal
-        -2.0e-45f,    // next negative subnormal
-        FLT_MIN,      // smallest positive normalized float
-        FLT_MIN,      // negative vs positive FLT_MIN
-        FLT_MAX,      // max vs max
-        FLT_MAX,      // negative vs positive max
-        INFINITY,     // infinity vs infinity
-        INFINITY,     // -infinity vs +infinity
-        NAN,          // NaN vs NaN
-        -3.4028235e+38f, // max vs min float
-        3.4028235e+38f,
-        -2.0f,        // sign test
-        2.0f,
-        16777217.0f,  // next float, can't be exactly represented
-        16777216.0f,  // 2^24, exactly representable
-        0.0f,         // epsilon vs zero
-        1.0f,         // almost 1 vs 1
+        -9999.0f,
+        -1e-6f,
+        1.45f,
         -1.0f,
+        -0.0f,
+        -340282346638528859811704183484516925440.0f, // -FLT_MAX as double-precision
+        -INFINITY,
+        340282346638528859811704183484516925440.0f,  // FLT_MAX as double-precision
+        -340282346638528859811704183484516925440.0f, // -FLT_MAX as double-precision
+        -2.0f,
+        -1.0f
     };
-    
+
+    float numbers_2[14] = {
+        1.10f,
+        1.05f,
+        2.0f,
+        -10000.0f,
+        -2e-6f,
+        1.10f,
+        1.0f,
+        0.0f,
+        340282346638528859811704183484516925440.0f,  // FLT_MAX as double-precision
+        INFINITY,
+        -340282346638528859811704183484516925440.0f, // -FLT_MAX as double-precision
+        340282346638528859811704183484516925440.0f,  // FLT_MAX as double-precision
+        2.0f,
+        -1.0f
+    };
 
     // Allocate input arrays: [4][numShares][batch_size]
     priv_int_t ***in_1 = new priv_int_t **[4];
@@ -197,8 +177,10 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         int64_t corrected = (output_vals[i] < (1ULL << 63)) ? output_vals[i] : (int64_t)(output_vals[i] - (1ULL << 64));
         int expected = (numbers_1[i] < numbers_2[i]) ? 1 : 0;
         if (corrected != expected) {
-            printf("[i=%d] num1=%.6f num2=%.6f => FLLT result = %ld (expected: %d)\n",
-                   i, numbers_1[i], numbers_2[i], corrected, expected);
+            printf("[i=%d] num1=%f (m=%lld,e=%lld,z=%lld,s=%lld) num2=%f (m=%lld,e=%lld,z=%lld,s=%lld) => FLLT=%ld (expected: %d)\n",
+                i, numbers_1[i], elements_1[0], elements_1[1], elements_1[2], elements_1[3],
+                numbers_2[i], elements_2[0], elements_2[1], elements_2[2], elements_2[3],
+                corrected, expected);
         }
     }
 
