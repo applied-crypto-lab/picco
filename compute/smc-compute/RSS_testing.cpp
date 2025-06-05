@@ -155,8 +155,14 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         // Store the converted values into the in_1 and in_2 arrays
         for (uint s = 0; s < numShares; ++s) {
             for (int j = 0; j < 4; j++) {
-                in_1[j][s][i] = elements_1[j];
-                in_2[j][s][i] = elements_2[j];
+                // If j == 1 (exponent), reinterpret the signed int as unsigned
+                if (j == 1) {
+                    in_1[j][s][i] = static_cast<priv_int_t>(static_cast<int32_t>(elements_1[j]));
+                    in_2[j][s][i] = static_cast<priv_int_t>(static_cast<int32_t>(elements_2[j]));
+                } else {
+                    in_1[j][s][i] = static_cast<priv_int_t>(elements_1[j]);
+                    in_2[j][s][i] = static_cast<priv_int_t>(elements_2[j]);
+                }
             }
         }
     }
