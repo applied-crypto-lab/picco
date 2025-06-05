@@ -156,7 +156,6 @@ for (uint s = 0; s < numShares; s++) {
 
 // Final multiplication
 Mult(part3_result, mult_buffer1, mult_buffer2, size, ring_size, nodeNet, ss);
-T part1 , part2;
 // Extract results from previous computations
 for (uint s = 0; s < numShares; s++) {
     for (int i = 0; i < size; i++) {
