@@ -181,12 +181,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
                 i, numbers_1[i], elements_1[0], elements_1[1], elements_1[2], elements_1[3],
                 numbers_2[i], elements_2[0], elements_2[1], elements_2[2], elements_2[3],
                 corrected, expected);
-        } else {
-            printf("[i=%d] num1=%f (m=%lld,e=%lld,z=%lld,s=%lld) num2=%f (m=%lld,e=%lld,z=%lld,s=%lld) => FLLT=%ld (expected: %d)\n",
-                i, numbers_1[i], elements_1[0], elements_1[1], elements_1[2], elements_1[3],
-                numbers_2[i], elements_2[0], elements_2[1], elements_2[2], elements_2[3],
-                corrected, expected);
-        }
+        } 
     }
 
     delete[] output_vals;
