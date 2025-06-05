@@ -67,7 +67,19 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     ss->sparsify_public(ai, 1);
 
     // Step 1: Compare exponents
-    doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
+
+    priv_int_t **signed_a_exp = new priv_int_t *[numShares];
+    priv_int_t **signed_b_exp = new priv_int_t *[numShares];
+    for (uint s = 0; s < numShares; ++s) {
+        signed_a_exp[s] = new priv_int_t[batch_size];
+        signed_b_exp[s] = new priv_int_t[batch_size];
+        for (int i = 0; i < batch_size; ++i) {
+            signed_a_exp[s][i] = static_cast<priv_int_t>(static_cast<int32_t>(a[1][s][i]));
+            signed_b_exp[s][i] = static_cast<priv_int_t>(static_cast<int32_t>(b[1][s][i]));
+        }
+    }
+
+    doOperation_LTEQ(signed_a_exp, signed_b_exp, eLT, eEQ, ring_size, size, nodeNet, ss);
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
     for (uint s = 0; s < numShares; s++) {
