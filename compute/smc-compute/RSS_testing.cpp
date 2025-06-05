@@ -86,53 +86,60 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint ring_size = ss->ring_size;
 
     // Test input floats
-    float numbers_1[20] = {
-        1.45,
-        1.45,
-        1.45,
-        //  3.67, 2.34, 5.89, 0.76, 8.12, 9.67, 3.21, 4.56, 7.89,
-        0.0f,    // Zero
-        -0.0f,   // Negative zero
-        -2.0f,   // Negative
-        2.0f,    // Positive
-        1000.0f, // Large positive
-        -9999.0f, // Large negative
-        1e-6f,   // Small positive
-        -1e-6f,  // Small negative
-        1.45f,   // Regular positive
-        1.45f,   // Equal to pair value
-        1.45f,   // Equal to pair value
-        2.0f,    // Positive
-        -2.0f,   // Negative (compared with same value)
-        FLT_MAX, // Maximum float value
-        -FLT_MAX, // Minimum (negative) float value
-        3.4028235e+38f, // Another max float
-        1.17549435e-38f // Minimum positive normal float
+    float numbers_1[24] = {
+        1.0f,        // normal
+        -1.0f,       // negative normal
+        0.0f,        // zero
+        -0.0f,       // negative zero
+        1.000001f,   // very close positive numbers
+        1.000002f,
+        1.0e-45f,    // smallest positive subnormal float
+        -1.0e-45f,   // smallest negative subnormal float
+        FLT_MIN,     // smallest positive normalized float
+        -FLT_MIN,    // smallest negative normalized float
+        FLT_MAX,     // largest positive float
+        -FLT_MAX,    // largest negative float
+        INFINITY,    // positive infinity
+        -INFINITY,   // negative infinity
+        NAN,         // not a number
+        3.4028235e+38f, // max float (may differ by platform)
+        -3.4028235e+38f,
+        2.0f,        // same as below, for sign checks
+        -2.0f,
+        16777216.0f, // 2^24, integer that can be exactly represented
+        16777217.0f, // next float, can't be exactly represented
+        1.19209290e-7f, // FLT_EPSILON
+        0.9999999f,  // slightly less than 1
+        -0.9999999f,
     };
     
-    float numbers_2[20] = {
-        1.10, 
-        1.15, 
-        1.05, 
-        // 4.67, 5.34, 2.89, 1.76, 8.12, 9.67, 3.21, 4.56, 7.89,
-        0.0f,    // Zero
-        0.0f,    // Zero (compare -0.0 with 0.0)
-        2.0f,    // Positive vs negative
-        -2.0f,    // Positive vs negative
-        999.0f,  // Another large positive
-        -10000.0f, // Slightly less negative
-        2e-6f,   // Slightly larger small positive
-        -2e-6f,  // More negative
-        1.1f,    // Regular positive
-        1.45f,   // Exactly equal (should return 0)
-        2.45f,   // numbers_1 < numbers_2
-        2.0f,    // Equal
-        -2.0f,   // Equal
-        FLT_MAX, // Equal max
-        -FLT_MAX, // Equal min
-        1e+30f,   // Smaller than max float
-        -1.17549435e-38f // Negative min positive normal
+    float numbers_2[24] = {
+        1.0f,         // equal
+        1.0f,         // opposite sign
+        0.0f,         // zero comparison
+        0.0f,         // negative zero vs zero
+        1.000002f,    // ULP up
+        1.000001f,    // ULP down
+        2.0e-45f,     // next subnormal
+        -2.0e-45f,    // next negative subnormal
+        FLT_MIN,      // smallest positive normalized float
+        FLT_MIN,      // negative vs positive FLT_MIN
+        FLT_MAX,      // max vs max
+        FLT_MAX,      // negative vs positive max
+        INFINITY,     // infinity vs infinity
+        INFINITY,     // -infinity vs +infinity
+        NAN,          // NaN vs NaN
+        -3.4028235e+38f, // max vs min float
+        3.4028235e+38f,
+        -2.0f,        // sign test
+        2.0f,
+        16777217.0f,  // next float, can't be exactly represented
+        16777216.0f,  // 2^24, exactly representable
+        0.0f,         // epsilon vs zero
+        1.0f,         // almost 1 vs 1
+        -1.0f,
     };
+    
 
     // Allocate input arrays: [4][numShares][batch_size]
     priv_int_t ***in_1 = new priv_int_t **[4];
