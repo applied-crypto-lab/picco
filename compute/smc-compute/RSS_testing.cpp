@@ -141,13 +141,13 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         convertFloat(numbers_1[i], 32, 8, &ptr1);
         convertFloat(numbers_2[i], 32, 8, &ptr2);
         // === [START] Print the original float and its 4-part converted representation ===
-        std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        // std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
         for (int j = 0; j < 4; j++) std::cout << elements_1[j] << " ";
-        std::cout << std::endl;
+        // std::cout << std::endl;
 
-        std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        // std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
         for (int j = 0; j < 4; j++) std::cout << elements_2[j] << " ";
-        std::cout << std::endl;
+        // std::cout << std::endl;
         // === [END] Print section ===
 
         // Store the converted values into the in_1 and in_2 arrays
@@ -182,15 +182,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
             printf("Input 1: %f, Input 2: %f\n", numbers_1[i], numbers_2[i]);
             printf("Converted 1: (%lld, %lld, %lld, %lld)\n", in_1[0][0][i], in_1[1][0][i], in_1[2][0][i], in_1[3][0][i]);
             printf("Converted 2: (%lld, %lld, %lld, %lld)\n", in_2[0][0][i], in_2[1][0][i], in_2[2][0][i], in_2[3][0][i]);
-            printf("Output: %lld\n", corrected);
-            printf("Expected: %d\n", expected);
-            printf("Output value: %lld\n", output_vals[i]);
-            printf("Expected value: %d\n", expected);
             printf("Batch size: %d, Ring size: %d, Thread ID: %d\n", batch_size, ring_size, threadID);
-            printf("Number 1: %f, Number 2: %f\n", numbers_1[i], numbers_2[i]);
-            printf("Error: The output does not match the expected result.\n");
-            printf("Please check the input values and the FLLT implementation.\n");
-            printf("This is a critical error in the FLLT implementation.\n");
             printf("###### FLLT Test Failed #######\n");
         } else {
             printf("Test passed for index %d: Expected %d, got %lld\n", i, expected, corrected);
