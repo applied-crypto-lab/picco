@@ -157,26 +157,38 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
-            int az = a[2][0][i]; // a zero flag (from any share, e.g. 0)
-            int bz = b[2][0][i]; // b zero flag
-            int as = a[3][0][i]; // a sign bit
-            int bs = b[3][0][i]; // b sign bit
+            int az = a[2][0][i]; // zero flag for a
+            int bz = b[2][0][i]; // zero flag for b
+            int as = a[3][0][i]; // sign for a
+            int bs = b[3][0][i]; // sign for b
 
+            // Both zero => 0
             if (az == 1 && bz == 1) {
-                // Both zero: result = 0 in all shares
                 for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 continue;
             }
+            // a is zero, b is not zero
             if (az == 1 && bz == 0) {
-                // a zero, b nonzero: result = 1 if b positive, else 0
+                // If b > 0, a < b; if b < 0, a > b
                 int val = (bs == 0) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
                 continue;
             }
+            // b is zero, a is not zero
             if (az == 0 && bz == 1) {
-                // a nonzero, b zero: result = 1 if a negative, else 0
+                // If a < 0, a < b; if a > 0, a > b
                 int val = (as == 1) ? 1 : 0;
                 for (uint s = 0; s < numShares; ++s) result[s][i] = val;
+                continue;
+            }
+            // If both have same value (including sign), a < b is false (should be 0)
+            // This catches cases where all components are equal (including negative zeros and large floats)
+            bool is_equal = true;
+            for (int j = 0; j < 4; ++j) {
+                if (a[j][0][i] != b[j][0][i]) { is_equal = false; break; }
+            }
+            if (is_equal) {
+                for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
                 continue;
             }
             // Combine results from parts 1, 2, and 3
