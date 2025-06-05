@@ -124,14 +124,14 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     };
 
     // Allocate input arrays: [4][numShares][batch_size]
-    int32_t ***in_1 = new int32_t **[4];
-    int32_t ***in_2 = new int32_t **[4];
+    priv_int_t ***in_1 = new priv_int_t **[4];
+    priv_int_t ***in_2 = new priv_int_t **[4];
     for (int k = 0; k < 4; ++k) {
-        in_1[k] = new int32_t *[numShares];
-        in_2[k] = new int32_t *[numShares];
+        in_1[k] = new priv_int_t *[numShares];
+        in_2[k] = new priv_int_t *[numShares];
         for (uint s = 0; s < numShares; ++s) {
-            in_1[k][s] = new int32_t[batch_size]();
-            in_2[k][s] = new int32_t[batch_size]();
+            in_1[k][s] = new priv_int_t[batch_size]();
+            in_2[k][s] = new priv_int_t[batch_size]();
         }
     }
 
@@ -143,13 +143,13 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         convertFloat(numbers_1[i], 32, 8, &ptr1);
         convertFloat(numbers_2[i], 32, 8, &ptr2);
         // === [START] Print the original float and its 4-part converted representation ===
-        // std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
         for (int j = 0; j < 4; j++) std::cout << elements_1[j] << " ";
-        // std::cout << std::endl;
+        std::cout << std::endl;
 
-        // std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
         for (int j = 0; j < 4; j++) std::cout << elements_2[j] << " ";
-        // std::cout << std::endl;
+        std::cout << std::endl;
         // === [END] Print section ===
 
         // Store the converted values into the in_1 and in_2 arrays
@@ -162,9 +162,9 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     }
 
     // Output array: [numShares][batch_size]
-    int32_t **out_1 = new int32_t *[numShares];
+    priv_int_t **out_1 = new priv_int_t *[numShares];
     for (uint s = 0; s < numShares; ++s)
-        out_1[s] = new int32_t[batch_size]();
+        out_1[s] = new priv_int_t[batch_size]();
 
     printf("FLLT Started running...\n");
     FLLT(in_1, in_2, out_1, batch_size, ring_size, threadID, net, ss);
@@ -172,7 +172,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
 
     // Reveal and print
     printf("\n====== FLLT Final Output ======\n");
-    int32_t *output_vals = new int32_t[batch_size];
+    priv_int_t *output_vals = new priv_int_t[batch_size];
     Open(output_vals, out_1, batch_size, -1, net, ss);
 
     for (int i = 0; i < batch_size; ++i) {

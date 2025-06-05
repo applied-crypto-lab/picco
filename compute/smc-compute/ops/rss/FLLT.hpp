@@ -67,16 +67,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     ss->sparsify_public(ai, 1);
 
     // Step 1: Compare exponents
-    for (int i = 0; i < size; ++i) {
-        printf("\n--- FLLT DEBUG: Index %d ---\n", i);
-        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], (long long)a[1][0][i], (long long)a[2][0][i], (long long)a[3][0][i]);
-        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], (long long)b[1][0][i], (long long)b[2][0][i], (long long)b[3][0][i]);
-    }
     doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
-
-    for (int i = 0; i < size; ++i) {
-        printf("eLT[%d]=%lld, eEQ[%d]=%lld\n", i, (long long)eLT[0][i], i, (long long)eEQ[0][i]);
-    }
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
     for (uint s = 0; s < numShares; s++) {
@@ -105,16 +96,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
 
-    for (int i = 0; i < size; ++i) {
-        printf("mantissa m0[%d]=%lld, m1[%d]=%lld\n", i, (long long)m0[0][i], i, (long long)m1[0][i]);
-    }
-
     // Step 4: Mantissa comparison
     doOperation_LT( mLT, m0, m1, 0, 0, ring_size, size, -1, nodeNet, ss);
-
-    for (int i = 0; i < size; ++i) {
-        printf("mLT[%d]=%lld\n", i, (long long)mLT[0][i]);
-    }
 
     // doOperation_LT(m0, m1, mLT, nullptr, ring_size, size, nodeNet, ss, nullptr, nullptr);
 
@@ -152,10 +135,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
             part3_result[s][i] = part1 + part2; // Combine results from part 1 and part 2
         }
-    }
-
-    for (int i = 0; i < size; ++i) {
-        printf("b_plus[%d]=%lld, b_minus[%d]=%lld\n", i, (long long)b_plus[0][i], i, (long long)b_minus[0][i]);
     }
 
     // Step 7: New approach for part 3
@@ -222,8 +201,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             else {
                 // If both are non-zero and not equal, we proceed with the result from part 3
                 // Combine results from parts 1, 2, and 3
-
-                printf("FLLT DEBUG: Final result for index %d: %lld\n", i, (long long)mult_result[s][i]);
                 result[s][i] = mult_result[s][i] + part3_result[s][i];
             }
         }
