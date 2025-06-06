@@ -1,5 +1,5 @@
 int main() {
-    privint a[2], b[2], cmp_result[2];
+    int a[2], b[2], cmp_result[2];
     smcinput(a, 1, 2);
     smcinput(b, 1, 2);
 
