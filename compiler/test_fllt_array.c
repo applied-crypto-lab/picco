@@ -6,10 +6,9 @@ int main() {
     smcinput(b, 1, 14);
 
     for (int i = 0; i < 14; ++i) {
-        cmp_result[i] = (a[i] < b[i]);
+        cmp_result[i] = priv_lt(a[i], b[i]);
     }
 
     smcoutput(cmp_result, 1, 14);
-
     return 0;
 }
