@@ -7,9 +7,11 @@ int main() {
 
     // Secure element-wise comparison
     for (int i = 0; i < 14; ++i) {
-        cmp_result[i] = a[i] < b[i]; // PICCO parses this as a secure less-than
+        private int tmp;
+        tmp = a[i] < b[i];
+        cmp_result[i] = tmp;
     }
-
+    
     smcoutput(cmp_result, 1, 14); // Output results to party 1
 
     return 0;
