@@ -1,4 +1,4 @@
-#include "RSS_types.hpp"
+#include "rss/RSS_types.hpp"
 #include "SMC_Utils.h"
 #include "ops/rss/FLLT.hpp"
 #include <cfloat>
