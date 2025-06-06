@@ -1,17 +1,15 @@
-#define N 14
-
 int main() {
-    private float a[N], b[N];
-    private int cmp_result[N];
+    private float a[14], b[14];
+    private int cmp_result[14];
 
-    smcinput(a, 1, N);
-    smcinput(b, 1, N);
+    smcinput(a, 1, 14);
+    smcinput(b, 1, 14);
 
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < 14; ++i) {
         cmp_result[i] = (a[i] < b[i]);
     }
 
-    smcoutput(cmp_result, 1, N);
+    smcoutput(cmp_result, 1, 14);
 
     return 0;
 }
