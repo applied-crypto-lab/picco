@@ -20,6 +20,4 @@ int main() {
     cmp_result[13] = a[13] < b[13];
 
     smcoutput(cmp_result, 1, 14);
-
-    return 0;
 }
