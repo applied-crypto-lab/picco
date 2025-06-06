@@ -149,13 +149,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         for (int i = 0; i < size; i++) {
             temp1 = mult_result[s][i];              // eEQ * mLT
             temp2 = mult_result[s][i + size];       // (1 - eEQ) * eLT
-            part1 = mult_result[s][i + 2 * size];     // (a.z - a.z * b.z) * (1 - b.s)
-            part2 = mult_result[s][i + 3 * size];     // (b.z - a.z * b.z) * a.s
-
+            
             b_plus[s][i] = temp1 + temp2; // eEQ * mLT + (1 - eEQ) * eLT
             b_minus[s][i] = temp1 - temp2 + ((ai[s] * T(1)) - eEQ[s][i]); // eEQ * mLT + (1 - eEQ) * (1 - eLT)
-
-            part3_result[s][i] = part1 + part2; // Combine results from part 1 and part 2
         }
     }
 
@@ -190,41 +186,11 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
-            bool equal = true;
-
-            for (int j = 0; j < 4; ++j) {
-                if (a[j][s][i] != b[j][s][i]) { 
-                    equal = false; 
-                    break; 
-                }
-            }
-
-            // Both zero
-            if (a[2][s][i] == 1 && b[2][s][i] == 1) {
-                for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
-                continue;
-            }
-            // a is zero, b is not zero
-            else if (a[2][s][i] == 1 && b[2][s][i] == 0) {
-                int val = (b[3][s][i] == 0) ? 1 : 0;
-                for (uint s = 0; s < numShares; ++s) result[s][i] = val;
-                continue;
-            }
-            // a is not zero, b is zero
-            else if (a[2][s][i] == 0 && b[2][s][i] == 1) {
-                int val = (a[3][s][i] == 1) ? 1 : 0;
-                for (uint s = 0; s < numShares; ++s) result[s][i] = val;
-                continue;
-            }
-            else if (equal) {
-                for (uint s = 0; s < numShares; ++s) result[s][i] = 0;
-                continue;
-            }
-            else {
                 // If both are non-zero and not equal, we proceed with the result from part 3
                 // Combine results from parts 1, 2, and 3
-                result[s][i] = mult_result[s][i] + part3_result[s][i];
-            }
+                part1 = mult_result[s][i + 2 * size];     // (a.z - a.z * b.z) * (1 - b.s)
+                part2 = mult_result[s][i + 3 * size];     // (b.z - a.z * b.z) * a.s
+                result[s][i] = mult_result[s][i] + part1[s][i] + part2[s][i];
         }
     }
 
