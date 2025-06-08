@@ -115,6 +115,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
                 s, i, float(a[2][s][i]), s, i, float(b[2][s][i]));
             mult_buffer1[s][i] = a[2][s][i];                // [a.z]
             mult_buffer2[s][i] = b[2][s][i];                    // [b.z]
+            printf("mult_buffer1[%u][%u] = %f, mult_buffer2[%u][%u] = %f\n",
+                s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
             mult_buffer2[s][i + size] = b[3][s][i];             // [b.s]
             mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1 - 2[ā.s]
