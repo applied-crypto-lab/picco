@@ -82,9 +82,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("s = %d, i = %d\n", s, i);
-            // Print the results of the LT and EQ operations
-            printf("eLT[%d][%d] = %f, eEQ[%d][%d] = %f\n", s, i, eLT[s][i], s, i, eEQ[s][i]);
+            printf("s = %u, i = %u\n", s, i); // use %u for unsigned int
+            printf("eLT[%u][%u] = %f, eEQ[%u][%u] = %f\n",
+                s, i, float(eLT[s][i]), s, i, float(eEQ[s][i]));
         }
     }
 
