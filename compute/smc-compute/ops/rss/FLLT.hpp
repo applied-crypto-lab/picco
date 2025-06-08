@@ -112,12 +112,12 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         for (uint i = 0; i < size; i++) {
             mult_buffer1[s][i] = a[2][s][i];                // [a.z]
             mult_buffer2[s][i] = b[2][s][i];                    // [b.z]
-            mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
-            mult_buffer2[s][i + size] = b[3][s][i];             // [b.s]
-            mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1-2[ā.s]
-            mult_buffer2[s][i + 2 * size] = a[0][s][i];                  // [ā.m]
-            mult_buffer1[s][i + 3 * size] = (ai[s] * T(1)) - (T(2) * b[3][s][i]);  // 1-2[b̄.s]
-            mult_buffer2[s][i + 3 * size] = b[0][s][i];                  // [b̄.m]
+            mult_buffer1[s + numShare][i] = a[3][s][i];             // [a.s]
+            mult_buffer2[s + numShare][i] = b[3][s][i];             // [b.s]
+            mult_buffer1[s + 2 * numShare][i] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1-2[ā.s]
+            mult_buffer2[s + 2 * numShare][i] = a[0][s][i];                  // [ā.m]
+            mult_buffer1[s + 3 * numShare][i] = (ai[s] * T(1)) - (T(2) * b[3][s][i]);  // 1-2[b̄.s]
+            mult_buffer2[s + 3 * numShare][i] = b[0][s][i];                  // [b̄.m]
         }
     }
 
