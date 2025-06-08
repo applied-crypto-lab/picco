@@ -125,8 +125,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
 
-    for (unsigned s = 0; s < NUM_S; ++s) {
-        for (unsigned i = 0; i < SIZE; ++i) {
+    for (unsigned s = 0; s < numShares; ++s) {
+        for (unsigned i = 0; i < size; ++i) {
             // Set test values for debugging
             a[2][s][i] = (10 * s + i) % 2;
             b[2][s][i] = (100 * s + i) % 2;
