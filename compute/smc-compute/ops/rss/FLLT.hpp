@@ -185,7 +185,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
                 // Combine results from parts 1, 2, and 3
                 part1 = mult_result[s][i + 2 * size];     // (a.z - a.z * b.z) * (1 - b.s)
                 part2 = mult_result[s][i + 3 * size];     // (b.z - a.z * b.z) * a.s
-                result[s][i] = mult_result[s][i] + part1[s][i] + part2[s][i];
+                result[s][i] = mult_result[s][i] + part1 + part2;
         }
     }
 

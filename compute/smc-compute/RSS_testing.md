@@ -61,13 +61,13 @@ private\_<id>.pem: Private key for this node.
 Example:
 
 On rigel-01:
-./build/rss_main 1 runtime-config private_01.pem 3 32 20
+./build/rss_main 1 runtime-config private_01.pem 3 32 14
 
 On rigel-02:
-./build/rss_main 2 runtime-config private_02.pem 3 32 20
+./build/rss_main 2 runtime-config private_02.pem 3 32 14
 
 On rigel-03:
-./build/rss_main 3 runtime-config private_03.pem 3 32 20
+./build/rss_main 3 runtime-config private_03.pem 3 32 14
 
 Tip: Start all three programs within a few seconds of each other to avoid connection timeouts.
 
