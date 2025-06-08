@@ -82,7 +82,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("s = %u, i = %u\n", s, i); // use %u for unsigned int
+            printf("s = %u, i = %u\n", s, i);
             printf("eLT[%u][%u] = %f, eEQ[%u][%u] = %f\n",
                 s, i, float(eLT[s][i]), s, i, float(eEQ[s][i]));
         }
@@ -112,17 +112,17 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         for (uint i = 0; i < size; i++) {
             mult_buffer1[s][i] = a[2][s][i];                // [a.z]
             mult_buffer2[s][i] = b[2][s][i];                    // [b.z]
-            mult_buffer1[s + numShares][i] = a[3][s][i];             // [a.s]
-            mult_buffer2[s + numShares][i] = b[3][s][i];             // [b.s]
-            mult_buffer1[s + 2 * numShares][i] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1-2[ā.s]
-            mult_buffer2[s + 2 * numShares][i] = a[0][s][i];                  // [ā.m]
-            mult_buffer1[s + 3 * numShares][i] = (ai[s] * T(1)) - (T(2) * b[3][s][i]);  // 1-2[b̄.s]
-            mult_buffer2[s + 3 * numShares][i] = b[0][s][i];                  // [b̄.m]
+            mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
+            mult_buffer2[s][i + size] = b[3][s][i];             // [b.s]
+            mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1 - 2[ā.s]
+            mult_buffer2[s][i + 2 * size] = a[0][s][i];                  // [ā.m]
+            mult_buffer1[s][i + 3 * size] = (ai[s] * T(1)) - (T(2) * b[3][s][i]);  // 1 - 2[b̄.s]
+            mult_buffer2[s][i + 3 * size] = b[0][s][i];                  // [b̄.m]
         }
     }
 
     for (uint s = 0; s < numShares; s++) {
-        for (uint i = 0; i < size; i++) {
+        for (uint i = 0; i < 3 * size; i++) {
             printf("mult_buffer1[%u][%u] = %f, mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
         }
     }
@@ -134,9 +134,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             az_bz[s][i] = mult_result[s][i];              // [a.z] * [b.z]
-            as_bs[s][i] = mult_result[s + numShares][i];       // [a.s] * [b.s]
-            m0[s][i] = mult_result[s + 2 * numShares][i];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
-            m1[s][i] = mult_result[s + 3 * numShares][i];        // mantissa m1 = [b.m] * (1 - 2 * [b.s])
+            as_bs[s][i] = mult_result[s][i + size];       // [a.s] * [b.s]
+            m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
+            m1[s][i] = mult_result[s][i + 3 * size];        // mantissa m1 = [b.m] * (1 - 2 * [b.s])
         }
     }
 
@@ -164,14 +164,14 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             mult_buffer1[s][i] = eEQ[s][i];                    // For eEQ * mLT
             mult_buffer2[s][i] = mLT[s][i];
 
-            mult_buffer1[s][i + size] = (ai[s] * T(1)) - eEQ[s][i];      // For (1-eEQ) * eLT
+            mult_buffer1[s][i + size] = (ai[s] * T(1)) - eEQ[s][i];      // For (1 - eEQ) * eLT
             mult_buffer2[s][i + size] = eLT[s][i];
 
-            mult_buffer1[s][i + 2*size] = a[2][s][i] - az_bz[s][i];  // (a.z - a.z * b.z)
-            mult_buffer2[s][i + 2*size] = (ai[s] * T(1))- b[3][s][i];         // (1 - b.s)
+            mult_buffer1[s][i + 2 * size] = a[2][s][i] - az_bz[s][i];  // (a.z - a.z * b.z)
+            mult_buffer2[s][i + 2 * size] = (ai[s] * T(1))- b[3][s][i];         // (1 - b.s)
 
-            mult_buffer1[s][i + 3*size] = b[2][s][i] - az_bz[s][i];  // (b.z - a.z * b.z)
-            mult_buffer2[s][i + 3*size] = a[3][s][i];                // a.s
+            mult_buffer1[s][i + 3 * size] = b[2][s][i] - az_bz[s][i];  // (b.z - a.z * b.z)
+            mult_buffer2[s][i + 3 * size] = a[3][s][i];                // a.s
         }
     }
 
