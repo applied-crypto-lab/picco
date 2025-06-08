@@ -181,7 +181,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("mult_buffer1[%u][%u] = %f, mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
+            printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
+            printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
         }
     }
 
@@ -202,7 +203,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("b_plus[%u][%u] = %f, b_minus[%u][%u] = %f\n", s, i, b_plus[s][i], s, i, b_minus[s][i]);
+            printf("b_plus[%u][%u] = %f\n", s, i, b_plus[s][i]);
+            printf("b_minus[%u][%u] = %f\n", s, i, b_minus[s][i]);
         }
     }
 
@@ -220,7 +222,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("mult_buffer1[%u][%u] = %f, mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
+            printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
+            printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
         }
     }
 
