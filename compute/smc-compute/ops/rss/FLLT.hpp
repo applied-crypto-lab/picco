@@ -123,8 +123,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
-            printf("mult_buffer1[%d][%d] = %f, mult_buffer2[%d][%d] = %f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
+        for (uint i = 0; i < size; i++) {
+            printf("mult_buffer1[%u][%u] = %f, mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
         }
     }
 
