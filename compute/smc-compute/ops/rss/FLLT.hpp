@@ -81,21 +81,23 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
 
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
+            printf("s = %d, i = %d\n", s, i);
+            // Print the results of the LT and EQ operations
             printf("eLT[%d][%d] = %f, eEQ[%d][%d] = %f\n", s, i, eLT[s][i], s, i, eEQ[s][i]);
         }
     }
 
     // Step 2: Compute mantissas
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             printf("a[0][%d][%d] = %f, a[1][%d][%d] = %f, a[2][%d][%d] = %f, a[3][%d][%d] = %f\n", s, i, a[0][s][i], s, i, a[1][s][i], s, i, a[2][s][i], s, i, a[3][s][i]);
             printf("b[0][%d][%d] = %f, b[1][%d][%d] = %f, b[2][%d][%d] = %f, b[3][%d][%d] = %f\n", s, i, b[0][s][i], s, i, b[1][s][i], s, i, b[2][s][i], s, i, b[3][s][i]);}
     }
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             mult_buffer1[s][i] = a[2][s][i];                // [a.z]
             mult_buffer2[s][i] = b[2][s][i];                    // [b.z]
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
