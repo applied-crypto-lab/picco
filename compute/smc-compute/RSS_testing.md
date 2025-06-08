@@ -20,7 +20,7 @@ openssl rsa -in private_02.pem -outform PEM -pubout -out public_02.pem
 
 # On rigel-03:
 
-openssl genrsa -out private\*03.pem 2048
+openssl genrsa -out private_03.pem 2048
 openssl rsa -in private_03.pem -outform PEM -pubout -out public_03.pem
 
 Distribute public\*\*.pem as needed so all machines have all public keys.

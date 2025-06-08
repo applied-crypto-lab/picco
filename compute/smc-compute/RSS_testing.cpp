@@ -68,7 +68,7 @@ void convertFloat(float value, int K, int L, long long **elements) {
         }
     }
 
-    printf("DEBUG convertFloat: float=%f, e=%d, K=%d, L=%d, p=%ld\n", value, e, K, L, p);
+    // printf("DEBUG convertFloat: float=%f, e=%d, K=%d, L=%d, p=%ld\n", value, e, K, L, p);
 
     // printf("sig  %lli\n", significand);
     // printf("p    %li\n", p);
@@ -141,13 +141,13 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         convertFloat(numbers_1[i], 32, 8, &ptr1);
         convertFloat(numbers_2[i], 32, 8, &ptr2);
         // === [START] Print the original float and its 4-part converted representation ===
-        std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
-        for (int j = 0; j < 4; j++) std::cout << elements_1[j] << " ";
-        std::cout << std::endl;
+        // std::cout << "Number 1: " << numbers_1[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        // for (int j = 0; j < 4; j++) std::cout << elements_1[j] << " ";
+        // std::cout << std::endl;
 
-        std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
-        for (int j = 0; j < 4; j++) std::cout << elements_2[j] << " ";
-        std::cout << std::endl;
+        // std::cout << "Number 2: " << numbers_2[i] << " -> Converted (mantissa, exponent, zero_flag, sign): ";
+        // for (int j = 0; j < 4; j++) std::cout << elements_2[j] << " ";
+        // std::cout << std::endl;
         // === [END] Print section ===
 
         // Store the converted values into the in_1 and in_2 arrays
@@ -169,7 +169,6 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     printf("FLLT Finished.\n");
 
     // Reveal and print
-    printf("\n====== FLLT Final Output ======\n");
     priv_int_t *output_vals = new priv_int_t[batch_size];
     Open(output_vals, out_1, batch_size, -1, net, ss);
 
@@ -177,13 +176,8 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         int64_t corrected = (output_vals[i] < (1ULL << 63)) ? output_vals[i] : (int64_t)(output_vals[i] - (1ULL << 64));
         int expected = (numbers_1[i] < numbers_2[i]) ? 1 : 0;
         if (corrected != expected) {
-            printf("####### Test Failure at index %d ###\n", i);
-            printf("Test failed for index %d: Expected %d, got %lld\n", i, expected, corrected);
             printf("Input 1: %f, Input 2: %f\n", numbers_1[i], numbers_2[i]);
-            printf("Converted 1: (%lld, %lld, %lld, %lld)\n", in_1[0][0][i], in_1[1][0][i], in_1[2][0][i], in_1[3][0][i]);
-            printf("Converted 2: (%lld, %lld, %lld, %lld)\n", in_2[0][0][i], in_2[1][0][i], in_2[2][0][i], in_2[3][0][i]);
-            printf("Batch size: %d, Ring size: %d, Thread ID: %d\n", batch_size, ring_size, threadID);
-            printf("###### FLLT Test Failed #######\n");
+            printf("Test failed for index %d: Expected %d, got %lld\n", i, expected, corrected);
         } else {
             printf("Test passed for index %d: Expected %d, got %lld\n", i, expected, corrected);
         } 

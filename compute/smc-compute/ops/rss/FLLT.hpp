@@ -16,15 +16,6 @@ template <typename T>
 void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, NodeNetwork &nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
 
-    printf("numbers a with: \n");
-    for (int i = 0; i < size; ++i) {
-        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], static_cast<int32_t>(a[1][0][i]), (long long)a[2][0][i], (long long)a[3][0][i]);
-    }
-    printf("numbers b with: \n");
-    for (int i = 0; i < size; ++i) {
-        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], static_cast<int32_t>(b[1][0][i]), (long long)b[2][0][i], (long long)b[3][0][i]);
-    }
-
     // Allocate arrays for all intermediate values
     T **eLT = new T *[numShares];
     T **eEQ = new T *[numShares];
@@ -68,28 +59,20 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     // Step 1: Compare exponents
 
-    priv_int_t **signed_a_exp = new priv_int_t *[numShares];
-    priv_int_t **signed_b_exp = new priv_int_t *[numShares];
-    for (uint s = 0; s < numShares; ++s) {
-        signed_a_exp[s] = new priv_int_t[size];
-        signed_b_exp[s] = new priv_int_t[size];
-        for (int i = 0; i < size; ++i) {
-            signed_a_exp[s][i] = static_cast<priv_int_t>(static_cast<int32_t>(a[1][s][i]));
-            signed_b_exp[s][i] = static_cast<priv_int_t>(static_cast<int32_t>(b[1][s][i]));
+    doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
+
+    for (uint s = 0; s < numShares; s++) {
+        for (int i = 0; i < size; i++) {
+            printf("eLT[%d][%d] = %f, eEQ[%d][%d] = %f\n", s, i, eLT[s][i], s, i, eEQ[s][i]);
         }
     }
 
-    printf("signed_a_exp with: \n");
-    for (int i = 0; i < size; ++i) {
-        printf("a: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)a[0][0][i], static_cast<int32_t>(signed_a_exp[0][i]), (long long)a[2][0][i], (long long)a[3][0][i]);
+    // Step 2: Compute mantissas
+    for (uint s = 0; s < numShares; s++) {
+        for (int i = 0; i < size; i++) {
+            printf("a[0][%d][%d] = %f, a[1][%d][%d] = %f, a[2][%d][%d] = %f, a[3][%d][%d] = %f\n", s, i, a[0][s][i], s, i, a[1][s][i], s, i, a[2][s][i], s, i, a[3][s][i]);
+            printf("b[0][%d][%d] = %f, b[1][%d][%d] = %f, b[2][%d][%d] = %f, b[3][%d][%d] = %f\n", s, i, b[0][s][i], s, i, b[1][s][i], s, i, b[2][s][i], s, i, b[3][s][i]);}
     }
-
-    printf("signed_b_exp with: \n");
-    for (int i = 0; i < size; ++i) {
-        printf("b: mantissa=%lld, exp=%lld, zero=%lld, sign=%lld\n", (long long)b[0][0][i], static_cast<int32_t>(signed_b_exp[0][i]), (long long)b[2][0][i], (long long)b[3][0][i]);
-    }
-
-    doOperation_LTEQ(signed_a_exp, signed_b_exp, eLT, eEQ, ring_size, size, nodeNet, ss);
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
     for (uint s = 0; s < numShares; s++) {
@@ -105,6 +88,12 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
 
+    for (uint s = 0; s < numShares; s++) {
+        for (int i = 0; i < size; i++) {
+            printf("mult_buffer1[%d][%d] = %f, mult_buffer2[%d][%d] = %f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
+        }
+    }
+
     // Single Mult call for all computations
     Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, ring_size, nodeNet, ss);
 
@@ -115,6 +104,12 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
             as_bs[s][i] = mult_result[s][i + size];       // [a.s]*[b.s]
             m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
             m1[s][i] = mult_result[s][i + 3 * size];        // mantissa m1 = [b.m] * (1 - 2 * [b.s])
+        }
+    }
+
+    for (uint s = 0; s < numShares; s++) {
+        for (int i = 0; i < size; i++) {
+            printf("az_bz[%d][%d] = %f, as_bs[%d][%d] = %f, m0[%d][%d] = %f, m1[%d][%d] = %f\n", s, i, az_bz[s][i], s, i, as_bs[s][i], s, i, m0[s][i], s, i, m1[s][i]);
         }
     }
 
