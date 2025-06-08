@@ -14,6 +14,7 @@
 //   Index 3: sign
 template <typename T>
 void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, NodeNetwork &nodeNet, replicatedSecretShare<T> *ss) {
+    uint numShares = ss->getNumShares();
     printf("=== Begin FLLT: Dumping all input values ===\n");
     for (uint k = 0; k < 4; ++k) {  // 4 float components
         for (uint s = 0; s < numShares; ++s) {
@@ -33,9 +34,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
     printf("=== End of input dump ===\n");
-
-
-    uint numShares = ss->getNumShares();
 
     // Allocate arrays for all intermediate values
     T **eLT = new T *[numShares];
