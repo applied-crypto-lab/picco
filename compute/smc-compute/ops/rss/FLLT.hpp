@@ -134,19 +134,19 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
                 printf("b[2][%u][%u] = %f\n", s, i, b[2][s][i]);
                 printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
             } else if (i < 2 * size) {
-                printf("a[3][%u][%u] = %f\n", s, (i % size) - size, a[3][s][(i % size) - size]);
+                printf("a[3][%u][%u] = %f\n", s, i - size, a[3][s][i - size]);
                 printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("b[3][%u][%u] = %f\n", s, (i % size) - size, b[3][s][(i % size) - size]);
+                printf("b[3][%u][%u] = %f\n", s, i - size, b[3][s][i - size]);
                 printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
             } else if (i < 3 * size) {
-                printf("ai[%u] * 1 - 2 * a[3][%u][%u] = %f\n", s, s, (i % size) - 2 * size, (ai[s] * T(1)) - (T(2) * a[3][s][(i % size) - 2 * size]));
+                printf("ai[%u] * 1 - 2 * a[3][%u][%u] = %f\n", s, s, i - 2 * size, (ai[s] * T(1)) - (T(2) * a[3][s][i - 2 * size]));
                 printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("a[0][%u][%u] = %f\n", s, (i % size) - 2 * size, a[0][s][(i % size) - 2 * size]);
+                printf("a[0][%u][%u] = %f\n", s, i - 2 * size, a[0][s][i - 2 * size]);
                 printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
             } else {
                 printf("ai[%u] * 1 - 2 * b[3][%u][%u] = %f\n", s, s, (i % size) - 3 * size, (ai[s] * T(1)) - (T(2) * b[3][s][(i % size) - 3 * size]));
                 printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("b[0][%u][%u] = %f\n", s, (i % size) - 3 * size, b[0][s][(i % size) - 3 * size]);
+                printf("b[0][%u][%u] = %f\n", s, i - 3 * size, b[0][s][i - 3 * size]);
                 printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
             }
         }
