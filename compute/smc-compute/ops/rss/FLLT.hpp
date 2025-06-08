@@ -133,7 +133,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     // Extract results
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             az_bz[s][i] = mult_result[s][i];              // [a.z]*[b.z]
             as_bs[s][i] = mult_result[s][i + size];       // [a.s]*[b.s]
             m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
@@ -142,7 +142,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             printf("az_bz[%u][%u] = %f, as_bs[%u][%u] = %f, m0[%u][%u] = %f, m1[%u][%u] = %f\n", s, i, az_bz[s][i], s, i, as_bs[s][i], s, i, m0[s][i], s, i, m1[s][i]);
         }
     }
@@ -154,7 +154,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     // Combine steps 5, 6, and parts of 7 into a single Mult call
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             mult_buffer1[s][i] = eEQ[s][i];                    // For eEQ * mLT
             mult_buffer2[s][i] = mLT[s][i];
 
@@ -175,7 +175,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     T temp1, temp2, part1, part2;
     // Extract results and compute b+ and b-
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             temp1 = mult_result[s][i];              // eEQ * mLT
             temp2 = mult_result[s][i + size];       // (1 - eEQ) * eLT
             
@@ -186,7 +186,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     // Step 7: New approach for part 3
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             // Pack remaining multiplications
             mult_buffer1[s][i] = (ai[s] * T(1)) - b[3][s][i] - a[3][s][i]+ as_bs[s][i];  // (1 - b.s - a.s + a.s * b.s) part 4
             mult_buffer2[s][i] = b_plus[s][i];  // [b+]
@@ -200,7 +200,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, ring_size, nodeNet, ss);
     T combined_result;
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             combined_result = mult_result[s][i] +  // Result from part 4 = (1 - b.s - a.s + a.s * b.s) * [b+]
                                 mult_result[s][i + size] +  // Result from part 5 = a.s * b.s * [b-]
                                 (a[3][s][i] - as_bs[s][i]);  // (a.s - a.s * b.s)
@@ -214,7 +214,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     Mult(mult_result, mult_buffer1, mult_buffer2, size, ring_size, nodeNet, ss);
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
-        for (int i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
                 // If both are non-zero and not equal, we proceed with the result from part 3
                 // Combine results from parts 1, 2, and 3
                 part1 = mult_result[s][i + 2 * size];     // (a.z - a.z * b.z) * (1 - b.s)
