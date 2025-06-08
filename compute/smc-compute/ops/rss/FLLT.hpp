@@ -67,6 +67,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         b_minus[s] = new T[size];
         mult_buffer1[s] = new T[4 * size]; // Buffer for multiple multiplications
         mult_buffer2[s] = new T[4 * size];
+        memset(mult_buffer1[s], 0, sizeof(T) * 4 * size);
+        memset(mult_buffer2[s], 0, sizeof(T) * 4 * size);
         mult_result[s] = new T[4 * size];
         az_bz[s] = new T[size];
         as_bs[s] = new T[size];
@@ -74,10 +76,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
     T *ai = new T[numShares];
     memset(ai, 0, sizeof(T) * numShares);
-    memset(mult_buffer1[s], 0, sizeof(T) * 4 * size);
-    memset(mult_buffer2[s], 0, sizeof(T) * 4 * size);
     ss->sparsify_public(ai, 1);
-
+    
     // Step 1: Compare exponents
 
     doOperation_LTEQ(a[1], b[1], eLT, eEQ, ring_size, size, nodeNet, ss);
