@@ -88,7 +88,6 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
 
-    // Step 2: Compute mantissas
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             printf(
@@ -143,6 +142,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
+            printf("s = %u, i = %u\n", s, i);
             printf("az_bz[%u][%u] = %f, as_bs[%u][%u] = %f, m0[%u][%u] = %f, m1[%u][%u] = %f\n", s, i, az_bz[s][i], s, i, as_bs[s][i], s, i, m0[s][i], s, i, m1[s][i]);
         }
     }
