@@ -91,8 +91,21 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Step 2: Compute mantissas
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("a[0][%d][%d] = %f, a[1][%d][%d] = %f, a[2][%d][%d] = %f, a[3][%d][%d] = %f\n", s, i, a[0][s][i], s, i, a[1][s][i], s, i, a[2][s][i], s, i, a[3][s][i]);
-            printf("b[0][%d][%d] = %f, b[1][%d][%d] = %f, b[2][%d][%d] = %f, b[3][%d][%d] = %f\n", s, i, b[0][s][i], s, i, b[1][s][i], s, i, b[2][s][i], s, i, b[3][s][i]);}
+            printf(
+                "a[0][%u][%u] = %f, a[1][%u][%u] = %f, a[2][%u][%u] = %f, a[3][%u][%u] = %f\n",
+                s, i, float(a[0][s][i]),
+                s, i, float(a[1][s][i]),
+                s, i, float(a[2][s][i]),
+                s, i, float(a[3][s][i])
+            );
+            printf(
+                "b[0][%u][%u] = %f, b[1][%u][%u] = %f, b[2][%u][%u] = %f, b[3][%u][%u] = %f\n",
+                s, i, float(b[0][s][i]),
+                s, i, float(b[1][s][i]),
+                s, i, float(b[2][s][i]),
+                s, i, float(b[3][s][i])
+            );
+        }
     }
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
