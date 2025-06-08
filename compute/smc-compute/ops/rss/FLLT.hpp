@@ -111,7 +111,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             printf("IN BUFFERS\n");
-            printf('a[2][%u][%u] = %f\n', s, i, float(a[2][s][i]));
+            printf('a[2][%u][%u] = %d\n', s, i, a[2][s][i]);
             mult_buffer1[s][i] = a[2][s][i];                // [a.z]
             mult_buffer2[s][i] = b[2][s][i];                    // [b.z]
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
