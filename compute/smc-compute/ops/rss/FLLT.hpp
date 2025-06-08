@@ -143,7 +143,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     for (uint s = 0; s < numShares; s++) {
         for (int i = 0; i < size; i++) {
-            printf("az_bz[%d][%d] = %f, as_bs[%d][%d] = %f, m0[%d][%d] = %f, m1[%d][%d] = %f\n", s, i, az_bz[s][i], s, i, as_bs[s][i], s, i, m0[s][i], s, i, m1[s][i]);
+            printf("az_bz[%u][%u] = %f, as_bs[%u][%u] = %f, m0[%u][%u] = %f, m1[%u][%u] = %f\n", s, i, az_bz[s][i], s, i, as_bs[s][i], s, i, m0[s][i], s, i, m1[s][i]);
         }
     }
 
