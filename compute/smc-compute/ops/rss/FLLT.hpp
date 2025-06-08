@@ -74,6 +74,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
     T *ai = new T[numShares];
     memset(ai, 0, sizeof(T) * numShares);
+    memset(mult_buffer1[s], 0, sizeof(T) * 4 * size);
+    memset(mult_buffer2[s], 0, sizeof(T) * 4 * size);
     ss->sparsify_public(ai, 1);
 
     // Step 1: Compare exponents
