@@ -65,11 +65,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         mLT[s] = new T[size];
         b_plus[s] = new T[size];
         b_minus[s] = new T[size];
-        mult_buffer1[s] = new T[4 * size]; // Buffer for multiple multiplications
-        mult_buffer2[s] = new T[4 * size];
-        memset(mult_buffer1[s], 0, sizeof(T) * 4 * size);
-        memset(mult_buffer2[s], 0, sizeof(T) * 4 * size);
-        mult_result[s] = new T[4 * size];
+        mult_buffer1[s] = new T[3 * size]; // Buffer for multiple multiplications
+        mult_buffer2[s] = new T[3 * size];
+        mult_result[s] = new T[3 * size];
         az_bz[s] = new T[size];
         as_bs[s] = new T[size];
         part3_result[s] = new T[size];
@@ -112,31 +110,18 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("Before assignment: a[2][%u][%u]=%f, b[2][%u][%u]=%f\n", s, i, float(a[2][s][i]), s, i, float(b[2][s][i]));
+            printf("Before assignment: a[2][%u][%u]=%f\n", s, i, float(a[2][s][i]));
+            printf("Before assignment: b[2][%u][%u]=%f\n", s, i, float(b[2][s][i]));
             mult_buffer1[s][i] = a[2][s][i];
             mult_buffer2[s][i] = b[2][s][i];
-            printf("After assignment: mult_buffer1[%u][%u]=%f, mult_buffer2[%u][%u]=%f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
+            printf("After assignment: mult_buffer1[%u][%u]=%f\n", s, i, mult_buffer1[s][i]);
+            printf("After assignment: mult_buffer2[%u][%u]=%f\n", s, i, mult_buffer2[s][i]);
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
             mult_buffer2[s][i + size] = b[3][s][i];             // [b.s]
             mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1 - 2[ā.s]
             mult_buffer2[s][i + 2 * size] = a[0][s][i];                  // [ā.m]
             mult_buffer1[s][i + 3 * size] = (ai[s] * T(1)) - (T(2) * b[3][s][i]);  // 1 - 2[b̄.s]
             mult_buffer2[s][i + 3 * size] = b[0][s][i];                  // [b̄.m]
-        }
-    }
-
-    for (unsigned s = 0; s < numShares; ++s) {
-        for (unsigned i = 0; i < size; ++i) {
-            // Set test values for debugging
-            a[2][s][i] = (10 * s + i) % 2;
-            b[2][s][i] = (100 * s + i) % 2;
-    
-            printf("Before assignment: a[2][%u][%u]=%f, b[2][%u][%u]=%f\n", s, i, float(a[2][s][i]), s, i, float(b[2][s][i]));
-    
-            mult_buffer1[s][i] = a[2][s][i];
-            mult_buffer2[s][i] = b[2][s][i];
-    
-            printf("After assignment: mult_buffer1[%u][%u]=%f, mult_buffer2[%u][%u]=%f\n", s, i, mult_buffer1[s][i], s, i, mult_buffer2[s][i]);
         }
     }
 
