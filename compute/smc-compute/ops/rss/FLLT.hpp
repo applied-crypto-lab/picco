@@ -65,9 +65,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         mLT[s] = new T[size];
         b_plus[s] = new T[size];
         b_minus[s] = new T[size];
-        mult_buffer1[s] = new T[3 * size]; // Buffer for multiple multiplications
-        mult_buffer2[s] = new T[3 * size];
-        mult_result[s] = new T[3 * size];
+        mult_buffer1[s] = new T[4 * size]; // Buffer for multiple multiplications
+        mult_buffer2[s] = new T[4 * size];
+        mult_result[s] = new T[4 * size];
         az_bz[s] = new T[size];
         as_bs[s] = new T[size];
         part3_result[s] = new T[size];
