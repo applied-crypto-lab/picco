@@ -128,8 +128,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     for (unsigned s = 0; s < NUM_S; ++s) {
         for (unsigned i = 0; i < SIZE; ++i) {
             // Set test values for debugging
-            a[2][s][i] = 10 * s + i;
-            b[2][s][i] = 100 * s + i;
+            a[2][s][i] = (10 * s + i) % 2;
+            b[2][s][i] = (100 * s + i) % 2;
     
             printf("Before assignment: a[2][%u][%u]=%f, b[2][%u][%u]=%f\n", s, i, float(a[2][s][i]), s, i, float(b[2][s][i]));
     
