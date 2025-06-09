@@ -112,8 +112,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         for (uint i = 0; i < size; i++) {
             printf("Before assignment: a[2][%u][%u]=%f\n", s, i, float(a[2][s][i]));
             printf("Before assignment: b[2][%u][%u]=%f\n", s, i, float(b[2][s][i]));
-            mult_buffer1[s][i] = a[2][s][i];
-            mult_buffer2[s][i] = b[2][s][i];
+            mult_buffer1[s][i] = a[2][s][i];             // [a.z]
+            mult_buffer2[s][i] = b[2][s][i];             // [b.z]
             printf("After assignment: mult_buffer1[%u][%u]=%f\n", s, i, mult_buffer1[s][i]);
             printf("After assignment: mult_buffer2[%u][%u]=%f\n", s, i, mult_buffer2[s][i]);
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
@@ -160,7 +160,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     
 
     // Single Mult call for all computations
-    Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, ring_size, nodeNet, ss);
+    Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, nodeNet, ss);
 
     // Extract results
     for (uint s = 0; s < numShares; s++) {
