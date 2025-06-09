@@ -87,7 +87,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint totalNumShares = ss->getTotalNumShares();
     uint ring_size = ss->ring_size;
 
-    float numbers_1[14] = {
+    float numbers_1[15] = {
         1,
         1.45f,
         1.45f,
@@ -105,7 +105,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         -1.0f
     };
 
-    float numbers_2[14] = {
+    float numbers_2[15] = {
         2,
         1.10f,
         1.05f,
