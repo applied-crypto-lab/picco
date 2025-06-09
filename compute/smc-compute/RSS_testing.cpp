@@ -88,6 +88,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint ring_size = ss->ring_size;
 
     float numbers_1[14] = {
+        1,
         1.45f,
         1.45f,
         -2.0f,
@@ -105,6 +106,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     };
 
     float numbers_2[14] = {
+        2,
         1.10f,
         1.05f,
         2.0f,
