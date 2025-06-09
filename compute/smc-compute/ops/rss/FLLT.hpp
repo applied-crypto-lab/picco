@@ -88,6 +88,13 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         }
     }
 
+    for (uint s = 0; s < numShares; ++s)
+    for (uint i = 0; i < size; ++i) {
+        a[2][s][i] = 1.23 * (i+1); // or any pattern you like
+        b[2][s][i] = 4.56 * (i+1);
+    }
+
+
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             printf(
