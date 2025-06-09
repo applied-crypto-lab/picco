@@ -168,7 +168,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Print the results of the multiplication
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < 4 * size; i++) {
-            printf("mult_result_tmp[%u][%u] = %f\n", s, i, mult_resul_tmp[s][i]);
+            printf("mult_result_tmp[%u][%u] = %f\n", s, i, mult_result_tmp[s][i]);
         }
     }
 
