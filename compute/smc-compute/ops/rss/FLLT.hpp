@@ -165,20 +165,15 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     // Extract results
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
+            printf("s = %u, i = %u\n", s, i);
+            printf("az_bz or mult_result[%u][%u] = %f\n", s, i, mult_result[s][i]);
+            printf("as_bs or mult_result[%u][%u + size] = %f\n", s, i, mult_result[s][i + size]);
+            printf("m0 or mult_result[%u][%u + 2 * size] = %f\n", s, i, mult_result[s][i + 2 * size]);
+            printf("m1 or mult_result[%u][%u + 3 * size] = %f\n", s, i, mult_result[s][i + 3 * size]);
             az_bz[s][i] = mult_result[s][i];              // [a.z] * [b.z]
             as_bs[s][i] = mult_result[s][i + size];       // [a.s] * [b.s]
             m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
             m1[s][i] = mult_result[s][i + 3 * size];        // mantissa m1 = [b.m] * (1 - 2 * [b.s])
-        }
-    }
-
-    for (uint s = 0; s < numShares; s++) {
-        for (uint i = 0; i < size; i++) {
-            printf("s = %u, i = %u\n", s, i);
-            printf("az_bz[%u][%u] = %f\n", s, i, az_bz[s][i]);
-            printf("as_bs[%u][%u] = %f\n", s, i, as_bs[s][i]);
-            printf("m0[%u][%u] = %f\n", s, i, m0[s][i]);
-            printf("m1[%u][%u] = %f\n", s, i, m1[s][i]);
         }
     }
 
