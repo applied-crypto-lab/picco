@@ -48,6 +48,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     T **mult_buffer1 = new T *[numShares];
     T **mult_buffer2 = new T *[numShares];
     T **mult_result = new T *[numShares];
+    T **mult_result_tmp = new T *[numShares];
 
     T **part3_result = new T *[numShares];
 
@@ -68,6 +69,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
         mult_buffer1[s] = new T[4 * size]; // Buffer for multiple multiplications
         mult_buffer2[s] = new T[4 * size];
         mult_result[s] = new T[4 * size];
+        mult_result_tmp[s] = new T[4 * size];
         az_bz[s] = new T[size];
         as_bs[s] = new T[size];
         part3_result[s] = new T[size];
@@ -161,6 +163,14 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
 
     // Single Mult call for all computations
     Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, ring_size, nodeNet, ss);
+    mult_result_tmp = mult_buffer1 * mult_buffer2; // Store the result of the multiplication
+
+    // Print the results of the multiplication
+    for (uint s = 0; s < numShares; s++) {
+        for (uint i = 0; i < 4 * size; i++) {
+            printf("mult_result_tmp[%u][%u] = %f\n", s, i, mult_resul_tmp[s][i]);
+        }
+    }
 
     // Extract results
     for (uint s = 0; s < numShares; s++) {
