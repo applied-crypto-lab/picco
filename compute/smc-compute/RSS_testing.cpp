@@ -1,6 +1,7 @@
 #include "rss/RSS_types.hpp"
 #include "SMC_Utils.h"
 #include "ops/rss/FLLT.hpp"
+#include "ops/rss/FLMult.hpp"
 #include <cfloat>
 
 void convertFloat(float value, int K, int L, long long **elements) {
@@ -166,8 +167,13 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     for (uint s = 0; s < numShares; ++s)
         out_1[s] = new priv_int_t[batch_size]();
 
+    priv_int_t **out_2 = new priv_int_t *[numShares];
+    for (uint s = 0; s < numShares; ++s)
+        out_2[s] = new priv_int_t[batch_size]();
+
     printf("FLLT Started running...\n");
     FLLT(in_1, in_2, out_1, batch_size, ring_size, threadID, net, ss);
+    doOperation_FLMult(in_1, in_2, out_2, batch_size, ring_size, threadID, net, ss);
     printf("FLLT Finished.\n");
 
     // Reveal and print
@@ -185,7 +191,22 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         } 
     }
 
+    priv_int_t *output_vals2 = new priv_int_t[batch_size];
+    Open(output_vals2, out_1, batch_size, -1, net, ss);
+
+    for (int i = 0; i < batch_size; ++i) {
+        int64_t corrected = (output_vals2[i] < (1ULL << 63)) ? output_vals2[i] : (int64_t)(output_vals2[i] - (1ULL << 64));
+        int expected = numbers_1[i] * numbers_2[i];
+        if (corrected != expected) {
+            printf("Input 1: %f, Input 2: %f\n", numbers_1[i], numbers_2[i]);
+            printf("Test failed for index %d: Expected %d, got %lld\n", i, expected, corrected);
+        } else {
+            printf("Test passed for index %d: Expected %d, got %lld\n", i, expected, corrected);
+        } 
+    }
+
     delete[] output_vals;
+    delete[] output_vals2;
     for (int k = 0; k < 4; ++k) {
         for (uint s = 0; s < numShares; ++s) {
             delete[] in_1[k][s];

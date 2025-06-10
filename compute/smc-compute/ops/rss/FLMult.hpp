@@ -24,6 +24,114 @@
 
 template <typename T>
 
-void doOperation_FLMult(T ***A, T ***B, T ***result, int K, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){}
+void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
+   unit numShares = ss->getNumShares();
+
+   T **m = new T *[numShares];
+   T **mq = new T *[numShares];
+   T **mqp1 = new T *[numShares];
+   T **b_bit = new T *[numShares];
+
+   T **mult_buffer1 = new T *[numShares];
+   T **mult_buffer2 = new T *[numShares];
+   T **mult_result = new T *[numShares];
+
+   T *public_val = new T[size];
+   T **const_input = new T *[numShares];
+
+   T **c_m = new T *[numShares];
+   T **c_z = new T *[numShares];
+   T **c_s = new T *[numShares];
+   T **c_e = new T *[numShares];
+   
+   for (uint s = 0; s < numShares; s++) {
+      m[s] = new T[size];
+      mq[s] = new T[size];
+      mqp1[s] = new T[size];
+      b_bit[s] = new T[size];
+
+      mult_buffer1[s] = new T[size];
+      mult_buffer2[s] = new T[size];
+      mult_result[s] = new T[size];
+
+      const_input[s] = new T[size];
+
+      c_m[s] = new T[size];
+      c_z[s] = new T[size];
+      c_s[s] = new T[size];
+      c_e[s] = new T[size];
+   }
+
+   T *ai = new T[numShares];
+   memset(ai, 0, numShares * sizeof(T));
+   ss->sparsify_public(ai, 1);
+
+   for (uint s = 0; s < numShares; s++) {
+      for (uint i = 0; i < size; i++) {
+         mult_buffer1[s][i] = a[0][s][i];                  // a.m
+         mult_buffer2[s][i] = b[0][s][i];                  // b.m
+
+         mult_buffer1[s][i + size] = a[2][s][i];           // a.z
+         mult_buffer2[s][i + size] = b[2][s][i];           // b.z
+
+         mult_buffer1[s][i + 2 * size] = a[3][s][i];       // a.s
+         mult_buffer2[s][i + 2 * size] = b[3][s][i];       // b.s
+      }
+   }
+
+   Mult(mult_result, mult_buffer1, mult_buffer2, 3 * size, threadID, net, ss);
+   // Extract results from previous computations
+   for (uint s = 0; s < numShares; s++) {
+      for (uint i = 0; i < size; i++) {
+         m[s][i] = mult_result[s][i];                      // [a.m] * [b.m]
+         c_z[s][i] = a[2][s][i] + b[2][s][i] - mult_result[s][i + size];  // [a.z] + [b.z] - [a.z] * [b.z] = [c.z]
+         c_s[s][i] = a[3][s][i] + b[3][s][i] - T(2) * mult_result[s][i + 2 * size];  // [a.s] + [b.s] - 2 * [a.s] * [b.s] = [c.s]
+      }
+   }
+
+   RNTE(mq, m, ring_size, q, size, -1, net, ss);   // Line 2 Truncate to q bits
+   RNTE(mq1, m, ring_size, q + 1, size, -1, net, ss);
+
+   for (uint i = 0; i < size; i++) {
+      public_val[i] = T(1) << (q + 1);  // 2^{q+1}
+   }
+
+   // Share the public constant to secret shares
+   ss->input(const_input, public_val, size, -1, -1, true);
+
+   doOperation_LT(b_bit, mq, const_input, 0, 0, 0, size, -1, net, ss);
+
+   for (uint s = 0; s < numShares; s++) {
+      for (uint i = 0; i < size; i++) {
+         mult_buffer1[s][i] = b_bit[s][i];               // b
+         mult_buffer2[s][i] = mq[s][i];                  // mq
+
+         mult_buffer1[s][i + size] = b_bit[s][i];        // b
+         mult_buffer2[s][i + size] = mqp1[s][i];         // mq+1
+
+         mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - c_z[s][i];  // (1 - c.z)
+         mult_buffer2[s][i + 2 * size] = a[1][s][i] + b[1][s][i] + T(q) + T(1) - b_bit[s][i]; // [a.e] + [b.e] + q + 1 - b
+      }
+   }  
+
+   Mult(mult_result, mult_buffer1, mult_buffer2, 3 * size, threadID, net, ss);
+
+   for (uint s = 0; s < numShares; s++) {
+      for (uint i = 0; i < size; i++) {
+         c_m[s][i] = mult_result[s][i] + mqp1[s][i] - mult_result[s][i + size]; // [c.m] = b * [mq] + [mq+1] - b * [mq+1]
+         c_e[s][i] = mult_result[s][i + 2 * size];             // [c.e] = (1 - c.z) * ([a.e] + [b.e] + q + 1 - b)
+      }
+   }
+
+   // Store the results in the output array
+   for (uint s = 0; s < numShares; s++) {
+      for (uint i = 0; i < size; i++) {
+         result[0][s][i] = m[s][i];          // [c.m]
+         result[1][s][i] = c_e[s][i];        // [c.e]
+         result[2][s][i] = c_z[s][i];        // [c.z]
+         result[3][s][i] = c_s[s][i];        // [c.s]
+      }
+   }
+}
 
 #endif // _FLMULT_HPP_
