@@ -167,7 +167,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     
 
     // Single Mult call for all computations
-    Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, nodeNet, ss);
+    Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, threadID, nodeNet, ss);
 
     // Compare before mult_buffer and mult_result
     for (uint s = 0; s < numShares; s++) {
