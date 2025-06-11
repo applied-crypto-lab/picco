@@ -101,7 +101,7 @@ void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int thread
    // Share the public constant to secret shares
    ss->input(const_input, public_val, size, -1, -1, true);
 
-   doOperation_LT(b_bit, mq, const_input, 0, 0, 0, size, threadId, nodeNet, ss);
+   doOperation_LT(b_bit, mq, const_input, 0, 0, ring_size, size, threadID, nodeNet, ss);
 
    for (uint s = 0; s < numShares; s++) {
       for (uint i = 0; i < size; i++) {
