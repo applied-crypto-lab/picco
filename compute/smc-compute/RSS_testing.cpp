@@ -83,6 +83,21 @@ void convertFloat(float value, int K, int L, long long **elements) {
 
 }
 
+float reconstructFloat(long long mant, long long expo, long long zero, long long sign, int K) {
+    if (zero) return 0.0f;
+    // Recover IEEE754 exponent
+    int exponent = expo + K - 1 + 127;
+    unsigned int m = (unsigned int)mant;
+    // Recover mantissa (assuming mant is stored with implicit 1 for normalized numbers)
+    m &= 0x7FFFFF; // 23 bits
+    unsigned int s = (unsigned int)sign;
+    unsigned int ieee = (s << 31) | (exponent << 23) | m;
+    float result;
+    memcpy(&result, &ieee, sizeof(float));
+    return result;
+}
+
+
 void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     uint numShares = ss->getNumShares();
     uint totalNumShares = ss->getTotalNumShares();
@@ -225,7 +240,6 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
     }
 
     delete[] output_vals;
-    delete[] output_vals2;
     for (int k = 0; k < 4; ++k) {
         for (uint s = 0; s < numShares; ++s) {
             delete[] in_1[k][s];
