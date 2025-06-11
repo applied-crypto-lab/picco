@@ -21,6 +21,9 @@
 
 #include "../../NodeNetwork.h"
 #include "../../rss/RepSecretShare.hpp"
+#include "RNTE.hpp"
+#include "Mult.hpp"
+#include "LT.hpp"
 
 template <typename T>
 
