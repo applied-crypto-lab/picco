@@ -24,8 +24,9 @@
 
 template <typename T>
 
-void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){
-   unit numShares = ss->getNumShares();
+void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss){
+   uint numShares = ss->getNumShares();
+   uint ring_size = ss->ring_size;
 
    T **m = new T *[numShares];
    T **mq = new T *[numShares];
@@ -79,7 +80,8 @@ void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int thread
       }
    }
 
-   Mult(mult_result, mult_buffer1, mult_buffer2, 3 * size, threadID, net, ss);
+   Mult(mult_result, mult_buffer1, mult_buffer2, 3 * size, threadID, nodeNet, ss);
+   
    // Extract results from previous computations
    for (uint s = 0; s < numShares; s++) {
       for (uint i = 0; i < size; i++) {
@@ -89,17 +91,17 @@ void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int thread
       }
    }
 
-   RNTE(mq, m, ring_size, q, size, -1, net, ss);   // Line 2 Truncate to q bits
-   RNTE(mq1, m, ring_size, q + 1, size, -1, net, ss);
+   RNTE(mq, m, K, -1, size, threadID, nodeNet, ss);   // Line 2 Truncate to q bits
+   RNTE(mqp1, m, K + 1, -1, size, threadID, nodeNet, ss);
 
    for (uint i = 0; i < size; i++) {
-      public_val[i] = T(1) << (q + 1);  // 2^{q+1}
+      public_val[i] = T(1) << (K + 1);  // 2^{q+1}
    }
 
    // Share the public constant to secret shares
    ss->input(const_input, public_val, size, -1, -1, true);
 
-   doOperation_LT(b_bit, mq, const_input, 0, 0, 0, size, -1, net, ss);
+   doOperation_LT(b_bit, mq, const_input, 0, 0, 0, size, threadId, nodeNet, ss);
 
    for (uint s = 0; s < numShares; s++) {
       for (uint i = 0; i < size; i++) {
@@ -110,11 +112,11 @@ void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int thread
          mult_buffer2[s][i + size] = mqp1[s][i];         // mq+1
 
          mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - c_z[s][i];  // (1 - c.z)
-         mult_buffer2[s][i + 2 * size] = a[1][s][i] + b[1][s][i] + T(q) + T(1) - b_bit[s][i]; // [a.e] + [b.e] + q + 1 - b
+         mult_buffer2[s][i + 2 * size] = a[1][s][i] + b[1][s][i] + T(K) + T(1) - b_bit[s][i]; // [a.e] + [b.e] + q + 1 - b
       }
    }  
 
-   Mult(mult_result, mult_buffer1, mult_buffer2, 3 * size, threadID, net, ss);
+   Mult(mult_result, mult_buffer1, mult_buffer2, 3 * size, threadID, nodeNet, ss);
 
    for (uint s = 0; s < numShares; s++) {
       for (uint i = 0; i < size; i++) {

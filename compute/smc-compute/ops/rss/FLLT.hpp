@@ -13,8 +13,10 @@
 //   Index 2: zero flag
 //   Index 3: sign
 template <typename T>
-void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, NodeNetwork &nodeNet, replicatedSecretShare<T> *ss) {
+void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
+    uint ring_size = ss->ring_size;
+
     printf("=== Begin FLLT: Dumping all input values ===\n");
     for (uint k = 0; k < 4; ++k) {  // 4 float components
         for (uint s = 0; s < numShares; ++s) {
@@ -195,9 +197,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     // Step 4: Mantissa comparison
-    doOperation_LT(mLT, m0, m1, 0, 0, ring_size, size, -1, nodeNet, ss);
-
-    // doOperation_LT(m0, m1, mLT, nullptr, ring_size, size, nodeNet, ss, nullptr, nullptr);
+    doOperation_LT(mLT, m0, m1, 0, 0, ring_size, size, threadID, nodeNet, ss);
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
@@ -230,7 +230,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     // Single Mult call for all four computations
-    Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, ring_size, nodeNet, ss);
+    Mult(mult_result, mult_buffer1, mult_buffer2, 4 * size, threadID, nodeNet, ss);
     
     T temp1, temp2, part1, part2;
     // Extract results and compute b+ and b-
@@ -271,7 +271,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     // Call Mult function with buffer size 2
-    Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, ring_size, nodeNet, ss);
+    Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, threadID, nodeNet, ss);
+
     T combined_result;
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
@@ -285,7 +286,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int ring_size, int threadID, No
     }
 
     // Final multiplication
-    Mult(mult_result, mult_buffer1, mult_buffer2, size, ring_size, nodeNet, ss);
+    Mult(mult_result, mult_buffer1, mult_buffer2, size, threadID, nodeNet, ss);
     // Extract results from previous computations
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
