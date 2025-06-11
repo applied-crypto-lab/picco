@@ -85,8 +85,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             printf("s = %u, i = %u\n", s, i);
-            printf("eLT[%u][%u] = %f, eEQ[%u][%u] = %f\n",
-                s, i, float(eLT[s][i]), s, i, float(eEQ[s][i]));
+            printf("eLT[%u][%u] = %u, eEQ[%u][%u] = %u\n",
+                s, i, eLT[s][i], s, i, eEQ[s][i]);
         }
     }
 
@@ -100,31 +100,31 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             printf(
-                "a[0][%u][%u] = %f, a[1][%u][%u] = %f, a[2][%u][%u] = %f, a[3][%u][%u] = %f\n",
-                s, i, float(a[0][s][i]),
-                s, i, float(a[1][s][i]),
-                s, i, float(a[2][s][i]),
-                s, i, float(a[3][s][i])
+                "a[0][%u][%u] = %u, a[1][%u][%u] = %u, a[2][%u][%u] = %u, a[3][%u][%u] = %u\n",
+                s, i, a[0][s][i],
+                s, i, a[1][s][i],
+                s, i, a[2][s][i],
+                s, i, a[3][s][i]
             );
             printf(
-                "b[0][%u][%u] = %f, b[1][%u][%u] = %f, b[2][%u][%u] = %f, b[3][%u][%u] = %f\n",
-                s, i, float(b[0][s][i]),
-                s, i, float(b[1][s][i]),
-                s, i, float(b[2][s][i]),
-                s, i, float(b[3][s][i])
+                "b[0][%u][%u] = %u, b[1][%u][%u] = %u, b[2][%u][%u] = %u, b[3][%u][%u] = %u\n",
+                s, i, b[0][s][i],
+                s, i, b[1][s][i],
+                s, i, b[2][s][i],
+                s, i, b[3][s][i]
             );
         }
     }
 
     // Compute [a.z]*[b.z], [a.s]*[b.s], and mantissas in parallel
     for (uint s = 0; s < numShares; s++) {
-        for (uint i = 0; i < size; i++) {
-            printf("Before assignment: a[2][%u][%u]=%f\n", s, i, float(a[2][s][i]));
-            printf("Before assignment: b[2][%u][%u]=%f\n", s, i, float(b[2][s][i]));
+        for (int i = 0; i < size; i++) {
+            printf("Before assignment: a[2][%u][%u]=%u, Before assignment: b[2][%u][%u]=%u\n", s, i, a[2][s][i], s, i, b[2][s][i]);
+            // printf("Before assignment: b[2][%u][%u]=%u\n", s, i, b[2][s][i]);
             mult_buffer1[s][i] = a[2][s][i];             // [a.z]
             mult_buffer2[s][i] = b[2][s][i];             // [b.z]
-            printf("After assignment: mult_buffer1[%u][%u]=%f\n", s, i, mult_buffer1[s][i]);
-            printf("After assignment: mult_buffer2[%u][%u]=%f\n", s, i, mult_buffer2[s][i]);
+            printf("After assignment: mult_buffer1[%u][%u]=%u\n", s, i, mult_buffer1[s][i]);
+            printf("After assignment: mult_buffer2[%u][%u]=%u\n", s, i, mult_buffer2[s][i]);
             mult_buffer1[s][i + size] = a[3][s][i];             // [a.s]
             mult_buffer2[s][i + size] = b[3][s][i];             // [b.s]
             mult_buffer1[s][i + 2 * size] = (ai[s] * T(1)) - (T(2) * a[3][s][i]);  // 1 - 2[ā.s]
@@ -138,31 +138,31 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
         for (uint i = 0; i < 4 * size; i++) { // Note: buffer is of length 4*size!
             if (i < size) {
                 // [a.z] and [b.z]
-                printf("a[2][%u][%u] = %f\n", s, i, float(a[2][s][i]));
-                printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("b[2][%u][%u] = %f\n", s, i, float(b[2][s][i]));
-                printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
+                printf("a[2][%u][%u] = %u\n", s, i, a[2][s][i]);
+                printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+                printf("b[2][%u][%u] = %u\n", s, i, b[2][s][i]);
+                printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
             } else if (i < 2 * size) {
                 // [a.s] and [b.s]
                 uint idx = i - size;
-                printf("a[3][%u][%u] = %f\n", s, idx, float(a[3][s][idx]));
-                printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("b[3][%u][%u] = %f\n", s, idx, float(b[3][s][idx]));
-                printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
+                printf("a[3][%u][%u] = %u\n", s, idx, a[3][s][idx]);
+                printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+                printf("b[3][%u][%u] = %u\n", s, idx, b[3][s][idx]);
+                printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
             } else if (i < 3 * size) {
                 // (1 - 2[a.s]) and [ā.m]
                 uint idx = i - 2 * size;
-                printf("ai[%u] * 1 - 2 * a[3][%u][%u] = %f\n", s, s, idx, float((ai[s] * T(1)) - (T(2) * a[3][s][idx])));
-                printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("a[0][%u][%u] = %f\n", s, idx, float(a[0][s][idx]));
-                printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
+                printf("ai[%u] * 1 - 2 * a[3][%u][%u] = %u\n", s, s, idx, (ai[s] * T(1)) - (T(2) * a[3][s][idx])));
+                printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+                printf("a[0][%u][%u] = %u\n", s, idx, a[0][s][idx]);
+                printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
             } else {
                 // (1 - 2[b.s]) and [b.m]
                 uint idx = i - 3 * size;
-                printf("ai[%u] * 1 - 2 * b[3][%u][%u] = %f\n", s, s, idx, float((ai[s] * T(1)) - (T(2) * b[3][s][idx])));
-                printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-                printf("b[0][%u][%u] = %f\n", s, idx, float(b[0][s][idx]));
-                printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
+                printf("ai[%u] * 1 - 2 * b[3][%u][%u] = %u\n", s, s, idx, (ai[s] * T(1)) - (T(2) * b[3][s][idx])));
+                printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+                printf("b[0][%u][%u] = %u\n", s, idx, b[0][s][idx]);
+                printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
             }
         }
     }
@@ -174,9 +174,9 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
     // Compare before mult_buffer and mult_result
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < 4 * size; i++) {
-            printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-            printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
-            printf("mult_result[%u][%u] = %f\n", s, i, mult_result[s][i]);
+            printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+            printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
+            printf("mult_result[%u][%u] = %u\n", s, i, mult_result[s][i]);
 
         }
     }
@@ -185,10 +185,10 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
             printf("s = %u, i = %u\n", s, i);
-            printf("az_bz or mult_result[%u][%u] = %f\n", s, i, mult_result[s][i]);
-            printf("as_bs or mult_result[%u][%u + size] = %f\n", s, i, mult_result[s][i + size]);
-            printf("m0 or mult_result[%u][%u + 2 * size] = %f\n", s, i, mult_result[s][i + 2 * size]);
-            printf("m1 or mult_result[%u][%u + 3 * size] = %f\n", s, i, mult_result[s][i + 3 * size]);
+            printf("az_bz or mult_result[%u][%u] = %u\n", s, i, mult_result[s][i]);
+            printf("as_bs or mult_result[%u][%u + size] = %u\n", s, i, mult_result[s][i + size]);
+            printf("m0 or mult_result[%u][%u + 2 * size] = %u\n", s, i, mult_result[s][i + 2 * size]);
+            printf("m1 or mult_result[%u][%u + 3 * size] = %u\n", s, i, mult_result[s][i + 3 * size]);
             az_bz[s][i] = mult_result[s][i];              // [a.z] * [b.z]
             as_bs[s][i] = mult_result[s][i + size];       // [a.s] * [b.s]
             m0[s][i] = mult_result[s][i + 2 * size];        // mantissa m0 = [a.m] * (1 - 2 * [a.s])
@@ -201,7 +201,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("mLT[%u][%u] = %f\n", s, i, mLT[s][i]);
+            printf("mLT[%u][%u] = %u\n", s, i, mLT[s][i]);
         }
     }
 
@@ -224,8 +224,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-            printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
+            printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+            printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
         }
     }
 
@@ -246,8 +246,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("b_plus[%u][%u] = %f\n", s, i, b_plus[s][i]);
-            printf("b_minus[%u][%u] = %f\n", s, i, b_minus[s][i]);
+            printf("b_plus[%u][%u] = %u\n", s, i, b_plus[s][i]);
+            printf("b_minus[%u][%u] = %u\n", s, i, b_minus[s][i]);
         }
     }
 
@@ -265,8 +265,8 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
     
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("mult_buffer1[%u][%u] = %f\n", s, i, mult_buffer1[s][i]);
-            printf("mult_buffer2[%u][%u] = %f\n", s, i, mult_buffer2[s][i]);
+            printf("mult_buffer1[%u][%u] = %u\n", s, i, mult_buffer1[s][i]);
+            printf("mult_buffer2[%u][%u] = %u\n", s, i, mult_buffer2[s][i]);
         }
     }
 
@@ -300,7 +300,7 @@ void FLLT(T ***a, T ***b, T **result, uint size, int threadID, NodeNetwork nodeN
 
     for (uint s = 0; s < numShares; s++) {
         for (uint i = 0; i < size; i++) {
-            printf("result[%u][%u] = %f\n", s, i, result[s][i]);
+            printf("result[%u][%u] = %u\n", s, i, result[s][i]);
         }
     }
 
