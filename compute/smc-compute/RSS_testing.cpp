@@ -172,7 +172,7 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
         out_2[s] = new priv_int_t[batch_size]();
 
     printf("FLLT Started running...\n");
-    FLLT(in_1, in_2, out_1, batch_size, threadID, net, ss);
+    FLLT(in_1, in_2, out_1, 32, batch_size, threadID, net, ss);
     doOperation_FLMult(in_1, in_2, out_2, batch_size, threadID, net, ss);
     printf("FLLT Finished.\n");
 
