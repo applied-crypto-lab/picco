@@ -54,9 +54,9 @@ void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int thread
       mqp1[s] = new T[size];
       b_bit[s] = new T[size];
 
-      mult_buffer1[s] = new T[size];
-      mult_buffer2[s] = new T[size];
-      mult_result[s] = new T[size];
+      mult_buffer1[s] = new T[4 * size];
+      mult_buffer2[s] = new T[4 * size];
+      mult_result[s] = new T[4 * size];
 
       const_input[s] = new T[size];
 
