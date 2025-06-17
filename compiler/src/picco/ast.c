@@ -21,6 +21,7 @@
 
 #include "ast.h"
 #include "ast_print.h"
+#include "parser.h"
 #include "picco.h"
 #include <assert.h>
 #include <stdarg.h>

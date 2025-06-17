@@ -4111,6 +4111,24 @@ int contains_constant(astexpr e) {
     return 0;
 }
 
+// Function to insert a variable into the list of VarEntry_var_list
+void insert_variable(const char *var_name, const char *value_str) {
+    int value = 0; // Default to 0 if value_str is NULL
+
+    if (value_str) { // Ensure value_str is not NULL before calling atoi
+        value = atoi(value_str);
+    }
+    // Print debug information
+    // printf("Inserting variable: %s with value (string): %s, converted to int: %d\n", var_name, value_str, value);
+
+    // Create a new variable entry
+    VarEntry *new_entry = (VarEntry *)malloc(sizeof(VarEntry));
+    new_entry->name = strdup(var_name); // Duplicate string
+    new_entry->value = value;
+    new_entry->next = VarEntry_var_list; // Insert at head
+    VarEntry_var_list = new_entry;
+}
+
 
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
@@ -4798,24 +4816,6 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
         parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
         exit(0); 
     }
-}
-
-// Function to insert a variable into the list of VarEntry_var_list
-void insert_variable(const char *var_name, const char *value_str) {
-    int value = 0; // Default to 0 if value_str is NULL
-
-    if (value_str) { // Ensure value_str is not NULL before calling atoi
-        value = atoi(value_str);
-    }
-    // Print debug information
-    // printf("Inserting variable: %s with value (string): %s, converted to int: %d\n", var_name, value_str, value);
-
-    // Create a new variable entry
-    VarEntry *new_entry = (VarEntry *)malloc(sizeof(VarEntry));
-    new_entry->name = strdup(var_name); // Duplicate string
-    new_entry->value = value;
-    new_entry->next = VarEntry_var_list; // Insert at head
-    VarEntry_var_list = new_entry;
 }
 
 // Function to find and return the maximum value from VarEntry_var_list
