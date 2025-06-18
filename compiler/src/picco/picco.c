@@ -85,9 +85,9 @@ int nu;
 int kappa_nu;
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 str tmp_array_max_size;
-tmp_array_max_size_int_counter = 1; // Default to 1
-array_tmp_index = 0;
-array_ftmp_index = 0;
+int tmp_array_max_size_int_counter = 1; // Default to 1
+int array_tmp_index = 0;
+int array_ftmp_index = 0;
 
 void getPrime(mpz_t, int);
 

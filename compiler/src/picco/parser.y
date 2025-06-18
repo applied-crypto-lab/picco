@@ -1,8 +1,9 @@
 %{
 /*
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) 2013 PICCO Team
+   ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
    PICCO is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -4129,6 +4130,24 @@ void insert_variable(const char *var_name, const char *value_str) {
     VarEntry_var_list = new_entry;
 }
 
+// Function to find and return the maximum value from VarEntry_var_list
+int get_max_value() {
+    if (!VarEntry_var_list) {
+        return -1; // Return a sentinel value indicating no variables exist
+    }
+
+    int max_value = VarEntry_var_list->value;
+    VarEntry *current = VarEntry_var_list;
+
+    while (current) {
+        if (current->value > max_value) {
+            max_value = current->value;
+        }
+        current = current->next;
+    }
+    return max_value;
+}
+
 
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
@@ -4818,23 +4837,6 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
     }
 }
 
-// Function to find and return the maximum value from VarEntry_var_list
-int get_max_value() {
-    if (!VarEntry_var_list) {
-        return -1; // Return a sentinel value indicating no variables exist
-    }
-
-    int max_value = VarEntry_var_list->value;
-    VarEntry *current = VarEntry_var_list;
-
-    while (current) {
-        if (current->value > max_value) {
-            max_value = current->value;
-        }
-        current = current->next;
-    }
-    return max_value;
-}
 
 // Cleanup function to free allocated memory used by VarEntry_var_list
 void free_variables() {
