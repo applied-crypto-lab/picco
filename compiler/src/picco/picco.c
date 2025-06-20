@@ -489,14 +489,14 @@ int main(int argc, char *argv[]) {
     loadConfig(argv[3]);
     nu = ceil(log2(nChoosek(peers, threshold))); //Catrina and de Hoogh, 2010, pg. 4
     kappa_nu = SECURITY_PARAMETER + nu;
-    uint map_size; // how many items are in seed_map, used to calculate buffer size
-    uint *seed_map = generateSeedMap(peers, threshold, &map_size);
+    unsigned int map_size; // how many items are in seed_map, used to calculate buffer size
+    unsigned int *seed_map = generateSeedMap(peers, threshold, &map_size);
     int map_tmp_size = sizeof(int) * 4 * map_size + 200;
     char map_tmp[map_tmp_size];
     sprintf(map_tmp, "std::vector<int> seed_map = {");
     int pos = 0;
     char text[snprintf(NULL, 0, "%li", sizeof(int)) + 1];
-    for (uint i = 0; i < map_size; i++) {
+    for (unsigned int i = 0; i < map_size; i++) {
         sprintf(text, "%i", seed_map[i]);
         strncat(map_tmp, text, strlen(text));
         if (i != (map_size - 1)) {
@@ -744,18 +744,18 @@ int nChoosek(int n, int k) {
 }
 
 // remember to de-allocate solutions wherever this function is called
-uint *generateSeedMap(uint n, uint t, uint *num_solutions) {
+unsigned int *generateSeedMap(unsigned int n, unsigned int t, unsigned int *num_solutions) {
     *num_solutions = nChoosek(n, t) / n;
-    uint *solutions = (uint *)malloc(sizeof(uint) * (*num_solutions)); //  array of size (nCt / n)
-    uint v = (1 << (n - t)) - 1;
-    uint upper_bound = 1 << n;
-    uint w, x, b1, b2, mask1, mask2, permutation;
+    unsigned int *solutions = (unsigned int *)malloc(sizeof(unsigned int) * (*num_solutions)); //  array of size (nCt / n)
+    unsigned int v = (1 << (n - t)) - 1;
+    unsigned int upper_bound = 1 << n;
+    unsigned int w, x, b1, b2, mask1, mask2, permutation;
     bool cond;
     int ctr = 0;
     while (v <= (upper_bound)) {
         // cyclic permute
         cond = true;
-        for (uint i = 0; i < n; i++) {
+        for (unsigned int i = 0; i < n; i++) {
             mask2 = ((1 << (n - i)) - 1) << i;
             mask1 = ~mask2 & ((1 << n) - 1);
             b1 = v & mask1;

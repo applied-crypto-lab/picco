@@ -94,7 +94,7 @@ extern aststmt parse_and_declare_blocklist_string(char *format, ...);
  */
 extern void exit_error(int exitvalue, char *format, ...);
 extern void warning(char *format, ...);
-uint *generateSeedMap(uint n, uint t, uint *num_solutions) ;
+unsigned int *generateSeedMap(unsigned int n, unsigned int t, unsigned int *num_solutions) ;
 
 
 extern int nChoosek(int n, int k);
