@@ -1961,6 +1961,8 @@ void ast_stmt_smc_show(aststmt tree) {
 void ast_stmt_iteration_show(aststmt tree, branchnode current) {
     switch (tree->subtype) {
     case SFOR:
+        // Fix variable scope issues in "for" loops to prevent reinitialization and potential segfaults. Added curly braces for proper scoping. 
+        fprintf(output, "\n{\n");
         // print the init
         if (tree->u.iteration.init != NULL) {
             if (tree->u.iteration.init->type == EXPRESSION)
@@ -1987,6 +1989,7 @@ void ast_stmt_iteration_show(aststmt tree, branchnode current) {
         indlev--;
         indent();
         fprintf(output, "}\n");
+        fprintf(output, "\n}\n");
         break;
 
     case SWHILE:
