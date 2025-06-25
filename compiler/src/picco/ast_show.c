@@ -63,6 +63,8 @@ int BRACEDINIT_array_decl_tmp_counter = 0; /* This is the counter to keep track 
 int BRACEDINIT_array_decl_tmp_type = 0; /* This is to keep track of the type. */
 int BRACEDINIT_array_decl_tmp_size = 0; /* This is to store the size of these arrays */
 str BRACEDINIT_array_smcset; /* This stores the smc_set functions to print it as needed. */
+bool tmp_arr_not_defined = false; /* This bool makes sure that the tmp arrays are defined only once for each expression. */
+int clear_tmp_array_index = 1; /* This index stores how many tmp arrays were declared to clear them properly. */
 
 static void indent() {
     int i;
@@ -2429,8 +2431,26 @@ void ast_stmt_show(aststmt tree, branchnode current) {
                 } else {
                     immresulttype = 0;
                 }
+                // The curly braces are added to handle the whole expression part inside them. This case is useful for init tmp arrays inside a specific scoop
+                if (immresulttype == 1) {
+                    fprintf(output, "\n{ // START \n");
+                }
                 ast_expr_show(tree->u.expr);
                 fprintf(output, ";\n");
+                // Clear the tmp arrays before closing the brackets
+                if (immresulttype == 1) {
+                    int dim = 1; // Alter if wanted to add supprt for 2D arrays 
+                    if (tree->u.expr->ftype == 1) { // Float 
+                        ast_array_float_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
+                    } else if (tree->u.expr->ftype == 0) { // Int
+                        ast_array_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
+                    }
+                    tmp_arr_not_defined = false; // Set the flag back to false after the defined tmps are cleared 
+                    clear_tmp_array_index = 1;
+                }
+                if (immresulttype == 1) {
+                    fprintf(output, "\n} // END \n");
+                }
             }
         }
         break;
@@ -2472,12 +2492,6 @@ void ast_stmt_show(aststmt tree, branchnode current) {
                 lastdef = 1;
         }
         if (declared == 0 && enterfunc == 1) {
-            if (tree->body->u.expr->left != NULL && tree->body->u.expr->left->arraytype == 1) { // if there is an expression that involve arrays
-                array_tmp_index = 0; // this is needed to make sure incase if there is another expr, these tmp variables don't get updated 
-                array_ftmp_index = 0;
-                array_ftmp_index++;
-                array_tmp_index++;
-            }
             ast_temporary_variable_declaration();
             declared = 1;
         }
@@ -3426,6 +3440,29 @@ void ast_expr_show(astexpr tree) {
         }
         /* for pri operation */
         else {
+            if (tmp_arr_not_defined == false) {
+                int array_int_tmp_index = 1;
+                int array_float_tmp_index = 1;
+                int dim = 1; // should do this
+                if (immresulttype == 1) { // if the operation is on arrays 
+                    if (tree->ftype == 1) { // Float 
+                        array_int_tmp_index = 0;
+                        if (tree->left->left) {
+                            array_float_tmp_index = 2;
+                            clear_tmp_array_index = 2;
+                        }
+                        ast_temporary_float_array_declaration(tree, dim, array_float_tmp_index);
+                    } else if (tree->ftype == 0) { // Int 
+                        if (tree->left->left) {
+                            array_int_tmp_index = 2;
+                             clear_tmp_array_index = 2;
+                        }
+                        array_float_tmp_index = 0;
+                        ast_temporary_int_array_declaration(tree, dim, array_int_tmp_index);
+                    }
+                }
+                tmp_arr_not_defined = true; // Set to true after defined once 
+            }
             if (tree->left->index > 0) {
                 ast_expr_show(tree->left);
             }
@@ -3500,7 +3537,7 @@ void ast_expr_show(astexpr tree) {
                 break;
             }
             // print two operands (consider if the operator is privately indexed)
-// LEFT
+            // LEFT
             if (is_private_indexed(tree->left) || is_ptr_dereferenced(tree->left) || is_private_struct_field(tree->left))
                 ast_print_pi_ptr_operator(tree->left, 1);
             else {
@@ -3531,7 +3568,7 @@ void ast_expr_show(astexpr tree) {
                 }
                 fprintf(output, ", ");
             }
-// RIGHT
+            // RIGHT
             if (is_private_indexed(tree->right) || is_ptr_dereferenced(tree->right) || is_private_struct_field(tree->right))
                 ast_print_pi_ptr_operator(tree->right, 2);
             else {
@@ -3615,7 +3652,7 @@ void ast_expr_show(astexpr tree) {
                         }
                     }
                     if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize);
+                        ast_expr_show(tree->left->arraysize); // Print the array size
                     } else {
                         fprintf(output, "%d", tree->left->size);
                     }
@@ -3642,15 +3679,6 @@ void ast_expr_show(astexpr tree) {
                         ast_expr_show(tree->right->arraysize);
                     }
                     fprintf(output, ", ");
-                    // The rest of the code that prints the sizes and int/float -> Find why was this deleted? 
-                    // if (tree->right->ftype == 1) {
-                    //     if (tree->right->opid != BOP_lt && tree->right->opid != BOP_gt && tree->right->opid != BOP_leq && tree->right->opid != BOP_geq && tree->right->opid != BOP_eqeq && tree->right->opid != BOP_neq)
-                    //         fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
-                    //     else
-                    //         fprintf(output, "1, ");
-                    // } else
-                    //     fprintf(output, "%d, ", tree->left->size);
-
                     if (tree->left->arraysize != NULL) {
                         ast_expr_show(tree->left->arraysize);
                     } 
@@ -3732,11 +3760,6 @@ void ast_expr_show(astexpr tree) {
         }
         break;
     case ASS:
-        // This call is used for assignment in two line cause the temp variables was originally only for function calls. The new call to generate tmp variables
-        if (declared == 0 && enterfunc == 1) {
-            ast_temporary_variable_declaration();
-            // declared = 1;
-        } 
         // This call is used for the new cast op
         if ((tree->left->flag == PRI && tree->right->flag == PRI) && (tmp_index < 1 || tmp_float_index < 1)) {
             fprintf(output, "\n");
@@ -5884,32 +5907,6 @@ void ast_tmp_clear_show(char *prefix, int sidx, int eidx) {
     }
 }
 
-
-void ast_array_tmp_clear_show(char *prefix, int sidx, int eidx) {
-    if (eidx > 0) {
-        for (ind = sidx; ind <= eidx; ind++) {
-            fprintf(output, "for(int _picco_j = 0; _picco_j < %s; _picco_j++)\n", str_string(tmp_array_max_size));
-            fprintf(output, "   ss_clear(%s%d[_picco_j]);\n", prefix, ind);
-            fprintf(output, "free(%s%d);\n\n", prefix, ind);
-        }
-    }
-}
-
-
-void ast_array_float_tmp_clear_show(char *prefix, int sidx, int eidx) {
-    if (eidx > 0) {
-        for (ind = sidx; ind <= eidx; ind++) {
-            fprintf(output, "for(int _picco_i = 0; _picco_i < %s; _picco_i++) { \n", str_string(tmp_array_max_size));
-            fprintf(output, "   for(int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
-            fprintf(output, "       ss_clear(%s%d[_picco_i][_picco_j]);\n", prefix, ind);
-            fprintf(output, "   free(%s%d[_picco_i]);\n", prefix, ind);
-            fprintf(output, "}\n", prefix, ind);
-            fprintf(output, "free(%s%d);\n\n", prefix, ind);
-        }
-    }
-}
-
-
 void ast_smc_show(char *prefix, astexpr tree) {
     fprintf(output, "%s(", prefix);
 }
@@ -6304,172 +6301,240 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
     }
 }
 
-void ast_temporary_variable_declaration() {
-    // if (technique_var == REPLICATED_SS) { // Temp fix for declaring temp array issue cause somehow the program doesn't count correctly
-        if (array_tmp_index == 0) {
-            array_tmp_index++;
-        } 
-        if (array_ftmp_index == 0) {
-            array_ftmp_index++;
-        }
-    // }
-    if (!strcmp(str_string(tmp_array_max_size), "")) {
-        str_printf(tmp_array_max_size, "1");
-    } 
+
+void ast_array_tmp_clear_show(astexpr tree, int dim, int array_int_tmp_index) {
     fprintf(output, "\n");
-    if (array_tmp_index >= 1) { // int
-        fprintf(output, "priv_int* _picco_arr_tmp%d;\n", array_tmp_index);
-        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", array_tmp_index, str_string(tmp_array_max_size));
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
-        fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", array_tmp_index);
-
-        fprintf(output, "priv_int* _picco_arr_tmp%d;\n", array_tmp_index+1);
-        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (%s));\n", array_tmp_index+1, str_string(tmp_array_max_size));
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
-        fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", array_tmp_index+1);
+    if (dim == 1) { // one-dimensional
+        for (int i = 1; i <= array_int_tmp_index; i++) {
+            fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+            ast_expr_show(tree->left->arraysize);  // Use array size here
+            fprintf(output, "; _picco_i++) {\n");
+            fprintf(output, "   ss_clear(_picco_arr_tmp%d[_picco_i]);\n", i);
+            fprintf(output, "}\n");
+            fprintf(output, "free(_picco_arr_tmp%d);\n\n", i);
+        }
+    } else if (dim == 2) { // two-dimensional
+        for (int i = 1; i <= array_int_tmp_index; i++) {
+            fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+            ast_expr_show(tree->left->arraysize);  // Use array size here for first dim
+            fprintf(output, "; _picco_i++) {\n");
+            fprintf(output, "   for (int _picco_j = 0; _picco_j < ");
+            ast_expr_show(tree->left->arraysize);  // Use array size here for second dim
+            fprintf(output, "; _picco_j++) {\n");
+            fprintf(output, "       ss_clear(_picco_arr_tmp%d[_picco_i][_picco_j]);\n", i);
+            fprintf(output, "   }\n");
+            fprintf(output, "   free(_picco_arr_tmp%d[_picco_i]);\n", i);
+            fprintf(output, "}\n");
+            fprintf(output, "free(_picco_arr_tmp%d);\n\n", i);
+        }
     }
-    if (array_ftmp_index >= 1) { // float
-        fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", array_ftmp_index);
-        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", array_ftmp_index, str_string(tmp_array_max_size));
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
-        fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", array_ftmp_index);
-        fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", array_ftmp_index);
-        fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", array_ftmp_index);
-        fprintf(output, "   }\n\n");
+    fprintf(output, "\n");
+}
 
-        fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", array_ftmp_index+1);
-        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (%s));\n", array_ftmp_index+1, str_string(tmp_array_max_size));
-        fprintf(output, "for (int _picco_i = 0; _picco_i < %s; _picco_i++)\n", str_string(tmp_array_max_size));
-        fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", array_ftmp_index+1);
-        fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", array_ftmp_index+1);
-        fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", array_ftmp_index+1);
-        fprintf(output, "   }\n\n");
+void ast_array_float_tmp_clear_show(astexpr tree, int dim, int array_float_tmp_index) {
+    fprintf(output, "\n");
+    if (dim == 1) { // one-dimensional
+        for (int i = 1; i <= array_float_tmp_index; i++) {
+            fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+            ast_expr_show(tree->left->arraysize);  // Use array size here for first dim
+            fprintf(output, "; _picco_i++) {\n");
+            fprintf(output, "   for (int _picco_j = 0; _picco_j < 4; _picco_j++) {\n");
+            fprintf(output, "       ss_clear(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", i);
+            fprintf(output, "   }\n");
+            fprintf(output, "   free(_picco_arr_ftmp%d[_picco_i]);\n", i);
+            fprintf(output, "}\n");
+            fprintf(output, "free(_picco_arr_ftmp%d);\n\n", i);
+        }
+    } else if (dim == 2) { // two-dimensional
+        for (int i = 1; i <= array_float_tmp_index; i++) {
+            fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+            ast_expr_show(tree->left->arraysize);  // Use array size here for first dim
+            fprintf(output, "; _picco_i++) {\n");
+            fprintf(output, "   for (int _picco_j = 0; _picco_j < ");
+            ast_expr_show(tree->left->arraysize);  // Use array size here for second dim
+            fprintf(output, "; _picco_j++) {\n");
+            fprintf(output, "   for (int _picco_k = 0; _picco_k < 4; _picco_k++) {\n");
+            fprintf(output, "       ss_clear(_picco_arr_ftmp%d[_picco_i][_picco_j][_picco_k]);\n", i);
+            fprintf(output, "   }\n");
+            fprintf(output, "   free(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", i);
+            fprintf(output, "   }\n");
+            fprintf(output, "   free(_picco_arr_ftmp%d[_picco_i]);\n", i);
+            fprintf(output, "}\n");
+            fprintf(output, "free(_picco_arr_ftmp%d);\n\n", i);
+        }
     }
-    
-    if (technique_var == SHAMIR_SS) {
-        if (tmp_index >= 1)
-            ast_tmp_decl_show("_picco_", 1, tmp_index);
-        if (tmp_float_index >= 1)
-            ast_float_tmp_decl_show("_picco_f", 1, tmp_float_index);
+    fprintf(output, "\n");
+}
+
+void ast_temporary_int_array_declaration(astexpr tree, int dim, int array_int_tmp_index) {
+
+    if (tree->left->arraysize != NULL) {
+        fprintf(output, "\n");
+        if (array_int_tmp_index >= 1) { // int
+            if (dim == 1) {
+                for (int i = 1; i <= array_int_tmp_index; i++) {
+                    fprintf(output, "priv_int* _picco_arr_tmp%d;\n", i);
+                    fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (", i);
+                    ast_expr_show(tree->left->arraysize);  // Use array size here
+                    fprintf(output, "));\n");
+                    fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+                    ast_expr_show(tree->left->arraysize);  // Print the array size
+                    fprintf(output, "; _picco_i++)\n");
+                    fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i]);\n\n", i);
+                }
+            } // Else if dim == 2
+        }
+    }
+}
+
+void ast_temporary_float_array_declaration(astexpr tree, int dim, int array_float_tmp_index) {
+
+    if (tree->left->arraysize != NULL) {
+        fprintf(output, "\n");
+        if (array_float_tmp_index >= 1) {
+            if (dim == 1) {
+                for (int i = 1; i <= array_float_tmp_index; i++) {
+                    fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", i);
+                    fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (", i);
+                    ast_expr_show(tree->left->arraysize);  // Use array size here
+                    fprintf(output, "));\n");
+                    fprintf(output, "for (int _picco_i = 0; _picco_i < ");
+                    ast_expr_show(tree->left->arraysize);  // Print the array size
+                    fprintf(output, "; _picco_i++)\n");
+                    fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", i);
+                    fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", i);
+                    fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", i);
+                    fprintf(output, "   }\n\n");
+                }
+            } // Else if dim == 2
+        }
+    }
+}
+
+void ast_temporary_variable_declaration() {
+
+    if (tmp_index >= 1)
+        ast_tmp_decl_show("_picco_", 1, tmp_index);
+    if (tmp_float_index >= 1)
+        ast_float_tmp_decl_show("_picco_f", 1, tmp_float_index);
+    indent();
+    fprintf(output, "void* _picco_temp_;\n ");
+    if (is_priv_int_index_appear || is_priv_float_index_appear) {
         indent();
-        fprintf(output, "void* _picco_temp_;\n ");
-        if (is_priv_int_index_appear || is_priv_float_index_appear) {
-            indent();
-            fprintf(output, "priv_int _picco_priv_ind1, _picco_priv_ind2, _picco_priv_ind3;\n");
-            indent();
-            fprintf(output, "ss_init(_picco_priv_ind1);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_priv_ind2);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_priv_ind3);\n");
-        }
+        fprintf(output, "priv_int _picco_priv_ind1, _picco_priv_ind2, _picco_priv_ind3;\n");
+        indent();
+        fprintf(output, "ss_init(_picco_priv_ind1);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_priv_ind2);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_priv_ind3);\n");
+    }
 
-        if (is_priv_int_index_appear || is_priv_int_ptr_appear) {
-            indent();
-            fprintf(output, "priv_int _picco_priv_tmp1, _picco_priv_tmp2;\n");
-            indent();
-            fprintf(output, "ss_init(_picco_priv_tmp1);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_priv_tmp2);\n");
-        }
-        if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
-            indent();
-            fprintf(output, "priv_int *_picco_priv_ftmp1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-            indent();
-            fprintf(output, "priv_int *_picco_priv_ftmp2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-            indent();
-            fprintf(output, "for(int i = 0; i < 4; i++){\n");
-            indlev++;
-            indent();
-            fprintf(output, "ss_init(_picco_priv_ftmp1[i]);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_priv_ftmp2[i]);\n");
-            indlev--;
-            fprintf(output, "}\n");
-        }
-        if (is_priv_int_ptr_appear) {
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
-        }
-        if (is_priv_float_ptr_appear) {
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
-        }
+    if (is_priv_int_index_appear || is_priv_int_ptr_appear) {
+        indent();
+        fprintf(output, "priv_int _picco_priv_tmp1, _picco_priv_tmp2;\n");
+        indent();
+        fprintf(output, "ss_init(_picco_priv_tmp1);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_priv_tmp2);\n");
+    }
+    if (is_priv_float_index_appear || is_priv_float_ptr_appear) {
+        indent();
+        fprintf(output, "priv_int *_picco_priv_ftmp1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+        indent();
+        fprintf(output, "priv_int *_picco_priv_ftmp2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+        indent();
+        fprintf(output, "for(int i = 0; i < 4; i++){\n");
+        indlev++;
+        indent();
+        fprintf(output, "ss_init(_picco_priv_ftmp1[i]);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_priv_ftmp2[i]);\n");
+        indlev--;
+        fprintf(output, "}\n");
+    }
+    if (is_priv_int_ptr_appear) {
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
+    }
+    if (is_priv_float_ptr_appear) {
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
+    }
 
-        if (is_priv_int_struct_field_appear) {
-            indent();
-            fprintf(output, "priv_int _picco_str_field_tmp_int1, _picco_str_field_tmp_int2, _picco_str_field_tmp_int3;\n");
-            indent();
-            fprintf(output, "ss_init(_picco_str_field_tmp_int1);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_str_field_tmp_int2);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_str_field_tmp_int3);\n");
-        }
+    if (is_priv_int_struct_field_appear) {
+        indent();
+        fprintf(output, "priv_int _picco_str_field_tmp_int1, _picco_str_field_tmp_int2, _picco_str_field_tmp_int3;\n");
+        indent();
+        fprintf(output, "ss_init(_picco_str_field_tmp_int1);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_str_field_tmp_int2);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_str_field_tmp_int3);\n");
+    }
 
-        if (is_priv_int_ptr_struct_field_appear) {
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr3 = __s->smc_new_ptr(1, 0);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_int_ptr = __s->smc_new_ptr(0, 0);\n");
-        }
+    if (is_priv_int_ptr_struct_field_appear) {
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr1 = __s->smc_new_ptr(1, 0);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr2 = __s->smc_new_ptr(1, 0);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_int_ptr3 = __s->smc_new_ptr(1, 0);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_int_ptr = __s->smc_new_ptr(0, 0);\n");
+    }
 
-        if (is_priv_float_struct_field_appear) {
+    if (is_priv_float_struct_field_appear) {
 
-            indent();
-            fprintf(output, "priv_int *_picco_str_field_tmp_float1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-            indent();
-            fprintf(output, "priv_int *_picco_str_field_tmp_float2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-            indent();
-            fprintf(output, "priv_int *_picco_str_field_tmp_float3 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
-            indent();
-            fprintf(output, "for(int i = 0; i < 4; i++){\n");
-            indlev++;
-            indent();
-            fprintf(output, "ss_init(_picco_str_field_tmp_float1[i]);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_str_field_tmp_float2[i]);\n");
-            indent();
-            fprintf(output, "ss_init(_picco_str_field_tmp_float3[i]);\n");
-            indlev--;
-            fprintf(output, "}\n");
-        }
+        indent();
+        fprintf(output, "priv_int *_picco_str_field_tmp_float1 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+        indent();
+        fprintf(output, "priv_int *_picco_str_field_tmp_float2 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+        indent();
+        fprintf(output, "priv_int *_picco_str_field_tmp_float3 = (priv_int*)malloc(sizeof(priv_int) * 4);\n");
+        indent();
+        fprintf(output, "for(int i = 0; i < 4; i++){\n");
+        indlev++;
+        indent();
+        fprintf(output, "ss_init(_picco_str_field_tmp_float1[i]);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_str_field_tmp_float2[i]);\n");
+        indent();
+        fprintf(output, "ss_init(_picco_str_field_tmp_float3[i]);\n");
+        indlev--;
+        fprintf(output, "}\n");
+    }
 
-        if (is_priv_float_ptr_struct_field_appear) {
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr3 = __s->smc_new_ptr(1, 1);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_float_ptr = __s->smc_new_ptr(1, 1);\n");
-        }
+    if (is_priv_float_ptr_struct_field_appear) {
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr1 = __s->smc_new_ptr(1, 1);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr2 = __s->smc_new_ptr(1, 1);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_float_ptr3 = __s->smc_new_ptr(1, 1);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_float_ptr = __s->smc_new_ptr(1, 1);\n");
+    }
 
-        if (is_priv_struct_ptr_struct_field_appear) {
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr1 = __s->smc_new_ptr(1, 2);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr2 = __s->smc_new_ptr(1, 2);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr3 = __s->smc_new_ptr(1, 2);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr4 = __s->smc_new_ptr(1, 2);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr5 = __s->smc_new_ptr(1, 2);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr6 = __s->smc_new_ptr(1, 2);\n");
-            indent();
-            fprintf(output, "priv_ptr _picco_tmp_struct_ptr = __s->smc_new_ptr(1, 2);\n");
-        }
+    if (is_priv_struct_ptr_struct_field_appear) {
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr1 = __s->smc_new_ptr(1, 2);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr2 = __s->smc_new_ptr(1, 2);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr3 = __s->smc_new_ptr(1, 2);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr4 = __s->smc_new_ptr(1, 2);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr5 = __s->smc_new_ptr(1, 2);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_str_field_tmp_struct_ptr6 = __s->smc_new_ptr(1, 2);\n");
+        indent();
+        fprintf(output, "priv_ptr _picco_tmp_struct_ptr = __s->smc_new_ptr(1, 2);\n");
     }
 }
 

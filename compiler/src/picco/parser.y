@@ -1070,7 +1070,10 @@ DOT_product_expression:
     unary_expression '@' unary_expression{
         $$ = BinaryOperator(BOP_dot, $1, $3);
         if ($1->ftype == 1 || $3->ftype == 1)
-            parse_error(1, "Dot product operation @ is only supported for integers.\n");
+            parse_error(1, "The dot product operation '@' is only supported for integers.\n");
+        if ($1->arraytype == 0 || $3->arraytype == 0) {
+            parse_error(1, "The dot product operation '@' can only be invoked on one-dimentional arrays.\n");
+        }
         set_security_flag_expr($$, $1, $3, BOP_dot); // thisisone
         set_bitlength_expr($$, $1, $3); 
     }
@@ -4130,24 +4133,6 @@ void insert_variable(const char *var_name, const char *value_str) {
     VarEntry_var_list = new_entry;
 }
 
-// Function to find and return the maximum value from VarEntry_var_list
-int get_max_value() {
-    if (!VarEntry_var_list) {
-        return -1; // Return a sentinel value indicating no variables exist
-    }
-
-    int max_value = VarEntry_var_list->value;
-    VarEntry *current = VarEntry_var_list;
-
-    while (current) {
-        if (current->value > max_value) {
-            max_value = current->value;
-        }
-        current = current->next;
-    }
-    return max_value;
-}
-
 
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
@@ -4171,28 +4156,11 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
 
                         // This code determines the array size for tmp arrays that will be used for storing immediate results -> I need to check both e1 and e2 sizes 
                         // Also, keep in mind we are only concerned about array we are operation on not all the declared arrays!
-                        tmp_array_max_size = Str("");
                         if ((e1 && e1->arraysize && e1->arraysize->u.str && atoi(e1->arraysize->u.str) != 0) || (e2 && e2->arraysize && e2->arraysize->u.str && atoi(e2->arraysize->u.str) != 0)) { 
                             // The case where all arrays are initialized using a constant, it stores the max size and writes it when needed 
                             if (e1->arraysize->u.str) insert_variable(e1->arraysize->u.str, e1->arraysize->u.str);
                             if (e2->arraysize->u.str) insert_variable(e2->arraysize->u.str, e2->arraysize->u.str);
                         }
-
-                        // This part can not be check in the time of parsing, since at this time we can only see the variable name and not the value associated with it. So, I created a table that has all the variables and their values and I just choose the max from them to handle all possible cases where a tmp array will be used                             
-                        // Use this function to find the maximum varible used in the program
-                        int max_val = get_max_value();
-
-                        if (max_val > tmp_array_max_size_int_counter) {
-                            tmp_array_max_size_int_counter = max_val;
-                        }
-
-                        str_printf(tmp_array_max_size, "%d", tmp_array_max_size_int_counter);
-
-                        // Clean the memory after the max value is found
-                        void free_variables();
-                        
-                        array_tmp_index = 1;
-                        array_ftmp_index = 1;
 
                         if (e1 && e1->arraysize && e1->arraysize->u.str && e2 && e2->arraysize && e2->arraysize->u.str && atoi(e1->arraysize->u.str) && atoi(e2->arraysize->u.str)) {
                             if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str))
@@ -4835,17 +4803,4 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
         parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
         exit(0); 
     }
-}
-
-
-// Cleanup function to free allocated memory used by VarEntry_var_list
-void free_variables() {
-    VarEntry *current = VarEntry_var_list;
-    while (current) {
-        VarEntry *temp = current;
-        current = current->next;
-        free(temp->name);
-        free(temp);
-    }
-    VarEntry_var_list = NULL;
 }

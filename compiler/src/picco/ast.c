@@ -120,6 +120,13 @@ astexpr Operator(enum exprtype type, int opid, astexpr left, astexpr right) {
             }
         }
     }
+    if (type == BOP && opid == BOP_dot) {
+        if (left->arraysize && left->arraysize->u.dtype) {
+            if (left->arraysize->u.dtype->type == 53) {
+                exit_error(1, "        The dot product operation '@' can only be invoked on one-dimentional arrays. Line: %d \n", left->l);
+            }
+        }
+    }
     return (n);
 }
 
