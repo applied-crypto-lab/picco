@@ -2445,10 +2445,10 @@ void ast_stmt_show(aststmt tree, branchnode current) {
                     } else if (tree->u.expr->ftype == 0) { // Int
                         ast_array_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
                     }
-                    tmp_arr_not_defined = false; // Set the flag back to false after the defined tmps are cleared 
                     clear_tmp_array_index = 1;
                 }
                 if (immresulttype == 1) {
+                    tmp_arr_not_defined = false; // Set the flag back to false after the defined tmps are cleared 
                     fprintf(output, "\n} // END \n");
                 }
             }
@@ -3440,11 +3440,11 @@ void ast_expr_show(astexpr tree) {
         }
         /* for pri operation */
         else {
-            if (tmp_arr_not_defined == false) {
-                int array_int_tmp_index = 1;
-                int array_float_tmp_index = 1;
-                int dim = 1; // should do this
-                if (immresulttype == 1) { // if the operation is on arrays 
+            if (immresulttype == 1) { // if the operation is on arrays
+                if (tmp_arr_not_defined == false) {
+                    int array_int_tmp_index = 1;
+                    int array_float_tmp_index = 1;
+                    int dim = 1; // should do this 
                     if (tree->ftype == 1) { // Float 
                         array_int_tmp_index = 0;
                         if (tree->left->left) {
@@ -6455,7 +6455,7 @@ void ast_temporary_float_array_declaration(astexpr tree, int dim, int array_floa
 
 void print_int(char* name) {
     indent();
-    fprintf(output, "priv_int");
+    fprintf(output, "priv_int ");
     if (technique_var == REPLICATED_SS)
         fprintf(output, "*");
     fprintf(output , "%s;\n", name);
@@ -6482,7 +6482,7 @@ void print_float(char* name) {
     if (technique_var == SHAMIR_SS) {
         indent();
         indent();
-        fprintf(output, "%s = priv_int*)malloc(sizeof(priv_int) * (4));\n", name);
+        fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", name);
         indent();
         fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
         indent();
