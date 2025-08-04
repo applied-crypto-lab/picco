@@ -203,6 +203,7 @@ For developers setting up the web server, the picco-web program is used. This re
 
   1. Server Configuration: Choose a host IP and port for the server to run on.
   2. Passcode File: Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
+  ```
     {
       "users": [
         {"input_party": 1, "passcode": "abc123"},
@@ -210,6 +211,7 @@ For developers setting up the web server, the picco-web program is used. This re
         {"input_party": 3, "passcode": "ghi789"}
       ]
     }
+  ```
   3. Command-Line Execution: Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
 
   ```
