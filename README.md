@@ -33,6 +33,17 @@ Additionally, if you wish to compile and run multithreaded user programs, the fo
 - [OMPi Compiler](https://paragroup.cse.uoi.gr/wpsite/software/ompi/) (v1.2.3)
 
 
+### Public-private key pair generation
+
+Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
+
+```
+openssl genrsa -out private_ID.pem 2048
+openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
+```
+After the key pairs are created, the public keys should be distributed to all computational parties.
+
+
 ## Compilation of PICCO
 
 To use PICCO, the following two programs need to be compiled: 
@@ -65,18 +76,18 @@ Before describing the procedure for compiling a user program, we explain the com
 The parameters can be placed in any order in the SMC config. 
 The `inputs` and `outputs` parameters allow a user to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. It will be assumed that input/output computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $N$, they are expected to be numbered 1 through $N$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
   
-**Compilation mode.** PICCO is equipped with two possible modes for compilation and execution. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols.
+**Compilation mode.** PICCO is equipped with three possible modes for compilation and execution. In *testing mode* (denoted with the flag `-t`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-web`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols. 
 
 **Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined in [the corresponding section](#restrictions-on-user-programs) apply to both deployment and measurement modes.** 
 
 **Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command:
 
 ```
-./picco [-d | -m] <user program> <SMC config> <translated program> <utility config>
+./picco [-d | -t | -m] <user program> <SMC config> <translated program> <utility config>
 ``` 
 
 Here, the arguments that the executable `picco` takes are:
-1. the compilation mode (`-d` for deployment or `-m` for measurement)
+1. the compilation mode (`-d` for deployment, `-t` for testing or `-m` for measurement)
 2. the name of the file containing user program to be translated;
 3. the of the file containing SMC config as described above;
 4. the name of a file that will store the result of user program translation as a C++ program; 
@@ -94,16 +105,16 @@ To **compile** the translated program, the program should be placed in the `comp
 The binary executable of the translated program is produced by running the following script from the `compute/` directory:
 
 ```
-./compile-usr-prog.sh [-d | -m] <user_program> <utility_config>
+./compile-usr-prog.sh [-d | -t | -m] <user_program> <utility_config>
 ```
-where `-d` and `-m` are the compilation mode flags, `user_program` is the name of the translated program generated earlier (note, without the `.cpp` extension), and `utility_config` is the name of the utility file generated for this user program in the previous step. The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
+where `-d`, `-t` and `-m` are the compilation mode flags, `user_program` is the name of the translated program generated earlier (note, without the `.cpp` extension), and `utility_config` is the name of the utility file generated for this user program in the previous step. The script produces an executable named `user_program` stored in `build/` and can later be placed in any other directory. 
 
 The **runtime config** will be used during program execution by computational parties and needs to be formed as follows. It is a text file that consists of $N$ text lines, where $N$ is the number of computational parties running the secure computation. Each line specifies information about the runtime setup and, in particular, contains the following four values separated by commas: 
 
 1. an ID of a computational party between 1 and $N$;
 2. an IP address or a domain name of the computational party;
 3. an open port number to connecting to that party;
-4. **(deployment mode only)** a file name of the public key of that party for establishing a secure communication channel (this can be specified using a path or just the file name, but in either case it must be locatable by the running program; i.e., in the latter case the file must reside in the same directory as the program being executed).
+4. **(deployment and testing mode only)** a file name of the public key of that party for establishing a secure communication channel (this can be specified using a path or just the file name, but in either case it must be locatable by the running program; i.e., in the latter case the file must reside in the same directory as the program being executed).
 
 In measurement mode, the public key filenames can be omitted leaving only the ID, IP address, and port number for each party. The four values should be listed in the specified order on each line. Note that the same runtime config file should be distributed to all computational parties. 
 
@@ -128,7 +139,7 @@ executes the following command:
 ./user_program <ID> <runtime config> 
 ```
 where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. 
-## Deployment mode setup and execution
+## Testing mode setup and execution
 
 ### Input share generation
 
@@ -175,19 +186,52 @@ Input and output in user programs is handled through built-in I/O functions `smc
   The utility program will read the input data and utility config and produce the same number of output files with shares as the number of computational parties $N$. The program's output will be stored in files named `<shares filename>ID`, where ID is the identification number for each computational party between 1 and $N$. The values of public variables are copied unmodified from the input file into the shares files, while the values of private variables are secret shared, with each computational party obtaining a single share stored in the corresponding shares file.
 
 
+## Deployment mode setup and execution
 
-### Public-private key pair generation
+### Input share generation
 
-Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
+Prior to performing secure computation, the input parties must prepare input data (that could be private, public, or both) and distribute them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to enter the inputs through a web server to produce shares of private inputs. When using the web server, you will be prompted to submit your data directly through a web form. The server requires a unique passcode for authentication before you can proceed.
 
-```
-openssl genrsa -out private_ID.pem 2048
-openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
-```
-After the key pairs are created, the public keys should be distributed to all computational parties.
+Data Submission and Format:
+For single integer or real number inputs, you will enter the values directly into a text box.
+
+For arrays and two-dimensional arrays, you will create a CSV file with your data and upload it through the web form. The format of this CSV file is identical to the format used for the original text-based input.
 
 
-### Deployment mode execution 
+Setting up the Web Server:
+For developers setting up the web server, the picco-web program is used. This requires three main setup steps:
+
+    Server Configuration: Choose a host IP and port for the server to run on.
+
+    Passcode File: Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
+
+    {
+      "users": [
+        {"input_party": 1, "passcode": "abc123"},
+        {"input_party": 2, "passcode": "def456"},
+        {"input_party": 3, "passcode": "ghi789"}
+      ]
+    }
+
+    Command-Line Execution: Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
+
+  ```
+  ./../compiler/bin/picco-web <host> <port> <utility_config> <input_config_json> <passcode_file> <share_base_name> <public_key_file1> <public_key_file2> <public_key_file3> ...
+  ```
+
+  The utility program `picco-web` the following arguments:
+
+  1. <host>: The IP address for the server (e.g., 0.0.0.0).
+  2. <port>: The port number the server listens on (e.g., 8080).
+  3. <utility_config>: The configuration file from the program translation step.
+  4. <input_config_json>: A JSON file defining the required inputs.
+  5. <passcode_file>: The path to the JSON file with user passcodes.
+  6. <share_base_name>: A prefix for the output share files.
+  7. <public_key_file1>, etc.: The public keys of the computational parties for secure communication.
+
+  The picco-web server will read the input data and the utility configuration and produce a set of encrypted shares for each of the N computational parties. The encrypted shares are stored in files named <shares filename>ID, where ID is the identification number for each computational party from 1 to N. The encrypted shares are then stored in the respective output files. During the secure computation, these encrypted shares are decrypted by the computational parties just before the computation begins.
+
+### Deployment and Testing mode execution 
 
 To initiate secure computation, each computational party executes the following command:
 ```
