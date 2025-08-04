@@ -35,7 +35,7 @@ Additionally, if you wish to compile and run multithreaded user programs, the fo
 
 ### Public-private key pair generation
 
-Programs compiled by PICCO in **deployment mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
+Programs compiled by PICCO in **deployment and testing mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
 
 ```
 openssl genrsa -out private_ID.pem 2048
@@ -78,7 +78,7 @@ The `inputs` and `outputs` parameters allow a user to run a program with inputs 
   
 **Compilation mode.** PICCO is equipped with three possible modes for compilation and execution. In *testing mode* (denoted with the flag `-t`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-utility`. In *deployment mode* (denoted with the flag `-d`), computational parties use public key cryptography in order to set up secure communication channels. Inputs to the computation (as specified in a user's program) must be properly shared beforehand using `picco-web`. In *measurement mode* (denoted with the flag `-m`) foregoes public key infrastructure, instead having parties directly establish communication channels with each other. Any secret shared private inputs are produced via local pseudorandom generators once the initial setup is completed. This mode is useful if you are exclusively interested in benchmarking specific operations or protocols. 
 
-**Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined in [the corresponding section](#restrictions-on-user-programs) apply to both deployment and measurement modes.** 
+**Note: as of this time measurement mode only supports generating shares of random private values, but not random public values. Any restrictions other restrictions outlined in [the corresponding section](#restrictions-on-user-programs) apply to all modes deployment, testing and measurement modes.** 
 
 **Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command:
 
@@ -126,7 +126,7 @@ There is currently a 5-minute timeout and 5 millisecond wait interval in the net
  <!-- **Our current implementation requires that the computational parties start the execution in a particular order:** the program has to be started by the parties in the decreasing order of their IDs, i.e., party $N$ first, then by party $N-1$, etc. with party 1 starting the program last. This is because the machines connect to each other in a specific order.  -->
 
 Based on the computational mode 
-([measurement mode](#measurement-mode-execution) or [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
+([measurement mode](#measurement-mode-execution), [testing mode](#testing-mode-setup-and-execution) and [deployment mode](#deployment-mode-setup-and-execution)), follow to the links to their respective sections.
 
 
 ## Measurement mode execution
@@ -201,10 +201,8 @@ For arrays and two-dimensional arrays, you will create a CSV file with your data
 Setting up the Web Server:
 For developers setting up the web server, the picco-web program is used. This requires three main setup steps:
 
-    Server Configuration: Choose a host IP and port for the server to run on.
-
-    Passcode File: Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
-
+  1. Server Configuration: Choose a host IP and port for the server to run on.
+  2. Passcode File: Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
     {
       "users": [
         {"input_party": 1, "passcode": "abc123"},
@@ -212,8 +210,7 @@ For developers setting up the web server, the picco-web program is used. This re
         {"input_party": 3, "passcode": "ghi789"}
       ]
     }
-
-    Command-Line Execution: Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
+  3. Command-Line Execution: Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
 
   ```
   ./../compiler/bin/picco-web <host> <port> <utility_config> <input_config_json> <passcode_file> <share_base_name> <public_key_file1> <public_key_file2> <public_key_file3> ...
@@ -221,8 +218,8 @@ For developers setting up the web server, the picco-web program is used. This re
 
   The utility program `picco-web` the following arguments:
 
-  1. <host>: The IP address for the server (e.g., 0.0.0.0).
-  2. <port>: The port number the server listens on (e.g., 8080).
+  1. host: The IP address for the server (e.g., 0.0.0.0).
+  2. port: The port number the server listens on (e.g., 8080).
   3. <utility_config>: The configuration file from the program translation step.
   4. <input_config_json>: A JSON file defining the required inputs.
   5. <passcode_file>: The path to the JSON file with user passcodes.
@@ -254,7 +251,7 @@ Here the flag `-O` indicates that the utility program will be used to reconstruc
 
 ## Restrictions on user programs
 
-**The following restrictions apply to both deployment and measurement modes.**
+**The following restrictions apply to all modes deployment, testing and measurement modes.**
 
 In the current implementation, not all features of C are supported in user programs written our extension of C. We tested a rather small subset of C reserved words and the rest are commented out (and may not go past the parser). Thus, if your program does not compile, please contact us and we will examine the code and add the necessary functionalities to the PICCO compiler. The list below provides a more detailed information about restrictions on user programs in the current implementation.
 
