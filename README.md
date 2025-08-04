@@ -211,7 +211,7 @@ For developers setting up the web server, the picco-web program is used. This re
 
   For example, if use host 0.0.0.0, and the port number is 8000, the command would be:
   ```
-  ./../compiler/bin/picco-web 127.0.0.1 8000 ...
+  ./../compiler/bin/picco-web 0.0.0.0 8000 ...
   ```
   
   2. For a public website - if you want the server to be accessible to the world (or all parties), you would use the public IP address of the server. This is the unique IP address assigned to the server by your hosting provider, and it's what other people will use to connect to it over the internet. 
