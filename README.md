@@ -192,17 +192,33 @@ Input and output in user programs is handled through built-in I/O functions `smc
 
 Prior to performing secure computation, the input parties must prepare input data (that could be private, public, or both) and distribute them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to enter the inputs through a web server to produce shares of private inputs. When using the web server, you will be prompted to submit your data directly through a web form. The server requires a unique passcode for authentication before you can proceed.
 
-Data Submission and Format:
-For single integer or real number inputs, you will enter the values directly into a text box.
+#### Data Submission and Format:
+  1. For single integer or real number inputs, you will enter the values directly into a text box.
+  2. For arrays and two-dimensional arrays, you will create a CSV file with your data and upload it through the web form. The format of this CSV file is identical to the format used for the original text-based input.
+  
 
-For arrays and two-dimensional arrays, you will create a CSV file with your data and upload it through the web form. The format of this CSV file is identical to the format used for the original text-based input.
-
-
-Setting up the Web Server:
+#### Setting up the Web Server:
 For developers setting up the web server, the picco-web program is used. This requires three main setup steps:
 
-  1. Server Configuration: Choose a host IP and port for the server to run on.
-  2. Passcode File: Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
+  ##### 1. Server Configuration: Choose a host IP and port for the server to run on.
+  ###### Running the Web Server:
+    1. For a local host setup
+    If you want to run the server on your own machine for testing or local use, you would use an IP address that refers to the machine itself. The two most common options are:
+      1. 127.0.0.1 (the loopback address): This makes the server accessible only from the machine it's running on.
+      2. 0.0.0.0: This makes the server listen on all network interfaces. This means it will be accessible from the machine itself and also from other devices on the same local network (like other computers or phones connected to the same Wi-Fi).
+
+    In this case, the command might look like this:
+      ```
+      ./../compiler/bin/picco-web 127.0.0.1 8080 ...
+      ```
+
+    2. For a public website
+    If you want the server to be accessible to the world (or all parties), you would use the public IP address of the server. This is the unique IP address assigned to the server by your hosting provider, and it's what other people will use to connect to it over the internet.
+    For example, if your server's public IP address is 203.0.113.10, the command would be:
+        ```
+      ./../compiler/bin/picco-web 203.0.113.10 80 ...
+        ```
+  ##### 2. Passcode File: Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
   ```
     {
       "users": [
@@ -212,7 +228,7 @@ For developers setting up the web server, the picco-web program is used. This re
       ]
     }
   ```
-  3. Command-Line Execution: Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
+  ##### 3. Command-Line Execution: Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
 
   ```
   ./../compiler/bin/picco-web <host> <port> <utility_config> <input_config_json> <passcode_file> <share_base_name> <public_key_file1> <public_key_file2> <public_key_file3> ...
