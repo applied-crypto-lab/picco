@@ -117,9 +117,10 @@ void pathCreater(char *final_list) {
 }
 
 // will have new argument for flag
-// If mode is true -> -m
-// If mode is false -> -d
-void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
+// If mode is 1 -> -m
+// If mode is 2 -> -d -> web-server
+// If mode is 3 -> -t -> old-deployment before integrating web-server 
+void append_new_main(int mode, char *global_priv_var, char *output_filename) {
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
@@ -140,17 +141,20 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
     
     // Check the input parameters
     // this will be different based on flag
-    if (mode) {            // -m - measurement mode
+    // If the value is set then set the mode to be called and use for append_new_main()
+    // If mode is 1 -> -m
+    // If mode is 2 -> -d -> web-server
+    // If mode is 3 -> -t -> old-deployment before integrating web-server 
+    if (mode == 1) { // -m - measurement mode
         fprintf(output_filename, // There should be EXACTLY 3 arguments passed for measurement mode
                         "\n\tif(argc != 3){\n"
                         " \tfprintf(stderr,\"Incorrect input parameters\\n\");\n"
                         "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
                         "  exit(1);\n}\n");
         fprintf(output_filename, 
-                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
-                        peers, threshold, bits, res, total_threads);
-
-    } else {               // -d - deployment mode
+                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d, %d);\n",
+                        peers, threshold, bits, res, total_threads, mode);
+    } else { // -t - testing and -d - deployment 
         fprintf(output_filename, // There should be AT LEAST 7 arguments passed
                         "\nif(argc < 8){\n"
                         "  fprintf(stderr,\"Incorrect input parameters\\n\");\n"
@@ -160,8 +164,8 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
                         "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
                         "for(int i = 0; i < argc-6; i++)\n"
                         "   IO_files[i] = argv[6+i];\n"
-                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
-                        peers, threshold, bits, res, total_threads);
+                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d, %d);\n",
+                        peers, threshold, bits, res, total_threads, mode);
     }
 
     // The SMC_Utils gets the following:
@@ -471,14 +475,19 @@ int main(int argc, char *argv[]) {
 
     // Parse command line arguments - check arguments are formed properly
     // Check if the flag is either -m or -d -> if not program exits
-    // If the value is set then set the mode boolean to be called and use for append_new_main()
-    bool mode = false;
+    // If the value is set then set the mode to be called and use for append_new_main()
+    // If mode is 1 -> -m
+    // If mode is 2 -> -d -> web-server
+    // If mode is 3 -> -t -> old-deployment before integrating web-server 
+    int mode = 0;
     if (strcmp(argv[1], "-m") == 0) {
-        mode = true;
+        mode = 1;
     } else if (strcmp(argv[1], "-d") == 0) {
-        mode = false;
+        mode = 2;
+    } else if (strcmp(argv[1], "-t") == 0) {
+        mode = 3;
     } else {
-        fprintf(stderr, "Invalid flag. Use either -m or -d.\n");
+        fprintf(stderr, "Invalid flag. Use either -m, -d, or -t.\n");
         exit(1);
     }
 
@@ -661,8 +670,9 @@ int main(int argc, char *argv[]) {
     // }
 
     // Update the Main function
-    // If mode is true -> -m
-    // If mode is false -> -d
+    // If mode is 1 -> -m
+    // If mode is 2 -> -d -> web-server
+    // If mode is 3 -> -t -> old-deployment before integrating web-server 
 
     // This can be used to print the ast tree
     // str aa = Str("");

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Form</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+</head>
+<body>
+    <h1>Provide your input here: </h1>
+    <form id="dynamic-form">
+        {% for var in config_data['variables'] if var['name'] %}
+            <div class="input-group">
+                <label for="{{ var['name'] }}" style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px;">
+                    Write an input for <strong>{{ var['name'] }}</strong>
+                    <br>
+                    <span style="font-size: 0.8em; color: #7f8c8d;">
+                        (Expecting
+                            {% if var['dimension'] == 1 %}
+                                an integer vector of size {{ var['size1'] }} (e.g., {{ "five" if var['size1'] == 5 else var['size1'] }} values stored in a CSV file).
+                            {% elif var['dimension'] == 2 %}
+                                a matrix of type {{ var['type'] }} with {{ var['size1'] }} rows and {{ var['size2'] }} columns (e.g., a table of numbers stored in a CSV file).
+                            {% else %}
+                                a single {{ var['type'] }} value.
+                            {% endif %}
+                        )
+                    </span>
+                </label>
+                <br>
+                
+                <!-- <p>Debug: Name={{ var['name'] }}, Type={{ var['type'] }}, Dimension={{ var['dimension'] }}</p> -->
+
+                {% if var['dimension'] == 0 %}
+                    {% if var['type'] == 'int' %}
+                        <input type="number" name="{{ var['name'] }}" step="1" required>
+                    {% elif var['type'] == 'float' %}
+                        <input type="number" name="{{ var['name'] }}" step="any" required>
+                    {% else %}
+                        <input type="text" name="{{ var['name'] }}" required>
+                    {% endif %}
+                {% elif var['dimension'] > 0 %}
+                    <input type="file" name="file_{{ var['name'] }}" accept=".csv" required>
+                {% else %}
+                    <input type="text" name="{{ var['name'] }}" required>
+                {% endif %}
+            </div>
+            <br>
+        {% endfor %}
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="stored-data"></div>
+
+    <!-- Store settings in hidden inputs -->
+    {% for setting in config_data['settings'] %}
+        <input type="hidden" id="technique_1" value="{{ setting['technique'] }}">
+        <input type="hidden" id="bits_1" value="{{ setting['bits'] }}">
+        <input type="hidden" id="peers_1" value="{{ setting['peers'] }}">
+        <input type="hidden" id="threshold_1" value="{{ setting['threshold'] }}">
+        <input type="hidden" id="inputs_1" value="{{ setting['inputs'] }}">
+        <input type="hidden" id="outputs_1" value="{{ setting['outputs'] }}">
+        <input type="hidden" id="modulus_1" value="{{ setting['modulus'] }}">
+    {% endfor %}
+
+    
+    <!-- Loop through peers and add hidden inputs for public keys -->
+    {% for peer in config_data['peers'] %}
+    <input type="hidden" id="public_key_{{ peer['peer'] }}" name="public_key_{{ peer['peer'] }}" value="{{ peer['public_key'] }}">
+    {% endfor %}
+
+
+    <!-- Link external JavaScript file -->
+    <script src="https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js"></script>
+    <script src="{{ url_for('static', filename='js/shamir.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/rss.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/form_handler.js') }}"></script>
+
+    <script>
+        // To reset the url and the page 
+        window.onload = function () {
+            if (window.location.search) {
+                window.location.href = window.location.pathname; // Reload the page without query parameters
+            }
+        };
+    </script>
+</body>
+</html>

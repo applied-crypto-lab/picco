@@ -33,6 +33,8 @@
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <openssl/evp.h>      // For high-level cryptographic operations (EVP interface)
+#include <openssl/err.h>      // For OpenSSL error handling
 #include <sstream>
 #include <string>
 
@@ -60,7 +62,7 @@ typedef mpz_t priv_int;
 class SMC_Utils {
 public:
     // Constructors
-    SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads);
+    SMC_Utils(int id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads, int mode);
     // Share a secret between
     int smc_open(priv_int var, int threadID);
     float smc_open(priv_int *var, int threadID);

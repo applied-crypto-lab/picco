@@ -4440,7 +4440,7 @@ void security_check_for_condition(astexpr e){
         }
            
         if(flag == 1)
-            parse_error(-1, "Public condition is expected; open private condition prior its use.\n");
+            parse_error(-1, "Loops are expected to have a public termination condition. The index variable in a FOR loop is typically public.\n");
     
 }
 

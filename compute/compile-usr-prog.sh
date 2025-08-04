@@ -1,10 +1,29 @@
 #!/bin/bash
 
 print_usage() {
-  printf "Usage: $0 [-d | -m] <user_program.cpp> <utility_config>\n"
+  printf "Usage: $0 [-t | -d | -m] <user_program.cpp> <utility_config>\n"
 }
 #  [-S (Shamir SS)]\n"
 
+mode=""
+while getopts ":tdm" option; do
+  case $option in
+    t)
+      mode="-DDEPLOYMENT=ON"   # Previously triggered by -d
+      ;;
+    d)
+      mode="-DDEPLOYMENT=ON"  # New decryption-only mode
+      ;;
+    m)
+      mode="-DDEPLOYMENT=OFF"  # Manual/test mode
+      ;;
+    \?)
+      echo "Illegal option: -$OPTARG"
+      print_usage
+      exit 1
+      ;;
+  esac
+done
 
 if test "$#" -ne 3; then
     print_usage
@@ -51,24 +70,6 @@ case $technique in
     ;;
 esac
 
-
-while getopts "dm" option; do
-  case $option in
-    d)
-      mode="-DDEPLOYMENT=ON"
-      ;;
-    m)
-      mode="-DDEPLOYMENT=OFF"
-      ;;
-    # S)
-    #   technique="-DSHAMIR=ON"
-    #   ;;
-    \?)
-      print_usage
-      exit 1
-      ;;
-  esac
-done
 
 fname="${2%%.*}"
 
