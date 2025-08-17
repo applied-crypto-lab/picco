@@ -27,21 +27,11 @@ To compile or run user programs using PICCO code, a machine should have the foll
 - [Flex](https://github.com/westes/flex.git) - fast lexical analyzer generator
 - [GNU Bison parser](https://www.gnu.org/software/bison/)
 - [CMake](https://cmake.org/)
+- [Flask](https://flask.palletsprojects.com/) - if web-server is used
 
 Additionally, if you wish to compile and run multithreaded user programs, the following library is required:
 
 - [OMPi Compiler](https://paragroup.cse.uoi.gr/wpsite/software/ompi/) (v1.2.3)
-
-
-### Public-private key pair generation
-
-Programs compiled by PICCO in **deployment and testing mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
-
-```
-openssl genrsa -out private_ID.pem 2048
-openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
-```
-After the key pairs are created, the public keys should be distributed to all computational parties.
 
 
 ## Compilation of PICCO
@@ -139,6 +129,19 @@ executes the following command:
 ./user_program <ID> <runtime config> 
 ```
 where the arguments to the program are the ID of the computational party and the name of the runtime config file, respectively. 
+
+
+### Public-private key pair generation
+
+Programs compiled by PICCO in **deployment and testing mode** use pair-wise secure channels protected using symmetric key cryptography, and the parties' public keys are used to communicate the key material. Each computational party must have a public-private key pair, and the name of a file containing a computational node's public key is stored in the runtime configuration file. In the current implementation, only RSA keys are supported, and the key stored in a file needs to be in a format compatible with what OpenSSL uses. The following example commands can be used to generate a public-private key pair for party `ID`:
+
+```
+openssl genrsa -out private_ID.pem 2048
+openssl rsa -in private_ID.pem -outform PEM -pubout -out public_ID.pem
+```
+After the key pairs are created, the public keys should be distributed to all computational parties.
+
+
 ## Testing mode setup and execution
 
 ### Input share generation
@@ -188,40 +191,38 @@ Input and output in user programs is handled through built-in I/O functions `smc
 
 ## Deployment mode setup and execution
 
-### Input share generation
-
-Prior to performing secure computation, the input parties must prepare input data (that could be private, public, or both) and distribute them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to enter the inputs through a web server to produce shares of private inputs. When using the web server, you will be prompted to submit your data directly through a web form. The server requires a unique passcode for authentication before you can proceed.
+The deployment mode allows users to submit data through a web server for secure computation. When accessing the server, you will be prompted to authenticate with a unique passcode before submitting your data. Data can be provided either directly through the web form or by uploading a file, depending on the input type.
 
 #### Data Submission and Format:
-  1. For single integer or real number inputs, you will enter the values directly into a text box.
-  2. For arrays and two-dimensional arrays, you will create a CSV file with your data and upload it through the web form. The format of this CSV file is identical to the format used for the original text-based input.
-  
+  1. Single values (integer or real number) - Enter directly into the text box.
+  2. Arrays and 2D arrays - Upload a CSV file where the data is listed in table format:
+    - 1D Array: Each element must be placed on a new row.
+      Example (array = [1, 2, 3]):
+      ```
+        1
+        2
+        3
+      ```
+    - 2D Array: Each row of the array corresponds to a row in the CSV, and each column is separated by a comma.
+      Example (array = [[1, 2], [3, 4], [5, 6]]):
+      ```
+      1,2
+      3,4
+      5,6
+      ```
 
-#### Setting up the Web Server:
-For developers setting up the web server, the picco-web program is used. This requires three main setup steps:
+#### Setting up the Web Server for developers:
+For setting up the web server, the picco-web program is used. This requires three main setup steps:
 
-  ##### 1. Server Configuration: 
-  Choose a host IP and port for the server to run on.
-  ###### Running the Web Server:
-  1. For a local host setup - if you want to run the server on your own machine for testing or local use, you would use an IP address that refers to the machine itself. The two most common options are:
-  a. 127.0.0.1 (the loopback address): This makes the server accessible only from the machine it's running on.
-  b. 0.0.0.0: This makes the server listen on all network interfaces. This means it will be accessible from the machine itself and also from other devices on the same local network (like other computers or phones connected to the same Wi-Fi).
-
-  You can use any available port number (e.g., 8000, 8080, 5000) for local testing.
-
-  For example, if use host 0.0.0.0, and the port number is 8000, the command would be:
+  ##### 1. Generating the Server Data (-G mode)
+  Before running the server, you must generate the required configuration and key files. 
   ```
-  ./../compiler/bin/picco-web 0.0.0.0 8000 ...
+    picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ...
   ```
-  
-  2. For a public website - if you want the server to be accessible to the world (or all parties), you would use the public IP address of the server. This is the unique IP address assigned to the server by your hosting provider, and it's what other people will use to connect to it over the internet. 
-
-  You can also use any open and allowed port number (e.g., 80, 443, 8080), depending on your server configuration and firewall settings.
-  
-  For example, if your server's public IP address is 203.0.113.10, and the port number is 80, the command would be:
-  ```
-  ./../compiler/bin/picco-web 203.0.113.10 80 ...
-  ```
+  1. <utility_config>: Configuration file from the program translation step.
+  2. <input_config_json>: JSON file name that will include the data for webpage. 
+  3. <public_key_file1> ... <public_key_fileN>: Public keys of the N computational parties. (Number of files depends on the number of parties.)
+        
   ##### 2. Passcode File:
   Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
   ```
@@ -233,24 +234,33 @@ For developers setting up the web server, the picco-web program is used. This re
       ]
     }
   ```
-  ##### 3. Command-Line Execution: 
-  Launch the server using the following command. The arguments specify the host, port, configuration files, and public keys of the computational parties.
+
+  ##### 3. Running the Server (-S mode) 
+  Choose a host IP and port for the server to run on. Once the data and passcodes are ready, you can run the web server.
 
   ```
-  ./../compiler/bin/picco-web <host> <port> <utility_config> <input_config_json> <passcode_file> <share_base_name> <public_key_file1> <public_key_file2> <public_key_file3> ...
+  picco-web -S <host> <port> <input_config_json> <passcode_file> <share_base_name>
+
   ```
 
   The utility program `picco-web` the following arguments:
-
-  1. host: The IP address for the server (e.g., 0.0.0.0).
-  2. port: The port number the server listens on (e.g., 8080).
-  3. <utility_config>: The configuration file from the program translation step.
-  4. <input_config_json>: A JSON file defining the required inputs.
-  5. <passcode_file>: The path to the JSON file with user passcodes.
-  6. <share_base_name>: A prefix for the output share files.
-  7. <public_key_file1>, etc.: The public keys of the computational parties for secure communication.
+  1. <host>: The IP address for the server.
+  2. <port>: Port number for the server.
+  3. <input_config_json>: JSON file name that will include the data for webpage.
+  4. <passcode_file>: Path to the JSON file with user passcodes.
+  5. <share_base_name>: Prefix for the output share files.
 
   The picco-web server will read the input data and the utility configuration and produce a set of encrypted shares for each of the N computational parties. The encrypted shares are stored in files named <shares filename>ID, where ID is the identification number for each computational party from 1 to N. The encrypted shares are then stored in the respective output files. During the secure computation, these encrypted shares are decrypted by the computational parties just before the computation begins.
+
+  #### Optional Customization for Devolopers
+
+  ##### 1. Customization of Variable Names Displayed in the Server:
+  Users can customize how input variables are displayed in the web interface by modifying the display_name field inside the input_config_json file after running the first step above. If display_name is not specified, the variable name will default to the name used in the original C program.
+
+  ##### 1. Customization of the Web-Page Style:
+  Developers can customize the look and feel of the generated web interface (fonts, colors, layout, etc.). The relevant frontend style files can be found at:
+
+  Note: The program need to be recompiled after making this customization. 
 
 ### Deployment and Testing mode execution 
 

@@ -1,5 +1,6 @@
 /*
 This code will do the following stuff:
+The mode flag in here is used to split the generating the input and running the server part on this code. 
 1. Read the argument list that is given by the user
     a. There would be three important info here:
         ./../compiler/bin/picco-web -I -d 1 public_01.pem test_utility_conf test_util_shares_A
@@ -231,158 +232,188 @@ void run_python_server(const std::string& share_name,
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 10) { // Requires at least 8 arguments (executable + 7 parameters) -> considering that the smallest number of parties allowed is 3
-        std::cerr << "Incorrect input parameters." << std::endl;
-        std::cerr << "Usage: picco-web <host> <port> <utility_config> <input_config_json> <passcode_file> <share_base_name> <public_key_file1> <public_key_file2> <public_key_file3> ..." << std::endl;
+
+    if (argc < 2) {
+        std::cerr << "Error: missing flag (-G or -S)" << std::endl;
         return 1;
     }
 
-    // Extract input filenames from arguments
-    std::string host = argv[1];
-    int port = std::stoi(argv[2]);
-    std::string utility_config_path = argv[3];        // Config file with peers, bits, etc.
-    std::string input_config_json = argv[4];          // Name of the JSON file to write
-    std::string passcode_file = argv[5];              // File to send to server
-    std::string share_base_name = argv[6];            // Base name to send to server
+    // Set the mode 
+        // 1. Generate the server mode (-G) → Generate the JSON file but do not run the server.
+        // 2. Run the server mode (-S) → Skip JSON generation and only run the server.
+    int mode;
+    if (!strcmp(argv[1], "-G") || !strcmp(argv[1], "-g"))
+        mode = 1;
+    if (!strcmp(argv[1], "-S") || !strcmp(argv[1], "-s"))
+        mode = 2;
 
-    // Public keys start from argv[5] to argv[argc - 1]
-    std::vector<std::string> public_key_filepaths;
-    for (int i = 7; i < argc; ++i) {
-        public_key_filepaths.push_back(argv[i]);
-    }
-    
-    // Read configuration lines from utility config file
-    std::vector<std::string> config_lines;
-    std::ifstream config_file(utility_config_path);
-    if (!config_file.is_open()) {
-        std::cerr << "Error: Could not open utility configuration file: " << utility_config_path << std::endl;
-        return 1;
-    }
-    std::string line;
-    while (std::getline(config_file, line)) {
-        config_lines.push_back(line); // Store each line from config file
-    }
-    config_file.close();
+    // If case 1: Usage: picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ...
+    // If case 2: picco-web -S <host> <port>  <input_config_json> <passcode_file> <share_base_name>
 
-     // Convert config lines to C-style string array
-    std::vector<const char*> c_style_config_lines;
-    for (const auto& s : config_lines) {
-        c_style_config_lines.push_back(s.c_str());
-    }
-
-    // Parse configuration to extract settings like peers, bit length, threshold, etc)
-    Settings settings;
-    parse_settings(c_style_config_lines.data(), c_style_config_lines.size(), &settings);
-
-    // Validate peer count
-    if (settings.peers <= 0) {
-        std::cerr << "Error: 'peers' setting not found or is invalid (<= 0) in " << utility_config_path << std::endl;
-        return 1;
-    }
-
-    // Check the arguments and print a message if the number of args does not match (for the exact match)
-    // Validate number of public key files matches settings.peers
-    if ((int)public_key_filepaths.size() != settings.peers) {
-        std::cerr << "Error: Number of public key files provided (" << public_key_filepaths.size()
-                  << ") does not match 'peers' setting (" << settings.peers << ")." << std::endl;
-        return 1;
-    }
-
-    // Parse declared variables from config file
-    Variable_list vars[100];
-    int var_count = 0;
-    parse_variables(c_style_config_lines.data(), c_style_config_lines.size(), vars, &var_count);
-
-    // Open the JSON file using the name provided by the user (argv[2]) 
-    FILE *json_file = fopen(input_config_json.c_str(), "w"); // << updated to use user input
-    if (!json_file) {
-        perror(("Failed to open " + input_config_json).c_str());
-        return 1;
-    }
-
-    fprintf(json_file, "{\n");
-    fprintf(json_file, "  \"settings\": [\n");
-    fprintf(json_file, "    {\n");
-    fprintf(json_file, "      \"technique\": %d,\n", settings.technique);
-    fprintf(json_file, "      \"bits\": %d,\n", settings.bits);
-    fprintf(json_file, "      \"peers\": %d,\n", settings.peers);
-    fprintf(json_file, "      \"threshold\": %d,\n", settings.threshold);
-    fprintf(json_file, "      \"inputs\": %d,\n", settings.inputs);
-    fprintf(json_file, "      \"outputs\": %d,\n", settings.outputs);
-    fprintf(json_file, "      \"modulus\": %lld\n", settings.modulus);
-    fprintf(json_file, "    }\n");
-    fprintf(json_file, "  ],\n");
-
-    // --- "peers" array with public key content (UPDATED JSON escaping) ---
-    fprintf(json_file, "  \"peers\": [\n");
-    for (size_t i = 0; i < public_key_filepaths.size(); ++i) {
-        int peer_number = i + 1; // Peers are 1-indexed
-
-        std::string public_key_content = read_file_content(public_key_filepaths[i]);
-
-        // JSON escaping for string values: backslashes, double quotes, newlines, carriage returns
-        std::string escaped_content = public_key_content;
-        size_t pos = 0;
-
-        // Escape backslashes first
-        while ((pos = escaped_content.find('\\', pos)) != std::string::npos) {
-            escaped_content.insert(pos, "\\");
-            pos += 2;
+    if (mode == 1) {
+        if (argc < 7) { // Requires at least 7 arguments (executable + 6 parameters) -> considering that the smallest number of parties allowed is 3
+            std::cerr << "Incorrect input parameters." << std::endl;
+            std::cerr << "Usage: picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ..." << std::endl;
+            return 1;
         }
 
-        // Escape double quotes
-        pos = 0;
-        while ((pos = escaped_content.find('\"', pos)) != std::string::npos) {
-            escaped_content.insert(pos, "\\");
-            pos += 2;
+        // Extract input filenames from arguments
+        std::string utility_config_path = argv[2];        // Config file with peers, bits, etc.
+        std::string input_config_json = argv[3];          // Name of the JSON file to write
+
+        // Public keys start from argv[8] to argv[argc - 1]
+        std::vector<std::string> public_key_filepaths;
+        for (int i = 4; i < argc; ++i) {
+            public_key_filepaths.push_back(argv[i]);
         }
 
-        // Escape newlines
-        pos = 0;
-        while ((pos = escaped_content.find('\n', pos)) != std::string::npos) {
-            escaped_content.replace(pos, 1, "\\n");
-            pos += 2;
+        // Read configuration lines from utility config file
+        std::vector<std::string> config_lines;
+        std::ifstream config_file(utility_config_path);
+        if (!config_file.is_open()) {
+            std::cerr << "Error: Could not open utility configuration file: " << utility_config_path << std::endl;
+            return 1;
+        }
+        std::string line;
+        while (std::getline(config_file, line)) {
+            config_lines.push_back(line); // Store each line from config file
+        }
+        config_file.close();
+
+        // Convert config lines to C-style string array
+        std::vector<const char*> c_style_config_lines;
+        for (const auto& s : config_lines) {
+            c_style_config_lines.push_back(s.c_str());
         }
 
-        // Escape carriage returns
-        pos = 0;
-        while ((pos = escaped_content.find('\r', pos)) != std::string::npos) {
-            escaped_content.replace(pos, 1, "\\r");
-            pos += 2;
+        // Parse configuration to extract settings like peers, bit length, threshold, etc)
+        Settings settings;
+        parse_settings(c_style_config_lines.data(), c_style_config_lines.size(), &settings);
+
+        // Validate peer count
+        if (settings.peers <= 0) {
+            std::cerr << "Error: 'peers' setting not found or is invalid (<= 0) in " << utility_config_path << std::endl;
+            return 1;
         }
 
-        // Write peer object
+        // Check the arguments and print a message if the number of args does not match (for the exact match)
+        // Validate number of public key files matches settings.peers
+        if ((int)public_key_filepaths.size() != settings.peers) {
+            std::cerr << "Error: Number of public key files provided (" << public_key_filepaths.size()
+                    << ") does not match 'peers' setting (" << settings.peers << ")." << std::endl;
+            return 1;
+        }
+
+        // Parse declared variables from config file
+        Variable_list vars[100];
+        int var_count = 0;
+        parse_variables(c_style_config_lines.data(), c_style_config_lines.size(), vars, &var_count);
+
+        // Open the JSON file using the name provided by the user (argv[2]) 
+        FILE *json_file = fopen(input_config_json.c_str(), "w"); // << updated to use user input
+        if (!json_file) {
+            perror(("Failed to open " + input_config_json).c_str());
+            return 1;
+        }
+
+        fprintf(json_file, "{\n");
+        fprintf(json_file, "  \"settings\": [\n");
         fprintf(json_file, "    {\n");
-        fprintf(json_file, "      \"peer\": %d,\n", peer_number);
-        fprintf(json_file, "      \"public_key\": \"%s\"\n", escaped_content.c_str());
-        fprintf(json_file, "    }%s\n", (i == public_key_filepaths.size() - 1) ? "" : ",");
+        fprintf(json_file, "      \"technique\": %d,\n", settings.technique);
+        fprintf(json_file, "      \"bits\": %d,\n", settings.bits);
+        fprintf(json_file, "      \"peers\": %d,\n", settings.peers);
+        fprintf(json_file, "      \"threshold\": %d,\n", settings.threshold);
+        fprintf(json_file, "      \"inputs\": %d,\n", settings.inputs);
+        fprintf(json_file, "      \"outputs\": %d,\n", settings.outputs);
+        fprintf(json_file, "      \"modulus\": %lld\n", settings.modulus);
+        fprintf(json_file, "    }\n");
+        fprintf(json_file, "  ],\n");
+
+        // --- "peers" array with public key content (UPDATED JSON escaping) ---
+        fprintf(json_file, "  \"peers\": [\n");
+        for (size_t i = 0; i < public_key_filepaths.size(); ++i) {
+            int peer_number = i + 1; // Peers are 1-indexed
+
+            std::string public_key_content = read_file_content(public_key_filepaths[i]);
+
+            // JSON escaping for string values: backslashes, double quotes, newlines, carriage returns
+            std::string escaped_content = public_key_content;
+            size_t pos = 0;
+
+            // Escape backslashes first
+            while ((pos = escaped_content.find('\\', pos)) != std::string::npos) {
+                escaped_content.insert(pos, "\\");
+                pos += 2;
+            }
+
+            // Escape double quotes
+            pos = 0;
+            while ((pos = escaped_content.find('\"', pos)) != std::string::npos) {
+                escaped_content.insert(pos, "\\");
+                pos += 2;
+            }
+
+            // Escape newlines
+            pos = 0;
+            while ((pos = escaped_content.find('\n', pos)) != std::string::npos) {
+                escaped_content.replace(pos, 1, "\\n");
+                pos += 2;
+            }
+
+            // Escape carriage returns
+            pos = 0;
+            while ((pos = escaped_content.find('\r', pos)) != std::string::npos) {
+                escaped_content.replace(pos, 1, "\\r");
+                pos += 2;
+            }
+
+            // Write peer object
+            fprintf(json_file, "    {\n");
+            fprintf(json_file, "      \"peer\": %d,\n", peer_number);
+            fprintf(json_file, "      \"public_key\": \"%s\"\n", escaped_content.c_str());
+            fprintf(json_file, "    }%s\n", (i == public_key_filepaths.size() - 1) ? "" : ",");
+        }
+        fprintf(json_file, "  ],\n");
+
+        // Write the "variables" section
+        fprintf(json_file, "  \"variables\": [\n");
+        for (int i = 0; i < var_count; i++) {
+            fprintf(json_file, "    {\n");
+            fprintf(json_file, "      \"name\": \"%s\",\n", vars[i].name);
+            fprintf(json_file, "      \"type\": \"%s\",\n", vars[i].type);
+            fprintf(json_file, "      \"bit_len1\": %d,\n", vars[i].bit_len1);
+            fprintf(json_file, "      \"bit_len2\": %d,\n", vars[i].bit_len2);
+            fprintf(json_file, "      \"size1\": %d,\n", vars[i].size1);
+            fprintf(json_file, "      \"size2\": %d,\n", vars[i].size2);
+            fprintf(json_file, "      \"dimension\": %d,\n", vars[i].dimensions);
+            fprintf(json_file, "      \"input_party\": %d\n", vars[i].input_party);
+            fprintf(json_file, "    }%s\n", (i == var_count - 1) ? "" : ",");
+        }
+        fprintf(json_file, "  ]\n");
+        fprintf(json_file, "}\n");
+
+        // Close JSON file
+        fclose(json_file);
+
+        printf("JSON file '%s' has been created successfully.\n", input_config_json.c_str());
+
+    } else if (mode == 2) {
+        if (argc < 7) { // Requires at least 7 arguments (executable + 6 parameters) 
+            std::cerr << "Incorrect input parameters." << std::endl;
+            std::cerr << "Usage: picco-web -S <host> <port>  <input_config_json> <passcode_file> <share_base_name>" << std::endl;
+            return 1;
+        }
+
+        // Extract input filenames from arguments
+        std::string host = argv[2];
+        int port = std::stoi(argv[3]);
+        std::string input_config_json = argv[4];          // Name of the JSON file to write
+        std::string passcode_file = argv[5];              // File to send to server
+        std::string share_base_name = argv[6];            // Base name to send to server
+
+        // --- Run the Python Server ---
+        run_python_server(share_base_name, input_config_json, passcode_file, host, port);
     }
-    fprintf(json_file, "  ],\n");
-
-    // Write the "variables" section
-    fprintf(json_file, "  \"variables\": [\n");
-    for (int i = 0; i < var_count; i++) {
-        fprintf(json_file, "    {\n");
-        fprintf(json_file, "      \"name\": \"%s\",\n", vars[i].name);
-        fprintf(json_file, "      \"type\": \"%s\",\n", vars[i].type);
-        fprintf(json_file, "      \"bit_len1\": %d,\n", vars[i].bit_len1);
-        fprintf(json_file, "      \"bit_len2\": %d,\n", vars[i].bit_len2);
-        fprintf(json_file, "      \"size1\": %d,\n", vars[i].size1);
-        fprintf(json_file, "      \"size2\": %d,\n", vars[i].size2);
-        fprintf(json_file, "      \"dimension\": %d,\n", vars[i].dimensions);
-        fprintf(json_file, "      \"input_party\": %d\n", vars[i].input_party);
-        fprintf(json_file, "    }%s\n", (i == var_count - 1) ? "" : ",");
-    }
-    fprintf(json_file, "  ]\n");
-    fprintf(json_file, "}\n");
-
-    // Close JSON file
-    fclose(json_file);
-
-    printf("JSON file '%s' has been created successfully.\n", input_config_json.c_str());
-
-    // --- Run the Python Server ---
-    run_python_server(share_base_name, input_config_json, passcode_file, host, port);
 
     return 0;
 }
