@@ -285,16 +285,17 @@ astdecl FuncDecl(astdecl decl, astdecl p) {
 astdecl InitDecl(astdecl decl, astexpr e) {
     astdecl d = Decl(DINIT, 0, decl, NULL);
     d->u.expr = e;
+    // This code was added for tmp array declarations that were used for batch arrays, was removed cause it is not used anymore
     // The code below stores all the variables with thier values to the table to be able to use them for init of temp arrays for the case if arrays in a program is init using a variable and not a constant -> this was needed because we added support for temp arrays and we needed a max size to initilize them 
-    if (e && decl->decl) {
-        if (e->u.str && decl->decl->u.id) { // Rest
-            insert_variable(decl->decl->u.id->name, e->u.str);
-        } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
-            if (decl->decl->u.expr->type == CONSTVAL) { // if Const
-                insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
-            }
-        }
-    }
+    // if (e && decl->decl) {
+    //     if (e->u.str && decl->decl->u.id) { // Rest
+    //         insert_variable(decl->decl->u.id->name, e->u.str);
+    //     } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
+    //         if (decl->decl->u.expr->type == CONSTVAL) { // if Const
+    //             insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
+    //         }
+    //     }
+    // }
     return (d);
 }
 

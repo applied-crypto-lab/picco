@@ -114,15 +114,16 @@ int     declis = 0;
  
 struct_node_stack struct_table = NULL;
 
+// This code was added for tmp array declarations that were used for batch arrays, was removed cause it is not used anymore
 // Structure for storing variables that will be declared in the program -> this table will be used to get the max array size for temp array in case the user creates arrays with a variable size and not a constant size. 
-typedef struct VarEntry {
-    char *name;
-    int value;
-    struct VarEntry *next;
-} VarEntry;
+//typedef struct VarEntry {
+//    char *name;
+//    int value;
+//    struct VarEntry *next;
+//} VarEntry;
 
 // Head of the linked list above -> I used linked list since we don't know how many variables will be there
-VarEntry *VarEntry_var_list = NULL;
+// VarEntry *VarEntry_var_list = NULL;
  
 char    *parsingstring;       /* For error reporting when parsing string */
 FILE 	*var_file; 
@@ -4116,23 +4117,22 @@ int contains_constant(astexpr e) {
 }
 
 // Function to insert a variable into the list of VarEntry_var_list
-void insert_variable(const char *var_name, const char *value_str) {
-    int value = 0; // Default to 0 if value_str is NULL
+// void insert_variable(const char *var_name, const char *value_str) {
+//     int value = 0; // Default to 0 if value_str is NULL
 
-    if (value_str) { // Ensure value_str is not NULL before calling atoi
-        value = atoi(value_str);
-    }
-    // Print debug information
-    // printf("Inserting variable: %s with value (string): %s, converted to int: %d\n", var_name, value_str, value);
+//     if (value_str) { // Ensure value_str is not NULL before calling atoi
+//         value = atoi(value_str);
+//     }
+//     // Print debug information
+//     // printf("Inserting variable: %s with value (string): %s, converted to int: %d\n", var_name, value_str, value);
 
-    // Create a new variable entry
-    VarEntry *new_entry = (VarEntry *)malloc(sizeof(VarEntry));
-    new_entry->name = strdup(var_name); // Duplicate string
-    new_entry->value = value;
-    new_entry->next = VarEntry_var_list; // Insert at head
-    VarEntry_var_list = new_entry;
-}
-
+//     // Create a new variable entry
+//     VarEntry *new_entry = (VarEntry *)malloc(sizeof(VarEntry));
+//     new_entry->name = strdup(var_name); // Duplicate string
+//     new_entry->value = value;
+//     new_entry->next = VarEntry_var_list; // Insert at head
+//     VarEntry_var_list = new_entry;
+// }
 
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
@@ -4154,13 +4154,14 @@ void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
                     if(e1->arraysize != NULL && e2->arraysize != NULL) {
                             e->arraysize = ast_expr_copy(e1->arraysize);
 
+                        // This code was added for tmp array declarations that were used for batch arrays, was removed cause it is not used anymore
                         // This code determines the array size for tmp arrays that will be used for storing immediate results -> I need to check both e1 and e2 sizes 
                         // Also, keep in mind we are only concerned about array we are operation on not all the declared arrays!
-                        if ((e1 && e1->arraysize && e1->arraysize->u.str && atoi(e1->arraysize->u.str) != 0) || (e2 && e2->arraysize && e2->arraysize->u.str && atoi(e2->arraysize->u.str) != 0)) { 
+                        //if ((e1 && e1->arraysize && e1->arraysize->u.str && atoi(e1->arraysize->u.str) != 0) || (e2 && e2->arraysize && e2->arraysize->u.str && atoi(e2->arraysize->u.str) != 0)) { 
                             // The case where all arrays are initialized using a constant, it stores the max size and writes it when needed 
-                            if (e1->arraysize->u.str) insert_variable(e1->arraysize->u.str, e1->arraysize->u.str);
-                            if (e2->arraysize->u.str) insert_variable(e2->arraysize->u.str, e2->arraysize->u.str);
-                        }
+                        //    if (e1->arraysize->u.str) insert_variable(e1->arraysize->u.str, e1->arraysize->u.str);
+                        //    if (e2->arraysize->u.str) insert_variable(e2->arraysize->u.str, e2->arraysize->u.str);
+                        //}
 
                         if (e1 && e1->arraysize && e1->arraysize->u.str && e2 && e2->arraysize && e2->arraysize->u.str && atoi(e1->arraysize->u.str) && atoi(e2->arraysize->u.str)) {
                             if (atoi(e1->arraysize->u.str) != atoi(e2->arraysize->u.str))
@@ -4440,7 +4441,7 @@ void security_check_for_condition(astexpr e){
         }
            
         if(flag == 1)
-            parse_error(-1, "Public condition is expected; open private condition prior its use.\n");
+            parse_error(-1, "Loops are expected to have a public termination condition. The index variable in a FOR loop is typically public.\n");
     
 }
 
