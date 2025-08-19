@@ -380,6 +380,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < var_count; i++) {
             fprintf(json_file, "    {\n");
             fprintf(json_file, "      \"name\": \"%s\",\n", vars[i].name);
+            fprintf(json_file, "      \"display_name\": \"%s\",\n", vars[i].name);
             fprintf(json_file, "      \"type\": \"%s\",\n", vars[i].type);
             fprintf(json_file, "      \"bit_len1\": %d,\n", vars[i].bit_len1);
             fprintf(json_file, "      \"bit_len2\": %d,\n", vars[i].bit_len2);

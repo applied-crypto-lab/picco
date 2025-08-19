@@ -194,38 +194,43 @@ Input and output in user programs is handled through built-in I/O functions `smc
 The deployment mode allows users to submit data through a web server for secure computation. When accessing the server, you will be prompted to authenticate with a unique passcode before submitting your data. Data can be provided either directly through the web form or by uploading a file, depending on the input type.
 
 #### Data Submission and Format:
-  1. Single values (integer or real number) - Enter directly into the text box.
-  2. Arrays and 2D arrays - Upload a CSV file where the data is listed in table format:
-    - 1D Array: Each element must be placed on a new row.
-      Example (array = [1, 2, 3]):
-      ```
+  1. **Single Values (integer or real number)** - Enter directly into the text box.
+  2. **1D and 2D Arrays** - Upload a CSV file where the data is listed in table format:
+    - **1D Array**: Each element must be placed on a new row.  
+        Example (`array = [1, 2, 3]`):
+        ```csv
         1
         2
         3
-      ```
-    - 2D Array: Each row of the array corresponds to a row in the CSV, and each column is separated by a comma.
-      Example (array = [[1, 2], [3, 4], [5, 6]]):
-      ```
+        ```
+
+    - **2D Array**: Each row of the array corresponds to a row in the CSV, and each column is separated by a comma.  
+      Example (`array = [[1, 2], [3, 4], [5, 6]]`):
+      ```csv
       1,2
       3,4
       5,6
       ```
 
-#### Setting up the Web Server for developers:
-For setting up the web server, the picco-web program is used. This requires three main setup steps:
+#### Setting up the Web Server (for Developers)
+For setting up the web server, the `picco-web` program is used.  
+This requires three main setup steps:
 
-  ##### 1. Generating the Server Data (-G mode)
-  Before running the server, you must generate the required configuration and key files. 
+  ##### 1. Generating the Server Data (**-G mode**)
+  Before running the server, you must generate the required configuration and key files:
+
+  ```bash
+  picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ...
   ```
-    picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ...
-  ```
-  1. <utility_config>: Configuration file from the program translation step.
-  2. <input_config_json>: JSON file name that will include the data for webpage. 
-  3. <public_key_file1> ... <public_key_fileN>: Public keys of the N computational parties. (Number of files depends on the number of parties.)
+  Arguments:
+  1. `utility_config`: Configuration file from the program translation step.
+  2. `input_config_json`: JSON file name that will include the data for webpage. 
+  3. `public_key_file1`: ... <public_key_fileN>: Public keys of the N computational parties. (Number of files depends on the number of parties.)
+  
         
   ##### 2. Passcode File:
   Create a secure JSON file containing a unique passcode for each input party. These passcodes must be shared with each party separately. The file must be formatted as follows:
-  ```
+  ```json
     {
       "users": [
         {"input_party": 1, "passcode": "abc123"},
@@ -238,29 +243,40 @@ For setting up the web server, the picco-web program is used. This requires thre
   ##### 3. Running the Server (-S mode) 
   Choose a host IP and port for the server to run on. Once the data and passcodes are ready, you can run the web server.
 
-  ```
+  ```bash
   picco-web -S <host> <port> <input_config_json> <passcode_file> <share_base_name>
-
   ```
 
-  The utility program `picco-web` the following arguments:
-  1. <host>: The IP address for the server.
-  2. <port>: Port number for the server.
-  3. <input_config_json>: JSON file name that will include the data for webpage.
-  4. <passcode_file>: Path to the JSON file with user passcodes.
-  5. <share_base_name>: Prefix for the output share files.
+  Arguments:
+  1. `host`: The IP address for the server.
+  2. `port`: Port number for the server.
+  3. `input_config_json`: JSON file name that will include the data for webpage.
+  4. `passcode_file`: Path to the JSON file with user passcodes.
+  5. `share_base_name`: Prefix for the output share files.
 
   The picco-web server will read the input data and the utility configuration and produce a set of encrypted shares for each of the N computational parties. The encrypted shares are stored in files named <shares filename>ID, where ID is the identification number for each computational party from 1 to N. The encrypted shares are then stored in the respective output files. During the secure computation, these encrypted shares are decrypted by the computational parties just before the computation begins.
 
   #### Optional Customization for Devolopers
 
   ##### 1. Customization of Variable Names Displayed in the Server:
-  Users can customize how input variables are displayed in the web interface by modifying the display_name field inside the input_config_json file after running the first step above. If display_name is not specified, the variable name will default to the name used in the original C program.
+  Users can customize how input variables are displayed in the web interface by modifying the `display_name` field inside the `input_config_json` file after running the first step above.  
+
+  - If `display_name` is not specified, the variable name will default to the name used in the original C program.
+
+  ---
 
   ##### 1. Customization of the Web-Page Style:
-  Developers can customize the look and feel of the generated web interface (fonts, colors, layout, etc.). The relevant frontend style files can be found at:
+  2. Customization of the Web-Page Style:
+  Developers can customize the look and feel of the generated web interface (fonts, colors, layout, etc.).  
+  The relevant frontend style files can be found at:
 
-  Note: The program need to be recompiled after making this customization. 
+  - **Form Structure & Behavior:** `compiler/src/web/form_handler.js`  
+  - **Webpage Layout & Design:** `compiler/src/web/dynamicform.html`  
+
+  Comments have been placed inside these files to help you identify where changes can be made for customization.  
+
+  ⚠️ **Note:** The program needs to be recompiled after making any of these customizations.
+
 
 ### Deployment and Testing mode execution 
 

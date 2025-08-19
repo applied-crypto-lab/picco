@@ -7,14 +7,14 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 </head>
 <body>
-    <h1>Provide your input here: </h1>
+    <h1>Provide your input here: </h1> <!-- Edit this line if you want to change the web page -->
     <form id="dynamic-form">
         {% for var in config_data['variables'] if var['name'] %}
             <div class="input-group">
-                <label for="{{ var['name'] }}" style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px;">
-                    Write an input for <strong>{{ var['name'] }}</strong>
+                <label for="{{ var['name'] }}" style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px;"> <!-- Edit this line if you want to change the web page -->
+                    Write an input for <strong>{{ var['display_name'] }}</strong> <!-- Edit this line if you want to change the web page -->
                     <br>
-                    <span style="font-size: 0.8em; color: #7f8c8d;">
+                    <span style="font-size: 0.8em; color: #7f8c8d;"> <!-- Edit this line if you want to change the web page -->
                         (Expecting
                             {% if var['dimension'] == 1 %}
                                 an integer vector of size {{ var['size1'] }} (e.g., {{ "five" if var['size1'] == 5 else var['size1'] }} values stored in a CSV file).

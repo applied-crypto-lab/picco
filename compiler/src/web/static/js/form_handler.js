@@ -734,7 +734,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         // If validations pass, format the data for display
         let formattedData = formatSubmittedData(formData);
-        previewDiv.innerHTML = `<h2> New Submitted Data</h2>${formattedData}`;
+        // previewDiv.innerHTML = `<h2> New Submitted Data</h2>${formattedData}`;
 
         // This array will store all the raw shares for each peer.
         // all_shares_per_party[peerIndex] will be an array of share blocks, where each share block is either
@@ -1094,7 +1094,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     },
                     body: JSON.stringify({ encrypted_variable_shares: allEncryptedShares }),
                 });
-                previewDiv.innerHTML += `<h2>Successfully submitted encrypted shares!</h2>`;
+                previewDiv.innerHTML += `<h2>Successfully submitted encrypted shares!</h2>`; // Edit this line if you want to change the web page 
             } catch (error) {
                 console.error('Error submitting data:', error);
                 previewDiv.innerHTML += `<h2 style="color: red;">Error submitting encrypted shares!</h2>`;
