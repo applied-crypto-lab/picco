@@ -197,21 +197,19 @@ The deployment mode allows users to submit data through a web server for secure 
   1. **Single Values (integer or real number)** - Enter directly into the text box.
   2. **1D and 2D Arrays** - Upload a CSV file where the data is listed in table format:
     
-- **1D Array**: Each element must be placed on a new row.  
-      Example (`array = [1, 2, 3]`):
-      ```csv
-      1
-      2
-      3
-      ```
+- **1D Array**: Each element must be placed on a new row. Example (`array = [1, 2, 3]`):
+  ```
+    1
+    2
+    3
+  ```
 
-- **2D Array**: Each row of the array corresponds to a row in the CSV, and each column is separated by a comma.  
-      Example (`array = [[1, 2], [3, 4], [5, 6]]`):
-      ```csv
-      1,2
-      3,4
-      5,6
-      ```
+- **2D Array**: Each row of the array corresponds to a row in the CSV, and each column is separated by a comma. Example (`array = [[1, 2], [3, 4], [5, 6]]`):
+  ```
+    1,2
+    3,4
+    5,6
+  ```
 
 #### Setting up the Web Server (for Developers)
 For setting up the web server, the `picco-web` program is used.  
