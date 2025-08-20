@@ -45,7 +45,7 @@ To compile both programs, one needs to go to the directory `compiler/` and run t
 ```
 ./compile.sh
 ``` 
-which produces the executable files `picco` and `picco-utility`, and moves them in the directory `compiler/bin/`. The executables correspond to the PICCO compiler and the utility, respectively, and can be placed in any directory of user's choice at a later time. 
+which produces the executable files `picco`, `picco-utility` and `picco-web`, and moves them in the directory `compiler/bin/`. The executables correspond to the PICCO compiler and the utility, respectively, and can be placed in any directory of user's choice at a later time. 
 
 These executable programs are used to compile a user's program written in an extension of C into its secure implementation, produce shares of private inputs to be used in secure computation, and reconstruct the output from the shares after secure execution of the user program. 
 
@@ -219,7 +219,7 @@ This requires three main setup steps:
   Before running the server, you must generate the required configuration and key files:
 
   ```
-  picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ...
+  ./picco-web -G <utility_config> <input_config_json> <public_key_file1> <public_key_file2> <public_key_file3> ...
   ```
   Arguments:
   1. `-G`: This mode is used to generate the required configuration and key files for the web page. These files include settings for variable inputs, display names, and cryptographic keys that the web interface needs.
@@ -244,7 +244,7 @@ This requires three main setup steps:
   Choose a host IP and port for the server to run on. Once the data and passcodes are ready, you can run the web server.
 
   ```
-  picco-web -S <host> <port> <input_config_json> <passcode_file> <share_base_name>
+  ./picco-web -S <host> <port> <input_config_json> <passcode_file> <shares_filename>
   ```
 
   Arguments:
@@ -253,9 +253,9 @@ This requires three main setup steps:
   3. `port`: Port number for the server.
   4. `input_config_json`: JSON file name that will include the data for webpage.
   5. `passcode_file`: Path to the JSON file with user passcodes.
-  6. `share_base_name`: Prefix for the output share files.
+  6. `shares_filename`: Prefix for the output share files.
 
-  The picco-web server will read the input data and the utility configuration and produce a set of encrypted shares for each of the N computational parties. The encrypted shares are stored in files named <shares filename>ID, where ID is the identification number for each computational party from 1 to N. The encrypted shares are then stored in the respective output files. During the secure computation, these encrypted shares are decrypted by the computational parties just before the computation begins.
+  The picco-web server will read the input data and the utility configuration and produce a set of encrypted shares for each of the N computational parties. The encrypted shares are stored in files named `shares_filename`ID, where ID is the identification number for each computational party from 1 to N. The encrypted shares are then stored in the respective output files. During the secure computation, these encrypted shares are decrypted by the computational parties just before the computation begins.
 
   #### Optional Customization for Devolopers
 
@@ -265,7 +265,7 @@ This requires three main setup steps:
   - If `display_name` is not specified, the variable name will default to the name used in the original C program.
 
   ##### 2. Customization of the Web-Page Style:
-  Developers can customize the look and feel of the generated web interface (fonts, colors, layout, etc.).  
+  Developers can customize the look of the generated web interface (fonts, colors, layout, etc.).  
   The relevant frontend style files can be found at:
 
   - **Form Structure & Behavior:** `compiler/src/web/form_handler.js`  
@@ -273,7 +273,7 @@ This requires three main setup steps:
 
   Comments have been placed inside these files to help you identify where changes can be made for customization.  
 
-  ⚠️ **Note:** The program needs to be recompiled after making any of these customizations.
+  ⚠️ **Note:** The web.cpp program needs to be recompiled after making the customizations in part two.
 
 
 ### Deployment and Testing mode execution 
