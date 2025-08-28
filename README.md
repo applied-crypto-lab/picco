@@ -15,7 +15,7 @@ This work can be cited as follows:
 ```
 
 
-The source code of PICCO mainly consists of two directories: *compiler* and *compute*. The compiler directory contains the source code of the PICCO compiler whose functionality is to translate a user's program into its secure implementation. The `compute` directory contains the source code of the computational framework that will be used to securely execute the user's translated program in a distributed setting.
+The source code of PICCO mainly consists of two directories: `compiler` and `compute`. The `compiler` directory contains the source code of the PICCO compiler whose functionality is to translate a user's program into its secure implementation as well as supplementary programs. The `compute` directory contains the source code of the computational framework and protocol library that will be used to securely execute the user's translated program in a distributed setting.
 
 ## Source code dependencies
 
@@ -24,10 +24,10 @@ To compile or run user programs using PICCO code, a machine should have the foll
 - [GCC](https://gcc.gnu.org/) or [LLVM/clang](https://clang.llvm.org/) (clang generally performs better than GCC and is recommended)
 - [GMP](https://gmplib.org/)
 - [OpenSSL](https://www.openssl.org/source/) (v1.1.1 or newer)
-- [Flex](https://github.com/westes/flex.git) - fast lexical analyzer generator
+- [Flex](https://github.com/westes/flex.git) -- fast lexical analyzer generator
 - [GNU Bison parser](https://www.gnu.org/software/bison/)
 - [CMake](https://cmake.org/)
-- [Flask](https://flask.palletsprojects.com/) - if web-server is used
+- [Flask](https://flask.palletsprojects.com/) if the computation is performed in the deployment mode using a web server for data entry
 
 Additionally, if you wish to compile and run multithreaded user programs, the following library is required:
 
@@ -36,18 +36,16 @@ Additionally, if you wish to compile and run multithreaded user programs, the fo
 
 ## Compilation of PICCO
 
-To use PICCO, the following two programs need to be compiled: 
-
-1. the PICCO compiler itself, and
-2. the utility program that will generate secret shares of private inputs and to assemble the output of computational results upon the completion of secure computation.
-
-To compile both programs, one needs to go to the directory `compiler/` and run the command
+The first step is to compile the compiler and supplementary programs. To do so, one needs to go to the directory `compiler/` and run the command
 ```
 ./compile.sh
-``` 
-which produces the executable files `picco`, `picco-utility` and `picco-web`, and moves them in the directory `compiler/bin/`. The executables correspond to the PICCO compiler and the utility, respectively, and can be placed in any directory of user's choice at a later time. 
+```  
+This produces three executable files:
+1. the PICCO compiler itself `picco`,
+2. the utility program `picco-utility` that performs input/output share generation and reconstruction, and
+3. the utility program `picco-web` that 
 
-These executable programs are used to compile a user's program written in an extension of C into its secure implementation, produce shares of private inputs to be used in secure computation, and reconstruct the output from the shares after secure execution of the user program. 
+After the compilation, the programs can be found in the directory `compiler/bin/` (and subsequently can be placed elsewhere). The `picco` executable is the compiler for transforming a user's program written in an extension of C into its secure implementation, while `picco-utility` and `picco-web` are used to facilitate execution of the translated programs.
 
 ## Translation of user programs
 
