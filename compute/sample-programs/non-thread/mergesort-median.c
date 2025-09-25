@@ -1,6 +1,3 @@
-// program currently does not compile, throws segfauls at the pointer access lines
-// needs further examination 
-
 public int K = 32;
 private int A[K];
 
