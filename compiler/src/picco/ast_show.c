@@ -3617,71 +3617,93 @@ void ast_expr_show(astexpr tree) {
                 fprintf(output, ", ");
             } 
             else if (immresulttype == 1) { // if the operation is on arrays  
-                if (tree->opid != BOP_band && tree->opid != BOP_land && tree->opid != BOP_bor && tree->opid != BOP_bor && tree->opid != BOP_lor && tree->opid != BOP_bxor) {
-                    if (tree->right->ftype == 1 || tree->left->ftype == 1){
-                        fprintf(output, "%d, %d, %d, %d, ", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp);
-                    } else{
-                        fprintf(output, "%d, %d, ", tree->left->size, tree->right->size);
-                    }
-                    // I need this to store the immediate results 
-                    if (tree->ftype == 1){
-                        fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
-                    } else if (tree->ftype == 0){
-                        fprintf(output, "_picco_arr_tmp%d, ", tree->index);
-                    }
-                    // The rest of the code that prints the sizes and int/float 
-                    if (tree->right->ftype == 1) { // float
-                        if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq) {
-                            if (tree->left->flag == PRI){
-                                fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                const int is_logic_op = (tree->opid == BOP_land || tree->opid == BOP_lor);
+                if (!is_logic_op) {
+                    if (tree->opid != BOP_band && tree->opid != BOP_land && tree->opid != BOP_bor && tree->opid != BOP_lor && tree->opid != BOP_bxor) {
+                        if (tree->right->ftype == 1 || tree->left->ftype == 1){
+                            fprintf(output, "%d, %d, %d, %d, ", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp);
+                        } else{
+                            fprintf(output, "%d, %d, ", tree->left->size, tree->right->size);
+                        }
+                        // I need this to store the immediate results 
+                        if (tree->ftype == 1){
+                            fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
+                        } else if (tree->ftype == 0){
+                            fprintf(output, "_picco_arr_tmp%d, ", tree->index);
+                        }
+                        // The rest of the code that prints the sizes and int/float 
+                        if (tree->right->ftype == 1) { // float
+                            if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq) {
+                                if (tree->left->flag == PRI){
+                                    fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                                } else {
+                                    fprintf(output, "%d, %d, ", tree->right->size, tree->right->sizeexp);
+                                }
                             } else {
-                                fprintf(output, "%d, %d, ", tree->right->size, tree->right->sizeexp);
+                                if (tree->left->flag == PRI){
+                                    fprintf(output, "%d, ", tree->left->size);
+                                } else {
+                                    fprintf(output, "%d, ", tree->right->size);
+                                }
                             }
-                        } else {
+                        } else { // int
                             if (tree->left->flag == PRI){
                                 fprintf(output, "%d, ", tree->left->size);
                             } else {
                                 fprintf(output, "%d, ", tree->right->size);
                             }
                         }
-                    } else { // int
-                        if (tree->left->flag == PRI){
+                        if (tree->left->arraysize != NULL) {
+                            ast_expr_show(tree->left->arraysize); // Print the array size
+                        } else {
+                            fprintf(output, "%d", tree->left->size);
+                        }
+
+                    } else {
+                        if (tree->right->ftype == 1 || tree->left->ftype == 1){
                             fprintf(output, "%d, ", tree->left->size);
                         } else {
-                            fprintf(output, "%d, ", tree->right->size);
+                            fprintf(output, "%d, ", tree->left->size);
                         }
-                    }
-                    if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize); // Print the array size
-                    } else {
-                        fprintf(output, "%d", tree->left->size);
-                    }
 
+                        // I need this to store the immediate results 
+                        if (tree->ftype == 1){
+                            fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
+                        } else if (tree->ftype == 0){
+                            fprintf(output, "_picco_arr_tmp%d, ", tree->index);
+                        }
+
+                        if (tree->left->arraysize != NULL) {
+                            ast_expr_show(tree->left->arraysize);
+                        }
+                        fprintf(output, ", ");
+                        if (tree->right->arraysize != NULL) {
+                            ast_expr_show(tree->right->arraysize);
+                        }
+                        fprintf(output, ", ");
+                        if (tree->left->arraysize != NULL) {
+                            ast_expr_show(tree->left->arraysize);
+                        } 
+                    }
                 } else {
-                    if (tree->right->ftype == 1 || tree->left->ftype == 1){
-                        fprintf(output, "%d, ", tree->left->size);
-                    } else {
-                        fprintf(output, "%d, ", tree->left->size);
-                    }
-
-                    // I need this to store the immediate results 
-                    if (tree->ftype == 1){
-                        fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
-                    } else if (tree->ftype == 0){
-                        fprintf(output, "_picco_arr_tmp%d, ", tree->index);
-                    }
-
                     if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize);
-                    }
-                    fprintf(output, ", ");
-                    if (tree->right->arraysize != NULL) {
+                        ast_expr_show(tree->left->arraysize);         // e.g., prints K
+                    } else if (tree->right->arraysize != NULL) {
                         ast_expr_show(tree->right->arraysize);
+                    } else {
+                        fprintf(output, "1");
                     }
                     fprintf(output, ", ");
-                    if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize);
-                    } 
+
+                    // out buffer: force INT boolean result buffer
+                    fprintf(output, "_picco_arr_tmp%d, ", tree->index);
+
+                    /* bitlengths */
+                    int a_bits = tree->left->size > 0 ? tree->left->size : 1;
+                    int b_bits = tree->right->size > 0 ? tree->right->size : 1;
+                    int out_bits = 1; /* boolean result */
+
+                    fprintf(output, "%d, %d, %d", a_bits, b_bits, out_bits);
                 }
 
                 char *type = (char *)malloc(sizeof(char) * buffer_size);
@@ -6243,6 +6265,11 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                                 str_printf(array_Size, tree->left->arraysize->u.sym->name);
                             else if (tree->left->arraysize && tree->left->arraysize->type == CONSTVAL)
                                 str_printf(array_Size, tree->left->arraysize->u.str);
+
+                            // This part is for having the right size as an array size in case if the left side does not have an array size
+                            if (strcmp(str_string(array_Size), "") == 0 && tree->left && tree->left->arraysize) {
+                                ast_expr_print(array_Size, tree->left->arraysize);
+                            }
 
                             // The code below is needed that in case if the type if of comparison, the left side should be checked, casue the right side could be anything 
                             if (tree->right->opid == BOP_lt || tree->right->opid == BOP_gt || tree->right->opid == BOP_leq || tree->right->opid == BOP_geq || tree->right->opid == BOP_eqeq || tree->right->opid == BOP_neq) {
