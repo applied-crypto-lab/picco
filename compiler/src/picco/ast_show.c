@@ -333,10 +333,50 @@ void ast_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index
         break;
     case EXPRESSION:
         switch (tree->u.expr->type) {
-        case ASS:
-            (*statement_index)++;
-            ast_batch_print_stmt(tree, batch_stack->head->index, *statement_index, narray_element_index, private_index, current);
-            break;
+            case ASS:
+                (*statement_index)++;
+                ast_batch_print_stmt(tree, batch_stack->head->index, *statement_index, narray_element_index, private_index, current);
+                break;
+            case IDENT:
+                break;
+            case CONSTVAL:
+                break;
+            case STRING:
+                break;
+            case FUNCCALL:
+                break;
+            case ARRAYIDX:
+                break;
+            case DOTFIELD:
+                break;
+            case PTRFIELD:
+                break;
+            case CASTEXPR:
+                break;
+            case CONDEXPR:
+                break;
+            case UOP:
+                break;
+            case BOP:
+                break;
+            case PREOP:
+                break;
+            case POSTOP:
+                break;
+            case COMMALIST:
+                break;
+            case SPACELIST:
+                break;
+            case BRACEDINIT:
+                break;
+            case DESIGNATED:
+                break;
+            case IDXDES:
+                break;
+            case DOTDES:
+                break;
+            case EPMALLOC:
+                break;
         }
         break;
     default:
@@ -1200,10 +1240,50 @@ void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_inde
     }
     case EXPRESSION:
         switch (tree->u.expr->type) {
-        case ASS:
-            (*statement_index)++;
-            ast_batch_print_index(tree, batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index);
-            break;
+            case ASS:
+                (*statement_index)++;
+                ast_batch_print_index(tree, batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index);
+                break;
+            case IDENT:
+                break;
+            case CONSTVAL:
+                break;
+            case STRING:
+                break;
+            case FUNCCALL:
+                break;
+            case ARRAYIDX:
+                break;
+            case DOTFIELD:
+                break;
+            case PTRFIELD:
+                break;
+            case CASTEXPR:
+                break;
+            case CONDEXPR:
+                break;
+            case UOP:
+                break;
+            case BOP:
+                break;
+            case PREOP:
+                break;
+            case POSTOP:
+                break;
+            case COMMALIST:
+                break;
+            case SPACELIST:
+                break;
+            case BRACEDINIT:
+                break;
+            case DESIGNATED:
+                break;
+            case IDXDES:
+                break;
+            case DOTDES:
+                break;
+            case EPMALLOC:
+                break;
         }
         break;
     default:
@@ -1412,10 +1492,12 @@ void ast_return_type_of_rop(char **type, astexpr right) {
                 else
                     sprintf(*type, "_struct");
             } else
-                sprintf(*type, "\0");
+                // sprintf(*type, "\0");
+                (*type)[0] = '\0';
         }
     } else
-        sprintf(*type, "\0");
+        // sprintf(*type, "\0");
+        (*type)[0] = '\0';
 }
 
 void ast_ptr_assignment_show(astexpr left, astexpr right, str rightop) {
@@ -1474,7 +1556,7 @@ int is_ptr_assignment(astexpr tree) {
 }
 
 void strip_off_bracket_and_dereferences(str op, astexpr tree) {
-    while (tree->type == UOP && (tree->opid == UOP_paren) || (tree->opid == UOP_star))
+    while (tree->type == UOP && ((tree->opid == UOP_paren) || (tree->opid == UOP_star)))
         tree = tree->left;
     ast_expr_print(op, tree);
 }
@@ -1880,11 +1962,9 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
         ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS:
+        if (tree->u.expr->type == ASS) {
             (*statement_index)++;
             batch_statement_push(tree, *statement_index, batch_stack->head->index, 0, bss);
-            break;
         }
         break;
     default:
@@ -2163,8 +2243,8 @@ void ast_filter_cond(astexpr cond, astexpr *pubcond, astexpr *pricond) {
 }
 
 void ast_if_stmt_show(aststmt tree, branchnode current, int thread_id) {
-    int line = 0;
-    int start_addr = 0;
+    // int line = 0;
+    // int start_addr = 0;
     int is_priv_int_appear = 0, is_priv_float_appear = 0;
 
     if (if_branchnode_height(current) == 1) {
@@ -2242,12 +2322,10 @@ void ast_is_selection_complete(aststmt tree, astexpr var, int *result) {
         ast_is_selection_complete(tree->body, var, result);
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS: {
-            str tmp_name;
+        if (tree->u.expr->type == ASS) {
             if (tree->u.expr->left->type == IDENT) {
                 if (tree->u.expr->left->isptr > 0) {
-                    tmp_name = Str("");
+                    str tmp_name = Str("");
                     ast_expr_print(tmp_name, tree->u.expr->left);
                     if (!strcmp(str_string(name), str_string(tmp_name)))
                         *result = 1;
@@ -2256,8 +2334,6 @@ void ast_is_selection_complete(aststmt tree, astexpr var, int *result) {
             } else if (tree->u.expr->left->type == ARRAYIDX) {
                 // modify this if start dealing with array of pointers
             }
-            break;
-        }
         }
         break;
     default:
@@ -2315,8 +2391,7 @@ void ast_iter_tree(aststmt tree, mvarstack mvartable) {
         ast_iter_tree(tree->body, mvartable);
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS:
+        if (tree->u.expr->type == ASS) {
             if (tree->u.expr->left->type == IDENT) {
                 if (tree->u.expr->left->isptr > 0)
                     mvar_push(tree->u.expr->left, mvartable);
@@ -2441,9 +2516,9 @@ void ast_stmt_show(aststmt tree, branchnode current) {
                 if (immresulttype == 1) {
                     int dim = 1; // Alter if wanted to add supprt for 2D arrays 
                     if (tree->u.expr->ftype == 1) { // Float 
-                        ast_array_float_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
+                        ast_float_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
                     } else if (tree->u.expr->ftype == 0) { // Int
-                        ast_array_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
+                        ast_tmp_clear_show(tree->u.expr, dim, clear_tmp_array_index);
                     }
                     clear_tmp_array_index = 1;
                 }
@@ -2477,7 +2552,7 @@ void ast_stmt_show(aststmt tree, branchnode current) {
         break;
     case STATEMENTLIST: {
         aststmt ch;
-        int lastdef = 0;
+        // int lastdef = 0;
 
         /* If my rightmost child of the left subtree is a DECLARATION and
          * the leftmost child of my right subtree is not, then this is
@@ -2488,8 +2563,8 @@ void ast_stmt_show(aststmt tree, branchnode current) {
         if (ch->type == DECLARATION) {
             for (ch = tree->body; ch->type == STATEMENTLIST; ch = ch->u.next)
                 ;
-            if (ch->type != DECLARATION)
-                lastdef = 1;
+            // if (ch->type != DECLARATION)
+                // lastdef = 1;
         }
         if (declared == 0 && enterfunc == 1) {
             ast_temporary_variable_declaration();
@@ -2712,6 +2787,9 @@ void ast_expr_refer_single_struct_field_helper(char *var_name, char *struct_name
 
     int ispointer, field_type;
     str first_dimension = Str(""), second_dimension = Str("");
+
+    array_index[0] = '\0';
+
     if (private_if_index == -1)
         sprintf(priv_cond, "NULL");
     else
@@ -2726,8 +2804,9 @@ void ast_expr_refer_single_struct_field_helper(char *var_name, char *struct_name
             ast_expr_print(second_dimension, tree->right);
             sprintf(array_index, "%s, %s, ", str_string(first_dimension), str_string(second_dimension));
         }
-    } else
-        sprintf(array_index, "");
+    } 
+    // else
+    //     sprintf(array_index, "");
 
     if (!struct_node_get_flag(sns, struct_name)) {
         char *var = (char *)malloc(sizeof(char) * buffer_size);
@@ -2793,7 +2872,7 @@ astspec ast_expr_refer_single_struct_field(astexpr tree, int *id, int is_address
     // multiple field dereference
     if (tree->left != NULL && tree->left->type == PTRFIELD) {
         (*recursive_level)++;
-        int struct_id = 0;
+        // int struct_id = 0;
         astspec type = ast_expr_refer_single_struct_field(tree->left, id, 0, 0, private_if_index, NULL, recursive_level, var, tag, thread_id);
         (*recursive_level)--;
         sprintf(struct_name, "%s", type->name->name);
@@ -3062,7 +3141,7 @@ void ast_priv_expr_show(astexpr tree, branchnode current, int gflag) {
     char *inttype = "int";
     char *floattype = "float";
     char *op;
-    int is_complete = 0;
+    // int is_complete = 0;
     if (tree->left->ftype == 0) {
         type = inttype;
         op = "_picco_priv_int_tmp1";
@@ -3257,9 +3336,9 @@ void ast_expr_show(astexpr tree) {
             }
             fprintf(output, "(");
             if (tree->right) {
-                if (tree->right->type == COMMALIST) {
-                    astexpr e = symtab_get(stab, tree->left, FUNCNAME);
-                }
+                // if (tree->right->type == COMMALIST) {
+                //     astexpr e = symtab_get(stab, tree->left, FUNCNAME);
+                // }
                 ast_expr_show(tree->right);
             }
         }
@@ -3328,7 +3407,7 @@ void ast_expr_show(astexpr tree) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.str);
             }
             /* conversion to float */
-            if (tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_Rlist &&
+            if ((tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_Rlist) &&
                                                                 tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float) {
                 /* Int2FL */
                 if (tree->left->ftype == 0) {
@@ -3356,7 +3435,7 @@ void ast_expr_show(astexpr tree) {
                 }
             }
             /* conversion to int */
-            if (tree->u.dtype->spec->subtype == SPEC_int || tree->u.dtype->spec->subtype == SPEC_Rlist &&
+            if ((tree->u.dtype->spec->subtype == SPEC_int || tree->u.dtype->spec->subtype == SPEC_Rlist) &&
                                                                 tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_int) {
                 /* Int2Int */
                 if (tree->left->ftype == 0) {
@@ -3421,7 +3500,7 @@ void ast_expr_show(astexpr tree) {
             indent();
         } else 
             ast_expr_show(tree->left);
-        if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
+        if (tree->opid == UOP_paren && (tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof))
             fprintf(output, ")");
         break;
 
@@ -3451,14 +3530,14 @@ void ast_expr_show(astexpr tree) {
                             array_float_tmp_index = 2;
                             clear_tmp_array_index = 2;
                         }
-                        ast_temporary_float_array_declaration(tree, dim, array_float_tmp_index);
+                        ast_temporary_variable_declaration(tree, dim, array_float_tmp_index);
                     } else if (tree->ftype == 0) { // Int 
                         if (tree->left->left) {
                             array_int_tmp_index = 2;
                              clear_tmp_array_index = 2;
                         }
                         array_float_tmp_index = 0;
-                        ast_temporary_int_array_declaration(tree, dim, array_int_tmp_index);
+                        ast_temporary_variable_declaration(tree, dim, array_int_tmp_index);
                     }
                 }
                 tmp_arr_not_defined = true; // Set to true after defined once 
@@ -4061,147 +4140,165 @@ void ast_spec_show(astspec tree) {
 
 void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *struct_name, int flag) {
     switch (tree->type) {
-    case DSTRUCTFIELD:
-        ast_handle_memory_for_private_variable(tree->decl, tree->spec, struct_name, flag);
-        break;
-    case DECLARATOR:
-        if (tree->decl->type == DARRAY) {
-            ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
+        case DSTRUCTFIELD:
+            ast_handle_memory_for_private_variable(tree->decl, tree->spec, struct_name, flag);
             break;
-        }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
-            indent();
-            if (tree->spec) {
-                if (!flag) {
-                    int level = ast_compute_ptr_level(tree);
-                    fprintf(output, "%s%s = __s->smc_new_ptr(%d, 0);\n", struct_name, tree->decl->u.id->name, level);
-                } else
-                    fprintf(output, "__s->smc_free_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
-            } else if (!flag) {
-                if (technique_var == SHAMIR_SS)
-                    fprintf(output, "ss_init(%s%s);\n", struct_name, tree->decl->u.id->name);
-                else if (technique_var == REPLICATED_SS)
-                    fprintf(output, "ss_init(%s%s);\n", struct_name, tree->decl->u.id->name);
-            } else {
-                fprintf(output, "\n\n");
-                if (technique_var == SHAMIR_SS)
-                    fprintf(output, "ss_clear(%s%s);\n", struct_name, tree->decl->u.id->name);
-                else if (technique_var == REPLICATED_SS)
-                    ast_decl_memory_free_rss_var_int(tree);
+        case DECLARATOR:
+            if (tree->decl->type == DARRAY) {
+                ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
+                break;
             }
-            break;
-        }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
-            indent();
-            if (tree->spec) {
-                if (!flag) {
-                    int level = ast_compute_ptr_level(tree);
-                    fprintf(output, "%s%s = __s->smc_new_ptr(%d, 1);\n", struct_name, tree->decl->u.id->name, level);
-                } else
-                    fprintf(output, "__s->smc_free_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
-            } else {
-                fprintf(output, "\n\n");
-                if (!flag) {
-                    fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", struct_name, tree->decl->u.id->name);
-                    indent();
-                    fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                    indlev++;
-                    indlev++;
-                    indent();
-                    if (technique_var == SHAMIR_SS) {
-                        fprintf(output, "ss_init(%s%s[_picco_i]);\n", struct_name, tree->decl->u.id->name);
-                    } else if (technique_var == REPLICATED_SS) {
-                        fprintf(output, "ss_init(%s%s[_picco_i], __s->getNumShares());\n", struct_name, tree->decl->u.id->name);
-                    }
-                    indlev--;
-                    indlev--;
+            if ((spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist) && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
+                indent();
+                if (tree->spec) {
+                    if (!flag) {
+                        int level = ast_compute_ptr_level(tree);
+                        fprintf(output, "%s%s = __s->smc_new_ptr(%d, 0);\n", struct_name, tree->decl->u.id->name, level);
+                    } else
+                        fprintf(output, "__s->smc_free_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
+                } else if (!flag) {
+                    if (technique_var == SHAMIR_SS)
+                        fprintf(output, "ss_init(%s%s);\n", struct_name, tree->decl->u.id->name);
+                    else if (technique_var == REPLICATED_SS)
+                        fprintf(output, "ss_init(%s%s);\n", struct_name, tree->decl->u.id->name);
                 } else {
-                    if (technique_var == SHAMIR_SS) {
+                    fprintf(output, "\n\n");
+                    if (technique_var == SHAMIR_SS)
+                        fprintf(output, "ss_clear(%s%s);\n", struct_name, tree->decl->u.id->name);
+                    else if (technique_var == REPLICATED_SS)
+                        ast_decl_memory_free_rss_var_int(tree);
+                }
+                break;
+            }
+            if ((spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist) && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
+                indent();
+                if (tree->spec) {
+                    if (!flag) {
+                        int level = ast_compute_ptr_level(tree);
+                        fprintf(output, "%s%s = __s->smc_new_ptr(%d, 1);\n", struct_name, tree->decl->u.id->name, level);
+                    } else
+                        fprintf(output, "__s->smc_free_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
+                } else {
+                    fprintf(output, "\n\n");
+                    if (!flag) {
+                        fprintf(output, "%s%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", struct_name, tree->decl->u.id->name);
                         indent();
                         fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
                         indlev++;
                         indlev++;
                         indent();
-                        fprintf(output, "ss_clear(%s%s[_picco_i]);\n", struct_name, tree->decl->u.id->name);
+                        if (technique_var == SHAMIR_SS) {
+                            fprintf(output, "ss_init(%s%s[_picco_i]);\n", struct_name, tree->decl->u.id->name);
+                        } else if (technique_var == REPLICATED_SS) {
+                            fprintf(output, "ss_init(%s%s[_picco_i], __s->getNumShares());\n", struct_name, tree->decl->u.id->name);
+                        }
                         indlev--;
                         indlev--;
-                        indent();
-                        fprintf(output, "free(%s%s);\n", struct_name, tree->decl->u.id->name);
-                    } else if (technique_var == REPLICATED_SS) {
-                        ast_decl_memory_free_rss_var_float(tree);
+                    } else {
+                        if (technique_var == SHAMIR_SS) {
+                            indent();
+                            fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                            indlev++;
+                            indlev++;
+                            indent();
+                            fprintf(output, "ss_clear(%s%s[_picco_i]);\n", struct_name, tree->decl->u.id->name);
+                            indlev--;
+                            indlev--;
+                            indent();
+                            fprintf(output, "free(%s%s);\n", struct_name, tree->decl->u.id->name);
+                        } else if (technique_var == REPLICATED_SS) {
+                            ast_decl_memory_free_rss_var_float(tree);
+                        }
                     }
                 }
+                break;
             }
-            break;
-        }
-        if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {
-            if (!tree->spec) {
-                indent();
-                if (!flag)
-                    fprintf(output, "%s_init(&(%s%s));\n", spec->name->name, struct_name, tree->decl->u.id->name);
-                else
-                    fprintf(output, "%s_free(&(%s%s));\n", spec->name->name, struct_name, tree->decl->u.id->name);
-            } else {
-                if (!struct_node_get_flag(sns, spec->name->name)) {
+            if ((spec->subtype == SPEC_struct || spec->subtype == SPEC_union)) {
+                if (!tree->spec) {
                     indent();
-                    if (!flag) {
-                        int level = ast_compute_ptr_level(tree);
-                        fprintf(output, "%s%s = __s->smc_new_ptr(%d, 2);\n", struct_name, tree->decl->u.id->name, level);
-                    } else
-                        fprintf(output, "__s->smc_clear_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
-                }
-            }
-            break;
-        }
-        break;
-    case DLIST:
-        ast_handle_memory_for_private_variable(tree->u.next, spec, struct_name, flag);
-        ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
-        break;
-    case DARRAY:
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
-            if (!flag) {
-                ast_decl_memory_assign_int(tree, struct_name); // for non-global array 
-                indlev--;
-            } else
-                ast_decl_memory_free_int(tree, struct_name); // for freeing non global array
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
-            if (!flag) {
-                ast_decl_memory_assign_float(tree, struct_name);
-                indlev--;
-            } else
-                ast_decl_memory_free_float(tree, struct_name);
-        } else if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) { // this is where array of struct should be handled -> newly added
-            if (!tree->spec) {
-                indent();
-                indent();
-                if (!flag) {
-                    fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
-                    fprintf(output, "    %s_init(&(%s%s[i]));\n", spec->name->name, struct_name, tree->decl->u.id->name);
-                    fprintf(output, "}\n");
+                    if (!flag)
+                        fprintf(output, "%s_init(&(%s%s));\n", spec->name->name, struct_name, tree->decl->u.id->name);
+                    else
+                        fprintf(output, "%s_free(&(%s%s));\n", spec->name->name, struct_name, tree->decl->u.id->name);
                 } else {
-                    fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
-                    fprintf(output, "    %s_free(&(%s%s[i]));\n", spec->name->name, struct_name, tree->decl->u.id->name);
-                    fprintf(output, "}\n");
+                    if (!struct_node_get_flag(sns, spec->name->name)) {
+                        indent();
+                        if (!flag) {
+                            int level = ast_compute_ptr_level(tree);
+                            fprintf(output, "%s%s = __s->smc_new_ptr(%d, 2);\n", struct_name, tree->decl->u.id->name, level);
+                        } else
+                            fprintf(output, "__s->smc_clear_ptr(&(%s%s));\n", struct_name, tree->decl->u.id->name);
+                    }
                 }
-            } else {
-                if (!struct_node_get_flag(sns, spec->name->name)) {
+                break;
+            }
+            break;
+        case DLIST:
+            ast_handle_memory_for_private_variable(tree->u.next, spec, struct_name, flag);
+            ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
+            break;
+        case DARRAY:
+            if ((spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist) && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
+                if (!flag) {
+                    ast_decl_memory_assign_int(tree, struct_name); // for non-global array 
+                    indlev--;
+                } else
+                    ast_decl_memory_free_int(tree, struct_name); // for freeing non global array
+            } else if ((spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist) && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
+                if (!flag) {
+                    ast_decl_memory_assign_float(tree, struct_name);
+                    indlev--;
+                } else
+                    ast_decl_memory_free_float(tree, struct_name);
+            } else if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) { // this is where array of struct should be handled -> newly added
+                if (!tree->spec) {
                     indent();
                     indent();
                     if (!flag) {
-                        int level = ast_compute_ptr_level(tree);
                         fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
-                        fprintf(output, "    %s%s[i] = __s->smc_new_ptr(%d, 2);\n", struct_name, tree->decl->u.id->name, level);
+                        fprintf(output, "    %s_init(&(%s%s[i]));\n", spec->name->name, struct_name, tree->decl->u.id->name);
                         fprintf(output, "}\n");
                     } else {
                         fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
-                        fprintf(output, "__s->smc_clear_ptr(&(%s%s[i]));\n", struct_name, tree->decl->u.id->name);
+                        fprintf(output, "    %s_free(&(%s%s[i]));\n", spec->name->name, struct_name, tree->decl->u.id->name);
                         fprintf(output, "}\n");
                     }
+                } else {
+                    if (!struct_node_get_flag(sns, spec->name->name)) {
+                        indent();
+                        indent();
+                        if (!flag) {
+                            int level = ast_compute_ptr_level(tree);
+                            fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
+                            fprintf(output, "    %s%s[i] = __s->smc_new_ptr(%d, 2);\n", struct_name, tree->decl->u.id->name, level);
+                            fprintf(output, "}\n");
+                        } else {
+                            fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
+                            fprintf(output, "__s->smc_clear_ptr(&(%s%s[i]));\n", struct_name, tree->decl->u.id->name);
+                            fprintf(output, "}\n");
+                        }
+                    }
                 }
+                break;
             }
+        case DIDENT:
             break;
-        }
+        case DPAREN:
+            break;
+        case DFUNC:
+            break;
+        case DINIT:
+            break;
+        case ABSDECLARATOR:
+            break;
+        case DPARAM:
+            break;
+        case DELLIPSIS:
+            break;
+        case DBIT:
+            break;
+        case DCASTTYPE:
+            break;
         break;
     }
 }
@@ -4215,9 +4312,9 @@ void ast_return_struct_field_info(char *struct_name, char *field_name, int *ispo
         *ispointer = 1;
     else
         *ispointer = 0;
-    if (f_type->subtype == SPEC_int || f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_int)
+    if ((f_type->subtype == SPEC_int || f_type->subtype == SPEC_Rlist) && f_type->u.next->subtype == SPEC_int)
         *field_type = 0;
-    else if (f_type->subtype == SPEC_float || f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_float)
+    else if ((f_type->subtype == SPEC_float || f_type->subtype == SPEC_Rlist) && f_type->u.next->subtype == SPEC_float)
         *field_type = 1;
     else
         *field_type = 2;
@@ -4268,7 +4365,7 @@ void ast_print_struct_helper_function(astspec tree) {
             char *var_name = (char *)malloc(sizeof(char) * buffer_size);
             char *array_index = (char *)malloc(sizeof(char) * buffer_size);
             char *field_element = (char *)malloc(sizeof(char) * buffer_size);
-            int array_dimension = 0;
+            // int array_dimension = 0;
             astdecl field_name = field->name;
             astspec field_type = field->type;
             int ispointer = 0;
@@ -4276,9 +4373,9 @@ void ast_print_struct_helper_function(astspec tree) {
             int level = 0;
             if (field_name->spec)
                 ispointer = 1;
-            if (field_type->subtype == SPEC_int || field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_int)
+            if ((field_type->subtype == SPEC_int || field_type->subtype == SPEC_Rlist) && field_type->u.next->subtype == SPEC_int)
                 spec_type = 0;
-            else if (field_type->subtype == SPEC_float || field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_float)
+            else if ((field_type->subtype == SPEC_float || field_type->subtype == SPEC_Rlist) && field_type->u.next->subtype == SPEC_float)
                 spec_type = 1;
             else
                 spec_type = 2;
@@ -4287,14 +4384,14 @@ void ast_print_struct_helper_function(astspec tree) {
             // one dimension
 
             if (field_name->decl->type == DARRAY && field_name->decl->decl->type == DIDENT) {
-                array_dimension = 1;
+                // array_dimension = 1;
                 sprintf(var_name, "%s", field_name->decl->decl->u.id->name);
                 sprintf(array_index, "int _picco_index1, ");
                 sprintf(field_element, "%s[_picco_index1]", var_name);
             }
             // two-dimension
             else if (field_name->decl->type == DARRAY && field_name->decl->decl->type == DARRAY) {
-                array_dimension = 2;
+                // array_dimension = 2;
                 sprintf(var_name, "%s", field_name->decl->decl->decl->u.id->name);
                 sprintf(array_index, "int _picco_index1, int _picco_index2, ");
                 sprintf(field_element, "%s[_picco_index1][_picco_index2]", var_name);
@@ -4302,7 +4399,7 @@ void ast_print_struct_helper_function(astspec tree) {
             // other cases
             else {
                 sprintf(var_name, "%s", field_name->decl->u.id->name);
-                sprintf(array_index, "");
+                array_index[0] = '\0';
                 sprintf(field_element, "%s", var_name);
             }
 
@@ -4599,7 +4696,7 @@ void ast_ptr_decl_show(astdecl tree, astspec spec)
 
 int ast_compute_ptr_level(astdecl tree) {
     int level = 1;
-    astdecl tmp = tree;
+    // astdecl tmp = tree;
     astspec spec = tree->spec;
     while (spec->type == SPECLIST && spec->body->subtype == SPEC_star) {
         level++;
@@ -4609,21 +4706,17 @@ int ast_compute_ptr_level(astdecl tree) {
 }
 
 void ast_print_priv_field(astdecl tree, astspec spec) {
-    switch (tree->type) {
-    case DECLARATOR:
+    if (tree->type == DECLARATOR) {
         if (tree->decl->type == DARRAY) {
             ast_print_priv_field(tree->decl, spec);
-            break;
         }
         if (spec->subtype == SPEC_int) {
             fprintf(output, "priv_int %s", tree->decl->u.id->name);
-            break;
         }
         if (spec->subtype == SPEC_float) {
             fprintf(output, "priv_int* %s", tree->decl->u.id->name);
-            break;
         }
-    case DARRAY:
+    } else if (tree->type == DARRAY) {
         if (spec->subtype == SPEC_int) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int* %s", tree->decl->u.id->name);
@@ -4639,86 +4732,106 @@ void ast_print_priv_field(astdecl tree, astspec spec) {
                     fprintf(output, "priv_int*** %s", tree->decl->decl->u.id->name);
             }
         }
-        break;
     }
 }
 
 void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
     switch (tree->type) {
-    case DECLARATOR:
-        if (tree->decl->type == DARRAY) {
-            ast_priv_decl_sng_show(tree->decl, spec);
-            break;
-        }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
-            if (tree->spec)
-                fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
-            else
-                fprintf(output, "priv_int %s", tree->decl->u.id->name);
-            break;
-        }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
-            if (tree->spec)
-                fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
-            else
-                fprintf(output, "priv_int* %s", tree->decl->u.id->name);
-            break;
-        }
-        /* struct or union declaration -- for now we only support static declaration */
-        if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {
-            /* non-pointer declaration */
-            if (!tree->spec) {
-                ast_spec_show(spec);
-                fprintf(output, " ");
-                ast_decl_show(tree);
+        case DECLARATOR:
+            if (tree->decl->type == DARRAY) {
+                ast_priv_decl_sng_show(tree->decl, spec);
+                break;
             }
-            /* pointer declaration */
-            else {
-                /* perform operations below only if the struct contains non-public fields (nested) */
-                int contain_pub_field = 1;
-                contain_pub_field = struct_node_get_flag(sns, spec->name->name);
-                if (!contain_pub_field)
+            if ((spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_int) {
+                if (tree->spec)
                     fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
-                else {
+                else
+                    fprintf(output, "priv_int %s", tree->decl->u.id->name);
+                break;
+            }
+            if ((spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_float) {
+                if (tree->spec)
+                    fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
+                else
+                    fprintf(output, "priv_int* %s", tree->decl->u.id->name);
+                break;
+            }
+            /* struct or union declaration -- for now we only support static declaration */
+            if ((spec->subtype == SPEC_struct || spec->subtype == SPEC_union)) {
+                /* non-pointer declaration */
+                if (!tree->spec) {
                     ast_spec_show(spec);
                     fprintf(output, " ");
                     ast_decl_show(tree);
                 }
+                /* pointer declaration */
+                else {
+                    /* perform operations below only if the struct contains non-public fields (nested) */
+                    int contain_pub_field = 1;
+                    contain_pub_field = struct_node_get_flag(sns, spec->name->name);
+                    if (!contain_pub_field)
+                        fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
+                    else {
+                        ast_spec_show(spec);
+                        fprintf(output, " ");
+                        ast_decl_show(tree);
+                    }
+                }
+                break;
             }
+        case DINIT: {
+            ast_priv_decl_sng_show(tree->decl, spec);
+            fprintf(output, " = ");
+            ast_expr_show(tree->u.expr);
+            fprintf(output, ";\n");
             break;
         }
-    case DINIT: {
-        ast_priv_decl_sng_show(tree->decl, spec);
-        fprintf(output, " = ");
-        ast_expr_show(tree->u.expr);
-        fprintf(output, ";\n");
-        break;
-    }
-    case DARRAY:
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
-            if (tree->decl->type == DIDENT)
-                fprintf(output, "priv_int* %s", tree->decl->u.id->name);
-            else if (tree->decl->type == DARRAY) {
-                if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "priv_int** %s", tree->decl->decl->u.id->name);
-                else if (tree->decl->decl->type == DARRAY) {
-                    printf("We do not support array dimension larger than two.\n");
-                    exit(0);
+        case DARRAY:
+            if ((spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_int) {
+                if (tree->decl->type == DIDENT)
+                    fprintf(output, "priv_int* %s", tree->decl->u.id->name);
+                else if (tree->decl->type == DARRAY) {
+                    if (tree->decl->decl->type == DIDENT)
+                        fprintf(output, "priv_int** %s", tree->decl->decl->u.id->name);
+                    else if (tree->decl->decl->type == DARRAY) {
+                        printf("We do not support array dimension larger than two.\n");
+                        exit(0);
+                    }
+                }
+            } else if ((spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_float) {
+                if (tree->decl->type == DIDENT)
+                    fprintf(output, "priv_int** %s", tree->decl->u.id->name);
+                else if (tree->decl->type == DARRAY) {
+                    if (tree->decl->decl->type == DIDENT)
+                        fprintf(output, "priv_int*** %s", tree->decl->decl->u.id->name);
+                    else if (tree->decl->decl->type == DARRAY) {
+                        printf("We do not support array dimension larger than two.\n");
+                        exit(0);
+                    }
                 }
             }
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
-            if (tree->decl->type == DIDENT)
-                fprintf(output, "priv_int** %s", tree->decl->u.id->name);
-            else if (tree->decl->type == DARRAY) {
-                if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "priv_int*** %s", tree->decl->decl->u.id->name);
-                else if (tree->decl->decl->type == DARRAY) {
-                    printf("We do not support array dimension larger than two.\n");
-                    exit(0);
-                }
-            }
-        }
-        // this is where array of struct should be further handled
+            // this is where array of struct should be further handled
+            break;
+        case DIDENT:
+            break;
+        case DPAREN:
+            break;
+        case DFUNC:
+            break;
+        case ABSDECLARATOR:
+            break;
+        case DPARAM:
+            break;
+        case DELLIPSIS:
+            break;
+        case DBIT:
+            break;
+        case DSTRUCTFIELD:
+            break;
+        case DCASTTYPE:
+            break;
+        case DLIST:
+            break;
         break;
     }
 }
@@ -4743,292 +4856,312 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
 void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gflag) {
     /* printing global private declarations into a string */
     switch (tree->type) {
-    case DECLARATOR: 
-        if(gflag != 1) { // Don't change this, this table is used to keep track and clear the vars after it is done
-            ltable_push(spec, tree, current->tablelist->head);
-        }
-        if (tree->decl->type == DARRAY) {
-            ast_priv_decl_show(tree->decl, spec, current, gflag);
-            break;
-        }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
-            // pointer to private int
-            if (tree->spec) {
-                int level = ast_compute_ptr_level(tree);
-                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - int
-                    fprintf(output, "priv_ptr %s;", tree->decl->u.id->name); // Added after declaring private global pointers
-                    str_printf(global_string, "%s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
-                } else {
-                    fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
-                }
+        case DECLARATOR: 
+            if(gflag != 1) { // Don't change this, this table is used to keep track and clear the vars after it is done
+                ltable_push(spec, tree, current->tablelist->head);
             }
-            // private int
-            else {
-                if (technique_var == SHAMIR_SS) {
-                    fprintf(output, "priv_int %s;\n", tree->decl->u.id->name); // init in one place, ss_init in other
-                } else if (technique_var == REPLICATED_SS){
-                    fprintf(output, "priv_int* %s;\n", tree->decl->u.id->name); 
-                }
-                indent();
-                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) {
-                    if (technique_var == SHAMIR_SS) {
-                        str_printf(global_string, "ss_init(%s);\n", tree->decl->u.id->name);
-                    } else if (technique_var == REPLICATED_SS){
-                        ast_decl_memory_assign_rss_var_int(tree);
-                    }
-                } else {
-                    if (technique_var == SHAMIR_SS) {
-                        fprintf(output, "ss_init(%s);\n", tree->decl->u.id->name);
-                    } else if (technique_var == REPLICATED_SS){
-                        ast_decl_memory_assign_rss_var_int(tree);
-                    }
-                }
+            if (tree->decl->type == DARRAY) {
+                ast_priv_decl_show(tree->decl, spec, current, gflag);
+                break;
             }
-            break;
-        }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
-            // pointer to private float
-            if (tree->spec) {
-                int level = ast_compute_ptr_level(tree);
-                if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - decl
-                    fprintf(output, "priv_ptr %s = ", tree->decl->u.id->name);
-                    str_printf(global_string, "%s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
-                } else {
-                    fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
-                }
-            } else { // private float
-                if (technique_var == SHAMIR_SS)
-                    fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name); // Float is represented by 4 priv_ints 
-                else if (technique_var == REPLICATED_SS)
-                    fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name); // Float is represented by 4 priv_ints 
-                indent();
-                // output order for global private 
-                if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
-                    if (technique_var == SHAMIR_SS) {
-                        str_printf(global_string, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
-                        indent_global_string(global_string);
-                        str_printf(global_string, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                        indlev++;
-                        indent_global_string(global_string);
-                        indent_global_string(global_string);
-                        str_printf(global_string, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
-                    } else if (technique_var == REPLICATED_SS) {
-                        ast_decl_memory_assign_rss_var_float(tree);
-                    }
-                    indlev--;
-                } else {
-                    if (technique_var == SHAMIR_SS) {
-                        fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
-                        indent();
-                        fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
-                        indlev++;
-                        indent();
-                        indent();
-                        fprintf(output, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
-                    } else if (technique_var == REPLICATED_SS) {
-                        ast_decl_memory_assign_rss_var_float(tree);
-                    }
-                    indlev--;
-                }
-            }
-            break;
-        }
-        // struct or union declaration -- for now we only support static declaration
-        if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {
-            // non-pointer declaration
-            if (!tree->spec) {
-                ast_spec_show(spec);
-                fprintf(output, " ");
-                ast_decl_show(tree);
-                fprintf(output, ";\n");
-                indent();
-                if (gf == 1 && is_init_decl == 1) 
-                    str_printf(global_string, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where a private global struct or union init function call gets printed
-                else 
-                    fprintf(output, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where any non-global struct or union init function call gets printed
-            }
-            // pointer declaration
-            else {
-                // perform operations below only if the struct contains non-public fields (nested)
-                int contain_pub_field = 1;
-                contain_pub_field = struct_node_get_flag(sns, spec->name->name);
-                if (!contain_pub_field) {
-                    indent();
+            if ((spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_int) {
+                // pointer to private int
+                if (tree->spec) {
                     int level = ast_compute_ptr_level(tree);
-                    if (gf == 1 && is_init_decl == 1) {
-                        fprintf(output, "priv_ptr %s;\n", tree->decl->u.id->name);
-                        str_printf(global_string, "%s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                    if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - int
+                        fprintf(output, "priv_ptr %s;", tree->decl->u.id->name); // Added after declaring private global pointers
+                        str_printf(global_string, "%s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                     } else {
-                        fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                        fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 0);\n", tree->decl->u.id->name, level);
                     }
-                } else {
+                }
+                // private int
+                else {
+                    if (technique_var == SHAMIR_SS) {
+                        fprintf(output, "priv_int %s;\n", tree->decl->u.id->name); // init in one place, ss_init in other
+                    } else if (technique_var == REPLICATED_SS){
+                        fprintf(output, "priv_int* %s;\n", tree->decl->u.id->name); 
+                    }
+                    indent();
+                    if (is_priv == 1 && gflag == 1 && is_init_decl == 1) {
+                        if (technique_var == SHAMIR_SS) {
+                            str_printf(global_string, "ss_init(%s);\n", tree->decl->u.id->name);
+                        } else if (technique_var == REPLICATED_SS){
+                            ast_decl_memory_assign_rss_var_int(tree);
+                        }
+                    } else {
+                        if (technique_var == SHAMIR_SS) {
+                            fprintf(output, "ss_init(%s);\n", tree->decl->u.id->name);
+                        } else if (technique_var == REPLICATED_SS){
+                            ast_decl_memory_assign_rss_var_int(tree);
+                        }
+                    }
+                }
+                break;
+            }
+            if ((spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_float) {
+                // pointer to private float
+                if (tree->spec) {
+                    int level = ast_compute_ptr_level(tree);
+                    if (is_priv == 1 && gflag == 1 && is_init_decl == 1) { // This is where global private pointers get handled - decl
+                        fprintf(output, "priv_ptr %s = ", tree->decl->u.id->name);
+                        str_printf(global_string, "%s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
+                    } else {
+                        fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 1);\n", tree->decl->u.id->name, level);
+                    }
+                } else { // private float
+                    if (technique_var == SHAMIR_SS)
+                        fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name); // Float is represented by 4 priv_ints 
+                    else if (technique_var == REPLICATED_SS)
+                        fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name); // Float is represented by 4 priv_ints 
+                    indent();
+                    // output order for global private 
+                    if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
+                        if (technique_var == SHAMIR_SS) {
+                            str_printf(global_string, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                            indent_global_string(global_string);
+                            str_printf(global_string, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                            indlev++;
+                            indent_global_string(global_string);
+                            indent_global_string(global_string);
+                            str_printf(global_string, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
+                        } else if (technique_var == REPLICATED_SS) {
+                            ast_decl_memory_assign_rss_var_float(tree);
+                        }
+                        indlev--;
+                    } else {
+                        if (technique_var == SHAMIR_SS) {
+                            fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (4));\n", tree->decl->u.id->name);
+                            indent();
+                            fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
+                            indlev++;
+                            indent();
+                            indent();
+                            fprintf(output, "ss_init(%s[_picco_i]);\n", tree->decl->u.id->name);
+                        } else if (technique_var == REPLICATED_SS) {
+                            ast_decl_memory_assign_rss_var_float(tree);
+                        }
+                        indlev--;
+                    }
+                }
+                break;
+            }
+            // struct or union declaration -- for now we only support static declaration
+            if ((spec->subtype == SPEC_struct || spec->subtype == SPEC_union)) {
+                // non-pointer declaration
+                if (!tree->spec) {
                     ast_spec_show(spec);
                     fprintf(output, " ");
                     ast_decl_show(tree);
                     fprintf(output, ";\n");
+                    indent();
+                    if (gf == 1 && is_init_decl == 1) 
+                        str_printf(global_string, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where a private global struct or union init function call gets printed
+                    else 
+                        fprintf(output, "%s_init(&%s);\n", spec->name->name, tree->decl->u.id->name); // This is where any non-global struct or union init function call gets printed
                 }
+                // pointer declaration
+                else {
+                    // perform operations below only if the struct contains non-public fields (nested)
+                    int contain_pub_field = 1;
+                    contain_pub_field = struct_node_get_flag(sns, spec->name->name);
+                    if (!contain_pub_field) {
+                        indent();
+                        int level = ast_compute_ptr_level(tree);
+                        if (gf == 1 && is_init_decl == 1) {
+                            fprintf(output, "priv_ptr %s;\n", tree->decl->u.id->name);
+                            str_printf(global_string, "%s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                        } else {
+                            fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                        }
+                    } else {
+                        ast_spec_show(spec);
+                        fprintf(output, " ");
+                        ast_decl_show(tree);
+                        fprintf(output, ";\n");
+                    }
+                }
+                break;
             }
-            break;
-        }
-    case DINIT: {
-        ast_priv_decl_show(tree->decl, spec, current, gflag);
-        indent();
-        astexpr e0 = Identifier(tree->decl->decl->u.id);
-        astexpr e1 = Assignment(e0, ASS_eq, tree->u.expr);
+        case DINIT: {
+            ast_priv_decl_show(tree->decl, spec, current, gflag);
+            indent();
+            astexpr e0 = Identifier(tree->decl->decl->u.id);
+            astexpr e1 = Assignment(e0, ASS_eq, tree->u.expr);
 
-        if (spec->subtype == SPEC_int) {
-            e0->u.sym->type = 0;
-            e0->size = spec->size;
-            e0->ftype = e1->ftype = 0;
-        }
-
-        if (spec->subtype == SPEC_float) {
-            e0->u.sym->type = 1;
-            e0->ftype = e1->ftype = 1;
-            e0->size = spec->size;
-            e0->sizeexp = spec->sizeexp;
-        }
-
-        if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union)
-            e0->u.sym->type = 2;
-        if (spec->subtype == SPEC_Rlist && spec->body->subtype == SPEC_private) {
-            if (spec->u.next->subtype == SPEC_int) {
+            if (spec->subtype == SPEC_int) {
                 e0->u.sym->type = 0;
+                e0->size = spec->size;
                 e0->ftype = e1->ftype = 0;
-                e0->size = spec->u.next->size;
             }
-            if (spec->u.next->subtype == SPEC_float) {
+
+            if (spec->subtype == SPEC_float) {
                 e0->u.sym->type = 1;
                 e0->ftype = e1->ftype = 1;
-                e0->size = spec->u.next->size;
-                e0->sizeexp = spec->u.next->sizeexp;
+                e0->size = spec->size;
+                e0->sizeexp = spec->sizeexp;
             }
-        }
-        if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {
-            int contain_pub_field = 1;
-            contain_pub_field = struct_node_get_flag(sns, spec->name->name);
-            if (!contain_pub_field)
-                e0->flag = e1->flag = PRI;
-            else
-                e0->flag = e1->flag = PUB;
-            e0->isptr = (tree->decl->spec) ? ast_compute_ptr_level(tree->decl) : 0;
-            tree->decl->decl->u.id->struct_type = spec;
-        } else {
-            e0->isptr = (tree->decl->spec) ? ast_compute_ptr_level(tree->decl) : 0;
-            e0->flag = e1->flag = PRI;
-            // e0->ftype = e1->ftype = tree->u.expr->ftype;
-        }
-        ast_expr_show(e1);
-        if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
-            str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
-        } else if (gflag == 1 && is_init_decl == 1){
-            str_printf(global_string, ";\n\n"); // This is where the ; gets printed for struct global_string 
-        } else {
-            fprintf(output, ";\n");
-        }
-        break;
-    }
-    // symbol list
-    case DLIST:
-        ast_priv_decl_show(tree->u.next, spec, current, gflag);
-        indent();
-        ast_priv_decl_show(tree->decl, spec, current, gflag);
-        break;
-    // priv array (supports up to two dimensions so far).
-    case DARRAY: // This is where private array is handled
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
-            if (tree->decl->type == DIDENT)
-                fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
-            // for two-dimensional array
-            else if (tree->decl->type == DARRAY) {
-                if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "priv_int** %s; \n", tree->decl->decl->u.id->name);
-                else if (tree->decl->decl->type == DARRAY) {
-                    printf("We do not support array dimension larger than two.\n");
-                    exit(0);
+
+            if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union)
+                e0->u.sym->type = 2;
+            if (spec->subtype == SPEC_Rlist && spec->body->subtype == SPEC_private) {
+                if (spec->u.next->subtype == SPEC_int) {
+                    e0->u.sym->type = 0;
+                    e0->ftype = e1->ftype = 0;
+                    e0->size = spec->u.next->size;
+                }
+                if (spec->u.next->subtype == SPEC_float) {
+                    e0->u.sym->type = 1;
+                    e0->ftype = e1->ftype = 1;
+                    e0->size = spec->u.next->size;
+                    e0->sizeexp = spec->u.next->sizeexp;
                 }
             }
-            ast_decl_memory_assign_int(tree, "");
-            /* The code below was used to check the entry and if it exists, it would not print it. This
-            code was removed when we faced a bug related to one-dim-private-global arrays. 
-            Basically, all the causes were saying to create/print the instructions and this was not! 
-            It was not found what the reason was but we removed this cause this was not relevant to what 
-            goes to the generated code. -> this bug was found while adding private global variables!*/
-            // stentry e = symtab_get(stab, tree->decl->u.id, IDNAME);
-            // if (e == NULL) { // g-priv-two-dim-int-arr
-            //     ast_decl_memory_assign_int(tree, "");
-            //     indlev--;
-            // } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) { // g-priv-one-dim-int-arr
-            //     ast_decl_memory_assign_int(tree, "");
-            //     indlev--;
-            // }
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
-            if (tree->decl->type == DIDENT)
-                fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
-            else if (tree->decl->type == DARRAY) {
-                if (tree->decl->decl->type == DIDENT)
-                    fprintf(output, "priv_int*** %s; \n", tree->decl->decl->u.id->name);
-                else if (tree->decl->decl->type == DARRAY) {
-                    printf("We do not support array dimension larger than two.\n");
-                    exit(0);
-                }
-            }
-            ast_decl_memory_assign_float(tree, "");
-            // stentry e = symtab_get(stab, tree->decl->u.id->name, IDNAME);
-            // if (e == NULL) {
-            //     ast_decl_memory_assign_float(tree, "");
-            //     indlev--;
-            // } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) {
-            //     ast_decl_memory_assign_float(tree, "");
-            //     indlev--;
-            // }
-        } else if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {  // This is where array of struct should be handled! Same like int and float but different instructions! -> was not handled originally 
-            // non-pointer declaration
-            if (!tree->spec) {
-                ast_spec_show(spec);
-                fprintf(output, " ");
-                ast_decl_show(tree);
-                fprintf(output, ";\n");
-                indent();
-                if (gf == 1 && is_init_decl == 1) {
-                    str_printf(global_string, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
-                    indent();
-                    indent();
-                    str_printf(global_string, "%s_init(&%s[i]);\n", spec->name->name, tree->decl->u.id->name);
-                    indent();
-                    str_printf(global_string, "}\n");
-                } else {
-                    fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
-                    indent();
-                    indent();
-                    fprintf(output, "%s_init(&%s[i]);\n", spec->name->name, tree->decl->u.id->name);
-                    indent();
-                    fprintf(output, "}\n");
-                }
-            }
-            // pointer declaration
-            else {
-                // perform operations below only if the struct contains non-public fields (nested)
+            if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {
                 int contain_pub_field = 1;
                 contain_pub_field = struct_node_get_flag(sns, spec->name->name);
-                if (!contain_pub_field) {
-                    indent();
-                    int level = ast_compute_ptr_level(tree);
-                    if (gf == 1 && is_init_decl == 1) {
-                        fprintf(output, "priv_ptr %s;\n", tree->decl->u.id->name);
-                        str_printf(global_string, "%s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
-                    } else {
-                        fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                if (!contain_pub_field)
+                    e0->flag = e1->flag = PRI;
+                else
+                    e0->flag = e1->flag = PUB;
+                e0->isptr = (tree->decl->spec) ? ast_compute_ptr_level(tree->decl) : 0;
+                tree->decl->decl->u.id->struct_type = spec;
+            } else {
+                e0->isptr = (tree->decl->spec) ? ast_compute_ptr_level(tree->decl) : 0;
+                e0->flag = e1->flag = PRI;
+                // e0->ftype = e1->ftype = tree->u.expr->ftype;
+            }
+            ast_expr_show(e1);
+            if (is_priv == 1 && gflag == 1 && is_init_decl == 1){
+                str_printf(global_string, ";\n\n"); // This is where the ; gets printed for most global_string vars
+            } else if (gflag == 1 && is_init_decl == 1){
+                str_printf(global_string, ";\n\n"); // This is where the ; gets printed for struct global_string 
+            } else {
+                fprintf(output, ";\n");
+            }
+            break;
+        }
+        // symbol list
+        case DLIST:
+            ast_priv_decl_show(tree->u.next, spec, current, gflag);
+            indent();
+            ast_priv_decl_show(tree->decl, spec, current, gflag);
+            break;
+        // priv array (supports up to two dimensions so far).
+        case DARRAY: // This is where private array is handled
+            if ((spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_int) {
+                if (tree->decl->type == DIDENT)
+                    fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
+                // for two-dimensional array
+                else if (tree->decl->type == DARRAY) {
+                    if (tree->decl->decl->type == DIDENT)
+                        fprintf(output, "priv_int** %s; \n", tree->decl->decl->u.id->name);
+                    else if (tree->decl->decl->type == DARRAY) {
+                        printf("We do not support array dimension larger than two.\n");
+                        exit(0);
                     }
-                } else {
+                }
+                ast_decl_memory_assign_int(tree, "");
+                /* The code below was used to check the entry and if it exists, it would not print it. This
+                code was removed when we faced a bug related to one-dim-private-global arrays. 
+                Basically, all the causes were saying to create/print the instructions and this was not! 
+                It was not found what the reason was but we removed this cause this was not relevant to what 
+                goes to the generated code. -> this bug was found while adding private global variables!*/
+                // stentry e = symtab_get(stab, tree->decl->u.id, IDNAME);
+                // if (e == NULL) { // g-priv-two-dim-int-arr
+                //     ast_decl_memory_assign_int(tree, "");
+                //     indlev--;
+                // } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) { // g-priv-one-dim-int-arr
+                //     ast_decl_memory_assign_int(tree, "");
+                //     indlev--;
+                // }
+            } else if ((spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist) && spec->u.next->subtype == SPEC_float) {
+                if (tree->decl->type == DIDENT)
+                    fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
+                else if (tree->decl->type == DARRAY) {
+                    if (tree->decl->decl->type == DIDENT)
+                        fprintf(output, "priv_int*** %s; \n", tree->decl->decl->u.id->name);
+                    else if (tree->decl->decl->type == DARRAY) {
+                        printf("We do not support array dimension larger than two.\n");
+                        exit(0);
+                    }
+                }
+                ast_decl_memory_assign_float(tree, "");
+                // stentry e = symtab_get(stab, tree->decl->u.id->name, IDNAME);
+                // if (e == NULL) {
+                //     ast_decl_memory_assign_float(tree, "");
+                //     indlev--;
+                // } else if (is_priv == 1 && gf == 1 && is_init_decl == 1 && e != NULL) {
+                //     ast_decl_memory_assign_float(tree, "");
+                //     indlev--;
+                // }
+            } else if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {  // This is where array of struct should be handled! Same like int and float but different instructions! -> was not handled originally 
+                // non-pointer declaration
+                if (!tree->spec) {
                     ast_spec_show(spec);
                     fprintf(output, " ");
                     ast_decl_show(tree);
                     fprintf(output, ";\n");
+                    indent();
+                    if (gf == 1 && is_init_decl == 1) {
+                        str_printf(global_string, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
+                        indent();
+                        indent();
+                        str_printf(global_string, "%s_init(&%s[i]);\n", spec->name->name, tree->decl->u.id->name);
+                        indent();
+                        str_printf(global_string, "}\n");
+                    } else {
+                        fprintf(output, "for (int i = 0; i < %s; i++) {\n", tree->u.expr->u.str);
+                        indent();
+                        indent();
+                        fprintf(output, "%s_init(&%s[i]);\n", spec->name->name, tree->decl->u.id->name);
+                        indent();
+                        fprintf(output, "}\n");
+                    }
                 }
+                // pointer declaration
+                else {
+                    // perform operations below only if the struct contains non-public fields (nested)
+                    int contain_pub_field = 1;
+                    contain_pub_field = struct_node_get_flag(sns, spec->name->name);
+                    if (!contain_pub_field) {
+                        indent();
+                        int level = ast_compute_ptr_level(tree);
+                        if (gf == 1 && is_init_decl == 1) {
+                            fprintf(output, "priv_ptr %s;\n", tree->decl->u.id->name);
+                            str_printf(global_string, "%s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                        } else {
+                            fprintf(output, "priv_ptr %s = __s->smc_new_ptr(%d, 2);\n", tree->decl->u.id->name, level);
+                        }
+                    } else {
+                        ast_spec_show(spec);
+                        fprintf(output, " ");
+                        ast_decl_show(tree);
+                        fprintf(output, ";\n");
+                    }
+                }
+                break;
             }
             break;
-        }
+        case DIDENT:
+            break;
+        case DPAREN:
+            break;
+        case DFUNC:
+            break;
+        case ABSDECLARATOR:
+            break;
+        case DPARAM:
+            break;
+        case DELLIPSIS:
+            break;
+        case DBIT:
+            break;
+        case DSTRUCTFIELD:
+            break;
+        case DCASTTYPE:
+            break;
+        
         break;
     }
 }
@@ -6489,7 +6622,7 @@ void print_int(char* name) {
     if (technique_var == SHAMIR_SS) {
         indent();   
         fprintf(output, "ss_init(%s);\n", name);
-    } else if (technique_var = REPLICATED_SS) {
+    } else if (technique_var == REPLICATED_SS) {
         indent();
         fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", name);
         indent();
@@ -6514,7 +6647,7 @@ void print_float(char* name) {
         fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
         indent();
         fprintf(output, "ss_init(%s[_picco_i]);\n", name);
-    } else if (technique_var = REPLICATED_SS) {
+    } else if (technique_var == REPLICATED_SS) {
         indent();
         fprintf(output, "%s = (priv_int**)malloc(sizeof(priv_int*) * (4));\n", name);
         indent();
@@ -6669,48 +6802,35 @@ void ast_ompclause_show(ompclause t) {
     }
 
     fprintf(output, "%s", clausenames[t->type]);
-    switch (t->type) {
-    case OCIF:
-    case OCFINAL:
-    case OCNUMTHREADS:
+    if (t->type == OCNUMTHREADS) {
         fprintf(output, "( ");
         ast_expr_show(t->u.expr);
         fprintf(output, " )");
-        break;
-    case OCSCHEDULE:
+    }
+    if (t->type == OCSCHEDULE) {
         fprintf(output, "( %s%s", clausesubs[t->subtype], t->u.expr ? ", " : " ");
         if (t->u.expr)
             ast_expr_show(t->u.expr);
         fprintf(output, " )");
-        break;
-    case OCDEFAULT:
+    }
+    if (t->type == OCDEFAULT) {
         fprintf(output, "( %s )", clausesubs[t->subtype]);
-        break;
-    case OCREDUCTION:
+    }
+    if (t->type == OCREDUCTION) {
         fprintf(output, "( %s : ", clausesubs[t->subtype]);
         ast_decl_show(t->u.varlist);
         fprintf(output, ")");
-        break;
-    case OCCOPYIN:
-    case OCPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCFIRSTPRIVATE:
-    case OCLASTPRIVATE:
-    case OCSHARED:
+    }
+    if (t->type == OCSHARED) {
         fprintf(output, "(");
         ast_decl_show(t->u.varlist);
         fprintf(output, ")");
-        break;
-    case OCNOWAIT:
-    case OCORDERED:
-    case OCUNTIED:
-    case OCMERGEABLE:
-        break;
-    case OCCOLLAPSE:
+    }
+    if (t->type == OCCOLLAPSE) {
         fprintf(output, "(%d)", t->subtype);
-        break;
     }
 }
+
 
 void ast_ompdir_show(ompdir t) {
     fprintf(output, "#pragma omp %s ", ompdirnames[t->type]);
@@ -6847,33 +6967,23 @@ void ast_oxclause_show(oxclause t) {
     }
 
     fprintf(output, "%s", oxclausenames[t->type]);
-    switch (t->type) {
-    case OX_OCREDUCE:
+    if (t->type == OX_OCREDUCE) {
            fprintf(output, "(%s : ", clausesubs[t->operator]);
            ast_decl_show(t->u.varlist);
            fprintf(output, ")");
-           break;
-    case OX_OCIN:
-    case OX_OCOUT:
-    case OX_OCINOUT:
+    } else if (t->type == OX_OCINOUT) {
            fprintf(output, "(");
            ast_decl_show(t->u.varlist);
            fprintf(output, ")");
-           break;
-    case OX_OCATNODE:
-    case OX_OCATWORKER:
-    case OX_OCSTART:
-    case OX_OCSTRIDE:
+    } else if (t->type == OX_OCSTRIDE) {
            fprintf(output, "(");
            ast_expr_show(t->u.expr);
            fprintf(output, ")");
-           break;
-    case OX_OCSCOPE:
+    } else if (t->type == OX_OCSCOPE) {
            fprintf(output, "scope(%s)", t->u.value == OX_SCOPE_NODES ? "nodes" : t->u.value == OX_SCOPE_WLOCAL ? "workers,local"
                                                                              : t->u.value == OX_SCOPE_WGLOBAL  ? "workers,global"
                                                                                                                : "???");
-           break;
-    }
+    }    
 }
 
 void ast_oxdir_show(oxdir t) {

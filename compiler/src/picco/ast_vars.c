@@ -259,8 +259,16 @@ are as follows:
  */
 
 void ast_expr_vars(astexpr t) {
-    astexpr dim1 = NULL, dim2 = NULL;
+    // astexpr dim1 = NULL, dim2 = NULL;
     switch (t->type) {
+    case CONSTVAL:
+        break;
+    case STRING:
+        break;
+    case DOTDES:
+        break;
+    case EPMALLOC:
+        break;
     case IDENT: {
         int type;
         if (symtab_get(stab, t->u.sym, IDNAME) == NULL)
@@ -335,6 +343,14 @@ void ast_expr_vars(astexpr t) {
 
 void ast_spec_vars(astspec t) {
     switch (t->type) {
+    case SPEC:
+        break;
+    case STCLASSSPEC:
+        break;
+    case USERTYPE:
+        break;
+    case DELLIPSIS:
+        break;
     case SUE:
         switch (t->subtype) {
         case SPEC_enum:
@@ -361,6 +377,8 @@ void ast_spec_vars(astspec t) {
 
 void ast_decl_vars(astdecl t) {
     switch (t->type) {
+    case DELLIPSIS:
+        break;
     case DIDENT:
         break;
     case DPAREN:
@@ -473,6 +491,10 @@ void ast_stmt_vars(aststmt t) {
     if (t == NULL)
         return;
     switch (t->type) {
+    case VERBATIM:
+        break;
+    case SPFREE:
+        break;
     case JUMP:
         ast_stmt_jump_vars(t);
         break;
@@ -603,18 +625,10 @@ static void ast_omp_dataclause_vars(ompclause t) {
             ast_omp_dataclause_vars(t->u.list.next);
         assert((t = t->u.list.elem) != NULL);
     }
-    switch (t->type) {
-    case OCPRIVATE:
+    if (t->type == OCPRIVATE) {
         declare_only_omp_varlist(t->u.varlist);
-        break;
-    case OCFIRSTPRIVATE:
-    case OCLASTPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCREDUCTION:
+    } else if (t->type == OCREDUCTION) {
         declare_and_mark_omp_varlist(t->u.varlist, t->type);
-        break;
-    case OCCOPYIN: /* Don't even declare it! */
-        break;
     }
 }
 
@@ -643,15 +657,9 @@ static void ast_ompix_nondataclause_vars(oxclause t) {
             ast_ompix_nondataclause_vars(t->u.list.next);
         assert((t = t->u.list.elem) != NULL);
     }
-    switch (t->type) {
-    case OX_OCATNODE:
-    case OX_OCATWORKER:
-    case OX_OCSTRIDE:
-    case OX_OCSTART:
-    case OX_OCSCOPE:
+    if (t->type == OX_OCSCOPE) {
         if (t->u.expr)
             ast_expr_vars(t->u.expr);
-        break;
     }
 }
 

@@ -51,7 +51,7 @@ str Str(char *s) {
     b->buf = NULL;
     b->allox = 0;
     b->pos = 0;
-    (s == NULL) || str_printf(b, "%s", s);
+    // (s == NULL) || str_printf(b, "%s", s);
     return ((str)b);
 }
 

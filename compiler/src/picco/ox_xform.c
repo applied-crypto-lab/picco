@@ -500,14 +500,9 @@ static void checkNstore_dcclause_vars(oxclause t) {
         assert((t = t->u.list.elem) != NULL);
     }
     dc_vars_clause = t;
-    switch (t->type) {
-    case OX_OCIN:
-    case OX_OCOUT:
-    case OX_OCINOUT:
-    case OX_OCREDUCE:
+    if (t->type == OX_OCREDUCE) {
         if (t->u.varlist)
             checkNstore_varlist_vars(t->u.varlist, t->type, t->operator);
-        break;
     }
 }
 
@@ -732,6 +727,8 @@ void tf_sizeexpr_make(astexpr *tree) {
             tf_sizeexpr_make(&((*tree)->left));
             tf_sizeexpr_make(&((*tree)->right));
         }
+        break;
+    case EPMALLOC:
         break;
     }
 }
@@ -977,30 +974,30 @@ void ox_xform_task(aststmt *t) {
 }
 
 /* For debugging only */
-#if 1
-#include "ast_show.h"
-static void showtaskfunc(taskfunc tf) {
-    int i;
-    tfparam *p;
+// #if 1
+// #include "ast_show.h"
+// static void showtaskfunc(taskfunc tf) {
+//     int i;
+//     tfparam *p;
 
-    printf("/* TaskFunc:\n");
-    printf(" name:     %s\n # params: %d\n", tf->tfid->name, tf->np);
-    for (i = 0; i < tf->np; i++) {
-        p = &(tf->p[i]);
-        printf("   param %d (%s)\n     intent = %s, type = %d, size = %d",
-               i, p->pid->name, p->intent == OX_OCIN ? "IN" : p->intent == OX_OCOUT ? "OUT"
-                                                          : p->intent == OX_OCINOUT ? "INOUT"
-                                                                                    : "<intent?>",
-               p->type, p->size);
-        if (p->size != SIZE_SCALAR) {
-            printf(", expression: ");
-            ast_expr_show(p->size_expr);
-        }
-        printf("\n");
-    }
-    printf("*/\n");
-}
-#endif
+//     printf("/* TaskFunc:\n");
+//     printf(" name:     %s\n # params: %d\n", tf->tfid->name, tf->np);
+//     for (i = 0; i < tf->np; i++) {
+//         p = &(tf->p[i]);
+//         printf("   param %d (%s)\n     intent = %s, type = %d, size = %d",
+//                i, p->pid->name, p->intent == OX_OCIN ? "IN" : p->intent == OX_OCOUT ? "OUT"
+//                                                           : p->intent == OX_OCINOUT ? "INOUT"
+//                                                                                     : "<intent?>",
+//                p->type, p->size);
+//         if (p->size != SIZE_SCALAR) {
+//             printf(", expression: ");
+//             ast_expr_show(p->size_expr);
+//         }
+//         printf("\n");
+//     }
+//     printf("*/\n");
+// }
+// #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                                               *

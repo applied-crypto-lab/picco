@@ -182,6 +182,9 @@ int ComputeExprSize(astexpr e1, astexpr e2) {
                 return e2->size;
         }
     }
+
+    // Default return for null or unexpected cases
+    return 0;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1039,6 +1042,8 @@ int struct_node_get_flag(struct_node_stack structlist, char *struct_name) {
             return n->contain_pub_field;
         n = n->next;
     }
+
+    return -1;  // or 0 if it's "false" for missing struct
 }
 
 struct_node struct_node_lookup(struct_node_stack structlist, char *struct_name) {

@@ -546,31 +546,46 @@ int xt_decl_depends_on_sue(astdecl decl) {
     if (decl == NULL)
         return (0);
     switch (decl->type) {
-    case DPAREN:
-        return (xt_decl_depends_on_sue(decl));
-    case DARRAY:
-        if (decl->decl) /* Maybe abstract declarator */
+
+        case DINIT:
+            break;
+        
+        case DIDENT:
+            break;
+        case DPARAM:
+            break;
+        case DELLIPSIS:
+            break;
+        case DSTRUCTFIELD:
+            break;
+        case DCASTTYPE:
+            break;
+
+        case DPAREN:
+            return (xt_decl_depends_on_sue(decl));
+        case DARRAY:
+            if (decl->decl) /* Maybe abstract declarator */
+                return (xt_decl_depends_on_sue(decl->decl));
+            return (0);
+        case DBIT:
             return (xt_decl_depends_on_sue(decl->decl));
-        return (0);
-    case DBIT:
-        return (xt_decl_depends_on_sue(decl->decl));
-    case DFUNC: /* Maybe abstract declarator */
-        if (decl->decl)
+        case DFUNC: /* Maybe abstract declarator */
+            if (decl->decl)
+                if (xt_decl_depends_on_sue(decl->decl))
+                    return (1);
+            if (decl->u.params)
+                return (xt_decl_depends_on_sue(decl->u.params));
+            return (0);
+        case DLIST:
+            /* This can only occur when recursing, for normal declarations and
+            * struct fields.
+            */
             if (xt_decl_depends_on_sue(decl->decl))
                 return (1);
-        if (decl->u.params)
-            return (xt_decl_depends_on_sue(decl->u.params));
-        return (0);
-    case DLIST:
-        /* This can only occur when recursing, for normal declarations and
-         * struct fields.
-         */
-        if (xt_decl_depends_on_sue(decl->decl))
-            return (1);
-        return (xt_decl_depends_on_sue(decl->u.next));
-    case ABSDECLARATOR:
-    case DECLARATOR:
-        return (xt_decl_depends_on_sue(decl->decl));
+            return (xt_decl_depends_on_sue(decl->u.next));
+        case ABSDECLARATOR:
+        case DECLARATOR:
+            return (xt_decl_depends_on_sue(decl->decl));
     }
     return (0);
 }
@@ -613,17 +628,17 @@ void xt_dlist_array2pointer(aststmt d) {
  * declarator or a direct_declarator.
  */
 static void xt_directdecl_array2pointer(astdecl d) {
-    switch (d->type) {
-    case DECLARATOR:
+    if (d->type == DECLARATOR) {
         xt_decl_array2pointer(d);
-        break;
+     }
     /* direct_declarator cases */
-    case DPAREN: /* cannot have (id)[10] -- see parser.y */
+    if (d->type == DPAREN) { /* cannot have (id)[10] -- see parser.y */
         xt_decl_array2pointer(d->decl);
-    case DIDENT: /* nothing to do here */
-    case DFUNC:
-        break;
-    case DARRAY:
+    }
+    // case DIDENT: /* nothing to do here */
+    // case DFUNC:
+        // break;
+    if (d->type == DARRAY) {
         if (d->decl->type != DIDENT)
             xt_directdecl_array2pointer(d->decl);
         else /* Got it */
@@ -636,8 +651,7 @@ static void xt_directdecl_array2pointer(astdecl d) {
             *d = *t;
             free(t);
         }
-        break;
-    }
+    }    
 }
 
 void xt_decl_array2pointer(astdecl d) {
