@@ -349,8 +349,6 @@ void ast_spec_vars(astspec t) {
         break;
     case USERTYPE:
         break;
-    case DELLIPSIS:
-        break;
     case SUE:
         switch (t->subtype) {
         case SPEC_enum:
