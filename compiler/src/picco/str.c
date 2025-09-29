@@ -52,6 +52,9 @@ str Str(char *s) {
     b->allox = 0;
     b->pos = 0;
     // (s == NULL) || str_printf(b, "%s", s);
+    if (s != NULL) {
+        str_printf(b, "%s", s);
+    }
     return ((str)b);
 }
 
