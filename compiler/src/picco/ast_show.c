@@ -2239,10 +2239,10 @@ void ast_is_selection_complete(aststmt tree, astexpr var, int *result) {
         break;
     case EXPRESSION:
         if (tree->u.expr->type == ASS) {
-            // str tmp_name;
+            str tmp_name;
             if (tree->u.expr->left->type == IDENT) {
                 if (tree->u.expr->left->isptr > 0) {
-                    // tmp_name = Str("");
+                    tmp_name = Str("");
                     ast_expr_print(tmp_name, tree->u.expr->left);
                     if (!strcmp(str_string(name), str_string(tmp_name)))
                         *result = 1;
@@ -4059,6 +4059,8 @@ void ast_spec_show(astspec tree) {
 
 void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *struct_name, int flag) {
     switch (tree->type) {
+    case DIDENT:
+        break;
     case DPAREN:
         break;
     case DFUNC:
@@ -6892,32 +6894,22 @@ void ast_oxclause_show(oxclause t) {
     }
 
     fprintf(output, "%s", oxclausenames[t->type]);
-    switch (t->type) {
-    case OX_OCREDUCE:
+    if (t->type == OX_OCREDUCE) {
            fprintf(output, "(%s : ", clausesubs[t->operator]);
            ast_decl_show(t->u.varlist);
            fprintf(output, ")");
-           break;
-    case OX_OCIN:
-    case OX_OCOUT:
-    case OX_OCINOUT:
+    } else if (t->type == OX_OCINOUT) {
            fprintf(output, "(");
            ast_decl_show(t->u.varlist);
            fprintf(output, ")");
-           break;
-    case OX_OCATNODE:
-    case OX_OCATWORKER:
-    case OX_OCSTART:
-    case OX_OCSTRIDE:
+    } else if (t->type == OX_OCSTRIDE) {
            fprintf(output, "(");
            ast_expr_show(t->u.expr);
            fprintf(output, ")");
-           break;
-    case OX_OCSCOPE:
+    } else if (t->type == OX_OCSCOPE) {
            fprintf(output, "scope(%s)", t->u.value == OX_SCOPE_NODES ? "nodes" : t->u.value == OX_SCOPE_WLOCAL ? "workers,local"
                                                                              : t->u.value == OX_SCOPE_WGLOBAL  ? "workers,global"
                                                                                                                : "???");
-           break;
     }
 }
 
