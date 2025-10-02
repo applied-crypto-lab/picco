@@ -1472,7 +1472,7 @@ int is_ptr_assignment(astexpr tree) {
 }
 
 void strip_off_bracket_and_dereferences(str op, astexpr tree) {
-    while (tree->type == UOP && (tree->opid == UOP_paren) || (tree->opid == UOP_star))
+    while ((tree->type == UOP && (tree->opid == UOP_paren)) || (tree->opid == UOP_star))
         tree = tree->left;
     ast_expr_print(op, tree);
 }
@@ -3326,8 +3326,8 @@ void ast_expr_show(astexpr tree) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.str);
             }
             /* conversion to float */
-            if (tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_Rlist &&
-                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float) {
+            if (tree->u.dtype->spec->subtype == SPEC_float || (tree->u.dtype->spec->subtype == SPEC_Rlist &&
+                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float)) {
                 /* Int2FL */
                 if (tree->left->ftype == 0) {
                     ast_priv_single_expr_show(tree->left);
@@ -3354,8 +3354,8 @@ void ast_expr_show(astexpr tree) {
                 }
             }
             /* conversion to int */
-            if (tree->u.dtype->spec->subtype == SPEC_int || tree->u.dtype->spec->subtype == SPEC_Rlist &&
-                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_int) {
+            if (tree->u.dtype->spec->subtype == SPEC_int || (tree->u.dtype->spec->subtype == SPEC_Rlist &&
+                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_int)) {
                 /* Int2Int */
                 if (tree->left->ftype == 0) {
                     ast_priv_single_expr_show(tree->left);
@@ -3419,7 +3419,7 @@ void ast_expr_show(astexpr tree) {
             indent();
         } else 
             ast_expr_show(tree->left);
-        if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
+        if ((tree->opid == UOP_paren && tree->flag != PRI) || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
             fprintf(output, ")");
         break;
 
@@ -4085,7 +4085,7 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
             ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
             break;
         }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int))) {
             indent();
             if (tree->spec) {
                 if (!flag) {
@@ -4107,7 +4107,7 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
             }
             break;
         }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
+        if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float))) {
             indent();
             if (tree->spec) {
                 if (!flag) {
@@ -4175,13 +4175,13 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
         ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
         break;
     case DARRAY:
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int))) {
             if (!flag) {
                 ast_decl_memory_assign_int(tree, struct_name); // for non-global array 
                 indlev--;
             } else
                 ast_decl_memory_free_int(tree, struct_name); // for freeing non global array
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
+        } else if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float))) {
             if (!flag) {
                 ast_decl_memory_assign_float(tree, struct_name);
                 indlev--;
@@ -4231,9 +4231,9 @@ void ast_return_struct_field_info(char *struct_name, char *field_name, int *ispo
         *ispointer = 1;
     else
         *ispointer = 0;
-    if (f_type->subtype == SPEC_int || f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_int)
+    if (f_type->subtype == SPEC_int || (f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_int))
         *field_type = 0;
-    else if (f_type->subtype == SPEC_float || f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_float)
+    else if (f_type->subtype == SPEC_float || (f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_float))
         *field_type = 1;
     else
         *field_type = 2;
@@ -4292,9 +4292,9 @@ void ast_print_struct_helper_function(astspec tree) {
             int level = 0;
             if (field_name->spec)
                 ispointer = 1;
-            if (field_type->subtype == SPEC_int || field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_int)
+            if (field_type->subtype == SPEC_int || (field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_int))
                 spec_type = 0;
-            else if (field_type->subtype == SPEC_float || field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_float)
+            else if (field_type->subtype == SPEC_float || (field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_float))
                 spec_type = 1;
             else
                 spec_type = 2;
@@ -4659,13 +4659,13 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
         if (tree->decl->type == DARRAY) {
             ast_priv_decl_sng_show(tree->decl, spec);
         }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             if (tree->spec)
                 fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
             else
                 fprintf(output, "priv_int %s", tree->decl->u.id->name);
         }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             if (tree->spec)
                 fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
             else
@@ -4699,7 +4699,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
         ast_expr_show(tree->u.expr);
         fprintf(output, ";\n");
     } else if (tree->type == DARRAY) {
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int* %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
@@ -4710,7 +4710,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
                     exit(0);
                 }
             }
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        } else if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
@@ -4772,7 +4772,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             ast_priv_decl_show(tree->decl, spec, current, gflag);
             break;
         }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             // pointer to private int
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
@@ -4807,7 +4807,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             }
             break;
         }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             // pointer to private float
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
@@ -4957,7 +4957,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
         break;
     // priv array (supports up to two dimensions so far).
     case DARRAY: // This is where private array is handled
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
             // for two-dimensional array
@@ -4983,7 +4983,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             //     ast_decl_memory_assign_int(tree, "");
             //     indlev--;
             // }
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        } else if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
