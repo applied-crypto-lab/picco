@@ -177,9 +177,9 @@ void xform_for(aststmt *t) {
     int ispfor = ((*t)->u.omp->type == DCFOR_P);
     astexpr schedchunk = NULL; /* the chunksize expression */
     char *chsize = NULL,       /* the chunksize value or variable */
-        iters[10][128],
-         plainstep,
-         plainsteps[10];
+        iters[10][128];
+        //  plainstep;
+        //  , plainsteps[10];
     ompclause nw = xc_ompcon_get_clause((*t)->u.omp, OCNOWAIT),
               sch = xc_ompcon_get_clause((*t)->u.omp, OCSCHEDULE),
               ord = xc_ompcon_get_clause((*t)->u.omp, OCORDERED),
@@ -267,11 +267,11 @@ void xform_for(aststmt *t) {
         if (step == NULL || step->type == CONSTVAL) /* ++/-- or += constant */
         {
             step = (step == NULL) ? numConstant(1) : ast_expr_copy(step);
-            plainstep = 1;
+            // plainstep = 1;
         } else /* step != NULL && general expression for step */
         {
             step = UnaryOperator(UOP_paren, ast_expr_copy(step)); /* An expression */
-            plainstep = 0;
+            // plainstep = 0;
         }
         if (incrop == BOP_sub) /* negative step */
             step = UnaryOperator(UOP_paren, UnaryOperator(UOP_neg, step));
@@ -288,7 +288,7 @@ void xform_for(aststmt *t) {
         steps[i] = step;
         steps[i]->flag = PUB;
         sprintf(iters[i], "iters_%s_", var->name);
-        plainsteps[i] = plainstep;
+        // plainsteps[i] = plainstep;
 
         if (i < collapsenum - 1) {
             s = s->body;
@@ -452,9 +452,9 @@ void xform_for(aststmt *t) {
                                numConstant(nw ? 1 : 0),
                                numConstant(ord ? 1 : 0)),
                            UnaryOperator(UOP_addr, Identifier(Symbol("gdopt_")))))));
-    aststmt tt = Expression(/* niters_ = ort_num_iters(...) */
-                            Assignment(Identifier(Symbol("niters_")), ASS_eq,
-                                       FunctionCall(Identifier(Symbol("ort_num_iters")), expr)));
+    // aststmt tt = Expression(/* niters_ = ort_num_iters(...) */
+    //                         Assignment(Identifier(Symbol("niters_")), ASS_eq,
+    //                                    FunctionCall(Identifier(Symbol("ort_num_iters")), expr)));
 
     stmp = BlockList(
         stmp,

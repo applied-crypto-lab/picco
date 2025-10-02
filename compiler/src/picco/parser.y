@@ -148,8 +148,7 @@ FILE 	*var_file;
 
 }
 
-%error-verbose
-
+%define parse.error verbose
 
 /* %expect 4 */
 
@@ -689,9 +688,9 @@ cast_expression:
     }
     | '(' type_name ')'
     {
-        if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
             tmp_index++; 
-        if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
             tmp_float_index++;  
         num_index = num_index > tmp_index? num_index: tmp_index;
         num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
@@ -700,13 +699,13 @@ cast_expression:
     {
         $$ = CastedExpr($2, $5);
         $$->thread_id = thread_id; 
-        if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_int)
+        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && $2->spec->u.next->subtype == SPEC_int)
             $$->ftype = 0;
-        if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && $2->spec->u.next->subtype == SPEC_float)
+        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && $2->spec->u.next->subtype == SPEC_float)
             $$->ftype = 1;
         $$->flag = $5->flag;
 
-        if($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
         {
             $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
             tmp_index--;
@@ -716,7 +715,7 @@ cast_expression:
             if($5->ftype == 1)
                 modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+kappa_nu);
         }
-        if($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
         {
             $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
             $$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;  
@@ -1409,9 +1408,9 @@ struct_declarator_list:
 struct_declarator:
     declarator
     {
-      astdecl s = decl_getidentifier($1);
-      int     declkind = decl_getkind($1);
-      stentry e;
+      // astdecl s = decl_getidentifier($1);
+      // int     declkind = decl_getkind($1);
+      // stentry e;
       $$ = $1;
     }
     | declarator ':' constant_expression
@@ -2394,9 +2393,9 @@ normal_function_definition:
         parse_error(1, "Function definition cannot be parsed.\n");
       if (symtab_get(stab, decl_getidentifier_symbol($2), FUNCNAME) == NULL)
         symtab_put_funcname(stab, decl_getidentifier_symbol($2), FUNCNAME, $1, $2);
-        symbol e = decl_getidentifier_symbol($2);
+        // symbol e = decl_getidentifier_symbol($2);
 
-     symbol s = decl_getidentifier_symbol($2);
+     // symbol s = decl_getidentifier_symbol($2);
      scope_start(stab);
      ast_declare_function_params($2);
      if(set_security_flag_spec($1) == PRI)
@@ -2502,7 +2501,7 @@ normal_function_definition:
         parse_error(1, "Function definition cannot be parsed.\n");
       if (symtab_get(stab, decl_getidentifier_symbol($1), FUNCNAME) == NULL)
         symtab_put_funcname(stab, decl_getidentifier_symbol($1), FUNCNAME, NULL, $1);
-        symbol e = decl_getidentifier_symbol($1);
+        //symbol e = decl_getidentifier_symbol($1);
 
       scope_start(stab);
       ast_declare_function_params($1);
@@ -3754,6 +3753,8 @@ int check_decl_for_pointer(astdecl d)
         else
             return 0;
     }
+
+    return -1;
 }
 
 void store_struct_information(struct_node_stack sns, astspec s)
@@ -3785,7 +3786,7 @@ void store_struct_information(struct_node_stack sns, astspec s)
 
 void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 {
- 	if(s->subtype == SPEC_int || s->subtype == SPEC_Rlist && (s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_int))
+ 	if((s->subtype == SPEC_int || s->subtype == SPEC_Rlist) && (s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_int))
 	{
 		if(d->spec)
 		{
@@ -3798,7 +3799,7 @@ void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 				is_priv_int_struct_field_appear = 1; 
 		}
 	}
- 	if(s->subtype == SPEC_float || s->subtype == SPEC_Rlist && (s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_float))
+ 	if((s->subtype == SPEC_float || s->subtype == SPEC_Rlist) && (s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_float))
 	{
 		if(d->spec)
 		{
@@ -3811,7 +3812,7 @@ void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 				is_priv_float_struct_field_appear = 1; 
 		}
 	}
-	if(s->subtype == SPEC_struct || s->subtype == SPEC_union)
+	if((s->subtype == SPEC_struct || s->subtype == SPEC_union))
 	{
 		if(d->spec)
 		{
@@ -3860,7 +3861,7 @@ void set_identifier_attributes(symbol id, astexpr expr, int is_su_field)
       stentry entry;
       astspec s = NULL; 
       astdecl d = NULL;
-      int isarray = 0;
+      // int isarray = 0;
       struct_field field;
       if(is_su_field)
       {
@@ -3980,19 +3981,19 @@ void set_security_flag_symbol(astexpr e, symbol s, int is_su_field)
 {
       stentry entry; 	
       astspec spec = NULL;
-      astdecl decl = NULL;
+      // astdecl decl = NULL;
       struct_field field;
       if(is_su_field)
       {
                 field = get_struct_field_info(e);
                 spec = field->type;
-                decl = field->name;
+                // decl = field->name;
       }
       else
       {
                 entry = symtab_get(stab, s, IDNAME);
                 spec = entry->spec;
-                decl = entry->decl;
+                // decl = entry->decl;
       }
 	
       if(spec->body == NULL)
@@ -4297,7 +4298,7 @@ void security_check_for_declaration(astspec spec, astdecl decl){
 }
 
 void set_security_flag_stmt(aststmt s, aststmt s1, aststmt s2){
-    if(s->type = STATEMENTLIST){
+    if(s->type == STATEMENTLIST){
         if((s1->flag == PUB) || (s2->flag == PUB)) {
            s->flag = PUB;
         }
@@ -4337,6 +4338,8 @@ int set_security_flag_spec(astspec spec){
     }
     else
         return PRI;
+
+    return -1;
 }
 
 
@@ -4344,8 +4347,9 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
     stentry entry;
     astexpr e = e2;
     astexpr e4 = e1; 
-    astdecl d, d1;
-    int num = 0;
+    astdecl d;
+    // , d1;
+    // int num = 0;
     if(e->type != IDENT)
         while(e->type != IDENT)
             e = e->left;
@@ -4447,8 +4451,8 @@ void security_check_for_condition(astexpr e){
 
 int compute_ptr_level(astdecl tree)
 {
-	int level = 1; 
-        astdecl tmp = tree;
+        int level = 1; 
+        // astdecl tmp = tree;
         astspec spec = tree->spec;
         while(spec->type == SPECLIST && spec->body->subtype == SPEC_star)
         {
@@ -4457,6 +4461,7 @@ int compute_ptr_level(astdecl tree)
         }
         return level;
 }
+
 stentry get_entry_from_expr(astexpr op){
     astexpr e = op;
     if(e->type == IDENT)
@@ -4466,7 +4471,10 @@ stentry get_entry_from_expr(astexpr op){
             e = e->left;
         return symtab_get(stab, e->u.sym, IDNAME); 
     }
+
+    return NULL;
 }
+
 astdecl fix_known_typename(astspec s)
 {
   astspec prev;
@@ -4784,7 +4792,7 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 			modulus = fmax(modulus, fmax(len, k)+kappa_nu); 
 		else if(opid == BOP_div)
 			modulus = fmax(modulus, 2*len+kappa_nu+1);  
-	} else if(e1->flag == PRI && e2->flag == PRI && (e1->ftype == 0 && e2->ftype == 1 || e1->ftype == 1 && e2->ftype == 0)){
+	} else if(e1->flag == PRI && e2->flag == PRI && ((e1->ftype == 0 && e2->ftype == 1) || (e1->ftype == 1 && e2->ftype == 0))){
 		parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
 	// } else if (((e1->flag == PRI && e2->flag == PUB) || (e1->flag == PUB && e2->flag == PRI)) && (opid == BOP_neq || opid == BOP_eqeq)) {
@@ -4793,7 +4801,7 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
     } else if (opid == BOP_dot && ((e1->flag == PRI && e2->flag == PUB) || (e2->flag == PRI && e1->flag == PUB))) {
         parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
-    } else if(((e1->flag == PRI && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1)) || (e2->flag == PRI && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1) || (e1->flag == PUB && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1) || (e2->flag == PUB && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1)){
+    } else if((((e1->flag == PRI && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1))) || ((e2->flag == PRI && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1)) || ((e1->flag == PUB && e2->flag == PUB) && (e1->ftype == 0 && e2->ftype == 1)) || ((e2->flag == PUB && e1->flag == PUB) && (e2->ftype == 0 && e1->ftype == 1))){
 		if (!(((e1->flag == PRI || e1->flag == PUB) && e1->ftype == 1 && e1->type == IDENT) && (e2->type == CONSTVAL)) || (((e2->flag == PRI || e2->flag == PUB) && e2->ftype == 1 && e2->type == IDENT) && (e1->type == CONSTVAL))) { // The exception case for "Private float + constant int"
 		    if (!(e1->flag == PUB && e1->flag == PUB)) { // The exception case for "Public"
                 parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 

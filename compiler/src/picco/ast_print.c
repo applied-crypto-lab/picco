@@ -572,45 +572,53 @@ static void ast_ompclause_prn(ompclause t) {
 
     str_printf(bf, "%s", clausenames[t->type]);
     switch (t->type) {
-    case OCIF:
-    case OCFINAL:
-    case OCNUMTHREADS:
-        str_printf(bf, "(");
-        ast_expr_prn(t->u.expr);
-        str_printf(bf, ")");
-        break;
-    case OCSCHEDULE:
-        str_printf(bf, "(%s%s", clausesubs[t->subtype], t->u.expr ? ", " : " ");
-        if (t->u.expr)
+        case OCNOCLAUSE: 
+            break;
+        case OCLIST:
+            break;
+        case OCFIRSTLASTPRIVATE:
+            break;
+        case OX_OCATALL:
+            break;
+        case OCIF:
+        case OCFINAL:
+        case OCNUMTHREADS:
+            str_printf(bf, "(");
             ast_expr_prn(t->u.expr);
-        str_printf(bf, ")");
-        break;
-    case OCDEFAULT:
-        str_printf(bf, "(%s)", clausesubs[t->subtype]);
-        break;
-    case OCREDUCTION:
-        str_printf(bf, "(%s : ", clausesubs[t->subtype]);
-        ast_decl_prn(t->u.varlist);
-        str_printf(bf, ")");
-        break;
-    case OCCOPYIN:
-    case OCPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCFIRSTPRIVATE:
-    case OCLASTPRIVATE:
-    case OCSHARED:
-        str_printf(bf, "(");
-        ast_decl_prn(t->u.varlist);
-        str_printf(bf, ")");
-        break;
-    case OCNOWAIT:
-    case OCORDERED:
-    case OCUNTIED:
-    case OCMERGEABLE:
-        break;
-    case OCCOLLAPSE:
-        str_printf(bf, "(%d)", t->subtype);
-        break;
+            str_printf(bf, ")");
+            break;
+        case OCSCHEDULE:
+            str_printf(bf, "(%s%s", clausesubs[t->subtype], t->u.expr ? ", " : " ");
+            if (t->u.expr)
+                ast_expr_prn(t->u.expr);
+            str_printf(bf, ")");
+            break;
+        case OCDEFAULT:
+            str_printf(bf, "(%s)", clausesubs[t->subtype]);
+            break;
+        case OCREDUCTION:
+            str_printf(bf, "(%s : ", clausesubs[t->subtype]);
+            ast_decl_prn(t->u.varlist);
+            str_printf(bf, ")");
+            break;
+        case OCCOPYIN:
+            break;
+        case OCCOPYPRIVATE:
+        case OCFIRSTPRIVATE:
+        case OCLASTPRIVATE:
+        case OCSHARED:
+            str_printf(bf, "(");
+            ast_decl_prn(t->u.varlist);
+            str_printf(bf, ")");
+            break;
+        case OCNOWAIT:
+        case OCORDERED:
+        case OCUNTIED:
+        case OCMERGEABLE:
+            break;
+        case OCCOLLAPSE:
+            str_printf(bf, "(%d)", t->subtype);
+            break;
     }
 }
 
@@ -709,30 +717,40 @@ static void ast_oxclause_prn(oxclause t) {
 
     str_printf(bf, "%s", oxclausenames[t->type]);
     switch (t->type) {
-    case OX_OCREDUCE:
+        case OX_OCATALL:
+            break;
+        case OX_OCLIST:
+            break;
+        case OX_OCDETACHED:
+            break;
+        case OX_OCTIED:
+            break;
+        case OX_OCUNTIED:
+            break;
+        case OX_OCREDUCE:
             str_printf(bf, "(%s : ", clausesubs[t->operator]);
             ast_decl_prn(t->u.varlist);
             str_printf(bf, ")");
             break;
-    case OX_OCIN:
-    case OX_OCOUT:
-    case OX_OCINOUT:
+        case OX_OCIN:
+        case OX_OCOUT:
+        case OX_OCINOUT:
             str_printf(bf, "(");
             ast_decl_prn(t->u.varlist);
             str_printf(bf, ")");
             break;
-    case OX_OCATNODE:
-    case OX_OCATWORKER:
-    case OX_OCSTART:
-    case OX_OCSTRIDE:
+        case OX_OCATNODE:
+        case OX_OCATWORKER:
+        case OX_OCSTART:
+        case OX_OCSTRIDE:
             str_printf(bf, "(");
             ast_expr_prn(t->u.expr);
             str_printf(bf, ")");
             break;
-    case OX_OCSCOPE:
+        case OX_OCSCOPE:
             str_printf(bf, "scope(%s)", t->u.value == OX_SCOPE_NODES ? "nodes" : t->u.value == OX_SCOPE_WLOCAL ? "workers,local"
-                                                                             : t->u.value == OX_SCOPE_WGLOBAL  ? "workers,global"
-                                                                                                               : "???");
+                                                                            : t->u.value == OX_SCOPE_WGLOBAL  ? "workers,global"
+                                                                                                            : "???");
             break;
     }
 }

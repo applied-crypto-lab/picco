@@ -169,6 +169,14 @@ void ast_stmt_xform(aststmt *t) {
         return;
 
     switch ((*t)->type) {
+    case VERBATIM:
+        break;
+    case SMC:
+        break;
+    case BATCH:
+        break;
+    case SPFREE:
+        break;
     case EXPRESSION:
         ast_expr_xform(&((*t)->u.expr));
         break;
@@ -249,38 +257,27 @@ void ast_stmt_xform(aststmt *t) {
 void ast_expr_xform(astexpr *t) {
     if (t == NULL || *t == NULL)
         return;
-    switch ((*t)->type) {
-    case CONDEXPR:
+    if ((*t)->type == CONDEXPR) {
         ast_expr_xform(&((*t)->u.cond));
         /* Then continue below */
-    case FUNCCALL:
-    case BOP:
-    case ASS:
-    case DESIGNATED:
-    case COMMALIST:
-    case SPACELIST:
-    case ARRAYIDX:
+    }
+    if ((*t)->type == ARRAYIDX) {
         if ((*t)->right)
             ast_expr_xform(&((*t)->right));
         /* Then continue below */
-    case DOTFIELD:
-    case PTRFIELD:
-    case BRACEDINIT:
-    case PREOP:
-    case POSTOP:
-    case IDXDES:
+    }
+    if ((*t)->type == IDXDES) {
         ast_expr_xform(&((*t)->left));
-        break;
-    case CASTEXPR:
+    }
+    if ((*t)->type == CASTEXPR) {
         xt_barebones_substitute(&((*t)->u.dtype->spec), &((*t)->u.dtype->decl));
         ast_expr_xform(&((*t)->left));
-        break;
-    case UOP:
+    }
+    if ((*t)->type == UOP) {
         if ((*t)->opid == UOP_sizeoftype || (*t)->opid == UOP_typetrick)
             xt_barebones_substitute(&((*t)->u.dtype->spec), &((*t)->u.dtype->decl));
         else
             ast_expr_xform(&((*t)->left));
-        break;
     }
 }
 
@@ -573,15 +570,8 @@ static void declare_private_dataclause_vars(ompclause t) {
             declare_private_dataclause_vars(t->u.list.next);
         assert((t = t->u.list.elem) != NULL);
     }
-    switch (t->type) {
-    case OCPRIVATE:
-    case OCFIRSTPRIVATE:
-    case OCLASTPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCREDUCTION:
-    case OCCOPYIN:
+    if (t->type == OCCOPYIN) {
         ast_declare_varlist_vars(t->u.varlist);
-        break;
     }
 }
 

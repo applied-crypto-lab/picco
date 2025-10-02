@@ -119,7 +119,7 @@ void pathCreater(char *final_list) {
 // will have new argument for flag
 // If mode is true -> -m
 // If mode is false -> -d
-void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
+void append_new_main(bool mode, char *global_priv_var, FILE *output_filename) {
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
@@ -449,8 +449,7 @@ void loadConfig(char *config) {
 int main(int argc, char *argv[]) {
     time_t now;
     char tmp[256];
-    int r, includes_omph;
-    int knowMemcpy, knowSize_t, knowMalloc; /* flag if def'ed in user code */
+    int r;
     aststmt p;
 
     /***************** read config file ********************/
@@ -490,7 +489,7 @@ int main(int argc, char *argv[]) {
     int map_tmp_size = sizeof(int) * 4 * map_size + 200;
     char map_tmp[map_tmp_size];
     sprintf(map_tmp, "std::vector<int> seed_map = {");
-    int pos = 0;
+    // int pos = 0;
     char text[snprintf(NULL, 0, "%li", sizeof(int)) + 1];
     for (unsigned int i = 0; i < map_size; i++) {
         sprintf(text, "%i", seed_map[i]);
@@ -612,11 +611,13 @@ int main(int argc, char *argv[]) {
 
     ast = BlockList(p, ast);
 
+    // int knowMemcpy, knowSize_t, knowMalloc, includes_omph;
+
     /* The parser has left the symbol table at global scope; we must drain it */
-    includes_omph = (symtab_get(stab, Symbol("omp_lock_t"), TYPENAME) != NULL);
-    knowMemcpy = (symtab_get(stab, Symbol("memcpy"), FUNCNAME) != NULL);
-    knowSize_t = (symtab_get(stab, Symbol("size_t"), TYPENAME) != NULL);
-    knowMalloc = (symtab_get(stab, Symbol("malloc"), FUNCNAME) != NULL);
+    // includes_omph = (symtab_get(stab, Symbol("omp_lock_t"), TYPENAME) != NULL);
+    // knowMemcpy = (symtab_get(stab, Symbol("memcpy"), FUNCNAME) != NULL);
+    // knowSize_t = (symtab_get(stab, Symbol("size_t"), TYPENAME) != NULL);
+    // knowMalloc = (symtab_get(stab, Symbol("malloc"), FUNCNAME) != NULL);
     // symtab_drain(stab);
 
     if (hasMainfunc && (enableOpenMP || testingmode || processmode)) {
