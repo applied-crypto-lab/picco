@@ -29,8 +29,344 @@ using std::endl;
 using std::string;
 using std::vector;
 
+// Helper to print OpenSSL errors
+void handle_openssl_error() {
+    ERR_print_errors_fp(stderr); // function that prints the error strings for all errors that OpenSSL has recorded to standard error stream. 
+    throw std::runtime_error("OpenSSL Error");
+}
+
+/* Function to Base64 decode a string into a vector of unsigned chars
+    This function decodes a Base64 encoded string into its original raw binary data.
+    It uses OpenSSL's BIO (Basic Input/Output) library for efficient Base64 processing.
+    `BIO_f_base64()` creates a Base64 filter BIO, and `BIO_new_mem_buf()` creates a memory BIO
+    that holds the input string. `BIO_push` chains them together.
+    `BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL)` is crucial to ensure compatibility with
+    Base64 encodings that do not include newline characters (like those produced by `forge.util.encode64`).
+    `BIO_read` then performs the decoding.
+    Info taken from online resources and "https://docs.openssl.org/master/man3/BIO_f_base64/#synopsis"
+*/
+std::vector<unsigned char> base64_decode(const std::string& encoded_string) {
+    // Create a BIO filter for Base64 decoding
+    BIO *b64 = BIO_new(BIO_f_base64());
+
+    // Create a memory BIO that uses the input string as its data source
+    BIO *bmem = BIO_new_mem_buf(encoded_string.data(), encoded_string.length());
+
+    // Chain the Base64 filter on top of the memory buffer
+    bmem = BIO_push(b64, bmem);
+
+    // Disable newlines in Base64 encoding (matches forge.util.encode64 behavior)
+    // (Forge's encode64 does not add newlines, so we disable them to match behavior)
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+
+    // Allocate a buffer large enough to hold the decoded data 
+    std::vector<unsigned char> decoded_data(encoded_string.length()); // Max possible size
+    
+    // Perform the base64 decoding and store the actual number of decoded bytes
+    int len = BIO_read(bmem, decoded_data.data(), decoded_data.size());
+
+    // Free all BIO resources (both b64 and bmem)
+    BIO_free_all(bmem);
+
+    // Check if decoding failed (BIO_read returns negative on error)
+    if (len < 0) {
+        throw std::runtime_error("Base64 decoding failed.");
+    }
+
+    // Resize the buffer to contain only the valid decoded bytes
+    decoded_data.resize(len);
+
+    // Return the decoded byte array
+    return decoded_data;
+}
+
+/* 
+    Function to read file content (expected to be a Base64 string) and return decoded raw binary.
+    This function reads an entire file, assuming its content is a single line of Base64 encoded data.
+    It then calls `base64_decode` to convert the Base64 string into raw binary bytes.
+*/
+std::vector<unsigned char> read_base64_file_and_decode_to_bytes(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file for reading: " + filename);
+    }
+    std::string full_b64_blob;
+    if (!std::getline(file, full_b64_blob)) { // Read the single line containing the Base64 blob
+        throw std::runtime_error("File format error: Could not read full Base64 blob from file.");
+    }
+    file.close();
+
+    // For testing
+    // std::cout << "  -- DECODING PHASE --" << std::endl;
+    // std::cout << "  Input Base64 string from file (" << full_b64_blob.length() << " chars): " << full_b64_blob.substr(0, std::min((size_t)50, full_b64_blob.length())) << "..." << std::endl;
+    // std::cout << "  Performing Base64 decoding..." << std::endl;
+
+    // Call the base64_decode function to decode the input string into raw bytes
+    std::vector<unsigned char> decoded_full_blob = base64_decode(full_b64_blob);
+    // For testing
+    // std::cout << "  Successfully decoded to raw binary blob. Decoded size: " << decoded_full_blob.size() << " bytes." << std::endl;
+    // std::cout << "  --------------------" << std::endl;
+
+    // Return the decoded byte vector
+    return decoded_full_blob;
+}
+
+
+/* 
+    Function to write a vector of unsigned char to a file
+*/
+void write_bytes_to_file(const std::string& filename, const std::vector<unsigned char>& data) {
+    std::ofstream file(filename, std::ios::binary | std::ios::trunc); // trunc to overwrite
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file for writing: " + filename);
+    }
+    if (!file.write(reinterpret_cast<const char*>(data.data()), data.size())) {
+        throw std::runtime_error("Failed to write to file: " + filename);
+    }
+}
+
+// Function to decrypt RSA-OAEP
+// private_key_pem: Your private RSA key in PEM format (string)
+// encrypted_data: The data to decrypt (encrypted AES key)
+/*
+// This function performs RSA decryption using the OAEP (Optimal Asymmetric Encryption Padding) scheme.
+// RSA-OAEP is a secure padding scheme for RSA encryption that adds randomness and uses a hash function
+// (SHA-256 in this case) to prevent certain attacks.
+// It loads the RSA private key from a PEM string, initializes an EVP_PKEY_CTX for decryption,
+// sets the padding to RSA_PKCS1_OAEP_PADDING, and crucially configures both the message digest (OAEP_MD)
+// and MGF1 (Mask Generation Function 1) hash algorithms to SHA-256, mirroring the encryption side.
+// The decryption is a two-pass process: first to get the output size, then to perform the actual decryption.
+// Source: OpenSSL EVP_PKEY Functions (https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_decrypt.html)
+// and RSA-OAEP (https://www.rfc-editor.org/rfc/rfc3447#section-7.1)
+*/
+std::vector<unsigned char> rsa_oaep_decrypt(const std::string& private_key_pem,
+                                            const std::vector<unsigned char>& encrypted_aes_key_bytes) {
+    // Create BIO memory buffer from PEM string
+    BIO* mem_bio = BIO_new_mem_buf(private_key_pem.data(), private_key_pem.length());
+    if (!mem_bio) handle_openssl_error();
+
+    // Read RSA private key from BIO
+    RSA* rsa_key_raw = PEM_read_bio_RSAPrivateKey(mem_bio, NULL, NULL, NULL);
+    BIO_free(mem_bio);
+    if (!rsa_key_raw) handle_openssl_error();
+
+    // Wrap raw RSA key into EVP_PKEY
+    EVP_PKEY* pkey = EVP_PKEY_new();
+    if (!pkey) { RSA_free(rsa_key_raw); handle_openssl_error(); }
+    if (1 != EVP_PKEY_assign_RSA(pkey, rsa_key_raw)) { // Assign RSA key to EVP_PKEY
+        RSA_free(rsa_key_raw); EVP_PKEY_free(pkey); handle_openssl_error();
+    }
+
+    // Create decryption context
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, NULL);
+    if (!ctx) { EVP_PKEY_free(pkey); handle_openssl_error(); }
+
+    // Initialize decryption with RSA-OAEP padding
+    if (1 != EVP_PKEY_decrypt_init(ctx)) handle_openssl_error();
+    if (1 != EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING)) handle_openssl_error();
+
+    // Set OAEP hashing algorithm (SHA-256)
+    // --- THESE ARE THE CRITICAL LINES FOR OAEP HASHES ---
+    // Set the message digest algorithm (hash used for the input to OAEP)
+    if (1 != EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256())) handle_openssl_error();
+    // Set the MGF1 (Mask Generation Function 1) hash algorithm
+    if (1 != EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256())) handle_openssl_error();
+    // --- END CRITICAL LINES ---
+
+    // Get size needed for decrypted output
+    size_t decrypted_len = 0;
+    // First call to determine buffer size
+    if (1 != EVP_PKEY_decrypt(ctx, NULL, &decrypted_len, encrypted_aes_key_bytes.data(), encrypted_aes_key_bytes.size())) handle_openssl_error();
+
+    // Perform actual decryption
+    std::vector<unsigned char> decrypted_data(decrypted_len);
+    // Second call to perform decryption
+    if (1 != EVP_PKEY_decrypt(ctx, decrypted_data.data(), &decrypted_len, encrypted_aes_key_bytes.data(), encrypted_aes_key_bytes.size())) handle_openssl_error();
+
+    // Cleanup
+    EVP_PKEY_CTX_free(ctx);
+    EVP_PKEY_free(pkey); // This also frees the underlying RSA_KEY
+
+    decrypted_data.resize(decrypted_len);
+    return decrypted_data;
+}
+
+
+// Function to decrypt AES-GCM
+// key: Decrypted AES key (16 bytes for 128-bit AES)
+// iv: IV (12 bytes)
+// tag: Authentication Tag (16 bytes)
+// ciphertext: Encrypted data
+/*
+    This function performs AES decryption in GCM (Galois/Counter Mode). AES-GCM is an authenticated encryption
+    mode, meaning it provides both confidentiality (encryption) and integrity/authenticity (via an authentication tag).
+    It initializes an EVP_CIPHER_CTX with `EVP_aes_128_gcm()`, sets the IV length, the decryption key, and the IV.
+    `EVP_DecryptUpdate` processes the ciphertext. Crucially, before `EVP_DecryptFinal_ex`, the authentication tag
+    is set using `EVP_CIPHER_CTX_ctrl` with `EVP_CTRL_GCM_SET_TAG`. `EVP_DecryptFinal_ex` then performs the final
+    decryption and verifies the authenticity of the data using the provided tag. If the tag verification fails,
+    the function throws a `std::runtime_error`.
+    Source: OpenSSL AES-GCM Documentation (https://www.openssl.org/docs/manmaster/man3/EVP_aes_128_gcm.html)
+    and EVP Symmetric Encryption and Decryption (https://www.openssl.org/docs/manmaster/man3/EVP_EncryptInit.html)
+*/
+std::vector<unsigned char> aes_gcm_decrypt(const std::vector<unsigned char>& key,
+                                           const std::vector<unsigned char>& iv,
+                                           const std::vector<unsigned char>& tag,
+                                           const std::vector<unsigned char>& ciphertext) {
+    // Create context for AES-GCM decryption
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) handle_openssl_error();
+
+    std::vector<unsigned char> plaintext(ciphertext.size()); // Plaintext max size same as ciphertext
+    int len = 0;
+    int plaintext_len = 0;
+
+    // Initialize AES-128-GCM decryption operation.
+    if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL)) handle_openssl_error();
+
+    // Set IV length (optional, it defaults to the standard for the cipher in use)
+    if (1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv.size(), NULL)) handle_openssl_error();
+
+    // Set key and IV
+    if (1 != EVP_DecryptInit_ex(ctx, NULL, NULL, key.data(), iv.data())) handle_openssl_error();
+
+    // Provide the message to be decrypted, and obtain the plaintext output.
+    if (1 != EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size())) handle_openssl_error();
+    plaintext_len = len;
+
+    // Set expected tag value.
+    if (1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag.size(), (void*)tag.data())) handle_openssl_error();
+
+    // Finalize the decryption. A return value of 1 indicates success, 0 indicates failure.
+    // (e.g., authentication tag verification failed).
+    int ret = EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len);
+    EVP_CIPHER_CTX_free(ctx);
+
+    if (ret <= 0) { // Check return value to see if tag verification passed
+        throw std::runtime_error("AES-GCM decryption failed or tag verification failed.");
+    }
+    plaintext_len += len;
+    plaintext.resize(plaintext_len);
+    return plaintext;
+}
+
+// Assuming SMC_Utils or a similar class can provide the private key
+std::string get_private_key_pem_from_smc_utils(const char* private_key_filename) {
+    std::ifstream file(private_key_filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open private key file: " + std::string(private_key_filename));
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+/*
+    Decryption code that is written based on the encryption code in js on form_handler.js file
+
+    JavaScript code performs a two-step encryption process:
+
+        1. AES-GCM Encryption: The actual share (converted to a string) is encrypted using 
+        AES-GCM with a randomly generated 128-bit (16 bytes) AES key and a 12-byte random 
+        IV. The output of this step is the ciphertext and an authentication tag 
+        (128 bits / 16 bytes). The IV, ciphertext, and tag are then concatenated.
+        
+        2. RSA-OAEP Encryption: The randomly generated AES key from step 1 is then encrypted
+        using RSA-OAEP with SHA-256 and the recipient's public RSA key.
+
+    Therefore, the C++ decryption process will need to reverse these steps:
+
+        1. Separate the concatenated combinedData back into its three components: 
+                a. IV (first 12 bytes)
+                b. Ciphertext (middle part)
+                c. Authentication tag (last 16 bytes, as tagLength was 128 bits).
+
+        2. Use the decrypted AES key, the extracted IV, and the authentication tag to decrypt 
+        the ciphertext and verify its authenticity.
+
+        3. The result will be the original share as a string. 
+*/
+
+// --- Main Decryption Function ---
+// combined_data_bytes: The concatenation of IV + AES-GCM_Ciphertext + AES-GCM_Tag.
+// encrypted_key_bytes: The RSA-OAEP encrypted AES key.
+// public_keys: Key in PEM string format. (Parties public keys)
+std::string decrypt_share(const std::vector<unsigned char>& full_encrypted_file_content,
+                          const std::string& private_key_pem) {
+
+    std::string decrypted_share_string;
+
+    // Determine sizes from JS encryption:
+    const size_t iv_length = 12;    // As per JS: forge.random.getBytesSync(12)
+    const size_t tag_length = 16;   // As per JS: tagLength: 128 bits = 16 bytes
+    const size_t aes_key_length = 16; // AES-128 key is 16 bytes
+
+    // Assuming the format is [RSA_OAEP_Encrypted_AES_Key][IV][AES_GCM_Ciphertext][AES_GCM_Tag]
+    // The RSA encrypted key size depends on the RSA key size, but the decrypted AES key is 16 bytes.
+    // The *encrypted* AES key size will be the RSA key's modulus size (e.g., 256 bytes for a 2048-bit RSA key).
+    // You MUST know the exact size of the RSA-OAEP encrypted AES key.
+    // Let's assume for this example, the RSA key size is 2048 bits, so encrypted_key_size = 256 bytes.
+    // If your RSA key size is different, you'll need to adjust this.
+    // A more robust solution would be to prepend the encrypted_key_size to the file.
+    const size_t encrypted_aes_key_size = 256; // Example: for 2048-bit RSA key
+
+    if (full_encrypted_file_content.size() < encrypted_aes_key_size + iv_length + tag_length) {
+        throw std::runtime_error("Encrypted file content is too short.");
+    }
+
+    // Extract encrypted AES key
+    std::vector<unsigned char> encrypted_key_bytes(
+        full_encrypted_file_content.begin(),
+        full_encrypted_file_content.begin() + encrypted_aes_key_size
+    );
+    // For testing
+    // std::cout << "  - Encrypted AES Key (" << encrypted_key_bytes.size() << " bytes) extracted." << std::endl;
+
+    // Extract IV
+    std::vector<unsigned char> iv(
+        full_encrypted_file_content.begin() + encrypted_aes_key_size,
+        full_encrypted_file_content.begin() + encrypted_aes_key_size + iv_length
+    );
+    // For testing
+    // std::cout << "  - IV (" << iv.size() << " bytes) extracted." << std::endl;
+
+    // Extract Tag
+    std::vector<unsigned char> tag(
+        full_encrypted_file_content.end() - tag_length,
+        full_encrypted_file_content.end()
+    );
+    // For testing
+    // std::cout << "  - Tag (" << tag.size() << " bytes) extracted." << std::endl;
+
+    // Extract Ciphertext
+    std::vector<unsigned char> ciphertext(
+        full_encrypted_file_content.begin() + encrypted_aes_key_size + iv_length,
+        full_encrypted_file_content.end() - tag_length
+    );
+    // For testing
+    // std::cout << "  - Ciphertext (" << ciphertext.size() << " bytes) extracted." << std::endl;
+
+
+    // --- Step 1: Decrypt the AES key using RSA-OAEP ---
+    // std::cout << "Performing RSA-OAEP decryption of AES key..." << std::endl;
+    std::vector<unsigned char> decrypted_aes_key = rsa_oaep_decrypt(private_key_pem, encrypted_key_bytes);
+    if (decrypted_aes_key.size() != aes_key_length) {
+        throw std::runtime_error("Decrypted AES key has incorrect length.");
+    }
+    // std::cout << "  - AES Key decrypted (" << decrypted_aes_key.size() << " bytes)." << std::endl;
+
+    // --- Step 2: Use the decrypted AES key, IV, and Tag to decrypt the Ciphertext (AES-GCM) ---
+    // std::cout << "Performing AES-GCM decryption of ciphertext..." << std::endl;
+    std::vector<unsigned char> decrypted_plaintext = aes_gcm_decrypt(decrypted_aes_key, iv, tag, ciphertext);
+    // std::cout << "  - Ciphertext decrypted (" << decrypted_plaintext.size() << " bytes)." << std::endl;
+
+    // Convert decrypted bytes to string
+    decrypted_share_string.assign(reinterpret_cast<const char*>(decrypted_plaintext.data()), decrypted_plaintext.size());
+
+    return decrypted_share_string;
+}
+
 // Constructors
-SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads) {
+SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey_filename, int numOfInputPeers, int numOfOutputPeers, std::string *IO_files, int numOfPeers, int threshold, int bits, std::string mod, std::vector<int> &seed_map, int num_threads, int mode) {
     id = _id;
 #if __DEPLOYMENT__
     printf("DEPLOYMENT MODE\n");
@@ -80,6 +416,31 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
         inputStreams = new std::ifstream[numOfInputPeers];
         outputStreams = new std::ofstream[numOfOutputPeers];
         for (int i = 0; i < numOfInputPeers; i++) {
+            if (mode == 2) { // If mode is 2 -> -d -> web-server
+                std::string private_key_pem_content = get_private_key_pem_from_smc_utils(privatekey_filename.c_str());
+                std::string current_file_path = IO_files[i]; 
+                // For testing
+                // std::cout << "\nAttempting to decrypt and overwrite input file: " << current_file_path << std::endl;
+                // std::cout << "\nFiles used for: " << privatekey_filename << ", " << IO_files[i] << std::endl;
+                try {
+                    // 1. Read the Base64 encoded file content and DECODE it into raw binary bytes.
+                    //    'read_base64_file_and_decode_to_bytes' will perform the Base64 decoding.
+                    std::vector<unsigned char> decoded_full_blob = read_base64_file_and_decode_to_bytes(current_file_path);
+
+                    // 2. Decrypt the content
+                    std::string decrypted_content_str = decrypt_share(decoded_full_blob, private_key_pem_content);
+                    std::vector<unsigned char> decrypted_content_bytes(decrypted_content_str.begin(), decrypted_content_str.end());
+                    // std::cout << "Decrypted content size: " << decrypted_content_bytes.size() << " bytes." << std::endl;
+
+                    // 3. Store the decrypted content back into the same file
+                    write_bytes_to_file(current_file_path, decrypted_content_bytes);
+                    // std::cout << "Successfully decrypted and overwrote file: " << current_file_path << std::endl;
+
+                } catch (const std::runtime_error& e) {
+                    std::cerr << "Error decrypting file " << current_file_path << ": " << e.what() << std::endl;
+                    exit(1);
+                }
+            }
             inputStreams[i].open(IO_files[i].c_str(), std::ifstream::in);
             if (!inputStreams[i]) {
                 std::cout << "Input files from input party " + std::to_string(i + 1) + " could not be opened\n";
