@@ -332,11 +332,9 @@ void ast_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index
         }
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS:
+        if (tree->u.expr->type == ASS) {
             (*statement_index)++;
             ast_batch_print_stmt(tree, batch_stack->head->index, *statement_index, narray_element_index, private_index, current);
-            break;
         }
         break;
     default:
@@ -1199,11 +1197,9 @@ void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_inde
         }
     }
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS:
+        if (tree->u.expr->type == ASS) {
             (*statement_index)++;
             ast_batch_print_index(tree, batch_stack->head->index, *statement_index, narray_element_index, delete_tmp_array, private_index);
-            break;
         }
         break;
     default:
@@ -1412,10 +1408,12 @@ void ast_return_type_of_rop(char **type, astexpr right) {
                 else
                     sprintf(*type, "_struct");
             } else
-                sprintf(*type, "\0");
+                // sprintf(*type, "\0");
+                (*type)[0] = '\0';
         }
     } else
-        sprintf(*type, "\0");
+        // sprintf(*type, "\0");
+        (*type)[0] = '\0';
 }
 
 void ast_ptr_assignment_show(astexpr left, astexpr right, str rightop) {
@@ -1474,7 +1472,7 @@ int is_ptr_assignment(astexpr tree) {
 }
 
 void strip_off_bracket_and_dereferences(str op, astexpr tree) {
-    while (tree->type == UOP && (tree->opid == UOP_paren) || (tree->opid == UOP_star))
+    while ((tree->type == UOP && (tree->opid == UOP_paren)) || (tree->opid == UOP_star))
         tree = tree->left;
     ast_expr_print(op, tree);
 }
@@ -1880,11 +1878,9 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
         ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS:
+        if (tree->u.expr->type == ASS) {
             (*statement_index)++;
             batch_statement_push(tree, *statement_index, batch_stack->head->index, 0, bss);
-            break;
         }
         break;
     default:
@@ -2163,8 +2159,8 @@ void ast_filter_cond(astexpr cond, astexpr *pubcond, astexpr *pricond) {
 }
 
 void ast_if_stmt_show(aststmt tree, branchnode current, int thread_id) {
-    int line = 0;
-    int start_addr = 0;
+    // int line = 0;
+    // int start_addr = 0;
     int is_priv_int_appear = 0, is_priv_float_appear = 0;
 
     if (if_branchnode_height(current) == 1) {
@@ -2242,8 +2238,7 @@ void ast_is_selection_complete(aststmt tree, astexpr var, int *result) {
         ast_is_selection_complete(tree->body, var, result);
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS: {
+        if (tree->u.expr->type == ASS) {
             str tmp_name;
             if (tree->u.expr->left->type == IDENT) {
                 if (tree->u.expr->left->isptr > 0) {
@@ -2256,8 +2251,6 @@ void ast_is_selection_complete(aststmt tree, astexpr var, int *result) {
             } else if (tree->u.expr->left->type == ARRAYIDX) {
                 // modify this if start dealing with array of pointers
             }
-            break;
-        }
         }
         break;
     default:
@@ -2315,8 +2308,7 @@ void ast_iter_tree(aststmt tree, mvarstack mvartable) {
         ast_iter_tree(tree->body, mvartable);
         break;
     case EXPRESSION:
-        switch (tree->u.expr->type) {
-        case ASS:
+        if (tree->u.expr->type == ASS) {
             if (tree->u.expr->left->type == IDENT) {
                 if (tree->u.expr->left->isptr > 0)
                     mvar_push(tree->u.expr->left, mvartable);
@@ -2477,7 +2469,7 @@ void ast_stmt_show(aststmt tree, branchnode current) {
         break;
     case STATEMENTLIST: {
         aststmt ch;
-        int lastdef = 0;
+        // int lastdef = 0;
 
         /* If my rightmost child of the left subtree is a DECLARATION and
          * the leftmost child of my right subtree is not, then this is
@@ -2488,8 +2480,8 @@ void ast_stmt_show(aststmt tree, branchnode current) {
         if (ch->type == DECLARATION) {
             for (ch = tree->body; ch->type == STATEMENTLIST; ch = ch->u.next)
                 ;
-            if (ch->type != DECLARATION)
-                lastdef = 1;
+            // if (ch->type != DECLARATION)
+            // lastdef = 1;
         }
         if (declared == 0 && enterfunc == 1) {
             ast_temporary_variable_declaration();
@@ -2712,6 +2704,9 @@ void ast_expr_refer_single_struct_field_helper(char *var_name, char *struct_name
 
     int ispointer, field_type;
     str first_dimension = Str(""), second_dimension = Str("");
+
+    array_index[0] = '\0';
+
     if (private_if_index == -1)
         sprintf(priv_cond, "NULL");
     else
@@ -2726,8 +2721,9 @@ void ast_expr_refer_single_struct_field_helper(char *var_name, char *struct_name
             ast_expr_print(second_dimension, tree->right);
             sprintf(array_index, "%s, %s, ", str_string(first_dimension), str_string(second_dimension));
         }
-    } else
-        sprintf(array_index, "");
+    } 
+    // else
+        //     sprintf(array_index, "");
 
     if (!struct_node_get_flag(sns, struct_name)) {
         char *var = (char *)malloc(sizeof(char) * buffer_size);
@@ -2793,7 +2789,7 @@ astspec ast_expr_refer_single_struct_field(astexpr tree, int *id, int is_address
     // multiple field dereference
     if (tree->left != NULL && tree->left->type == PTRFIELD) {
         (*recursive_level)++;
-        int struct_id = 0;
+        // int struct_id = 0;
         astspec type = ast_expr_refer_single_struct_field(tree->left, id, 0, 0, private_if_index, NULL, recursive_level, var, tag, thread_id);
         (*recursive_level)--;
         sprintf(struct_name, "%s", type->name->name);
@@ -2890,6 +2886,8 @@ astspec ast_expr_refer_single_struct_field(astexpr tree, int *id, int is_address
     free(var_name);
     free(struct_name);
     free(field_name);
+
+    return NULL;
 }
 
 void ast_expr_refer_struct_field(astexpr tree, int private_if_index) {
@@ -3062,7 +3060,7 @@ void ast_priv_expr_show(astexpr tree, branchnode current, int gflag) {
     char *inttype = "int";
     char *floattype = "float";
     char *op;
-    int is_complete = 0;
+    // int is_complete = 0;
     if (tree->left->ftype == 0) {
         type = inttype;
         op = "_picco_priv_int_tmp1";
@@ -3257,9 +3255,9 @@ void ast_expr_show(astexpr tree) {
             }
             fprintf(output, "(");
             if (tree->right) {
-                if (tree->right->type == COMMALIST) {
-                    astexpr e = symtab_get(stab, tree->left, FUNCNAME);
-                }
+                // if (tree->right->type == COMMALIST) {
+                //     astexpr e = symtab_get(stab, tree->left, FUNCNAME);
+                // }
                 ast_expr_show(tree->right);
             }
         }
@@ -3324,12 +3322,12 @@ void ast_expr_show(astexpr tree) {
             str array_size = Str("");
             if (tree->left->arraysize && tree->left->arraysize->type == IDENT) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.sym->name);
-            } else if (tree->left->arraysize && tree->left->arraysize->u.str == CONSTVAL) {
+            } else if (tree->left->arraysize && tree->left->arraysize->type == CONSTVAL) {
                 str_printf(array_size, "%s", tree->left->arraysize->u.str);
             }
             /* conversion to float */
-            if (tree->u.dtype->spec->subtype == SPEC_float || tree->u.dtype->spec->subtype == SPEC_Rlist &&
-                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float) {
+            if (tree->u.dtype->spec->subtype == SPEC_float || (tree->u.dtype->spec->subtype == SPEC_Rlist &&
+                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_float)) {
                 /* Int2FL */
                 if (tree->left->ftype == 0) {
                     ast_priv_single_expr_show(tree->left);
@@ -3356,8 +3354,8 @@ void ast_expr_show(astexpr tree) {
                 }
             }
             /* conversion to int */
-            if (tree->u.dtype->spec->subtype == SPEC_int || tree->u.dtype->spec->subtype == SPEC_Rlist &&
-                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_int) {
+            if (tree->u.dtype->spec->subtype == SPEC_int || (tree->u.dtype->spec->subtype == SPEC_Rlist &&
+                                                                tree->u.dtype->spec->body->subtype == SPEC_private && tree->u.dtype->spec->u.next->subtype == SPEC_int)) {
                 /* Int2Int */
                 if (tree->left->ftype == 0) {
                     ast_priv_single_expr_show(tree->left);
@@ -3421,7 +3419,7 @@ void ast_expr_show(astexpr tree) {
             indent();
         } else 
             ast_expr_show(tree->left);
-        if (tree->opid == UOP_paren && tree->flag != PRI || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
+        if ((tree->opid == UOP_paren && tree->flag != PRI) || tree->opid == UOP_sizeoftype || tree->opid == UOP_sizeof)
             fprintf(output, ")");
         break;
 
@@ -3617,71 +3615,93 @@ void ast_expr_show(astexpr tree) {
                 fprintf(output, ", ");
             } 
             else if (immresulttype == 1) { // if the operation is on arrays  
-                if (tree->opid != BOP_band && tree->opid != BOP_land && tree->opid != BOP_bor && tree->opid != BOP_bor && tree->opid != BOP_lor && tree->opid != BOP_bxor) {
-                    if (tree->right->ftype == 1 || tree->left->ftype == 1){
-                        fprintf(output, "%d, %d, %d, %d, ", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp);
-                    } else{
-                        fprintf(output, "%d, %d, ", tree->left->size, tree->right->size);
-                    }
-                    // I need this to store the immediate results 
-                    if (tree->ftype == 1){
-                        fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
-                    } else if (tree->ftype == 0){
-                        fprintf(output, "_picco_arr_tmp%d, ", tree->index);
-                    }
-                    // The rest of the code that prints the sizes and int/float 
-                    if (tree->right->ftype == 1) { // float
-                        if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq) {
-                            if (tree->left->flag == PRI){
-                                fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                const int is_logic_op = (tree->opid == BOP_land || tree->opid == BOP_lor);
+                if (!is_logic_op) {
+                    if (tree->opid != BOP_band && tree->opid != BOP_land && tree->opid != BOP_bor && tree->opid != BOP_lor && tree->opid != BOP_bxor) {
+                        if (tree->right->ftype == 1 || tree->left->ftype == 1){
+                            fprintf(output, "%d, %d, %d, %d, ", tree->left->size, tree->left->sizeexp, tree->right->size, tree->right->sizeexp);
+                        } else{
+                            fprintf(output, "%d, %d, ", tree->left->size, tree->right->size);
+                        }
+                        // I need this to store the immediate results 
+                        if (tree->ftype == 1){
+                            fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
+                        } else if (tree->ftype == 0){
+                            fprintf(output, "_picco_arr_tmp%d, ", tree->index);
+                        }
+                        // The rest of the code that prints the sizes and int/float 
+                        if (tree->right->ftype == 1) { // float
+                            if (tree->opid != BOP_lt && tree->opid != BOP_gt && tree->opid != BOP_leq && tree->opid != BOP_geq && tree->opid != BOP_eqeq && tree->opid != BOP_neq) {
+                                if (tree->left->flag == PRI){
+                                    fprintf(output, "%d, %d, ", tree->left->size, tree->left->sizeexp);
+                                } else {
+                                    fprintf(output, "%d, %d, ", tree->right->size, tree->right->sizeexp);
+                                }
                             } else {
-                                fprintf(output, "%d, %d, ", tree->right->size, tree->right->sizeexp);
+                                if (tree->left->flag == PRI){
+                                    fprintf(output, "%d, ", tree->left->size);
+                                } else {
+                                    fprintf(output, "%d, ", tree->right->size);
+                                }
                             }
-                        } else {
+                        } else { // int
                             if (tree->left->flag == PRI){
                                 fprintf(output, "%d, ", tree->left->size);
                             } else {
                                 fprintf(output, "%d, ", tree->right->size);
                             }
                         }
-                    } else { // int
-                        if (tree->left->flag == PRI){
+                        if (tree->left->arraysize != NULL) {
+                            ast_expr_show(tree->left->arraysize); // Print the array size
+                        } else {
+                            fprintf(output, "%d", tree->left->size);
+                        }
+
+                    } else {
+                        if (tree->right->ftype == 1 || tree->left->ftype == 1){
                             fprintf(output, "%d, ", tree->left->size);
                         } else {
-                            fprintf(output, "%d, ", tree->right->size);
+                            fprintf(output, "%d, ", tree->left->size);
                         }
-                    }
-                    if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize); // Print the array size
-                    } else {
-                        fprintf(output, "%d", tree->left->size);
-                    }
 
+                        // I need this to store the immediate results 
+                        if (tree->ftype == 1){
+                            fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
+                        } else if (tree->ftype == 0){
+                            fprintf(output, "_picco_arr_tmp%d, ", tree->index);
+                        }
+
+                        if (tree->left->arraysize != NULL) {
+                            ast_expr_show(tree->left->arraysize);
+                        }
+                        fprintf(output, ", ");
+                        if (tree->right->arraysize != NULL) {
+                            ast_expr_show(tree->right->arraysize);
+                        }
+                        fprintf(output, ", ");
+                        if (tree->left->arraysize != NULL) {
+                            ast_expr_show(tree->left->arraysize);
+                        } 
+                    }
                 } else {
-                    if (tree->right->ftype == 1 || tree->left->ftype == 1){
-                        fprintf(output, "%d, ", tree->left->size);
-                    } else {
-                        fprintf(output, "%d, ", tree->left->size);
-                    }
-
-                    // I need this to store the immediate results 
-                    if (tree->ftype == 1){
-                        fprintf(output, "_picco_arr_ftmp%d, ", tree->index);
-                    } else if (tree->ftype == 0){
-                        fprintf(output, "_picco_arr_tmp%d, ", tree->index);
-                    }
-
                     if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize);
-                    }
-                    fprintf(output, ", ");
-                    if (tree->right->arraysize != NULL) {
+                        ast_expr_show(tree->left->arraysize);         // e.g., prints K
+                    } else if (tree->right->arraysize != NULL) {
                         ast_expr_show(tree->right->arraysize);
+                    } else {
+                        fprintf(output, "1");
                     }
                     fprintf(output, ", ");
-                    if (tree->left->arraysize != NULL) {
-                        ast_expr_show(tree->left->arraysize);
-                    } 
+
+                    // out buffer: force INT boolean result buffer
+                    fprintf(output, "_picco_arr_tmp%d, ", tree->index);
+
+                    /* bitlengths */
+                    int a_bits = tree->left->size > 0 ? tree->left->size : 1;
+                    int b_bits = tree->right->size > 0 ? tree->right->size : 1;
+                    int out_bits = 1; /* boolean result */
+
+                    fprintf(output, "%d, %d, %d", a_bits, b_bits, out_bits);
                 }
 
                 char *type = (char *)malloc(sizeof(char) * buffer_size);
@@ -4039,6 +4059,24 @@ void ast_spec_show(astspec tree) {
 
 void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *struct_name, int flag) {
     switch (tree->type) {
+    case DIDENT:
+        break;
+    case DPAREN:
+        break;
+    case DFUNC:
+        break;
+    case DINIT:
+        break;
+    case ABSDECLARATOR:
+        break;
+    case DPARAM:
+        break;
+    case DELLIPSIS:
+        break;
+    case DBIT:
+        break;
+    case DCASTTYPE:
+        break;
     case DSTRUCTFIELD:
         ast_handle_memory_for_private_variable(tree->decl, tree->spec, struct_name, flag);
         break;
@@ -4047,7 +4085,7 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
             ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
             break;
         }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int))) {
             indent();
             if (tree->spec) {
                 if (!flag) {
@@ -4069,7 +4107,7 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
             }
             break;
         }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
+        if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float))) {
             indent();
             if (tree->spec) {
                 if (!flag) {
@@ -4137,13 +4175,13 @@ void ast_handle_memory_for_private_variable(astdecl tree, astspec spec, char *st
         ast_handle_memory_for_private_variable(tree->decl, spec, struct_name, flag);
         break;
     case DARRAY:
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int)) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_int))) {
             if (!flag) {
                 ast_decl_memory_assign_int(tree, struct_name); // for non-global array 
                 indlev--;
             } else
                 ast_decl_memory_free_int(tree, struct_name); // for freeing non global array
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float)) {
+        } else if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && (spec->body->subtype == SPEC_private && spec->u.next->subtype == SPEC_float))) {
             if (!flag) {
                 ast_decl_memory_assign_float(tree, struct_name);
                 indlev--;
@@ -4193,9 +4231,9 @@ void ast_return_struct_field_info(char *struct_name, char *field_name, int *ispo
         *ispointer = 1;
     else
         *ispointer = 0;
-    if (f_type->subtype == SPEC_int || f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_int)
+    if (f_type->subtype == SPEC_int || (f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_int))
         *field_type = 0;
-    else if (f_type->subtype == SPEC_float || f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_float)
+    else if (f_type->subtype == SPEC_float || (f_type->subtype == SPEC_Rlist && f_type->u.next->subtype == SPEC_float))
         *field_type = 1;
     else
         *field_type = 2;
@@ -4246,7 +4284,7 @@ void ast_print_struct_helper_function(astspec tree) {
             char *var_name = (char *)malloc(sizeof(char) * buffer_size);
             char *array_index = (char *)malloc(sizeof(char) * buffer_size);
             char *field_element = (char *)malloc(sizeof(char) * buffer_size);
-            int array_dimension = 0;
+            // int array_dimension = 0;
             astdecl field_name = field->name;
             astspec field_type = field->type;
             int ispointer = 0;
@@ -4254,9 +4292,9 @@ void ast_print_struct_helper_function(astspec tree) {
             int level = 0;
             if (field_name->spec)
                 ispointer = 1;
-            if (field_type->subtype == SPEC_int || field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_int)
+            if (field_type->subtype == SPEC_int || (field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_int))
                 spec_type = 0;
-            else if (field_type->subtype == SPEC_float || field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_float)
+            else if (field_type->subtype == SPEC_float || (field_type->subtype == SPEC_Rlist && field_type->u.next->subtype == SPEC_float))
                 spec_type = 1;
             else
                 spec_type = 2;
@@ -4265,14 +4303,14 @@ void ast_print_struct_helper_function(astspec tree) {
             // one dimension
 
             if (field_name->decl->type == DARRAY && field_name->decl->decl->type == DIDENT) {
-                array_dimension = 1;
+                // array_dimension = 1;
                 sprintf(var_name, "%s", field_name->decl->decl->u.id->name);
                 sprintf(array_index, "int _picco_index1, ");
                 sprintf(field_element, "%s[_picco_index1]", var_name);
             }
             // two-dimension
             else if (field_name->decl->type == DARRAY && field_name->decl->decl->type == DARRAY) {
-                array_dimension = 2;
+                // array_dimension = 2;
                 sprintf(var_name, "%s", field_name->decl->decl->decl->u.id->name);
                 sprintf(array_index, "int _picco_index1, int _picco_index2, ");
                 sprintf(field_element, "%s[_picco_index1][_picco_index2]", var_name);
@@ -4280,7 +4318,7 @@ void ast_print_struct_helper_function(astspec tree) {
             // other cases
             else {
                 sprintf(var_name, "%s", field_name->decl->u.id->name);
-                sprintf(array_index, "");
+                array_index[0] = '\0';
                 sprintf(field_element, "%s", var_name);
             }
 
@@ -4577,7 +4615,7 @@ void ast_ptr_decl_show(astdecl tree, astspec spec)
 
 int ast_compute_ptr_level(astdecl tree) {
     int level = 1;
-    astdecl tmp = tree;
+    // astdecl tmp = tree;
     astspec spec = tree->spec;
     while (spec->type == SPECLIST && spec->body->subtype == SPEC_star) {
         level++;
@@ -4587,21 +4625,17 @@ int ast_compute_ptr_level(astdecl tree) {
 }
 
 void ast_print_priv_field(astdecl tree, astspec spec) {
-    switch (tree->type) {
-    case DECLARATOR:
+    if (tree->type == DECLARATOR) {
         if (tree->decl->type == DARRAY) {
             ast_print_priv_field(tree->decl, spec);
-            break;
         }
         if (spec->subtype == SPEC_int) {
             fprintf(output, "priv_int %s", tree->decl->u.id->name);
-            break;
         }
         if (spec->subtype == SPEC_float) {
             fprintf(output, "priv_int* %s", tree->decl->u.id->name);
-            break;
         }
-    case DARRAY:
+    } else if (tree->type == DARRAY) {
         if (spec->subtype == SPEC_int) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int* %s", tree->decl->u.id->name);
@@ -4617,30 +4651,25 @@ void ast_print_priv_field(astdecl tree, astspec spec) {
                     fprintf(output, "priv_int*** %s", tree->decl->decl->u.id->name);
             }
         }
-        break;
     }
 }
 
 void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
-    switch (tree->type) {
-    case DECLARATOR:
+    if (tree->type == DECLARATOR) {
         if (tree->decl->type == DARRAY) {
             ast_priv_decl_sng_show(tree->decl, spec);
-            break;
         }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             if (tree->spec)
                 fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
             else
                 fprintf(output, "priv_int %s", tree->decl->u.id->name);
-            break;
         }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             if (tree->spec)
                 fprintf(output, "priv_ptr %s", tree->decl->u.id->name);
             else
                 fprintf(output, "priv_int* %s", tree->decl->u.id->name);
-            break;
         }
         /* struct or union declaration -- for now we only support static declaration */
         if (spec->subtype == SPEC_struct || spec->subtype == SPEC_union) {
@@ -4663,17 +4692,14 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
                     ast_decl_show(tree);
                 }
             }
-            break;
         }
-    case DINIT: {
+    } else if (tree->type == DLIST) {
         ast_priv_decl_sng_show(tree->decl, spec);
         fprintf(output, " = ");
         ast_expr_show(tree->u.expr);
         fprintf(output, ";\n");
-        break;
-    }
-    case DARRAY:
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+    } else if (tree->type == DARRAY) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int* %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
@@ -4684,7 +4710,7 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
                     exit(0);
                 }
             }
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        } else if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
@@ -4697,7 +4723,6 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
             }
         }
         // this is where array of struct should be further handled
-        break;
     }
 }
 
@@ -4721,6 +4746,24 @@ void ast_priv_decl_sng_show(astdecl tree, astspec spec) {
 void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gflag) {
     /* printing global private declarations into a string */
     switch (tree->type) {
+    case DIDENT:
+        break;
+    case DPAREN:
+        break;
+    case DFUNC:
+        break;
+    case ABSDECLARATOR:
+        break;
+    case DPARAM:
+        break;
+    case DELLIPSIS:
+        break;
+    case DBIT:
+        break;
+    case DSTRUCTFIELD:
+        break;
+    case DCASTTYPE:
+        break;
     case DECLARATOR: 
         if(gflag != 1) { // Don't change this, this table is used to keep track and clear the vars after it is done
             ltable_push(spec, tree, current->tablelist->head);
@@ -4729,7 +4772,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             ast_priv_decl_show(tree->decl, spec, current, gflag);
             break;
         }
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             // pointer to private int
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
@@ -4764,7 +4807,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             }
             break;
         }
-        if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             // pointer to private float
             if (tree->spec) {
                 int level = ast_compute_ptr_level(tree);
@@ -4914,7 +4957,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
         break;
     // priv array (supports up to two dimensions so far).
     case DARRAY: // This is where private array is handled
-        if (spec->subtype == SPEC_int || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int) {
+        if (spec->subtype == SPEC_int || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_int)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int* %s; \n", tree->decl->u.id->name);
             // for two-dimensional array
@@ -4940,7 +4983,7 @@ void ast_priv_decl_show(astdecl tree, astspec spec, branchnode current, int gfla
             //     ast_decl_memory_assign_int(tree, "");
             //     indlev--;
             // }
-        } else if (spec->subtype == SPEC_float || spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float) {
+        } else if (spec->subtype == SPEC_float || (spec->subtype == SPEC_Rlist && spec->u.next->subtype == SPEC_float)) {
             if (tree->decl->type == DIDENT)
                 fprintf(output, "priv_int** %s; \n", tree->decl->u.id->name);
             else if (tree->decl->type == DARRAY) {
@@ -5326,7 +5369,8 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
             fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
             indlev--;
             indent();
-            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name);
+            // , str_string(arg_str));
             indlev--;
             indent();
             fprintf(output, "}\n");
@@ -5365,7 +5409,8 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
             fprintf(output, "ss_clear(%s%s[_picco_i][_picco_j]);\n", prefix, tree->decl->decl->u.id->name);
             indlev--;
             indent();
-            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name, str_string(arg_str));
+            fprintf(output, "free(%s%s[_picco_i]);\n", prefix, tree->decl->decl->u.id->name);
+            // , str_string(arg_str));
             indlev--;
             indent();
             fprintf(output, "}\n");
@@ -5917,7 +5962,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
     char *right = (char *)malloc(sizeof(char) * buffer_size);
     char *left = (char *)malloc(sizeof(char) * buffer_size);
     char *tmp = (char *)malloc(sizeof(char) * buffer_size);
-    char *type = (char *)malloc(sizeof(char) * buffer_size);
+    // char *type = (char *)malloc(sizeof(char) * buffer_size);
     char *priv_cond = (char *)malloc(sizeof(char) * buffer_size);
     int dereferences = 0, pointers = 0;
     if (tree->right->index == 0) {
@@ -6104,10 +6149,10 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
         if (tree->right->opid == BOP_dot) {
             fprintf(output, "%s, %d)", str_string(leftop), tree->right->thread_id);
         } else {
-            if (tree->right->ftype == 1)
-                type = "\"float\"";
-            else if (tree->right->ftype == 0)
-                type = "\"int\"";
+            // if (tree->right->ftype == 1)
+            // type = "\"float\"";
+            // else if (tree->right->ftype == 0)
+            // type = "\"int\"";
             if (tree->opid != ASS_eq) {
                 indent();
                 ast_assignment_prefix_show(tree);
@@ -6193,7 +6238,7 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                             if (tree->right->type == BOP) {
                                 fprintf(output, "_picco_arr_ftmp%d, _picco_arr_tmp%d, %s, %d, %d, %d, %d);\n   ", new_tree_index_for_auto_cast, new_tree_index_for_auto_cast, str_string(array_size), tree->right->size, tree->right->sizeexp, tree->size, tree->thread_id);
                             } else {
-                                fprintf(output, "%s, _picco_arr_tmp%d, %s, %d, %d, %d, %d);\n   ", new_tree_index_for_auto_cast, str_string(array_size), tree->right->size, tree->right->sizeexp, tree->size, tree->thread_id);
+                                fprintf(output, "_picco_arr_tmp%d, %s, %d, %d, %d, %d);\n   ", new_tree_index_for_auto_cast, str_string(array_size), tree->right->size, tree->right->sizeexp, tree->size, tree->thread_id);
                             }
                         } 
                     }
@@ -6243,6 +6288,11 @@ void ast_priv_assignment_show(astexpr tree, int private_if_index) {
                                 str_printf(array_Size, tree->left->arraysize->u.sym->name);
                             else if (tree->left->arraysize && tree->left->arraysize->type == CONSTVAL)
                                 str_printf(array_Size, tree->left->arraysize->u.str);
+
+                            // This part is for having the right size as an array size in case if the left side does not have an array size
+                            if (strcmp(str_string(array_Size), "") == 0 && tree->left && tree->left->arraysize) {
+                                ast_expr_print(array_Size, tree->left->arraysize);
+                            }
 
                             // The code below is needed that in case if the type if of comparison, the left side should be checked, casue the right side could be anything 
                             if (tree->right->opid == BOP_lt || tree->right->opid == BOP_gt || tree->right->opid == BOP_leq || tree->right->opid == BOP_geq || tree->right->opid == BOP_eqeq || tree->right->opid == BOP_neq) {
@@ -6407,7 +6457,7 @@ void ast_temporary_int_array_declaration(astexpr tree, int dim, int array_int_tm
                 } else if (technique_var == REPLICATED_SS) {
                     for (int i = 1; i <= array_int_tmp_index; i++) {
                         fprintf(output, "priv_int* _picco_arr_tmp%d;\n", i);
-                        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n");
+                        fprintf(output, "_picco_arr_tmp%d = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", i);
                         fprintf(output, "for (int _picco_i = 0; _picco_i < __s->getNumShares(); _picco_i++)\n");
                         fprintf(output, "   ss_init(_picco_arr_tmp%d[_picco_i], 1);\n\n", i);
                     }
@@ -6433,17 +6483,17 @@ void ast_temporary_float_array_declaration(astexpr tree, int dim, int array_floa
                         ast_expr_show(tree->left->arraysize);  // Print the array size
                         fprintf(output, "; _picco_i++)\n");
                         fprintf(output, "   {\n      _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (4));\n", i);
-                        fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n", i);
+                        fprintf(output, "      for (int _picco_j = 0; _picco_j < 4; _picco_j++)\n");
                         fprintf(output, "            ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j]);\n", i);
                         fprintf(output, "   }\n\n");
                     }
                 } else if (technique_var == REPLICATED_SS) { 
                     for (int i = 1; i <= array_float_tmp_index; i++) {
                         fprintf(output, "priv_int** _picco_arr_ftmp%d;\n", i);
-                        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (4));\n");
+                        fprintf(output, "_picco_arr_ftmp%d = (priv_int**)malloc(sizeof(priv_int*) * (4));\n", i);
                         fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++){\n");
                         fprintf(output, "   _picco_arr_ftmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", i);
-                        fprintf(output, "   for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n", i);
+                        fprintf(output, "   for (int _picco_j = 0; _picco_j < __s->getNumShares(); _picco_j++)\n");
                         fprintf(output, "       ss_init(_picco_arr_ftmp%d[_picco_i][_picco_j], 1);\n", i);
                         fprintf(output, "}\n\n");
                     }
@@ -6462,7 +6512,7 @@ void print_int(char* name) {
     if (technique_var == SHAMIR_SS) {
         indent();   
         fprintf(output, "ss_init(%s);\n", name);
-    } else if (technique_var = REPLICATED_SS) {
+    } else if (technique_var == REPLICATED_SS) {
         indent();
         fprintf(output, "%s = (priv_int*)malloc(sizeof(priv_int) * (__s->getNumShares()));\n", name);
         indent();
@@ -6487,7 +6537,7 @@ void print_float(char* name) {
         fprintf(output, "for (int _picco_i = 0; _picco_i < 4; _picco_i++)\n");
         indent();
         fprintf(output, "ss_init(%s[_picco_i]);\n", name);
-    } else if (technique_var = REPLICATED_SS) {
+    } else if (technique_var == REPLICATED_SS) {
         indent();
         fprintf(output, "%s = (priv_int**)malloc(sizeof(priv_int*) * (4));\n", name);
         indent();
@@ -6499,7 +6549,7 @@ void print_float(char* name) {
         indent();
         fprintf(output, "       __s->ss_init(%s[_picco_i][_picco_j], 1);\n", name);
         indent();
-        fprintf(output, "}\n", name);
+        fprintf(output, "}\n");
     }
 }
 
@@ -6643,8 +6693,16 @@ void ast_ompclause_show(ompclause t) {
 
     fprintf(output, "%s", clausenames[t->type]);
     switch (t->type) {
+    case OCNOCLAUSE:
+        break;
+    case OCLIST:
+        break;
+    case OCFIRSTLASTPRIVATE:
+        break;
     case OCIF:
+        break;
     case OCFINAL:
+        break;
     case OCNUMTHREADS:
         fprintf(output, "( ");
         ast_expr_show(t->u.expr);
@@ -6665,18 +6723,26 @@ void ast_ompclause_show(ompclause t) {
         fprintf(output, ")");
         break;
     case OCCOPYIN:
+        break;
     case OCPRIVATE:
+        break;
     case OCCOPYPRIVATE:
+        break;
     case OCFIRSTPRIVATE:
+        break;
     case OCLASTPRIVATE:
+        break;
     case OCSHARED:
         fprintf(output, "(");
         ast_decl_show(t->u.varlist);
         fprintf(output, ")");
         break;
     case OCNOWAIT:
+        break;
     case OCORDERED:
+        break;
     case OCUNTIED:
+        break;
     case OCMERGEABLE:
         break;
     case OCCOLLAPSE:
@@ -6688,6 +6754,14 @@ void ast_ompclause_show(ompclause t) {
 void ast_ompdir_show(ompdir t) {
     fprintf(output, "#pragma omp %s ", ompdirnames[t->type]);
     switch (t->type) {
+    case OX_OCLIST:
+        break;
+    case OX_OCATALL:
+        break;
+    case OX_OCDETACHED:
+        break;
+    case OX_OCTIED:
+        break;
     case DCCRITICAL:
         if (t->u.region)
             fprintf(output, "(%s)", t->u.region->name);
@@ -6820,32 +6894,22 @@ void ast_oxclause_show(oxclause t) {
     }
 
     fprintf(output, "%s", oxclausenames[t->type]);
-    switch (t->type) {
-    case OX_OCREDUCE:
+    if (t->type == OX_OCREDUCE) {
            fprintf(output, "(%s : ", clausesubs[t->operator]);
            ast_decl_show(t->u.varlist);
            fprintf(output, ")");
-           break;
-    case OX_OCIN:
-    case OX_OCOUT:
-    case OX_OCINOUT:
+    } else if (t->type == OX_OCINOUT) {
            fprintf(output, "(");
            ast_decl_show(t->u.varlist);
            fprintf(output, ")");
-           break;
-    case OX_OCATNODE:
-    case OX_OCATWORKER:
-    case OX_OCSTART:
-    case OX_OCSTRIDE:
+    } else if (t->type == OX_OCSTRIDE) {
            fprintf(output, "(");
            ast_expr_show(t->u.expr);
            fprintf(output, ")");
-           break;
-    case OX_OCSCOPE:
+    } else if (t->type == OX_OCSCOPE) {
            fprintf(output, "scope(%s)", t->u.value == OX_SCOPE_NODES ? "nodes" : t->u.value == OX_SCOPE_WLOCAL ? "workers,local"
                                                                              : t->u.value == OX_SCOPE_WGLOBAL  ? "workers,global"
                                                                                                                : "???");
-           break;
     }
 }
 

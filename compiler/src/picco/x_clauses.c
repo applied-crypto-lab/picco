@@ -292,35 +292,36 @@ aststmt xc_array_initializer(symbol var, astexpr init) {
  * It works for all OpenMP constructs except *parallel* which produces
  * its own declarations.
  */
-static aststmt array_initializations_from_varlist(astdecl d,
-                                                  enum clausetype type, ompdir ompd) {
-    aststmt list = NULL, st = NULL;
+// static aststmt array_initializations_from_varlist(astdecl d,
+//                                                   enum clausetype type, ompdir ompd) {
+//     aststmt list = NULL, st = NULL;
 
-    if (d->type == DLIST && d->subtype == DECL_idlist) {
-        list = array_initializations_from_varlist(d->u.next, type, ompd);
-        d = d->decl;
-    }
-    assert(d->type == DIDENT);
-    if (type == OCFIRSTPRIVATE) {
-        char flvar[256];
-        if ((ompd->type == DCFOR || ompd->type == DCSECTIONS || /* special case */
-             ompd->type == DCFOR_P) &&
-            symtab_get(stab, d->u.id, IDNAME)->isarray &&         /* first&last private */
-            xc_isvar_in_dataclause(d->u.id, ompd, OCLASTPRIVATE)) /* array */
-            snprintf(flvar, 255, "_lap_%s", d->u.id->name);
-        else
-            snprintf(flvar, 255, "_fip_%s", d->u.id->name);
-        if (symtab_get(stab, d->u.id, IDNAME)->isarray)
-            st = xc_array_initializer(d->u.id, /* *flvar */
-                                      UnaryOperator(UOP_star, Identifier(Symbol(flvar))));
-    }
-    if (st)
-        list = ((list != NULL) ? BlockList(list, st) : st);
-    return (list);
-}
+//     if (d->type == DLIST && d->subtype == DECL_idlist) {
+//         list = array_initializations_from_varlist(d->u.next, type, ompd);
+//         d = d->decl;
+//     }
+//     assert(d->type == DIDENT);
+//     if (type == OCFIRSTPRIVATE) {
+//         char flvar[256];
+//         if ((ompd->type == DCFOR || ompd->type == DCSECTIONS || /* special case */
+//              ompd->type == DCFOR_P) &&
+//             symtab_get(stab, d->u.id, IDNAME)->isarray &&         /* first&last private */
+//             xc_isvar_in_dataclause(d->u.id, ompd, OCLASTPRIVATE)) /* array */
+//             snprintf(flvar, 255, "_lap_%s", d->u.id->name);
+//         else
+//             snprintf(flvar, 255, "_fip_%s", d->u.id->name);
+//         if (symtab_get(stab, d->u.id, IDNAME)->isarray)
+//             st = xc_array_initializer(d->u.id, /* *flvar */
+//                                       UnaryOperator(UOP_star, Identifier(Symbol(flvar))));
+//     }
+//     if (st)
+//         list = ((list != NULL) ? BlockList(list, st) : st);
+//     return (list);
+// }
 
 static aststmt array_initializations_from_clauses(ompclause t, ompdir d) {
-    aststmt list = NULL, st = NULL;
+    aststmt list = NULL;
+    // , st = NULL;
 
     if (t->type == OCLIST) {
         if (t->u.list.next != NULL)
@@ -329,8 +330,8 @@ static aststmt array_initializations_from_clauses(ompclause t, ompdir d) {
         assert(t != NULL);
     }
 
-    if (t->type == OCFIRSTPRIVATE)
-        (st = array_initializations_from_varlist(t->u.varlist, t->type, d)) && (list = ((list != NULL) ? BlockList(list, st) : st));
+    // if (t->type == OCFIRSTPRIVATE)
+    //     (st = array_initializations_from_varlist(t->u.varlist, t->type, d)) && (list = ((list != NULL) ? BlockList(list, st) : st));
     return (list);
 }
 
@@ -403,52 +404,53 @@ aststmt xc_firstlastprivate_declaration(symbol var) {
  * vars which are non-scalar:
  *     memcpy( (void *) &(init), (void *) var, sizeof(var) );
  */
-static aststmt xc_array_assigner(symbol var, astexpr init) {
-    needMemcpy = 1;
-    return Expression(
-        FunctionCall(
-            Identifier(Symbol("memcpy")),
-            CommaList(
-                CommaList(
-                    CastedExpr(
-                        Casttypename(
-                            Declspec(SPEC_void, 0),
-                            AbstractDeclarator(Pointer(), NULL)),
-                        UnaryOperator(UOP_addr, UnaryOperator(UOP_paren, init))),
-                    CastedExpr(
-                        Casttypename(
-                            Declspec(SPEC_void, 0),
-                            AbstractDeclarator(Pointer(), NULL)),
-                        Identifier(var))),
-                Sizeof(Identifier(var)))));
-}
+// static aststmt xc_array_assigner(symbol var, astexpr init) {
+//     needMemcpy = 1;
+//     return Expression(
+//         FunctionCall(
+//             Identifier(Symbol("memcpy")),
+//             CommaList(
+//                 CommaList(
+//                     CastedExpr(
+//                         Casttypename(
+//                             Declspec(SPEC_void, 0),
+//                             AbstractDeclarator(Pointer(), NULL)),
+//                         UnaryOperator(UOP_addr, UnaryOperator(UOP_paren, init))),
+//                     CastedExpr(
+//                         Casttypename(
+//                             Declspec(SPEC_void, 0),
+//                             AbstractDeclarator(Pointer(), NULL)),
+//                         Identifier(var))),
+//                 Sizeof(Identifier(var)))));
+// }
 
 /* Take a lastprivate varlist and generate correct assignement statements */
-static aststmt lastprivate_assignments_from_varlist(astdecl d) {
-    char flvar[256];
-    aststmt list = NULL, st = NULL;
+// static aststmt lastprivate_assignments_from_varlist(astdecl d) {
+//     char flvar[256];
+//     aststmt list = NULL, st = NULL;
 
-    if (d->type == DLIST && d->subtype == DECL_idlist) {
-        list = lastprivate_assignments_from_varlist(d->u.next);
-        d = d->decl;
-    }
-    assert(d->type == DIDENT);
-    snprintf(flvar, 255, "_lap_%s", d->u.id->name);
-    if (symtab_get(stab, d->u.id, IDNAME)->isarray)
-        st = xc_array_assigner(d->u.id, /* *flvar */
-                               UnaryOperator(UOP_star, Identifier(Symbol(flvar))));
-    else /* Scalar */
-        st = Expression(
-            Assignment(
-                UnaryOperator(UOP_star, Identifier(Symbol(flvar))),
-                ASS_eq,
-                Identifier(d->u.id)));
-    list = ((list != NULL) ? BlockList(list, st) : st);
-    return (list);
-}
+//     if (d->type == DLIST && d->subtype == DECL_idlist) {
+//         list = lastprivate_assignments_from_varlist(d->u.next);
+//         d = d->decl;
+//     }
+//     assert(d->type == DIDENT);
+//     snprintf(flvar, 255, "_lap_%s", d->u.id->name);
+//     if (symtab_get(stab, d->u.id, IDNAME)->isarray)
+//         st = xc_array_assigner(d->u.id, /* *flvar */
+//                                UnaryOperator(UOP_star, Identifier(Symbol(flvar))));
+//     else /* Scalar */
+//         st = Expression(
+//             Assignment(
+//                 UnaryOperator(UOP_star, Identifier(Symbol(flvar))),
+//                 ASS_eq,
+//                 Identifier(d->u.id)));
+//     list = ((list != NULL) ? BlockList(list, st) : st);
+//     return (list);
+// }
 
 static aststmt lastprivate_assignments_from_clauses(ompclause t) {
-    aststmt list = NULL, st = NULL;
+    aststmt list = NULL;
+    // , st = NULL;
 
     if (t->type == OCLIST) {
         if (t->u.list.next != NULL)
@@ -456,8 +458,8 @@ static aststmt lastprivate_assignments_from_clauses(ompclause t) {
         t = t->u.list.elem;
         assert(t != NULL);
     }
-    if (t->type == OCLASTPRIVATE)
-        (st = lastprivate_assignments_from_varlist(t->u.varlist)) && (list = ((list != NULL) ? BlockList(list, st) : st));
+    // if (t->type == OCLASTPRIVATE)
+    //     (st = lastprivate_assignments_from_varlist(t->u.varlist)) && (list = ((list != NULL) ? BlockList(list, st) : st));
     return (list);
 }
 
@@ -480,43 +482,42 @@ aststmt xc_ompdir_lastprivate_assignments(ompdir t) {
  * It works for all OpenMP constructs except *parallel* which produces
  * its own declarations.
  */
-static aststmt declarations_from_varlist(astdecl d, enum clausetype type, int operator) {
-    aststmt list = NULL, st = NULL;
+// static aststmt declarations_from_varlist(astdecl d, enum clausetype type, int operator) {
+//     aststmt list = NULL, st = NULL;
 
-    if (d->type == DLIST && d->subtype == DECL_idlist) {
-        list = declarations_from_varlist(d->u.next, type, operator);
-        d = d->decl;
-    }
-    assert(d->type == DIDENT);
-    switch (type) {
-    case OCFIRSTPRIVATE:
-        st = xc_firstprivate_declaration(d->u.id);
-        break;
-    case OCREDUCTION:
-        st = xc_reduction_declaration(d->u.id, operator);
-        break;
-    case OCLASTPRIVATE:
-        st = xc_lastprivate_declaration(d->u.id);
-        break;
-    case OCPRIVATE:
-        st = xform_clone_declaration(d->u.id, NULL);
-        break;
-    case OCCOPYIN:      /* This is handled entirelu in x_parallel.c */
-    case OCSHARED:      /* These do not produce any declarations */
-    case OCCOPYPRIVATE: /* This is handled entirely in x_single.c */
-        break;
-    }
-    if (st)
-        list = ((list != NULL) ? BlockList(list, st) : st);
-    return (list);
-}
+//     if (d->type == DLIST && d->subtype == DECL_idlist) {
+//         list = declarations_from_varlist(d->u.next, type, operator);
+//         d = d->decl;
+//     }
+//     assert(d->type == DIDENT);
+//     if (type == OCFIRSTPRIVATE) {
+//         st = xc_firstprivate_declaration(d->u.id);
+//     }
+//     if (type == OCREDUCTION) {
+//         st = xc_reduction_declaration(d->u.id, operator);
+//     }
+//     if (type == OCLASTPRIVATE) {
+//         st = xc_lastprivate_declaration(d->u.id);
+//     }
+//     if (type == OCPRIVATE) {
+//         st = xform_clone_declaration(d->u.id, NULL);
+//     }
+//     // case OCCOPYIN:      /* This is handled entirelu in x_parallel.c */
+//     // case OCSHARED:      /* These do not produce any declarations */
+//     // case OCCOPYPRIVATE: /* This is handled entirely in x_single.c */
+    
+//     if (st)
+//         list = ((list != NULL) ? BlockList(list, st) : st);
+//     return (list);
+// }
 
 /* It is assumed that a validity check for clauses and variables
  * appearing in them has already taken place.
  * ompdir is only needed for error messages & validity checks
  */
 static aststmt declarations_from_clauses(enum dircontype dirtype, ompclause t) {
-    aststmt list = NULL, st = NULL;
+    aststmt list = NULL;
+    // , st = NULL;
 
     if (t->type == OCLIST) {
         if (t->u.list.next != NULL)
@@ -524,17 +525,10 @@ static aststmt declarations_from_clauses(enum dircontype dirtype, ompclause t) {
         t = t->u.list.elem;
         assert(t != NULL);
     }
-    switch (t->type) {
-    case OCREDUCTION: /* Only data clauses matter */
-    case OCSHARED:
-    case OCCOPYIN:
-    case OCPRIVATE:
-    case OCFIRSTPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCLASTPRIVATE:
-        (st = declarations_from_varlist(t->u.varlist, t->type, t->subtype)) && (list = ((list != NULL) ? BlockList(list, st) : st));
-        break;
-    }
+    // if (t->type == OCLASTPRIVATE) {
+    //     (st = declarations_from_varlist(t->u.varlist, t->type, t->subtype)) && (list = ((list != NULL) ? BlockList(list, st) : st));
+    // }
+
     return (list);
 }
 
@@ -609,17 +603,9 @@ static void checkNstore_dcclause_vars(ompclause t) {
         assert((t = t->u.list.elem) != NULL);
     }
     dc_vars_clause = t;
-    switch (t->type) {
-    case OCPRIVATE:
-    case OCFIRSTPRIVATE:
-    case OCLASTPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCCOPYIN:
-    case OCREDUCTION:
-    case OCSHARED:
+    if (t->type == OCSHARED) {
         if (t->u.varlist) /* t->subtype is the opid in case of reduction */
             checkNstore_varlist_vars(t->u.varlist, t->type, t->subtype);
-        break;
     }
 }
 
@@ -675,17 +661,9 @@ static enum clausetype findvar_any_dataclause(symbol var, ompclause t) {
                 return (OCPRIVATE); /* anything would do */
         assert((t = t->u.list.elem) != NULL);
     }
-    switch (t->type) {
-    case OCPRIVATE:
-    case OCFIRSTPRIVATE:
-    case OCLASTPRIVATE:
-    case OCCOPYPRIVATE:
-    case OCCOPYIN:
-    case OCREDUCTION:
-    case OCSHARED:
+    if (t->type == OCSHARED) {
         if (t->u.varlist && findvar_varlist(var, t->u.varlist))
             return (t->type);
-        break;
     }
     return (OCNOCLAUSE);
 }

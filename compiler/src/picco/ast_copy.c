@@ -495,6 +495,7 @@ oxclause ast_oxclause_copy_almost(oxclause t) {
     if (t == NULL)
         return (NULL);
     switch (t->type) {
+    case OX_OCATWORKER:
     case OX_OCATALL:
     case OX_OCTIED:
     case OX_OCUNTIED:

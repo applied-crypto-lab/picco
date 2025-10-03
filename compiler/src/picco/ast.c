@@ -182,6 +182,9 @@ int ComputeExprSize(astexpr e1, astexpr e2) {
                 return e2->size;
         }
     }
+
+    // Default return for null or unexpected cases
+    return 0;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -285,16 +288,17 @@ astdecl FuncDecl(astdecl decl, astdecl p) {
 astdecl InitDecl(astdecl decl, astexpr e) {
     astdecl d = Decl(DINIT, 0, decl, NULL);
     d->u.expr = e;
+    // This code was added for tmp array declarations that were used for batch arrays, was removed cause it is not used anymore
     // The code below stores all the variables with thier values to the table to be able to use them for init of temp arrays for the case if arrays in a program is init using a variable and not a constant -> this was needed because we added support for temp arrays and we needed a max size to initilize them 
-    if (e && decl->decl) {
-        if (e->u.str && decl->decl->u.id) { // Rest
-            insert_variable(decl->decl->u.id->name, e->u.str);
-        } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
-            if (decl->decl->u.expr->type == CONSTVAL) { // if Const
-                insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
-            }
-        }
-    }
+    // if (e && decl->decl) {
+    //     if (e->u.str && decl->decl->u.id) { // Rest
+    //         insert_variable(decl->decl->u.id->name, e->u.str);
+    //     } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
+    //         if (decl->decl->u.expr->type == CONSTVAL) { // if Const
+    //             insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
+    //         }
+    //     }
+    // }
     return (d);
 }
 
@@ -1038,6 +1042,8 @@ int struct_node_get_flag(struct_node_stack structlist, char *struct_name) {
             return n->contain_pub_field;
         n = n->next;
     }
+
+    return -1;  // or 0 if it's "false" for missing struct
 }
 
 struct_node struct_node_lookup(struct_node_stack structlist, char *struct_name) {
