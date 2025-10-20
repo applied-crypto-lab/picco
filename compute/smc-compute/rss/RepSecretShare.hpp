@@ -117,6 +117,7 @@ public:
     void ss_input(int id, float *var, int size, std::string type, std::ifstream *inputStreams);
     void ss_input(T *var, std::string type);
     void ss_input(T **var, std::string type);
+    void ss_input(T ***var, std::string type);
     void ss_input(T **var, int size, std::string type);
     void ss_input(T ***var, int size, std::string type);
 
@@ -852,6 +853,19 @@ void replicatedSecretShare<T>::ss_input(T **var, int size, std::string type) {
 // input randomly generated private float arr
 template <typename T>
 void replicatedSecretShare<T>::ss_input(T ***var, int size, std::string type) {
+    uint bytes = (ring_size + 7) >> 3;
+    uint8_t *buffer = new uint8_t[bytes * size * 4 * numShares];
+    prg_getrandom(bytes, size * 4 * numShares, buffer);
+    for (int i = 0; i < numShares; i++)
+        for (int j = 0; j < size; j++)
+            // memcpy(var[i][j], buffer + i * size * 4 * bytes + j * 4 * bytes, 4 * bytes); // check
+            memcpy(var[i][j], buffer + (i * size + j) * 4 * bytes, 4 * bytes); // "simpler" version
+}
+
+// input randomly generated private float arr
+template <typename T>
+void replicatedSecretShare<T>::ss_input(T ***var, std::string type) {
+    uint size = 1;
     uint bytes = (ring_size + 7) >> 3;
     uint8_t *buffer = new uint8_t[bytes * size * 4 * numShares];
     prg_getrandom(bytes, size * 4 * numShares, buffer);
