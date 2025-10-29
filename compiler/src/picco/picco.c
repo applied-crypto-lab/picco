@@ -120,7 +120,7 @@ void pathCreater(char *final_list) {
 // If mode is 1 -> -m
 // If mode is 2 -> -d -> web-server
 // If mode is 3 -> -t -> old-deployment before integrating web-server 
-void append_new_main(bool mode, char *global_priv_var, FILE *output_filename) { // This FILE was "char *output_filename" in the web branch and was changed to FILE, FILE was used in the master branch 
+void append_new_main(int mode, char *global_priv_var, FILE *output_filename) { // This FILE was "char *output_filename" in the web branch and was changed to FILE, FILE was used in the master branch 
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
