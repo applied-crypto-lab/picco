@@ -293,3 +293,6 @@ YYSTYPE;
 #endif
 
 extern YYSTYPE yylval;
+
+// Prototype for insert_variable
+void insert_variable(const char *var_name, const char *value_str);

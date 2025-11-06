@@ -94,21 +94,12 @@ extern aststmt parse_and_declare_blocklist_string(char *format, ...);
  */
 extern void exit_error(int exitvalue, char *format, ...);
 extern void warning(char *format, ...);
-uint *generateSeedMap(uint n, uint t, uint *num_solutions) ;
+unsigned int *generateSeedMap(unsigned int n, unsigned int t, unsigned int *num_solutions) ;
 
 
 extern int nChoosek(int n, int k);
 
 // The constant variable for the technique_var: REPLICATED_SS-1 or SHAMIR_SS-2
 extern int technique_var;
-
-// This is to keep track of the max array size used in exoressions and create the tmp array based on that 
-extern str tmp_array_max_size;
-extern int tmp_array_max_size_int_counter;
-
-// These variables are used to store immediate results from batch operations that uses more than two operands
-extern int array_tmp_index; // int
-extern int array_ftmp_index; // float
-
 
 #endif

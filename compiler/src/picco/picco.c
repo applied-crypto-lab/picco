@@ -84,10 +84,6 @@ int total_threads = 0;
 int nu;
 int kappa_nu;
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
-str tmp_array_max_size;
-tmp_array_max_size_int_counter = 1; // Default to 1
-array_tmp_index = 0;
-array_ftmp_index = 0;
 
 void getPrime(mpz_t, int);
 
@@ -121,9 +117,10 @@ void pathCreater(char *final_list) {
 }
 
 // will have new argument for flag
-// If mode is true -> -m
-// If mode is false -> -d
-void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
+// If mode is 1 -> -m
+// If mode is 2 -> -d -> web-server
+// If mode is 3 -> -t -> old-deployment before integrating web-server 
+void append_new_main(int mode, char *global_priv_var, FILE *output_filename) { // This FILE was "char *output_filename" in the web branch and was changed to FILE, FILE was used in the master branch 
 
     total_threads = (num_threads == 0) ? 1 : num_threads;
 
@@ -144,17 +141,20 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
     
     // Check the input parameters
     // this will be different based on flag
-    if (mode) {            // -m - measurement mode
+    // If the value is set then set the mode to be called and use for append_new_main()
+    // If mode is 1 -> -m
+    // If mode is 2 -> -d -> web-server
+    // If mode is 3 -> -t -> old-deployment before integrating web-server 
+    if (mode == 1) { // -m - measurement mode
         fprintf(output_filename, // There should be EXACTLY 3 arguments passed for measurement mode
                         "\n\tif(argc != 3){\n"
                         " \tfprintf(stderr,\"Incorrect input parameters\\n\");\n"
                         "  fprintf(stderr,\"Usage: <id> <runtime-config> \\n\");\n"
                         "  exit(1);\n}\n");
         fprintf(output_filename, 
-                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d);\n",
-                        peers, threshold, bits, res, total_threads);
-
-    } else {               // -d - deployment mode
+                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], \"\", 0, 0, NULL, %d, %d, %d, \"%s\", seed_map, %d, %d);\n",
+                        peers, threshold, bits, res, total_threads, mode);
+    } else { // -t - testing and -d - deployment 
         fprintf(output_filename, // There should be AT LEAST 7 arguments passed
                         "\nif(argc < 8){\n"
                         "  fprintf(stderr,\"Incorrect input parameters\\n\");\n"
@@ -164,8 +164,8 @@ void append_new_main(bool mode, char *global_priv_var, char *output_filename) {
                         "\nstd::string IO_files[atoi(argv[4]) + atoi(argv[5])];\n"
                         "for(int i = 0; i < argc-6; i++)\n"
                         "   IO_files[i] = argv[6+i];\n"
-                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d);\n",
-                        peers, threshold, bits, res, total_threads);
+                        "\n__s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), IO_files, %d, %d, %d, \"%s\", seed_map, %d, %d);\n",
+                        peers, threshold, bits, res, total_threads, mode);
     }
 
     // The SMC_Utils gets the following:
@@ -453,8 +453,7 @@ void loadConfig(char *config) {
 int main(int argc, char *argv[]) {
     time_t now;
     char tmp[256];
-    int r, includes_omph;
-    int knowMemcpy, knowSize_t, knowMalloc; /* flag if def'ed in user code */
+    int r;
     aststmt p;
 
     /***************** read config file ********************/
@@ -475,28 +474,33 @@ int main(int argc, char *argv[]) {
 
     // Parse command line arguments - check arguments are formed properly
     // Check if the flag is either -m or -d -> if not program exits
-    // If the value is set then set the mode boolean to be called and use for append_new_main()
-    bool mode = false;
+    // If the value is set then set the mode to be called and use for append_new_main()
+    // If mode is 1 -> -m
+    // If mode is 2 -> -d -> web-server
+    // If mode is 3 -> -t -> old-deployment before integrating web-server 
+    int mode = 0;
     if (strcmp(argv[1], "-m") == 0) {
-        mode = true;
+        mode = 1;
     } else if (strcmp(argv[1], "-d") == 0) {
-        mode = false;
+        mode = 2;
+    } else if (strcmp(argv[1], "-t") == 0) {
+        mode = 3;
     } else {
-        fprintf(stderr, "Invalid flag. Use either -m or -d.\n");
+        fprintf(stderr, "Invalid flag. Use either -m, -d, or -t.\n");
         exit(1);
     }
 
     loadConfig(argv[3]);
     nu = ceil(log2(nChoosek(peers, threshold))); //Catrina and de Hoogh, 2010, pg. 4
     kappa_nu = SECURITY_PARAMETER + nu;
-    uint map_size; // how many items are in seed_map, used to calculate buffer size
-    uint *seed_map = generateSeedMap(peers, threshold, &map_size);
+    unsigned int map_size; // how many items are in seed_map, used to calculate buffer size
+    unsigned int *seed_map = generateSeedMap(peers, threshold, &map_size);
     int map_tmp_size = sizeof(int) * 4 * map_size + 200;
     char map_tmp[map_tmp_size];
     sprintf(map_tmp, "std::vector<int> seed_map = {");
-    int pos = 0;
+    // int pos = 0;
     char text[snprintf(NULL, 0, "%li", sizeof(int)) + 1];
-    for (uint i = 0; i < map_size; i++) {
+    for (unsigned int i = 0; i < map_size; i++) {
         sprintf(text, "%i", seed_map[i]);
         strncat(map_tmp, text, strlen(text));
         if (i != (map_size - 1)) {
@@ -532,7 +536,6 @@ int main(int argc, char *argv[]) {
     /*
      * 2. Parse & get the AST
      */
-    tmp_array_max_size = Str("");
     ast = parse_file(filename, &r);
 
     if (technique_var == SHAMIR_SS) {
@@ -617,11 +620,13 @@ int main(int argc, char *argv[]) {
 
     ast = BlockList(p, ast);
 
+    // int knowMemcpy, knowSize_t, knowMalloc, includes_omph;
+
     /* The parser has left the symbol table at global scope; we must drain it */
-    includes_omph = (symtab_get(stab, Symbol("omp_lock_t"), TYPENAME) != NULL);
-    knowMemcpy = (symtab_get(stab, Symbol("memcpy"), FUNCNAME) != NULL);
-    knowSize_t = (symtab_get(stab, Symbol("size_t"), TYPENAME) != NULL);
-    knowMalloc = (symtab_get(stab, Symbol("malloc"), FUNCNAME) != NULL);
+    // includes_omph = (symtab_get(stab, Symbol("omp_lock_t"), TYPENAME) != NULL);
+    // knowMemcpy = (symtab_get(stab, Symbol("memcpy"), FUNCNAME) != NULL);
+    // knowSize_t = (symtab_get(stab, Symbol("size_t"), TYPENAME) != NULL);
+    // knowMalloc = (symtab_get(stab, Symbol("malloc"), FUNCNAME) != NULL);
     // symtab_drain(stab);
 
     if (hasMainfunc && (enableOpenMP || testingmode || processmode)) {
@@ -666,8 +671,9 @@ int main(int argc, char *argv[]) {
     // }
 
     // Update the Main function
-    // If mode is true -> -m
-    // If mode is false -> -d
+    // If mode is 1 -> -m
+    // If mode is 2 -> -d -> web-server
+    // If mode is 3 -> -t -> old-deployment before integrating web-server 
 
     // This can be used to print the ast tree
     // str aa = Str("");
@@ -744,18 +750,18 @@ int nChoosek(int n, int k) {
 }
 
 // remember to de-allocate solutions wherever this function is called
-uint *generateSeedMap(uint n, uint t, uint *num_solutions) {
+unsigned int *generateSeedMap(unsigned int n, unsigned int t, unsigned int *num_solutions) {
     *num_solutions = nChoosek(n, t) / n;
-    uint *solutions = (uint *)malloc(sizeof(uint) * (*num_solutions)); //  array of size (nCt / n)
-    uint v = (1 << (n - t)) - 1;
-    uint upper_bound = 1 << n;
-    uint w, x, b1, b2, mask1, mask2, permutation;
+    unsigned int *solutions = (unsigned int *)malloc(sizeof(unsigned int) * (*num_solutions)); //  array of size (nCt / n)
+    unsigned int v = (1 << (n - t)) - 1;
+    unsigned int upper_bound = 1 << n;
+    unsigned int w, x, b1, b2, mask1, mask2, permutation;
     bool cond;
     int ctr = 0;
     while (v <= (upper_bound)) {
         // cyclic permute
         cond = true;
-        for (uint i = 0; i < n; i++) {
+        for (unsigned int i = 0; i < n; i++) {
             mask2 = ((1 << (n - i)) - 1) << i;
             mask1 = ~mask2 & ((1 << n) - 1);
             b1 = v & mask1;

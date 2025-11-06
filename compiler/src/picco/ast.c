@@ -1,7 +1,8 @@
 /*
    PICCO: A General Purpose Compiler for Private Distributed Computation
-   ** Copyright (C) 2013 PICCO Team
+   ** Copyright (C) from 2013 PICCO Team
    ** Department of Computer Science and Engineering, University of Notre Dame
+   ** Department of Computer Science and Engineering, University at Buffalo (SUNY)
 
    PICCO is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@
 
 #include "ast.h"
 #include "ast_print.h"
+#include "parser.h"
 #include "picco.h"
 #include <assert.h>
 #include <stdarg.h>
@@ -118,6 +120,13 @@ astexpr Operator(enum exprtype type, int opid, astexpr left, astexpr right) {
             }
         }
     }
+    if (type == BOP && opid == BOP_dot) {
+        if (left->arraysize && left->arraysize->u.dtype) {
+            if (left->arraysize->u.dtype->type == 53) {
+                exit_error(1, "        The dot product operation '@' can only be invoked on one-dimentional arrays. Line: %d \n", left->l);
+            }
+        }
+    }
     return (n);
 }
 
@@ -173,6 +182,9 @@ int ComputeExprSize(astexpr e1, astexpr e2) {
                 return e2->size;
         }
     }
+
+    // Default return for null or unexpected cases
+    return 0;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -276,6 +288,17 @@ astdecl FuncDecl(astdecl decl, astdecl p) {
 astdecl InitDecl(astdecl decl, astexpr e) {
     astdecl d = Decl(DINIT, 0, decl, NULL);
     d->u.expr = e;
+    // This code was added for tmp array declarations that were used for batch arrays, was removed cause it is not used anymore
+    // The code below stores all the variables with thier values to the table to be able to use them for init of temp arrays for the case if arrays in a program is init using a variable and not a constant -> this was needed because we added support for temp arrays and we needed a max size to initilize them 
+    // if (e && decl->decl) {
+    //     if (e->u.str && decl->decl->u.id) { // Rest
+    //         insert_variable(decl->decl->u.id->name, e->u.str);
+    //     } else if (decl->decl->u.expr->u.str) { // Dynamic array init that has an expression after the assignment
+    //         if (decl->decl->u.expr->type == CONSTVAL) { // if Const
+    //             insert_variable(decl->decl->u.expr->u.str, decl->decl->u.expr->u.str);
+    //         }
+    //     }
+    // }
     return (d);
 }
 
@@ -1019,6 +1042,8 @@ int struct_node_get_flag(struct_node_stack structlist, char *struct_name) {
             return n->contain_pub_field;
         n = n->next;
     }
+
+    return -1;  // or 0 if it's "false" for missing struct
 }
 
 struct_node struct_node_lookup(struct_node_stack structlist, char *struct_name) {
