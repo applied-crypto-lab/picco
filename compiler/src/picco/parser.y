@@ -3786,7 +3786,7 @@ void store_struct_information(struct_node_stack sns, astspec s)
 
 void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 {
- 	if((s->subtype == SPEC_int || s->subtype == SPEC_Rlist) && (s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_int))
+ 	if((s->subtype == SPEC_int || s->subtype == SPEC_Rlist) && ((s->body != NULL && s->u.next != NULL && s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_int) || (s->body == NULL)))
 	{
 		if(d->spec)
 		{
@@ -3799,7 +3799,7 @@ void set_global_tags_for_private_struct_field(astspec s, astdecl d)
 				is_priv_int_struct_field_appear = 1; 
 		}
 	}
- 	if((s->subtype == SPEC_float || s->subtype == SPEC_Rlist) && (s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_float))
+ 	if((s->subtype == SPEC_float || s->subtype == SPEC_Rlist) && ((s->body != NULL && s->u.next != NULL && s->body->subtype == SPEC_private && s->u.next->subtype == SPEC_float) || (s->body == NULL)))
 	{
 		if(d->spec)
 		{
