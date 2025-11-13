@@ -1,7 +1,7 @@
 #!/bin/bash
 
 print_usage() {
-  printf "Usage: $0 [-t | -d | -m] <user_program.cpp> <utility_config>\n"
+  printf "Usage: $0 -d|-t|-m <user program> <utility config>\n"
 }
 #  [-S (Shamir SS)]\n"
 

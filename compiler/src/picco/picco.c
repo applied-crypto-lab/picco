@@ -460,7 +460,7 @@ int main(int argc, char *argv[]) {
     if (argc != 6) {
         fprintf(stderr, "Incorrect input parameters:\n");
         // will need to update with new flags (-m and -d for measurement and deployment)
-        fprintf(stderr, "Usage: picco [-d | -m] <user program> <SMC config> <translated program> <utility config>\n"); // make sure other arguments are incremented by one
+        fprintf(stderr, "Usage: picco -d|-t|-m <user program> <SMC config> <translated program> <utility config>\n"); // make sure other arguments are incremented by one
         exit(1);
     }
 
