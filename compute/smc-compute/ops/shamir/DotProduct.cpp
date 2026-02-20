@@ -27,7 +27,7 @@ void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, in
     mpz_t tmp;
 
     // initialization
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * 1);
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * 1);
         for (int j = 0; j < 1; j++) {
@@ -50,7 +50,7 @@ void doOperation_DotProduct(mpz_t *a, mpz_t *b, mpz_t result, int array_size, in
     mpz_set(result, data[0]);
 
     // free the memory
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         for (int j = 0; j < 1; j++) {
             mpz_clear(shares[i][j]);
             mpz_clear(buffer[i][j]);
@@ -72,7 +72,7 @@ void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size,
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
     mpz_t tmp;
 
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         shares[i] = (mpz_t *)malloc(sizeof(mpz_t) * batch_size);
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * batch_size);
         for (int j = 0; j < batch_size; j++) {
@@ -94,7 +94,7 @@ void doOperation_DotProduct(mpz_t **a, mpz_t **b, mpz_t *result, int batch_size,
     ss->reconstructSecret(result, buffer, batch_size);
 
     // free the memory
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         for (int j = 0; j < batch_size; j++) {
             mpz_clear(shares[i][j]);
             mpz_clear(buffer[i][j]);
@@ -118,20 +118,20 @@ void doOperation_DotProduct_new(mpz_t *a, mpz_t *b, mpz_t result, int array_size
 
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));
 
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         rand_buff[i] = (mpz_t *)malloc(sizeof(mpz_t) * 1);
     }
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * 1);
     }
     // initialziation
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         for (int j = 0; j < 1; j++) {
             mpz_init(buffer[i][j]);
         }
     }
 
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         for (int j = 0; j < 1; j++) {
             mpz_init(rand_buff[i][j]);
         }
@@ -165,13 +165,13 @@ void doOperation_DotProduct_new(mpz_t *a, mpz_t *b, mpz_t result, int array_size
     mpz_set(result, data[0]);
 
     // free memory
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         for (int j = 0; j < array_size; j++) {
             mpz_clear(rand_buff[i][j]);
         }
         free(rand_buff[i]);
     }
-    for (int i = 0; i < peers; i++) {
+    for (size_t i = 0; i < (size_t)peers; i++) {
         for (int j = 0; j < array_size; j++) {
             mpz_clear(buffer[i][j]);
         }

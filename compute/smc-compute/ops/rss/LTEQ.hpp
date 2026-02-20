@@ -9,7 +9,7 @@
 #include "RandBit.hpp"
 // In Protocol 9 , to Return results I used [cLT],[cEQ]
 template <typename T>
-void doOperation_LTEQ(T **a, T **b, T **cLT,T **cEQ ,int ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void doOperation_LTEQ(T **a, T **b, T **cLT,T **cEQ ,uint ring_size, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 assertm((ring_size == ss->ring_size ) , "checking ring_size argument == ss->ring_size");
 // line 1 & 2 (Generate ℓ random bits [r0 ]1 , . . . , [rℓ−1 ]1 in Z2 and one random bit [ b_prime ] over Z2k)
 uint numShares = ss->getNumShares();
@@ -24,32 +24,32 @@ rprime[i]: Stores the transformed random bits [r'].
 c: Stores the opened result of [a] - [b] + [r].
 e: Stores the opened result of [d] + 2^(ℓ−1)[b].
 */
-T **b_prime = new T *[numShares];
-T **sum = new T *[numShares];
-T **u_2 = new T *[numShares];
-T **edaBit_r = new T *[numShares];
-T **edaBit_b_2 = new T *[numShares];
-T **rprime = new T *[numShares];
-T **r_prime = new T *[numShares];
+T **b_prime = new T *[size];
+T **sum = new T *[size];
+T **u_2 = new T *[size];
+T **edaBit_r = new T *[size];
+T **edaBit_b_2 = new T *[size];
+T **rprime = new T *[size];
+T **r_prime = new T *[size];
 T *c = new T[size];
 T *e = new T[size];
 
-for (i = 0; i < numShares; i++) {
-    b_prime[i] = new T[size];
-    edaBit_r[i] = new T[size];
-    edaBit_b_2[i] = new T[size];
-    sum[i] = new T[size];
-    u_2[i] = new T[size];
+for (i = 0; i < size; i++) {
+    b_prime[i] = new T[numShares];
+    edaBit_r[i] = new T[numShares];
+    edaBit_b_2[i] = new T[numShares];
+    sum[i] = new T[numShares];
+    u_2[i] = new T[numShares];
 
-    rprime[i] = new T[size];
-    r_prime[i] = new T[size];
+    rprime[i] = new T[numShares];
+    r_prime[i] = new T[numShares];
 }
 
-T **v = new T *[numShares];
-T **u = new T *[numShares];
-for (size_t s = 0; s < numShares; s++) {
-    v[s] = new T[size];
-    u[s] = new T[size];
+T **v = new T *[size];
+T **u = new T *[size];
+for (size_t i = 0; i < size; i++) {
+    v[i] = new T[numShares];
+    u[i] = new T[numShares];
 }
 
  T *ai = new T[numShares];
@@ -65,11 +65,11 @@ edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 
  for (i = 0; i < size; i++) {
     for (size_t s = 0; s < numShares; s++) {
-        rprime[s][i] = edaBit_r[s][i] - (GET_BIT(edaBit_b_2[s][i], T(ring_size - 1)) << T(ring_size - 1));
+        rprime[i][s] = edaBit_r[i][s] - (GET_BIT(edaBit_b_2[i][s], T(ring_size - 1)) << T(ring_size - 1));
         // rprime[1][i] = edaBit_r[1][i] - (GET_BIT(edaBit_b_2[1][i], T(ring_size - 1)) << T(ring_size - 1));
         // combining w the next loop
         // combining w the previous loop
-        sum[s][i] = ((a[s][i] - b[s][i])+ edaBit_r[s][i] );
+        sum[i][s] = ((a[i][s] - b[i][s])+ edaBit_r[i][s] );
         // sum[1][i] = (a[1][i] + edaBit_r[1][i]);
         // sum[0][i] = (a[0][i] + edaBit_r[0][i]) << T(1);
         // sum[1][i] = (a[1][i] + edaBit_r[1][i]) << T(1);
@@ -77,18 +77,17 @@ edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 }
 
 // line 3
-
 Open(c, sum, size, -1, nodeNet, ss);
 // line 5
-    for (size_t s = 0; s < numShares; s++) {
-        for (i = 0; i < size; i++) {
-            r_prime[s][i] = (c[i] & (ai[s]*T(-1))) ^ edaBit_b_2[s][i]; // computing XOR in Z2
+    for (i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            r_prime[i][s] = (c[i] & (ai[s]*T(-1))) ^ edaBit_b_2[i][s]; // computing XOR in Z2
         }
     }
 // line 4
  for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++)
-            edaBit_b_2[s][i] = edaBit_b_2[s][i] & ss->SHIFT[ring_size - 1];
+            edaBit_b_2[i][s] = edaBit_b_2[i][s] & ss->SHIFT[ring_size - 1];
 
         // used for alternate solution
         // prevents us from using it directly later on
@@ -107,27 +106,29 @@ Open(c, sum, size, -1, nodeNet, ss);
 // however, the edaBit_b_2 shares do get modified
 // which may not be desierable
 
-Rss_BitLT(u_2, c, edaBit_b_2, size, ring_size, nodeNet, ss); 
+Rss_BitLT(u_2, c, edaBit_b_2, size, ring_size, nodeNet, ss);
 Rss_k_OR_L(v, r_prime, size, ring_size, nodeNet, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (i = 0; i < size; i++) {
-            v[s][i] = (T(1) & (ai[s]*T(-1)))
-            ^ v[s][i]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
+    for (i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            v[i][s] = (T(1) & (ai[s]*T(-1)))
+            ^ v[i][s]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
         }
     }
 
 // Line 7: Convert binary shares to arithmetic shares Only one time call
 // Replaced the two separate B2A calls with a single buffered call
 // First, create a buffer to hold both u and cEQ values
-T **buffer = new T *[numShares];
-T **resultBuffer = new T *[numShares];
-for (size_t s = 0; s < numShares; s++) {
-    buffer[s] = new T[2 * size];
-    resultBuffer[s] = new T[2 * size];
-    for (i = 0; i < size; i++) {
-        buffer[s][i] = u_2[s][i];         // First half for u
-        buffer[s][i + size] = v[s][i];    // Second half for cEQ
+T **buffer = new T *[2 * size];
+T **resultBuffer = new T *[2 * size];
+for (i = 0; i < 2 * size; i++) {
+    buffer[i] = new T[numShares];
+    resultBuffer[i] = new T[numShares];
+}
+for (i = 0; i < size; i++) {
+    for (size_t s = 0; s < numShares; s++) {
+        buffer[i][s] = u_2[i][s];         // First half for u
+        buffer[i + size][s] = v[i][s];    // Second half for cEQ
     }
 }
 
@@ -135,10 +136,10 @@ for (size_t s = 0; s < numShares; s++) {
 Rss_B2A(resultBuffer, buffer, 2 * size, ring_size, nodeNet, ss);
 
 // Extract results back to u and cEQ
-for (size_t s = 0; s < numShares; s++) {
-    for (i = 0; i < size; i++) {
-        u[s][i] = resultBuffer[s][i];          // First half contains u
-        cEQ[s][i] = resultBuffer[s][i + size]; // Second half contains cEQ
+for (i = 0; i < size; i++) {
+    for (size_t s = 0; s < numShares; s++) {
+        u[i][s] = resultBuffer[i][s];          // First half contains u
+        cEQ[i][s] = resultBuffer[i + size][s]; // Second half contains cEQ
     }
 }
 
@@ -147,22 +148,22 @@ for (size_t s = 0; s < numShares; s++) {
 // // Line 9: Compute [d] = ([a] -[b])- [a']
 //combining them in one line in 10
 //line  10
-for (i = 0; i < size; ++i) 
+for (i = 0; i < size; ++i)
 {
     // cant do this because we modify edaBit_b_2 earlier
     // for (size_t s = 0; s < numShares; s++)
     for (size_t s = 0; s < numShares; s++)
-        sum[s][i] = (a[s][i] - b[s][i])-c[i] * ai[s] + rprime[s][i] - (u_2[s][i] << T(ring_size - 1)) + (b_prime[s][i] << T(ring_size - 1));
+        sum[i][s] = (a[i][s] - b[i][s])-c[i] * ai[s] + rprime[i][s] - (u_2[i][s] << T(ring_size - 1)) + (b_prime[i][s] << T(ring_size - 1));
     // sum[1][i] = a[1][i] - c[i] * a2 + rprime[1][i] - (u_2[1][i] << T(ring_size - 1)) + (b_prime[1][i] << T(ring_size - 1));
-}   
+}
 Open(e, sum, size, -1, nodeNet, ss);
 
-// line 11 
+// line 11
 T e_bit;
 for (i = 0; i < size; ++i) {
     e_bit = GET_BIT(e[i], T(ring_size - 1)); // getting the (k-1)th bit
     for (size_t s = 0; s < numShares; s++) {
-        cLT[s][i] = e_bit * ai[s] + b_prime[s][i] - (e_bit * b_prime[s][i] << T(1));
+        cLT[i][s] = e_bit * ai[s] + b_prime[i][s] - (e_bit * b_prime[i][s] << T(1));
     }
     // res[1][i] = e_bit * a2 + b[1][i] - (e_bit * b_prime[1][i] << T(1));
 }

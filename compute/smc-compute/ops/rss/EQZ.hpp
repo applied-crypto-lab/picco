@@ -30,22 +30,24 @@
 template <typename T>
 void Rss_k_OR_L(T **res, T **r, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss);
 
+// Core EQZ function - uses [element][share] format: data[i][s] = share s of element i
 template <typename T>
 void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint ring_size = ss->ring_size;
-    static uint numShares = ss->getNumShares();
-    uint i; // used for loops
+    uint numShares = ss->getNumShares();
+    uint i, s; // used for loops
 
-    T **sum = new T *[numShares];
-    T **edaBit_r = new T *[numShares];
-    T **edaBit_b_2 = new T *[numShares];
-    T **rprime = new T *[numShares];
-    for (i = 0; i < numShares; i++) {
-        edaBit_r[i] = new T[size];
-        edaBit_b_2[i] = new T[size];
-        sum[i] = new T[size];
-        rprime[i] = new T[size];
+    // Allocate in [element][share] format: array[size][numShares]
+    T **sum = new T *[size];
+    T **edaBit_r = new T *[size];
+    T **edaBit_b_2 = new T *[size];
+    T **rprime = new T *[size];
+    for (i = 0; i < (uint)size; i++) {
+        edaBit_r[i] = new T[numShares];
+        edaBit_b_2[i] = new T[numShares];
+        sum[i] = new T[numShares];
+        rprime[i] = new T[numShares];
     }
     T *res_check = new T[size];
 
@@ -57,27 +59,27 @@ void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, Node
 
     edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (i = 0; i < size; i++) {
-            // rprime[s][i] = edaBit_r[s][i] - (GET_BIT(edaBit_b_2[s][i], T(ring_size - 1)) << T(ring_size)); //original version from new primitives
-            rprime[s][i] = edaBit_r[s][i];
-            sum[s][i] = (shares[s][i] + rprime[s][i]);
+    // Format: data[i][s] = share s of element i
+    for (i = 0; i < (uint)size; i++) {
+        for (s = 0; s < numShares; s++) {
+            rprime[i][s] = edaBit_r[i][s];
+            sum[i][s] = (shares[i][s] + rprime[i][s]);
         }
     }
 
     Open(c, sum, size, -1, nodeNet, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (i = 0; i < size; i++) {
-            rprime[s][i] = (c[i] & ai[s]) ^ edaBit_b_2[s][i]; // computing XOR in Z2
+    for (i = 0; i < (uint)size; i++) {
+        for (s = 0; s < numShares; s++) {
+            rprime[i][s] = (c[i] & ai[s]) ^ edaBit_b_2[i][s]; // computing XOR in Z2
         }
     }
 
     Rss_k_OR_L(result, rprime, size, ring_size, nodeNet, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (i = 0; i < size; i++) {
-            result[s][i] = (T(1) & ai[s]) ^ result[s][i]; // CHECK THIS (equivalent to computing 1 - result, but in Z2)
+    for (i = 0; i < (uint)size; i++) {
+        for (s = 0; s < numShares; s++) {
+            result[i][s] = (T(1) & ai[s]) ^ result[i][s]; // 1 - result in Z2
         }
     }
 
@@ -87,7 +89,7 @@ void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, Node
     delete[] ai;
     delete[] res_check;
 
-    for (i = 0; i < numShares; i++) {
+    for (i = 0; i < (uint)size; i++) {
         delete[] edaBit_r[i];
         delete[] edaBit_b_2[i];
         delete[] sum[i];
@@ -99,80 +101,90 @@ void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, Node
     delete[] rprime;
 }
 
+// Rss_k_OR_L - uses [element][share] format: data[i][s] = share s of element i
 template <typename T>
 void Rss_k_OR_L(T **res, T **r, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
     uint i, s, originial_num, num, r_size, n_uints, new_r_size;
+
+    // Remove leading bits - r[i][s] = share s of element i
     for (i = 0; i < size; i++) {
-        // removing any leading bits that could interfere with future masking
-        // this is fine since shares are bitwise and won't affect the final result
         for (s = 0; s < numShares; s++) {
-            r[s][i] = r[s][i] & ss->SHIFT[ring_size];
+            r[i][s] = r[i][s] & ss->SHIFT[ring_size];
         }
     }
 
-    T **temp_res = new T *[numShares];
-    for (i = 0; i < numShares; i++) {
-        temp_res[i] = new T[size];
+    // Allocate temp_res in [element][share] format
+    T **temp_res = new T *[size];
+    for (i = 0; i < size; i++) {
+        temp_res[i] = new T[numShares];
     }
 
     r_size = ring_size;
 
     originial_num = (((r_size >> 1) + 7) >> 3) * size;
 
-    uint8_t **a = new uint8_t *[numShares];
-    uint8_t **b = new uint8_t *[numShares];
-    uint8_t **u = new uint8_t *[numShares];
+    // Mult_Byte expects [element][share] format for size*n_uints elements
+    uint8_t **a = new uint8_t *[originial_num];
+    uint8_t **b = new uint8_t *[originial_num];
+    uint8_t **u = new uint8_t *[originial_num];
 
-    for (i = 0; i < numShares; i++) {
-        a[i] = new uint8_t[originial_num];
-        memset(a[i], 0, sizeof(uint8_t) * originial_num);
-        b[i] = new uint8_t[originial_num];
-        memset(b[i], 0, sizeof(uint8_t) * originial_num);
-        u[i] = new uint8_t[originial_num];
-        memset(u[i], 0, sizeof(uint8_t) * originial_num);
+    for (i = 0; i < originial_num; i++) {
+        a[i] = new uint8_t[numShares];
+        memset(a[i], 0, sizeof(uint8_t) * numShares);
+        b[i] = new uint8_t[numShares];
+        memset(b[i], 0, sizeof(uint8_t) * numShares);
+        u[i] = new uint8_t[numShares];
+        memset(u[i], 0, sizeof(uint8_t) * numShares);
     }
     T temp1, temp2, msk;
 
     while (r_size > 1) {
 
-        new_r_size = r_size >> 1; // dividing by two because we only need half as many uuint8_t's in the first (and subsequent rounds)
+        new_r_size = r_size >> 1;
 
         n_uints = ((new_r_size + 7) >> 3);
         num = ((new_r_size + 7) >> 3) * size;
 
         msk = (T(1) << new_r_size) - T(1);
 
+        // Pack data: a[i*n_uints + byte][s] and b[i*n_uints + byte][s]
         for (i = 0; i < size; ++i) {
             for (s = 0; s < numShares; s++) {
-                temp1 = r[s][i] & msk;
-                temp2 = (r[s][i] & (msk << new_r_size)) >> new_r_size;
+                temp1 = r[i][s] & msk;
+                temp2 = (r[i][s] & (msk << new_r_size)) >> new_r_size;
 
-                memcpy(a[s] + i * n_uints, &temp1, n_uints);
-                memcpy(b[s] + i * n_uints, &temp2, n_uints);
+                for (uint k = 0; k < n_uints; k++) {
+                    a[i * n_uints + k][s] = ((uint8_t*)&temp1)[k];
+                    b[i * n_uints + k][s] = ((uint8_t*)&temp2)[k];
+                }
             }
         }
 
         Mult_Byte(u, a, b, num, nodeNet, ss);
 
-        for (s = 0; s < numShares; s++) {
-            for (i = 0; i < num; ++i) {
-                u[s][i] = a[s][i] ^ b[s][i] ^ u[s][i];
+        // Compute OR: u = a ^ b ^ u
+        for (i = 0; i < num; ++i) {
+            for (s = 0; s < numShares; s++) {
+                u[i][s] = a[i][s] ^ b[i][s] ^ u[i][s];
             }
         }
 
-        for (s = 0; s < numShares; s++) {
-            for (i = 0; i < size; ++i) {
-                memcpy(temp_res[s] + i, u[s] + i * n_uints, n_uints);
-                temp_res[s][i] = temp_res[s][i];
+        // Unpack results
+        for (i = 0; i < size; ++i) {
+            for (s = 0; s < numShares; s++) {
+                temp_res[i][s] = 0;
+                for (uint k = 0; k < n_uints; k++) {
+                    temp_res[i][s] |= ((T)u[i * n_uints + k][s]) << (8 * k);
+                }
             }
         }
 
-        // need to move the unused bit forward
+        // Handle odd bit
         if ((r_size & 1)) {
             for (i = 0; i < size; ++i) {
                 for (s = 0; s < numShares; s++) {
-                    temp_res[s][i] = SET_BIT(temp_res[s][i], T(new_r_size), GET_BIT(r[s][i], T(r_size - 1)));
+                    temp_res[i][s] = SET_BIT(temp_res[i][s], T(new_r_size), GET_BIT(r[i][s], T(r_size - 1)));
                 }
             }
             new_r_size += 1;
@@ -180,7 +192,7 @@ void Rss_k_OR_L(T **res, T **r, uint size, uint ring_size, NodeNetwork nodeNet, 
 
         for (i = 0; i < size; ++i) {
             for (s = 0; s < numShares; s++) {
-                r[s][i] = temp_res[s][i] & ss->SHIFT[new_r_size]; // santizing leading > new_ring_size bits for next round
+                r[i][s] = temp_res[i][s] & ss->SHIFT[new_r_size];
             }
         }
 
@@ -189,14 +201,16 @@ void Rss_k_OR_L(T **res, T **r, uint size, uint ring_size, NodeNetwork nodeNet, 
 
     for (i = 0; i < size; ++i) {
         for (s = 0; s < numShares; s++) {
-            res[s][i] = r[s][i];
+            res[i][s] = r[i][s];
         }
     }
-    for (i = 0; i < numShares; i++) {
 
+    for (i = 0; i < originial_num; i++) {
         delete[] a[i];
         delete[] b[i];
         delete[] u[i];
+    }
+    for (i = 0; i < size; i++) {
         delete[] temp_res[i];
     }
 
@@ -206,17 +220,107 @@ void Rss_k_OR_L(T **res, T **r, uint size, uint ring_size, NodeNetwork nodeNet, 
     delete[] temp_res;
 }
 
+// Compare two private values: a == b
+// Uses [element][share] format: data[i][s] = share s of element i
 template <typename T>
 void doOperation_EQZ(T **result, T **a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // Compute diff = a - b, then check if diff == 0
+    uint numShares = ss->getNumShares();
+
+    T **diff = new T *[size];
+    for (int i = 0; i < size; i++) {
+        diff[i] = new T[numShares];
+        for (uint s = 0; s < numShares; s++) {
+            diff[i][s] = a[i][s] - b[i][s];
+        }
+    }
+
+    // Call core EQZ to check if diff == 0
+    doOperation_EQZ(diff, result, alen, size, threadID, nodeNet, ss);
+
+    for (int i = 0; i < size; i++) {
+        delete[] diff[i];
+    }
+    delete[] diff;
 }
+// Compare private with public: a == b (public)
+// Uses [element][share] format: data[i][s] = share s of element i
 template <typename T>
 void doOperation_EQZ(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // Compute diff = a - b (public), then check if diff == 0
+    uint numShares = ss->getNumShares();
+
+    T *ai = new T[numShares];
+    memset(ai, 0, sizeof(T) * numShares);
+    ss->sparsify_public(ai, -1);
+
+    T **diff = new T *[size];
+    for (int i = 0; i < size; i++) {
+        diff[i] = new T[numShares];
+        for (uint s = 0; s < numShares; s++) {
+            diff[i][s] = a[i][s] - (T(b[i]) & ai[s]);
+        }
+    }
+
+    // Call core EQZ to check if diff == 0
+    doOperation_EQZ(diff, result, alen, size, threadID, nodeNet, ss);
+
+    for (int i = 0; i < size; i++) {
+        delete[] diff[i];
+    }
+    delete[] diff;
+    delete[] ai;
 }
 template <typename T>
 void doOperation_EQZ_bit(T **result, T **a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 }
 template <typename T>
 void doOperation_EQZ_bit(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+}
+
+// Scalar versions (T*) for RSS - wrap scalars in arrays and call the batch version
+template <typename T>
+void doOperation_EQZ(T *result, T *a, T *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // Wrap scalar pointers in array format for the batch function
+    T **a_arr = new T*[size];
+    T **b_arr = new T*[size];
+    T **result_arr = new T*[size];
+    for (int i = 0; i < size; i++) {
+        a_arr[i] = a + i * ss->getNumShares();
+        b_arr[i] = b + i * ss->getNumShares();
+        result_arr[i] = result + i * ss->getNumShares();
+    }
+
+    // Call the batch version
+    doOperation_EQZ(result_arr, a_arr, b_arr, alen, blen, resultlen, size, threadID, nodeNet, ss);
+
+    delete[] a_arr;
+    delete[] b_arr;
+    delete[] result_arr;
+}
+template <typename T>
+void doOperation_EQZ(T *result, T *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // Wrap scalar pointers in array format for the batch function
+    T **a_arr = new T*[size];
+    T **result_arr = new T*[size];
+    for (int i = 0; i < size; i++) {
+        a_arr[i] = a + i * ss->getNumShares();
+        result_arr[i] = result + i * ss->getNumShares();
+    }
+
+    // Call the batch version
+    doOperation_EQZ(result_arr, a_arr, b, alen, blen, resultlen, size, threadID, nodeNet, ss);
+
+    delete[] a_arr;
+    delete[] result_arr;
+}
+template <typename T>
+void doOperation_EQZ_bit(T *result, T *a, T *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // Stub - not implemented
+}
+template <typename T>
+void doOperation_EQZ_bit(T *result, T *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    // Stub - not implemented
 }
 
 #endif // _EQZ_HPP_

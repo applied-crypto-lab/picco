@@ -36,7 +36,7 @@
 #include "ops/shamir/FLAdd.h"
 #include "ops/shamir/FLDiv.h"
 #include "ops/shamir/FLEQZ.h"
-#include "ops/shamir/FLLTZ.h"
+#include "ops/shamir/FLLT.h"
 #include "ops/shamir/FLMult.h"
 #include "ops/shamir/FLRound.h"
 #include "ops/shamir/FPDiv.h"

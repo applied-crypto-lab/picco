@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
         break;
     }
 
-    __s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], 0, 0, NULL, numParties, threshold, ring_size, "", seed_map, 1);
+    __s = new SMC_Utils(atoi(argv[1]), argv[2], argv[3], 0, 0, NULL, numParties, threshold, ring_size, "", seed_map, 1, 0);
 
     struct timeval tv1;
     struct timeval tv2;

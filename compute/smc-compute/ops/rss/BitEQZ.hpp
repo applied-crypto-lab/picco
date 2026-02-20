@@ -28,8 +28,7 @@
 // NOTE: output is a SINGLE BIT shared in Z_2, but stored in a full-sized priv_int T
 template <typename T>
 void BitEQ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
     T **xor_res = new T *[numShares];
     for (size_t i = 0; i < numShares; i++) {
         xor_res[i] = new T[size];

@@ -26,7 +26,7 @@ void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork node
 
     uint threshold = ss->getThreshold();
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; j++)
             mpz_init(buffer[i][j]);
@@ -41,7 +41,7 @@ void Open(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNetwork node
     ss->reconstructSecretFromMin(result, buffer, size);
 
     // freeing
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         for (int j = 0; j < size; j++)
             mpz_clear(buffer[i][j]);
         free(buffer[i]);
@@ -53,7 +53,7 @@ void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNet
     uint peers = ss->getPeers();
 
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));
-    for (int i = 0; i < (peers); i++) {
+    for (size_t i = 0; i < (size_t)(peers); i++) {
         buffer[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
         for (int j = 0; j < size; j++)
             mpz_init(buffer[i][j]);
@@ -61,7 +61,7 @@ void Open_from_all(mpz_t *shares, mpz_t *result, int size, int threadID, NodeNet
     nodeNet.broadcastToPeers(shares, size, buffer, threadID);
     ss->reconstructSecret(result, buffer, size);
     // freeing
-    for (int i = 0; i < (peers); i++) {
+    for (size_t i = 0; i < (size_t)(peers); i++) {
         for (int j = 0; j < size; j++)
             mpz_clear(buffer[i][j]);
         free(buffer[i]);
@@ -158,7 +158,7 @@ void Open_print(mpz_t *shares, std::string name, int size, int threadID, NodeNet
         mpz_init(res[i]);
     }
     Open(shares, res, size, threadID, nodeNet, ss);
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         std::cout << name << "[" << i << "] : ";
         gmp_printf("%Zu\n", res[i]);
     }

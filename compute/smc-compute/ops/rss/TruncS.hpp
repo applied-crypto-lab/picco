@@ -27,57 +27,106 @@
 #include "Pow2.hpp"
 #include "Trunc.hpp"
 
-// both the shamir and RSS interfaces assume m is an batch of the number of bits to truncate
+// ============================================================================
+// TruncS - Truncation by secret amount
+// Computes result = A >> m = floor(A / 2^m) where m is secret
+//
+// This is a modification of Dalskov et al.'s private truncation protocol:
+// 1. Compute b = LT(m, bitlength) - check if m < bitlength
+// 2. Compute 2^(bitlength - m)
+// 3. Multiply A * 2^(bitlength - m)
+// 4. Truncate by bitlength bits (public truncation)
+// 5. If m >= bitlength (b=0), result is 0; otherwise result is the truncation
+// ============================================================================
 
 template <typename T>
 void doOperation_TruncS(T **result, T **A, int bitlength, T **m, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    // this is a modification of Dalskov et al.'s private truncation protocol
-    // M = bitlength
-    // call pow2 on [bitlength - m], where m is private
-    // call LT on ([m], ell) to get a bit
-    // multiply [A]*[2^(M-m)]
-    // call public truncation by M bits
-    // use the bit from LT (which determined if the number of bits we truncated exceeded the bitlength of the input) to set the output to either zero, or the actual result of the truncation
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
 
-    T **b = new T *[numShares];
-    T **diff = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        b[i] = new T[size];
-        diff[i] = new T[size];
+    T *ai = new T[numShares];
+    memset(ai, 0, sizeof(T) * numShares);
+    ss->sparsify_public(ai, T(1));
+
+    // Allocate arrays with correct dimensions [size][numShares]
+    T **b = new T *[size];
+    T **diff = new T *[size];
+    T **pow2_diff = new T *[size];
+    T **temp = new T *[size];
+    for (int i = 0; i < size; i++) {
+        b[i] = new T[numShares];
+        diff[i] = new T[numShares];
+        pow2_diff[i] = new T[numShares];
+        temp[i] = new T[numShares];
+        memset(b[i], 0, sizeof(T) * numShares);
+        memset(diff[i], 0, sizeof(T) * numShares);
+        memset(pow2_diff[i], 0, sizeof(T) * numShares);
+        memset(temp[i], 0, sizeof(T) * numShares);
     }
-    // setting every value in bitlen_arr to bitlength (so we can easily use the LT interface)
-    int *bitlen_arr = new int[size];
-    for (size_t i = 0; i < size; i++) {
-        bitlen_arr[i] = bitlength;
+
+    // Create bitlength array for LT interface
+    T **bitlen_arr = new T *[size];
+    for (int i = 0; i < size; i++) {
+        bitlen_arr[i] = new T[numShares];
+        for (uint sh = 0; sh < numShares; sh++) {
+            bitlen_arr[i][sh] = T(bitlength) * ai[sh];
+        }
     }
 
-    // computing LT([m], ell)
-    doOperation_LT(b, bitlen_arr, m, ring_size, ring_size, ring_size, size, threadID, nodeNet, ss);
+    // Step 1: b = LT(m, bitlength) = 1 if m < bitlength
+    // Using the comparison: LT(m, bitlength)
+    doOperation_LT(b, m, bitlen_arr, ring_size, ring_size, 1, size, threadID, nodeNet, ss);
 
-    // computing 2^(ell - [m])
-    // double check the ring_size argument is correct
-    doOperation_Pow2(diff, diff, ring_size, size, threadID, nodeNet, ss);
+    // Step 2: Compute diff = bitlength - m
+    for (int i = 0; i < size; i++) {
+        for (uint sh = 0; sh < numShares; sh++) {
+            diff[i][sh] = T(bitlength) * ai[sh] - m[i][sh];
+        }
+    }
 
-    // computing [A] * 2^(ell - [m])
-    Mult(diff, A, diff, size, threadID, nodeNet, ss);
+    // Step 3: Compute 2^(bitlength - m)
+    doOperation_Pow2(pow2_diff, diff, bitlength, size, threadID, nodeNet, ss);
 
-    // truncating  [A] * 2^(ell - [m]) by (bitlength)
-    doOperation_Trunc(diff, diff, ring_size, bitlength, size, threadID, nodeNet, ss);
+    // Step 4: Compute A * 2^(bitlength - m)
+    Mult(temp, A, pow2_diff, size, threadID, nodeNet, ss);
 
-    // if b is 0, then the result is zero (we truncated by more bits than the bitlength of A)
-    // otherwise, we just multiply by 1 (and we're done)
-    Mult(result, b, diff, size, threadID, nodeNet, ss);
+    // Step 5: Truncate by bitlength bits (public truncation)
+    // This gives floor(A * 2^(bitlength - m) / 2^bitlength) = floor(A / 2^m)
+    doOperation_Trunc(temp, temp, 2 * bitlength, bitlength, size, threadID, nodeNet, ss);
 
-    for (size_t i = 0; i < numShares; i++) {
+    // Step 6: If b = 0 (m >= bitlength), result is 0
+    // Otherwise, result is temp
+    Mult(result, b, temp, size, threadID, nodeNet, ss);
+
+    // Cleanup
+    delete[] ai;
+
+    for (int i = 0; i < size; i++) {
         delete[] b[i];
         delete[] diff[i];
+        delete[] pow2_diff[i];
+        delete[] temp[i];
+        delete[] bitlen_arr[i];
     }
     delete[] b;
     delete[] diff;
-
+    delete[] pow2_diff;
+    delete[] temp;
     delete[] bitlen_arr;
+}
+
+// ============================================================================
+// Scalar wrappers for RSS (following Mult.hpp pattern)
+// ============================================================================
+
+template <typename T>
+void doOperation_TruncS(priv_int &result, priv_int &A, int bitlength, priv_int &m, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_TruncS(&result, &A, bitlength, &m, size, threadID, nodeNet, ss);
+}
+
+template <typename T>
+void doOperation_TruncS(priv_int &result, priv_int &A, int bitlength, priv_int &m, int size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_TruncS(&result, &A, bitlength, &m, size, nodeNet, ss);
 }
 
 #endif // _TRUNCS_HPP_

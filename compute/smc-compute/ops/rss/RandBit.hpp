@@ -29,8 +29,10 @@
 #include <cmath>
 #include <numeric>
 
+// Internal function - generates one random bit share (no replication)
+// This is the core RandBit protocol without statistical security amplification
 template <typename T>
-void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+void Rss_RandBit_Internal(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     //  int n = ss->getPeers();
     int threshold = ss->getThreshold();
@@ -41,7 +43,7 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
     // n = 3 -> {1}
     // n = 5 -> {1,2}
     // n = 7 -> {1,2,3}
-    static const int T_star_index = ss->generateT_star_index(0);
+    const int T_star_index = ss->generateT_star_index(0);
     // std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
 
     // first t parties are the "input parties"
@@ -52,21 +54,21 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
     std::iota(input_parties.begin(), input_parties.end(), 1);
 
     T ***result = new T **[threshold];
-    for (size_t s = 0; s < threshold; s++) {
-        result[s] = new T *[numShares];
-        for (size_t i = 0; i < numShares; i++) {
-            result[s][i] = new T[size];
-            memset(result[s][i], 0, sizeof(T) * size); // sanitizing destination
+    for (int s = 0; s < threshold; s++) {
+        result[s] = new T *[size];
+        for (uint i = 0; i < size; i++) {
+            result[s][i] = new T[numShares];
+            memset(result[s][i], 0, sizeof(T) * numShares); // sanitizing destination
         }
     }
 
-    T **a_sparse = new T *[numShares];
-    T **w = new T *[numShares];
-    for (size_t s = 0; s < numShares; s++) {
-        a_sparse[s] = new T[size];
-        w[s] = new T[size];
-        memset(a_sparse[s], 0, sizeof(T) * size); // sanitizing destination
-        memset(w[s], 0, sizeof(T) * size);        // sanitizing destination
+    T **a_sparse = new T *[size];
+    T **w = new T *[size];
+    for (uint i = 0; i < size; i++) {
+        a_sparse[i] = new T[numShares];
+        w[i] = new T[numShares];
+        memset(a_sparse[i], 0, sizeof(T) * numShares); // sanitizing destination
+        memset(w[i], 0, sizeof(T) * numShares);        // sanitizing destination
     }
 
     // only t participants need to compute the XOR of a subset of their shares of [a]
@@ -76,7 +78,7 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
         ss->prg_getrandom(1, size, buffer); // generating (size) bytes into buffer
         T *bits = new T[size];
         memset(bits, 0, sizeof(T) * size);
-        for (size_t i = 0; i < size; i++) {
+        for (uint i = 0; i < size; i++) {
             bits[i] = GET_LSB(buffer[i]); // check that this is correct/secure
         }
         Rss_Input_p_star(result, bits, input_parties, size, ring_size, nodeNet, ss);
@@ -89,8 +91,8 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
         ss->prg_getrandom(T_star_index, 1, size, buffer);
         T *bits = new T[size];
         memset(bits, 0, sizeof(T) * size);
-        for (size_t i = 0; i < size; i++) {
-            a_sparse[T_star_index][i] = GET_LSB(buffer[i]); // check that this is correct/secure
+        for (uint i = 0; i < size; i++) {
+            a_sparse[i][T_star_index] = GET_LSB(buffer[i]); // check that this is correct/secure
         }
 
         // don't need to call sparsify here
@@ -104,67 +106,70 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
     switch (numParties) {
     case 3:
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                res[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
+        for (uint i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                res[i][s] = result[0][i][s] + a_sparse[i][s] - 2 * w[i][s]; // XOR
             }
         }
         break;
     case 5:
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                w[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
+        // Interface format [size][numShares]: w[i][s], result[0][i][s], a_sparse[i][s]
+        for (uint i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                w[i][s] = result[0][i][s] + a_sparse[i][s] - 2 * w[i][s]; // XOR
             }
         }
 
         Mult(a_sparse, result[1], w, size, nodeNet, ss);
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                res[s][i] = result[1][s][i] + w[s][i] - 2 * a_sparse[s][i]; // XOR
+        for (uint i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                res[i][s] = result[1][i][s] + w[i][s] - 2 * a_sparse[i][s]; // XOR
             }
         }
 
         break;
     case 7: {
         // pack result[0], result[1] into A (2*size)
-        // pack x_sparse , result[2] into B_hat (2*size)
+        // pack a_sparse, result[2] into B (2*size)
+        // Use interface format [2*size][numShares]
 
-        T **A_buff = new T *[numShares];
-        T **B_buff = new T *[numShares];
-        T **C_buff = new T *[numShares];
-        for (size_t s = 0; s < numShares; s++) {
-            A_buff[s] = new T[2 * size];
-            B_buff[s] = new T[2 * size];
-            C_buff[s] = new T[2 * size];
-            memcpy(A_buff[s], result[0][s], sizeof(T) * size);
-            memcpy(A_buff[s] + size, result[1][s], sizeof(T) * size);
-            memcpy(B_buff[s], a_sparse[s], sizeof(T) * size);
-            memcpy(B_buff[s] + size, result[2][s], sizeof(T) * size);
-            // result[0]*a_sparse
-            // result[1]*result[2]
-            memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+        T **A_buff = new T *[2 * size];
+        T **B_buff = new T *[2 * size];
+        T **C_buff = new T *[2 * size];
+        for (uint i = 0; i < 2 * size; i++) {
+            A_buff[i] = new T[numShares];
+            B_buff[i] = new T[numShares];
+            C_buff[i] = new T[numShares];
+            memset(C_buff[i], 0, sizeof(T) * numShares);
+        }
+        // Pack in interface format - result arrays are already in interface format [size][numShares]
+        for (uint i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                A_buff[i][s] = result[0][i][s];
+                A_buff[size + i][s] = result[1][i][s];
+                B_buff[i][s] = a_sparse[i][s];
+                B_buff[size + i][s] = result[2][i][s];
+            }
         }
         // this can theoretically be done with a Mult_and_MultSparse special function
-        Mult(C_buff, A_buff, B_buff, size, nodeNet, ss);
+        Mult(C_buff, A_buff, B_buff, 2 * size, nodeNet, ss);
 
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                w[s][i] = A_buff[s][i] + B_buff[s][i] - 2 * C_buff[s][i]; // XOR
-            }
-            for (size_t i = 0; i < size; i++) {
-                a_sparse[s][i] = A_buff[s][size + i] + B_buff[s][size + i] - 2 * C_buff[s][size + i]; // XOR, reusing a_sparse
+        for (uint i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                w[i][s] = A_buff[i][s] + B_buff[i][s] - 2 * C_buff[i][s]; // XOR
+                a_sparse[i][s] = A_buff[size + i][s] + B_buff[size + i][s] - 2 * C_buff[size + i][s]; // XOR, reusing a_sparse
             }
         }
         // reusing half of C_buff (not needed anymore)
         Mult(C_buff, a_sparse, w, size, nodeNet, ss);
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                res[s][i] = a_sparse[s][i] + w[s][i] - 2 * C_buff[s][i]; // XOR
+        for (uint i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                res[i][s] = a_sparse[i][s] + w[i][s] - 2 * C_buff[i][s]; // XOR
             }
         }
 
-        for (size_t i = 0; i < numShares; i++) {
+        for (uint i = 0; i < 2 * size; i++) {
             delete[] A_buff[i];
             delete[] B_buff[i];
             delete[] C_buff[i];
@@ -172,7 +177,6 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
         delete[] A_buff;
         delete[] B_buff;
         delete[] C_buff;
-        // run MultSparse
         break;
     }
     default:
@@ -180,15 +184,15 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
     }
 
     // cleanup
-    for (size_t s = 0; s < threshold; s++) {
-        for (size_t i = 0; i < numShares; i++) {
+    for (int s = 0; s < threshold; s++) {
+        for (uint i = 0; i < size; i++) {
             delete[] result[s][i];
         }
         delete[] result[s];
     }
     delete[] result;
 
-    for (size_t i = 0; i < numShares; i++) {
+    for (uint i = 0; i < size; i++) {
         delete[] w[i];
         delete[] a_sparse[i];
     }
@@ -196,4 +200,12 @@ void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replic
     delete[] a_sparse;
 }
 
-#endif // _B2A_HPP_
+// Public interface - simple wrapper around the internal RandBit function
+// Note: 3x replication was removed as it's not needed for RSS security.
+// The actual security concerns are in comparison/truncation operations.
+template <typename T>
+void Rss_RandBit(T **res, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    Rss_RandBit_Internal(res, size, ring_size, nodeNet, ss);
+}
+
+#endif // _RANDBIT_HPP_

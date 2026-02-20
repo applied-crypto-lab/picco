@@ -6,6 +6,7 @@
 #include "../ops/rss/B2A.hpp"
 #include "../ops/rss/BitDec.hpp"
 #include "../ops/rss/BitEQZ.hpp"
+#include "../ops/rss/BitLT.hpp"
 #include "../ops/rss/BitOps.hpp"
 #include "../ops/rss/DotProduct.hpp"
 #include "../ops/rss/EQZ.hpp"
@@ -14,7 +15,6 @@
 #include "../ops/rss/FLAdd.hpp"
 #include "../ops/rss/FLDiv.hpp"
 #include "../ops/rss/FLEQZ.hpp"
-#include "../ops/rss/FLLTZ.hpp"
 #include "../ops/rss/FLLT.hpp"
 #include "../ops/rss/FLMult.hpp"
 #include "../ops/rss/FLRound.hpp"
@@ -22,6 +22,7 @@
 #include "../ops/rss/Int2FL.hpp"
 #include "../ops/rss/IntDiv.hpp"
 #include "../ops/rss/LT.hpp"
+#include "../ops/rss/LTEQ.hpp"
 #include "../ops/rss/MSB.hpp"
 #include "../ops/rss/Mult.hpp"
 #include "../ops/rss/MultSparse.hpp"
@@ -29,7 +30,9 @@
 #include "../ops/rss/Open.hpp"
 #include "../ops/rss/OR.hpp"
 #include "../ops/rss/Pow2.hpp"
+#include "../ops/rss/PreOR.hpp"
 #include "../ops/rss/PrivIndex.hpp"
+#include "../ops/rss/PrivPtr.hpp"
 #include "../ops/rss/RNTE.hpp"
 #include "../ops/rss/RandBit.hpp"
 #include "../ops/rss/SDiv.hpp"
@@ -43,5 +46,8 @@
 #include <map>
 #include <string>
 #include <sys/time.h>
+
+// Typedef to make SecretShare refer to replicatedSecretShare for RSS
+typedef replicatedSecretShare<std::remove_pointer_t<priv_int>> SecretShare;
 
 #endif // _RSSHEADERS_HPP_

@@ -122,7 +122,7 @@ dlist<T> create_list(){
 }
 template <typename T>
 int list_size(dlist<T>){
-
+    return 0; // Stub function
 }
 template <typename T>
 void insert_to_rear(dlist<T>, listnode<T>){
@@ -142,7 +142,7 @@ void copy_list(dlist<T>, dlist<T>, int, int){
 }
 template <typename T>
 int compute_list_size(dlist<T>){
-
+    return 0; // Stub function
 }
 template <typename T>
 void append_list(dlist<T>, dlist<T>){
@@ -248,7 +248,7 @@ void update_ptr(priv_ptr<T> assign_ptr, priv_ptr<T> right_ptr, T *private_tag, i
 }
 template <typename T>
 int is_repeated_listnode(dlist<T> list, listnode<T> node, int level, int type, NodeNetwork net, replicatedSecretShare<T> *ss){
-
+    return 0; // Stub function
 }
 template <typename T>
 void dereference_ptr_read_var(priv_ptr<T> ptr, T *result, int dereferences, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss){

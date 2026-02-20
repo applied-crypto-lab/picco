@@ -24,6 +24,8 @@
 #include "BitDec.hpp"
 #include "Mult.hpp"
 
+// All arrays use interface format: [size][numShares] where array[i][s] is share s of element i
+
 template <typename T>
 void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
@@ -31,13 +33,18 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
     uint m = ceil(log2(L)); // rounding up to the nearest integer
     uint numPows = size * m;
 
-    T **a_bits = new T *[numShares];
-    T **prods = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        prods[i] = new T[numPows];
-        memset(prods[i], 0, sizeof(T) * numPows);
-        a_bits[i] = new T[size];
-        memset(a_bits[i], 0, sizeof(T) * size);
+    // Allocate a_bits in [size][numShares] format for BitDec
+    T **a_bits = new T *[size];
+    for (int i = 0; i < size; i++) {
+        a_bits[i] = new T[numShares];
+        memset(a_bits[i], 0, sizeof(T) * numShares);
+    }
+
+    // prods uses [numPows][numShares] format - consistent with interface format
+    T **prods = new T *[numPows];
+    for (size_t i = 0; i < numPows; i++) {
+        prods[i] = new T[numShares];
+        memset(prods[i], 0, sizeof(T) * numShares);
     }
 
     T *ai = new T[numShares];
@@ -50,84 +57,93 @@ void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetw
         pows[j] = T(1) << (T(1) << T(j));
     }
 
-    // we have to bit decompose all of a's bits (can't do a subset, right?)
-    // need to check if we can do bitDec on the m LSB's of a (need to add new argument to BitDec)
+    // BitDec expects [size][numShares] format - both input (a) and output (a_bits)
     Rss_BitDec(a_bits, a, m, size, ring_size, nodeNet, ss);
-    // a_bits consists of all the bits of [a] packed into a single value (as it normaly is)
+    // a_bits[i][s] now contains the packed bits for element i, share s
 
-    // extracting all the individual bits of a_bits
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t j = 0; j < m; j++) {
-            for (size_t i = 0; i < size; i++) {
-                prods[s][j * size + i] = GET_BIT(a_bits[s][i], T(j));
+    // extracting all the individual bits of a_bits and storing in prods
+    // prods[j * size + i][s] = bit j of a_bits[i][s]
+    for (size_t j = 0; j < m; j++) {
+        for (int i = 0; i < size; i++) {
+            size_t p_idx = j * size + i;
+            for (size_t s = 0; s < numShares; s++) {
+                prods[p_idx][s] = GET_BIT(a_bits[i][s], T(j));
             }
         }
     }
 
-    // reusing prods
+    // B2A expects [size][numShares] format - prods is already in this format
     Rss_B2A(prods, prods, numPows, ring_size, nodeNet, ss);
 
-    size_t p_idx;
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t j = 0; j < m; j++) {
-            for (size_t i = 0; i < size; i++) {
-                p_idx = j * size + i;
-                prods[s][p_idx] = pows[j] * prods[s][p_idx] + ai[s] - prods[s][p_idx];
+    // Apply transformation: prods[idx][s] = pows[j] * prods[idx][s] + ai[s] - prods[idx][s]
+    for (size_t j = 0; j < m; j++) {
+        for (int i = 0; i < size; i++) {
+            size_t p_idx = j * size + i;
+            for (size_t s = 0; s < numShares; s++) {
+                prods[p_idx][s] = pows[j] * prods[p_idx][s] + ai[s] - prods[p_idx][s];
             }
         }
     }
-    uint new_m;
 
-    // allocating buffers and moving prods into the buffers
-    T **A_buff = new T *[numShares];
-    T **B_buff = new T *[numShares];
-    T **C_buff = new T *[numShares];
-    for (size_t s = 0; s < numShares; s++) {
-        A_buff[s] = new T[numPows >> 1]; // only need half of numPows to start
-        B_buff[s] = new T[numPows >> 1];
-        C_buff[s] = new T[numPows >> 1];
-    }
+    uint new_m;
+    uint max_numPows = numPows; // save original numPows for buffer allocation
 
     // performing the multiplication as a tree
     while (m > 1) {
         new_m = m >> 1;         // m/2 (rounded down)
         numPows = size * new_m; // updating numPows
 
-        for (size_t s = 0; s < numShares; s++) {
-            memcpy(A_buff[s], prods[s], sizeof(T) * numPows);
-            memcpy(B_buff[s], prods[s] + numPows, sizeof(T) * numPows);
-        }
-        // performing mult, stores the result in prods
-        Mult(prods, A_buff, B_buff, numPows, nodeNet, ss);
+        // Mult expects [size][numShares] format
+        // A = prods[0..numPows-1], B = prods[numPows..2*numPows-1]
+        // Store result in prods[0..numPows-1]
+        Mult(prods, prods, prods + numPows, numPows, nodeNet, ss);
 
-        // if there was an odd number of inputs, move it into the new_m'th position in the buffers for the next round
+        // if there was an odd number of inputs, move it into the new_m'th position
         if (m & 1) { // if m is ODD
-            // printf("m is ODD\n");
-            for (size_t s = 0; s < numShares; s++) {
-                memcpy(prods[s] + numPows, prods[s] + 2 * numPows, sizeof(T) * size);
+            // Move prods[2*numPows..2*numPows+size-1] to prods[numPows..numPows+size-1]
+            for (int i = 0; i < size; i++) {
+                for (size_t s = 0; s < numShares; s++) {
+                    prods[numPows + i][s] = prods[2 * numPows + i][s];
+                }
             }
-
             new_m += 1;
         }
         m = new_m;
     }
 
-    // moving the result of the tree-mult into res
-    for (size_t s = 0; s < numShares; s++) {
-        memcpy(result[s], prods[s], sizeof(T) * size);
+    // Copy result from prods[0..size-1] to result[0..size-1]
+    // Both are in [size][numShares] format
+    for (int i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            result[i][s] = prods[i][s];
+        }
     }
 
+    // Clean up
     delete[] ai;
-    for (size_t i = 0; i < numShares; i++) {
-        delete[] A_buff[i];
-        delete[] B_buff[i];
+    for (int i = 0; i < size; i++) {
         delete[] a_bits[i];
+    }
+    delete[] a_bits;
+
+    for (size_t i = 0; i < max_numPows; i++) {
         delete[] prods[i];
     }
-    delete[] A_buff;
-    delete[] B_buff;
-    delete[] a_bits;
     delete[] prods;
+}
+
+// ============================================================================
+// Scalar wrappers for RSS (following Mult.hpp pattern)
+// ============================================================================
+
+template <typename T>
+void doOperation_Pow2(priv_int &result, priv_int &a, int L, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_Pow2(&result, &a, L, size, threadID, nodeNet, ss);
+}
+
+template <typename T>
+void doOperation_Pow2(priv_int &result, priv_int &a, int L, int size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_Pow2(&result, &a, L, size, nodeNet, ss);
 }
 
 #endif // _POW2_HPP_

@@ -77,7 +77,7 @@ SecretShare::SecretShare(unsigned int p, unsigned int t, mpz_t mod, unsigned int
     }
     // mult_keys = keys;
 
-    for (int i = 0; i < threshold; i++) {
+    for (size_t i = 0; i < threshold; i++) {
         multIndices[i] = sendToIDs[i];
         multIndices[threshold + i + 1] = recvFromIDs[i];
     }
@@ -107,7 +107,7 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     // used for mult, could probably be moved into randInit but we'd need to pass keys along
 
     rstatesMult = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * (2 * threshold));
-    for (int i = 0; i < 2 * threshold; i++) {
+    for (size_t i = 0; i < (size_t)(2 * threshold); i++) {
         gmp_randinit_default(rstatesMult[i]);
         mpz_import(seed, KEYSIZE, 1, sizeof(keys[i][0]), 0, 0, keys[i]);
         gmp_randseed(rstatesMult[i], seed);
@@ -117,18 +117,18 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
     pthread_mutex_init(&mutex, NULL);
     rand_isFirst_thread = (int *)malloc(sizeof(int) * numThreads);
     rand_isFirst_thread_mult = (int *)malloc(sizeof(int) * numThreads);
-    for (int i = 0; i < numThreads; i++) {
+    for (size_t i = 0; i < (size_t)numThreads; i++) {
         rand_isFirst_thread[i] = 0;
         rand_isFirst_thread_mult[i] = 0;
     }
 
     rstates_thread = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * polynomials.size());
-    for (int i = 0; i < polynomials.size(); i++) {
+    for (size_t i = 0; i < polynomials.size(); i++) {
         rstates_thread[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
     }
 
     rstates_thread_mult = (gmp_randstate_t **)malloc(sizeof(gmp_randstate_t *) * (2 * threshold));
-    for (int i = 0; i < 2 * threshold; i++) {
+    for (size_t i = 0; i < (size_t)(2 * threshold); i++) {
         rstates_thread_mult[i] = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * numThreads);
     }
 
@@ -141,7 +141,7 @@ void SecretShare::randInit(unsigned char *keys[KEYSIZE]) {
         k++;
     }
     rstates = (gmp_randstate_t *)malloc(sizeof(gmp_randstate_t) * polynomials.size());
-    for (int i = 0; i < polynomials.size(); i++) {
+    for (size_t i = 0; i < polynomials.size(); i++) {
         gmp_randinit_default(rstates[i]);
         gmp_randseed(rstates[i], temp_keys[i]);
     }
@@ -202,8 +202,8 @@ void SecretShare::randInit_thread_mult(int threadID) {
         }
         mpz_t seed;
         mpz_init(seed);
-        for (int threadID = 0; threadID < numThreads; threadID++) {
-            for (int i = 0; i < 2 * threshold; i++) {
+        for (size_t threadID = 0; threadID < (size_t)numThreads; threadID++) {
+            for (size_t i = 0; i < (size_t)(2 * threshold); i++) {
                 gmp_randinit_default(rstates_thread_mult[i][threadID]);
                 mpz_import(seed, KEYSIZE, 1, sizeof(mult_keys[i][0]), 0, 0, mult_keys[i]);
                 gmp_randseed(rstates_thread_mult[i][threadID], seed);
@@ -225,7 +225,7 @@ void SecretShare::randInit_thread(int threadID) {
             mpz_set_str(temp_keys[k], ((*it).first).c_str(), BASE_10);
             k++;
         }
-        for (int i = 0; i < polynomials.size(); i++) {
+        for (size_t i = 0; i < polynomials.size(); i++) {
             gmp_randinit_default(rstates_thread[i][threadID]);
             gmp_randseed(rstates_thread[i][threadID], temp_keys[i]);
         }
@@ -268,7 +268,7 @@ void SecretShare::initCoef() {
         mpz_set_ui(temp1, inv_term);
         modInv(temp1, temp1);
 
-        for (int i = 0; i < ret_coef.size(); i++) {
+        for (size_t i = 0; i < ret_coef.size(); i++) {
             uint tmp = abs(ret_coef.at(i)); // making sure this is positive, will deal with negatives below
             mpz_set_ui(temp2, tmp);
             mpz_set(coef[m][i], temp1);
@@ -321,7 +321,7 @@ vector<int> generateCoef(int m, uint &inv_term) {
                 denom *= ((-1) * j + i);
             }
         }
-        for (int j = 0; j < poly_accum.size(); j++) {
+        for (size_t j = 0; j < poly_accum.size(); j++) {
             poly_accum.at(j) *= sign(denom);
         }
         denom *= sign(denom); // ensuring all denoms are positive
@@ -332,10 +332,10 @@ vector<int> generateCoef(int m, uint &inv_term) {
     int constant;
     for (size_t i = 0; i < polys.size(); i++) {
         constant = inv_term / denoms.at(i);
-        for (int j = 0; j < polys.at(i).size(); j++) {
+        for (size_t j = 0; j < polys.at(i).size(); j++) {
             polys.at(i).at(j) *= constant;
         }
-        for (int j = 0; j < result.size(); j++) {
+        for (size_t j = 0; j < result.size(); j++) {
             result.at(j) += polys.at(i).at(j); // element-wise addition
         }
     }
@@ -417,13 +417,13 @@ void SecretShare::getShares(mpz_t *shares, mpz_t secret) {
     mpz_t random;
     mpz_init(random);
 
-    for (int i = 0; i < peers; i++)
+    for (size_t i = 0; i < peers; i++)
         mpz_set_ui(shares[i], 0);
 
     if (mpz_cmp_si(secret, 0) < 0)
         mpz_mod(secret, secret, fieldSize);
 
-    for (int degree = 0; degree < threshold + 1; degree++) {
+    for (size_t degree = 0; degree < (size_t)(threshold + 1); degree++) {
         // set the free coefficient to the secret; otherwise generate a
         // random field element
         if (degree == 0)
@@ -433,12 +433,12 @@ void SecretShare::getShares(mpz_t *shares, mpz_t secret) {
 
             // the coefficient of the highest degree has to be non-zer to
             //  guarantee that this is a polynomial of degree t
-            if (degree == threshold && mpz_sgn(coefficient) == 0)
+            if (degree == (size_t)threshold && mpz_sgn(coefficient) == 0)
                 mpz_add_ui(coefficient, coefficient, 1);
         }
 
         // add the contribution of the current coefficient to each share
-        for (int peer = 0; peer < peers; peer++) {
+        for (size_t peer = 0; peer < peers; peer++) {
             modMul(temp, sharingMatrix[peer][degree], coefficient);
             modAdd(shares[peer], shares[peer], temp);
         }
@@ -455,10 +455,10 @@ void SecretShare::getShares(mpz_t **shares, mpz_t *secrets, int size) {
     mpz_init(coefficient);
     mpz_t temp;
     mpz_init_set_ui(temp, 0);
-    int degree, peer;
+    size_t degree, peer;
 
-    for (int i = 0; i < size; i++) {
-        for (degree = 0; degree < threshold + 1; degree++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
+        for (degree = 0; degree < (size_t)(threshold + 1); degree++) {
             // generate coefficients one at a time
             if (degree == 0)
                 mpz_set(coefficient, secrets[i]);
@@ -466,12 +466,12 @@ void SecretShare::getShares(mpz_t **shares, mpz_t *secrets, int size) {
                 mpz_urandomm(coefficient, rstate, fieldSize);
 
                 // the most significant coefficient must be non-zero
-                if (degree == threshold && mpz_sgn(coefficient) == 0)
+                if (degree == (size_t)threshold && mpz_sgn(coefficient) == 0)
                     mpz_add_ui(coefficient, coefficient, 1);
             }
 
             // incorporate the coefficient into the shares
-            for (peer = 0; peer < peers; peer++) {
+            for (peer = 0; peer < (size_t)peers; peer++) {
                 modMul(temp, sharingMatrix[peer][degree], coefficient);
                 modAdd(shares[peer][i], shares[peer][i], temp);
             }
@@ -487,7 +487,7 @@ void SecretShare::modMul(mpz_t result, mpz_t x, mpz_t y) {
 }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         modMul(result[i], x[i], y[i]);
 }
 
@@ -497,24 +497,24 @@ void SecretShare::modMul(mpz_t result, mpz_t x, long y) {
 }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, long y, int size) {
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         modMul(result[i], x[i], y);
     }
 }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, mpz_t y, int size) {
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         modMul(result[i], x[i], y);
     }
 }
 
 void SecretShare::modMul(mpz_t *result, mpz_t *x, int *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_init_set_si(ytmp[i], y[i]);
         modMul(result[i], ytmp[i], x[i]);
     }
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear(ytmp[i]);
 }
 
@@ -524,7 +524,7 @@ void SecretShare::modAdd(mpz_t result, mpz_t x, mpz_t y) {
 }
 
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         modAdd(result[i], x[i], y[i]);
 }
 
@@ -537,30 +537,30 @@ void SecretShare::modAdd(mpz_t result, mpz_t x, long y) {
 }
 
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, long y, int size) {
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         modAdd(result[i], x[i], y);
 }
 
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, mpz_t y, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         modAdd(result[i], x[i], y);
 }
 
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, long *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_init_set_si(ytmp[i], y[i]);
     modAdd(result, x, ytmp, size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear(ytmp[i]);
 }
 
 void SecretShare::modAdd(mpz_t *result, mpz_t *x, int *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_init_set_si(ytmp[i], y[i]);
     modAdd(result, x, ytmp, size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear(ytmp[i]);
 }
 
@@ -570,7 +570,7 @@ void SecretShare::modSub(mpz_t result, mpz_t x, mpz_t y) {
 }
 
 void SecretShare::modSub(mpz_t *result, mpz_t *x, mpz_t *y, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         modSub(result[i], x[i], y[i]);
 }
 
@@ -591,39 +591,39 @@ void SecretShare::modSub(mpz_t result, long x, mpz_t y) {
 }
 
 void SecretShare::modSub(mpz_t *result, mpz_t *x, long y, int size) {
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         modSub(result[i], x[i], y);
 }
 
 void SecretShare::modSub(mpz_t *result, long x, mpz_t *y, int size) {
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         modSub(result[i], x, y[i]);
 }
 
 void SecretShare::modSub(mpz_t *result, mpz_t *x, mpz_t y, int size) {
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         modSub(result[i], x[i], y);
 }
 
 void SecretShare::modSub(mpz_t *result, mpz_t x, mpz_t *y, int size) {
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         modSub(result[i], x, y[i]);
 }
 
 void SecretShare::modSub(mpz_t *result, mpz_t *x, int *y, int size) {
     mpz_t *ytmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_init_set_si(ytmp[i], y[i]);
     modSub(result, x, ytmp, size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear(ytmp[i]);
 }
 void SecretShare::modSub(mpz_t *result, int *x, mpz_t *y, int size) {
     mpz_t *xtmp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_init_set_si(xtmp[i], x[i]);
     modSub(result, xtmp, y, size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear(xtmp[i]);
 }
 
@@ -650,12 +650,12 @@ void SecretShare::modPow2(mpz_t result, mpz_t exponent) {
 }
 
 void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
-    // for (int i = 0; i < size; ++i)
+    // for (size_t i = 0; i < (size_t)size; ++i)
     //     modPow(result[i], base[i], exponent);
     mpz_t value, base;
     mpz_init_set_ui(base, 2);
 
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_init_set_si(value, exponent[i]);
         mpz_mod(value, value, fieldSize);
         mpz_powm(result[i], base, value, fieldSize);
@@ -665,12 +665,12 @@ void SecretShare::modPow2(mpz_t *result, int *exponent, int size) {
 }
 
 void SecretShare::modPow2(mpz_t *result, mpz_t *exponent, int size) {
-    // for (int i = 0; i < size; ++i)
+    // for (size_t i = 0; i < (size_t)size; ++i)
     //     modPow(result[i], base[i], exponent);
     mpz_t value, base;
     mpz_init_set_ui(base, 2);
 
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_init_set(value, exponent[i]);
         mpz_mod(value, value, fieldSize);
         mpz_powm(result[i], base, value, fieldSize);
@@ -684,7 +684,7 @@ void SecretShare::modPow(mpz_t result, mpz_t base, mpz_t exponent) {
 }
 
 void SecretShare::modPow(mpz_t *result, mpz_t *base, mpz_t *exponent, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_powm(result[i], base[i], exponent[i], fieldSize);
 }
 
@@ -698,12 +698,12 @@ void SecretShare::modPow(mpz_t result, mpz_t base, long exponent) {
 }
 
 void SecretShare::modPow(mpz_t *result, mpz_t *base, long exponent, int size) {
-    // for (int i = 0; i < size; ++i)
+    // for (size_t i = 0; i < (size_t)size; ++i)
     //     modPow(result[i], base[i], exponent);
     mpz_t value;
     mpz_init_set_si(value, exponent);
     mpz_mod(value, value, fieldSize);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_powm(result[i], base[i], value, fieldSize);
     }
     mpz_clear(value);
@@ -722,7 +722,7 @@ void SecretShare::modInv(mpz_t *result, mpz_t *values, int size) {
     mpz_t temp;
     mpz_init(temp);
     mpz_sub_ui(temp, fieldSize, 2);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         modPow(result[i], values[i], temp);
     // modInv(result[i], values[i]); // highly inefficient
     mpz_clear(temp);
@@ -739,19 +739,19 @@ void SecretShare::modSqrt(mpz_t result, mpz_t x) {
 
 void SecretShare::modSqrt(mpz_t *result, mpz_t *x, int size) {
     mpz_t *power = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_init(power[i]);
         mpz_add_ui(power[i], fieldSize, 1);
         mpz_div_ui(power[i], power[i], 4);
     }
     modPow(result, x, power, size);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear(power[i]);
 }
 
 void SecretShare::modSum(mpz_t result, mpz_t *x, int size) {
     mpz_set_ui(result, 0);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_add(result, result, x[i]);
     }
     mpz_mod(result, result, fieldSize);
@@ -760,7 +760,7 @@ void SecretShare::modSum(mpz_t result, mpz_t *x, int size) {
 void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t *m, int size) {
     mpz_t tmp;
     mpz_init(tmp);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_init_set_ui(tmp, 0);
         mpz_add(tmp, a[i], m[i]);
         if (mpz_cmp(tmp, fieldSize) > 0)
@@ -775,7 +775,7 @@ void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t *m, int size) {
 void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t m, int size) {
     mpz_t tmp;
     mpz_init(tmp);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_init_set_ui(tmp, 0);
         mpz_add(tmp, a[i], m);
         if (mpz_cmp(tmp, fieldSize) > 0)
@@ -788,7 +788,7 @@ void SecretShare::mod(mpz_t *result, mpz_t *a, mpz_t m, int size) {
 }
 
 void SecretShare::copy(mpz_t *src, mpz_t *des, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_set(des[i], src[i]);
 }
 
@@ -803,17 +803,17 @@ void SecretShare::computeSharingMatrix() {
     mpz_t t1, t2;
     mpz_init(t1);
     mpz_init(t2);
-    int i;
+    size_t i;
 
     sharingMatrix = (mpz_t **)malloc(sizeof(mpz_t *) * peers);
-    for (i = 0; i < peers; i++)
+    for (i = 0; i < (size_t)peers; i++)
         sharingMatrix[i] = (mpz_t *)malloc(sizeof(mpz_t) * peers);
-    for (i = 0; i < peers; i++)
-        for (int j = 0; j < peers; j++)
+    for (i = 0; i < (size_t)peers; i++)
+        for (size_t j = 0; j < (size_t)peers; j++)
             mpz_init(sharingMatrix[i][j]);
 
-    for (int i = 0; i < peers; i++) {
-        for (int j = 0; j < 2 * threshold + 1; j++) {
+    for (size_t i = 0; i < peers; i++) {
+        for (size_t j = 0; j < 2 * threshold + 1; j++) {
             mpz_set_ui(t1, i + 1);
             mpz_set_ui(t2, j);
             modPow(sharingMatrix[i][j], t1, t2);
@@ -841,12 +841,12 @@ void SecretShare::computeLagrangeWeights() {
     // first set of coefficients
     lagrangeWeightsAll = (mpz_t *)malloc(sizeof(mpz_t) * peers);
 
-    for (i = 0; i < peers; i++)
+    for (i = 0; i < (size_t)peers; i++)
         mpz_init(lagrangeWeightsAll[i]);
 
     // refer to https://en.wikipedia.org/wiki/Lagrange_polynomial
     // at loop iteration i compute ell_i(0)
-    for (i = 0; i < peers; i++) {
+    for (i = 0; i < (size_t)peers; i++) {
         mpz_set_ui(nom, 1);
         mpz_set_ui(denom, 1);
         mpz_set_ui(t2, i + 1);
@@ -960,7 +960,7 @@ void SecretShare::reconstructSecret(mpz_t result, mpz_t *y) {
     mpz_t temp;
     mpz_init(temp);
     mpz_set_ui(result, 0);
-    for (int peer = 0; peer < peers; peer++) {
+    for (size_t peer = 0; peer < peers; peer++) {
         modMul(temp, y[peer], lagrangeWeightsAll[peer]);
         modAdd(result, result, temp);
     }
@@ -971,10 +971,10 @@ void SecretShare::reconstructSecret(mpz_t result, mpz_t *y) {
 void SecretShare::reconstructSecret(mpz_t *result, mpz_t **y, int size) {
     mpz_t temp;
     mpz_init(temp);
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_set_ui(result[i], 0);
-    for (int i = 0; i < size; i++) {
-        for (int peer = 0; peer < peers; peer++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
+        for (size_t peer = 0; peer < peers; peer++) {
             modMul(temp, y[peer][i], lagrangeWeightsAll[peer]);
             modAdd(result[i], result[i], temp);
         }
@@ -986,10 +986,10 @@ void SecretShare::reconstructSecretMult(mpz_t *result, mpz_t **y, int size) {
     mpz_t temp;
     mpz_init(temp);
     // sanitizing destionation
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_set_ui(result[i], 0);
-    for (int i = 0; i < size; i++) {
-        for (int peer = 0; peer < peers; peer++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
+        for (size_t peer = 0; peer < peers; peer++) {
             modMul(temp, y[peer][i], lagrangeWeightsAll[multIndices[peer] - 1]);
             modAdd(result[i], result[i], temp);
         }
@@ -1087,11 +1087,11 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
 
     mpz_t coefficient;
     mpz_init(coefficient);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_urandomm(rand[i], rstate_1, fieldSize); // step 2
     }
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_sub(coefficient, rand[i], temp[i]);
         mpz_mul(coefficient, coefficient, id_p1_inv);
         mpz_mul_ui(data[myID - 1][i], coefficient, myID); // for id
@@ -1102,7 +1102,7 @@ void SecretShare::getShares2(mpz_t *temp, mpz_t *rand, mpz_t **data, int size) {
         mpz_mod(data[id_m1 - 1][i], data[id_m1 - 1][i], fieldSize);
     }
     mpz_clear(coefficient);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_urandomm(temp[i], rstate_0, fieldSize); // step 5, the "or" condition
     }
 }
@@ -1117,8 +1117,8 @@ void SecretShare::PRG_thread(mpz_t **output, uint size, uint start_ind, int thre
             randInit_thread_mult(threadID);
             rand_isFirst_thread_mult[threadID] = 1;
         }
-        for (int i = 0; i < threshold; i++) {
-            for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < threshold; i++) {
+            for (size_t j = 0; j < (size_t)size; j++) {
                 mpz_urandomm(output[i][j], rstates_thread_mult[i + start_ind][threadID], fieldSize);
             }
         }
@@ -1128,8 +1128,8 @@ void SecretShare::PRG_thread(mpz_t **output, uint size, uint start_ind, int thre
 // start_ind dictates which half of the array to take from
 // if 0, the first half. if t, the second half
 void SecretShare::PRG(mpz_t **output, uint size, uint start_ind) {
-    for (int i = 0; i < threshold; i++) {
-        for (int j = 0; j < size; j++) {
+    for (size_t i = 0; i < threshold; i++) {
+        for (size_t j = 0; j < (size_t)size; j++) {
             mpz_urandomm(output[i][j], rstatesMult[i + start_ind], fieldSize);
         }
     }
@@ -1166,7 +1166,7 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results) {
     mpz_init(temp);
 
     /************* Generate the random values ******************/
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int m = 0; m < polysize; m++) {
             // Generate a uniformly distributed random integer in the range 0 to 2*bits-1, inclusive.
             mpz_urandomb(rand, rstates[m], bits);
@@ -1196,7 +1196,7 @@ void SecretShare::generateRandValue(int bits, int size, mpz_t *results, int thre
     }
 
     /************* Generate the random values ******************/
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int m = 0; m < polysize; m++) {
             // getNextRandValue(m, bits, polynomials, rand, threadID);
             mpz_urandomb(rand, rstates_thread[m][threadID], bits);
@@ -1216,7 +1216,7 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results) {
     mpz_init(rand);
     mpz_init(temp);
     /************* Generate the random values ******************/
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int m = 0; m < polysize; m++) {
             // Generate a uniform random integer in the range 0 to mod-1, inclusive
             mpz_urandomm(rand, rstates[m], mod);
@@ -1246,7 +1246,7 @@ void SecretShare::generateRandValue(mpz_t mod, int size, mpz_t *results, int thr
 
     // evaluation done in rand_init
     /************* Generate the random values ******************/
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int m = 0; m < polysize; m++) {
             // getNextRandValue(m, mod, polynomials, rand, threadID);
             mpz_urandomm(rand, rstates_thread[m][threadID], mod);
@@ -1273,16 +1273,16 @@ void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
     int polysize = polynomials.size();
     // mpz_init(rand);
     mpz_t *rand = (mpz_t *)malloc(sizeof(mpz_t) * threshold);
-    for (int i = 0; i < threshold; i++) {
+    for (size_t i = 0; i < threshold; i++) {
         mpz_init(rand[i]);
     }
     int temp_int;
     /************* Generate the random values ******************/
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int m = 0; m < polysize; m++) {
             mpz_set_ui(temp, 0);
             // Generate t random values from the PRG/PRF
-            for (int j = 0; j < threshold; j++) {
+            for (size_t j = 0; j < (size_t)threshold; j++) {
                 mpz_urandomm(rand[j], rstates[m], mod);
                 temp_int = pow(myID, j + 1);
                 // printf("%i^%i = %i\n", myID, j+1, temp_int);
@@ -1293,7 +1293,7 @@ void SecretShare::PRZS(mpz_t mod, int size, mpz_t *results) {
             modAdd(results[i], results[i], temp);
         }
     }
-    for (int i = 0; i < threshold; i++) {
+    for (size_t i = 0; i < threshold; i++) {
         mpz_clear(rand[i]);
     }
     free(rand);
@@ -1352,7 +1352,7 @@ std::vector<std::string> SecretShare::split(const std::string s, const std::stri
             // should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
             if (expected_size <= 0)
                 throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
-            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
+            if (((size_t)result.size() != (size_t)expected_size) || (((size_t)result.size() == (size_t)(expected_size)) && result.back().empty())) {
                 int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
                 throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
             }
@@ -1459,7 +1459,7 @@ void SecretShare::ss_input(int id, mpz_t *var, int size, std::string type, std::
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         temp = split(tokens[1], ",", size);
-        for (int i = 0; i < size; i++) {
+        for (size_t i = 0; i < (size_t)size; i++) {
             if (!is_int(temp[i]))
                 throw std::runtime_error("Non-integer input provided: " + temp[i]);
             mpz_set_str(var[i], temp[i].c_str(), BASE_10);
@@ -1482,7 +1482,7 @@ void SecretShare::ss_input(int id, int *var, int size, std::string type, std::if
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         temp = split(tokens[1], ",", size);
-        for (int i = 0; i < size; i++) {
+        for (size_t i = 0; i < (size_t)size; i++) {
             if (!is_int(temp[i]))
                 throw std::runtime_error("Non-integer input provided: " + temp[i]);
             var[i] = atoi(temp[i].c_str());
@@ -1505,7 +1505,7 @@ void SecretShare::ss_input(int id, mpz_t **var, int size, std::string type, std:
         std::string line;
         std::vector<std::string> tokens;
         std::vector<std::string> temp;
-        for (int i = 0; i < size; i++) {
+        for (size_t i = 0; i < (size_t)size; i++) {
             std::getline(inputStreams[id - 1], line);
             tokens = split(line, "=");
             temp = split(tokens[1], ",", 4);
@@ -1532,7 +1532,7 @@ void SecretShare::ss_input(int id, float *var, int size, std::string type, std::
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
         temp = split(tokens[1], ",", size);
-        for (int i = 0; i < size; i++) {
+        for (size_t i = 0; i < (size_t)size; i++) {
             if (!is_float(temp[i]))
                 throw std::runtime_error("Non-float input provided: " + temp[i]);
             var[i] = atof(temp[i].c_str());
@@ -1559,14 +1559,14 @@ void SecretShare::ss_input(mpz_t **var, std::string type) {
 
 // input randomly generated private int arr
 void SecretShare::ss_input(mpz_t *var, int size, std::string type) {
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_urandomm(var[i], rstate_mine, fieldSize);
     }
 }
 
 // input randomly generated private float arr
 void SecretShare::ss_input(mpz_t **var, int size, std::string type) {
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int j = 0; j < 4; j++)
             mpz_urandomm(var[i][j], rstate_mine, fieldSize);
     }
@@ -1608,9 +1608,9 @@ void SecretShare::ss_output(int id, mpz_t **var, std::string type, std::ofstream
 
 void SecretShare::ss_output(int id, mpz_t *var, int size, std::string type, std::ofstream *outputStreams) {
     std::string value;
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         value = mpz_get_str(NULL, BASE_10, var[i]);
-        if (i != size - 1)
+        if (i != (size_t)(size - 1))
             outputStreams[id - 1] << value + ",";
         else
             outputStreams[id - 1] << value + "\n";
@@ -1619,10 +1619,10 @@ void SecretShare::ss_output(int id, mpz_t *var, int size, std::string type, std:
 }
 
 void SecretShare::ss_output(int id, int *var, int size, std::string type, std::ofstream *outputStreams) {
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         std::stringstream s;
         s << var[i];
-        if (i != size - 1)
+        if (i != (size_t)(size - 1))
             outputStreams[id - 1] << s.str() + ",";
         else
             outputStreams[id - 1] << s.str() + "\n";
@@ -1632,7 +1632,7 @@ void SecretShare::ss_output(int id, int *var, int size, std::string type, std::o
 
 void SecretShare::ss_output(int id, mpz_t **var, int size, std::string type, std::ofstream *outputStreams) {
     std::string value;
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int j = 0; j < 4; j++) {
             value = mpz_get_str(NULL, BASE_10, var[i][j]);
             if (j != 3)
@@ -1645,10 +1645,10 @@ void SecretShare::ss_output(int id, mpz_t **var, int size, std::string type, std
 }
 
 void SecretShare::ss_output(int id, float *var, int size, std::string type, std::ofstream *outputStreams) {
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         std::stringstream s;
         s << var[i];
-        if (i != size - 1)
+        if (i != (size_t)(size - 1))
             outputStreams[id - 1] << s.str() + ",";
         else
             outputStreams[id - 1] << s.str() + "\n";
@@ -1668,7 +1668,7 @@ void SecretShare::ss_output(int id, float *var, int size, std::string type, std:
 // }
 
 // void ss_free_arr(mpz_t *op, int size) {
-//     for (int i = 0; i < size; i++)
+//     for (size_t i = 0; i < (size_t)size; i++)
 //         mpz_clear(op[i]);
 //     delete[] op;
 // }

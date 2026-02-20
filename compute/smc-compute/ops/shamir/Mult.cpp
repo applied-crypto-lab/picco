@@ -40,7 +40,7 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
     mpz_t **rand_buff = (mpz_t **)malloc(sizeof(mpz_t *) * (threshold + 1));
     mpz_t **buffer = (mpz_t **)malloc(sizeof(mpz_t *) * (peers));
 
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         rand_buff[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
     }
     for (int i = 0; i < peers; i++) {
@@ -53,7 +53,7 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
         }
     }
 
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         for (int j = 0; j < size; j++) {
             mpz_init(rand_buff[i][j]);
         }
@@ -79,7 +79,7 @@ void Mult(mpz_t *C, mpz_t *A, mpz_t *B, int size, int threadID, NodeNetwork net,
     ss->reconstructSecretMult(C, buffer, size); // step 5
 
     // free memory
-    for (int i = 0; i < (threshold + 1); i++) {
+    for (size_t i = 0; i < (size_t)(threshold + 1); i++) {
         for (int j = 0; j < size; j++) {
             mpz_clear(rand_buff[i][j]);
         }

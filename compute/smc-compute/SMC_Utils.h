@@ -56,6 +56,7 @@ typedef mpz_t priv_int;
 // not including this since the compiler must be updated first
 #include "rss/RSSHeaders.hpp"
 #include "rss/RSSOps.hpp"
+#include "ops/Batch.hpp"  // RSS batch operations use templates
 #include <type_traits>
 #endif
 
@@ -176,7 +177,7 @@ public:
     /************************************** Multiplication ***************************************/
     /************* singular operations *****************/
     // 1) private int = private int * private int
-    void smc_mult(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
+    void smc_mult(priv_int &a, priv_int &b, priv_int &result, int alen, int blen, int resultlen, std::string type, int threadID);
     // 2) private int = private int * public int
     void smc_mult(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID);
     // 3) private int = public int * private int
@@ -584,6 +585,9 @@ public:
     void smc_free_ptr(priv_ptr **arrays, int num);
 
 #endif
+
+    // For batch operations: copy priv_int shares (available for both Shamir and RSS)
+    void smc_set_ptr(priv_int dest, priv_int src, std::string type, int threadID);
 
     /************************************************/
     // private float = private int

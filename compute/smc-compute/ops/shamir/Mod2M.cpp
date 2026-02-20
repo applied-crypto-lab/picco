@@ -19,7 +19,6 @@
 */
 #include "Mod2M.h"
 
-
 // Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
 // Protocol 3.2 page 7
 void doOperation_Mod2M(mpz_t *result, mpz_t *input, int K, int M, int size, int threadID, NodeNetwork net,  SecretShare *ss) {

@@ -60,7 +60,7 @@ int NodeConfiguration::getPeerCount() {
 std::string NodeConfiguration::getPeerIP(int id) {
     // Get the index of the id;
     int index = -1;
-    for (int i = 0; i < peerID.size(); ++i) {
+    for (size_t i = 0; i < peerID.size(); ++i) {
         if (peerID[i] == id) {
             index = i;
             break;
@@ -71,7 +71,7 @@ std::string NodeConfiguration::getPeerIP(int id) {
 int NodeConfiguration::getPeerPort(int id) {
     // Get the index of the id;
     int index = -1;
-    for (int i = 0; i < peerID.size(); ++i) {
+    for (size_t i = 0; i < peerID.size(); ++i) {
         if (peerID[i] == id) {
             index = i;
             break;
@@ -82,7 +82,7 @@ int NodeConfiguration::getPeerPort(int id) {
 
 int NodeConfiguration::getPeerIndex(int id) {
     // Get the index of the id
-    for (int i = 0; i < peerID.size(); ++i) {
+    for (size_t i = 0; i < peerID.size(); ++i) {
         if (peerID[i] == id)
             return i;
     }
@@ -96,7 +96,7 @@ std::string NodeConfiguration::getPubKey() {
 std::string NodeConfiguration::getPeerPubKey(int id) {
     // Get the index of the id;
     int index = -1;
-    for (int i = 0; i < peerID.size(); ++i) {
+    for (size_t i = 0; i < peerID.size(); ++i) {
         if (peerID[i] == id) {
             index = i;
             break;

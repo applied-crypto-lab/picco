@@ -33,39 +33,62 @@ float Open_float(T **var, int threadID, NodeNetwork nodeNet, replicatedSecretSha
     return 0.0;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    int i;
-    nodeNet.SendAndGetDataFromPeer(a[1], res, int(size), ring_size, ss->general_map);
+    uint i;
+    // Create temporary buffer for share 1 (need contiguous array for network send)
+    T *share1_buf = new T[size];
     for (i = 0; i < size; i++) {
-        res[i] = a[0][i] + a[1][i] + res[i];
+        share1_buf[i] = a[i][1];  // a[i][1] = share 1 of element i
+    }
+    nodeNet.SendAndGetDataFromPeer(share1_buf, res, int(size), ring_size, ss->general_map);
+    for (i = 0; i < size; i++) {
+        res[i] = a[i][0] + a[i][1] + res[i];  // a[i][0] = share 0 of element i
         res[i] = res[i] & ss->SHIFT[ring_size];
     }
+    delete[] share1_buf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_Byte_3pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    int i;
-    nodeNet.SendAndGetDataFromPeer_bit(a[1], res, int(size), ss->general_map);
+    uint i;
+    // Create temporary buffer for share 1
+    uint8_t *share1_buf = new uint8_t[size];
     for (i = 0; i < size; i++) {
-        res[i] = a[0][i] ^ a[1][i] ^ res[i];
+        share1_buf[i] = a[i][1];
     }
+    nodeNet.SendAndGetDataFromPeer_bit(share1_buf, res, int(size), ss->general_map);
+    for (i = 0; i < size; i++) {
+        res[i] = a[i][0] ^ a[i][1] ^ res[i];
+    }
+    delete[] share1_buf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_Bitwise_3pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    int i;
-    nodeNet.SendAndGetDataFromPeer(a[1], res, size, ring_size, ss->general_map);
+    uint i;
+    // Create temporary buffer for share 1
+    T *share1_buf = new T[size];
     for (i = 0; i < size; i++) {
-        res[i] = a[0][i] ^ a[1][i] ^ res[i];
+        share1_buf[i] = a[i][1];
+    }
+    nodeNet.SendAndGetDataFromPeer(share1_buf, res, size, ring_size, ss->general_map);
+    for (i = 0; i < size; i++) {
+        res[i] = a[i][0] ^ a[i][1] ^ res[i];
         res[i] = res[i] & ss->SHIFT[ring_size];
     }
+    delete[] share1_buf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
+// For 5pc: numShares=6
 template <typename T>
 void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
-    int i;
+    uint i;
     T **recvbuf = new T *[threshold];
     T **sendbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
@@ -75,13 +98,13 @@ void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet,
         memset(sendbuf[i], 0, sizeof(T) * size);
     }
     for (i = 0; i < size; i++) {
-        sendbuf[0][i] = a[0][i] + a[1][i];
-        sendbuf[1][i] = a[4][i] + a[5][i];
+        sendbuf[0][i] = a[i][0] + a[i][1];
+        sendbuf[1][i] = a[i][4] + a[i][5];
     }
 
     nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc);
     for (i = 0; i < size; i++) {
-        res[i] = a[0][i] + a[1][i] + a[2][i] + a[3][i] + a[4][i] + a[5][i] + recvbuf[0][i] + recvbuf[1][i];
+        res[i] = a[i][0] + a[i][1] + a[i][2] + a[i][3] + a[i][4] + a[i][5] + recvbuf[0][i] + recvbuf[1][i];
         res[i] = res[i] & ss->SHIFT[ring_size];
     }
     for (i = 0; i < threshold; i++) {
@@ -92,11 +115,12 @@ void Rss_Open_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet,
     delete[] sendbuf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint threshold = ss->getThreshold();
-    int i;
+    uint i;
     uint8_t **recvbuf = new uint8_t *[threshold];
     uint8_t **sendbuf = new uint8_t *[threshold];
     for (i = 0; i < threshold; i++) {
@@ -107,13 +131,13 @@ void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet
     }
 
     for (i = 0; i < size; i++) {
-        sendbuf[0][i] = a[0][i] ^ a[1][i];
-        sendbuf[1][i] = a[4][i] ^ a[5][i];
+        sendbuf[0][i] = a[i][0] ^ a[i][1];
+        sendbuf[1][i] = a[i][4] ^ a[i][5];
     }
 
     nodeNet.SendAndGetDataFromPeer_bit(sendbuf, recvbuf, size, ss->open_map_mpc);
     for (i = 0; i < size; i++) {
-        res[i] = a[0][i] ^ a[1][i] ^ a[2][i] ^ a[3][i] ^ a[4][i] ^ a[5][i] ^ recvbuf[0][i] ^ recvbuf[1][i];
+        res[i] = a[i][0] ^ a[i][1] ^ a[i][2] ^ a[i][3] ^ a[i][4] ^ a[i][5] ^ recvbuf[0][i] ^ recvbuf[1][i];
     }
     for (i = 0; i < threshold; i++) {
         delete[] recvbuf[i];
@@ -123,10 +147,11 @@ void Rss_Open_Byte_5pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet
     delete[] sendbuf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
-    int i;
+    uint i;
     T **recvbuf = new T *[threshold];
     T **sendbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
@@ -136,13 +161,13 @@ void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
         memset(sendbuf[i], 0, sizeof(T) * size);
     }
     for (i = 0; i < size; i++) {
-        sendbuf[0][i] = a[0][i] ^ a[1][i];
-        sendbuf[1][i] = a[4][i] ^ a[5][i];
+        sendbuf[0][i] = a[i][0] ^ a[i][1];
+        sendbuf[1][i] = a[i][4] ^ a[i][5];
     }
 
     nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc);
     for (i = 0; i < size; i++) {
-        res[i] = a[0][i] ^ a[1][i] ^ a[2][i] ^ a[3][i] ^ a[4][i] ^ a[5][i] ^ recvbuf[0][i] ^ recvbuf[1][i];
+        res[i] = a[i][0] ^ a[i][1] ^ a[i][2] ^ a[i][3] ^ a[i][4] ^ a[i][5] ^ recvbuf[0][i] ^ recvbuf[1][i];
         res[i] = res[i] & ss->SHIFT[ring_size];
     }
     for (i = 0; i < threshold; i++) {
@@ -153,11 +178,13 @@ void Rss_Open_Bitwise_5pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
     delete[] sendbuf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
+// For 7pc: numShares=20
 template <typename T>
 void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     uint numShares = ss->getNumShares();
-    int i;
+    uint i;
     T **recvbuf = new T *[threshold];
     T **sendbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
@@ -167,16 +194,16 @@ void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet,
         memset(sendbuf[i], 0, sizeof(T) * size);
     }
     for (i = 0; i < size; i++) {
-        sendbuf[0][i] = a[9][i] + a[8][i] + a[6][i] + a[3][i] + a[4][i];
-        sendbuf[1][i] = a[3][i] + a[15][i] + a[14][i] + a[12][i] + a[11][i];
-        sendbuf[2][i] = a[0][i] + a[12][i] + a[11][i] + a[10][i] + a[16][i];
+        sendbuf[0][i] = a[i][9] + a[i][8] + a[i][6] + a[i][3] + a[i][4];
+        sendbuf[1][i] = a[i][3] + a[i][15] + a[i][14] + a[i][12] + a[i][11];
+        sendbuf[2][i] = a[i][0] + a[i][12] + a[i][11] + a[i][10] + a[i][16];
     }
 
     nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc);
     for (i = 0; i < size; i++) {
         res[i] = 0;
         for (uint j = 0; j < numShares; j++) {
-            res[i] += a[j][i];
+            res[i] += a[i][j];
         }
         res[i] += recvbuf[0][i] + recvbuf[1][i] + recvbuf[2][i];
         res[i] = res[i] & ss->SHIFT[ring_size];
@@ -189,11 +216,12 @@ void Rss_Open_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet,
     delete[] sendbuf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_Bitwise_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     uint numShares = ss->getNumShares();
-    int i;
+    uint i;
     T **recvbuf = new T *[threshold];
     T **sendbuf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
@@ -203,16 +231,16 @@ void Rss_Open_Bitwise_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
         memset(sendbuf[i], 0, sizeof(T) * size);
     }
     for (i = 0; i < size; i++) {
-        sendbuf[0][i] = a[9][i] ^ a[8][i] ^ a[6][i] ^ a[3][i] ^ a[4][i];
-        sendbuf[1][i] = a[3][i] ^ a[15][i] ^ a[14][i] ^ a[12][i] ^ a[11][i];
-        sendbuf[2][i] = a[0][i] ^ a[12][i] ^ a[11][i] ^ a[10][i] ^ a[16][i];
+        sendbuf[0][i] = a[i][9] ^ a[i][8] ^ a[i][6] ^ a[i][3] ^ a[i][4];
+        sendbuf[1][i] = a[i][3] ^ a[i][15] ^ a[i][14] ^ a[i][12] ^ a[i][11];
+        sendbuf[2][i] = a[i][0] ^ a[i][12] ^ a[i][11] ^ a[i][10] ^ a[i][16];
     }
 
     nodeNet.SendAndGetDataFromPeer(sendbuf, recvbuf, size, ring_size, ss->open_map_mpc);
     for (i = 0; i < size; i++) {
         res[i] = 0;
         for (uint j = 0; j < numShares; j++) {
-            res[i] ^= a[j][i];
+            res[i] ^= a[i][j];
         }
         res[i] ^= recvbuf[0][i] ^ recvbuf[1][i] ^ recvbuf[2][i];
         res[i] = res[i] & ss->SHIFT[ring_size];
@@ -225,11 +253,12 @@ void Rss_Open_Bitwise_7pc(T *res, T **a, uint size, uint ring_size, NodeNetwork 
     delete[] sendbuf;
 }
 
+// Interface format: a[size][numShares] where a[i][s] = share s of element i
 template <typename T>
 void Rss_Open_Byte_7pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint threshold = ss->getThreshold();
     uint numShares = ss->getNumShares();
-    int i;
+    uint i;
     uint8_t **recvbuf = new uint8_t *[threshold];
     uint8_t **sendbuf = new uint8_t *[threshold];
     for (i = 0; i < threshold; i++) {
@@ -239,16 +268,16 @@ void Rss_Open_Byte_7pc(uint8_t *res, uint8_t **a, uint size, NodeNetwork nodeNet
         memset(sendbuf[i], 0, sizeof(uint8_t) * size);
     }
     for (i = 0; i < size; i++) {
-        sendbuf[0][i] = a[9][i] ^ a[8][i] ^ a[6][i] ^ a[3][i] ^ a[4][i];
-        sendbuf[1][i] = a[3][i] ^ a[15][i] ^ a[14][i] ^ a[12][i] ^ a[11][i];
-        sendbuf[2][i] = a[0][i] ^ a[12][i] ^ a[11][i] ^ a[10][i] ^ a[16][i];
+        sendbuf[0][i] = a[i][9] ^ a[i][8] ^ a[i][6] ^ a[i][3] ^ a[i][4];
+        sendbuf[1][i] = a[i][3] ^ a[i][15] ^ a[i][14] ^ a[i][12] ^ a[i][11];
+        sendbuf[2][i] = a[i][0] ^ a[i][12] ^ a[i][11] ^ a[i][10] ^ a[i][16];
     }
 
     nodeNet.SendAndGetDataFromPeer_bit(sendbuf, recvbuf, size, ss->open_map_mpc);
     for (i = 0; i < size; i++) {
         res[i] = 0;
         for (uint j = 0; j < numShares; j++) {
-            res[i] ^= a[j][i];
+            res[i] ^= a[i][j];
         }
         res[i] ^= recvbuf[0][i] ^ recvbuf[1][i] ^ recvbuf[2][i];
     }

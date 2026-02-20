@@ -31,7 +31,7 @@
 // output: out [numShares][1] a bit in Z_2 which is the k-ary OR of all the bits a_i (a_0 | a_1 | ... | a_size)
 template <typename T>
 void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
     uint num_uints = ((size + 15) >> 4);
 
     uint8_t **a = new uint8_t *[numShares];
@@ -112,7 +112,7 @@ void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetw
 template <typename T>
 void process_bytes(uint8_t **a, uint8_t **b, uint8_t **in_buff, int size, replicatedSecretShare<T> *ss) {
 
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
     int even_size = size - (size % 2);
     int num_bytes = even_size / 16;
     int remainder = even_size % 16;

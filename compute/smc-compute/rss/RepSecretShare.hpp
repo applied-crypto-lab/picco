@@ -24,6 +24,7 @@
 #include "stdint.h"
 #include <charconv>
 #include <cmath>
+#include <type_traits>
 #include <cstring>
 #include <exception>
 #include <fstream>
@@ -83,6 +84,62 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
     return out;
 }
 
+// Helper functions for 128-bit integer string conversion
+// std::from_chars and std::to_string don't support __uint128_t
+#if __RSS_128__
+inline void from_string_helper(__uint128_t &value, const char *str, size_t len) {
+    value = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            value = value * 10 + (str[i] - '0');
+        } else if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r') {
+            // Skip whitespace
+            continue;
+        } else {
+            break;
+        }
+    }
+}
+
+inline std::string to_string_helper(__uint128_t value) {
+    if (value == 0) return "0";
+    std::string result;
+    while (value > 0) {
+        result = char('0' + value % 10) + result;
+        value /= 10;
+    }
+    return result;
+}
+#endif
+
+// Generic template wrapper for from_chars (works with 32/64-bit)
+template <typename T>
+inline void parse_integer(T &value, const char *data, size_t len) {
+#if __RSS_128__
+    if constexpr (std::is_same_v<T, __uint128_t>) {
+        from_string_helper(value, data, len);
+    } else {
+        std::from_chars(data, data + len, value);
+    }
+#else
+    std::from_chars(data, data + len, value);
+#endif
+}
+
+// Generic template wrapper for to_string (works with 32/64-bit)
+template <typename T>
+inline std::string stringify(T value) {
+#if __RSS_128__
+    if constexpr (std::is_same_v<T, __uint128_t>) {
+        return to_string_helper(value);
+    } else {
+        return std::to_string(value);
+    }
+#else
+    return std::to_string(value);
+#endif
+}
+
 template <typename T>
 class replicatedSecretShare {
 
@@ -119,7 +176,7 @@ public:
     void ss_input(T **var, std::string type);
     void ss_input(T ***var, std::string type);
     void ss_input(T **var, int size, std::string type);
-    void ss_input(T ***var, int size, std::string type);
+    void ss_input(T ***var, uint size, std::string type);
 
     void ss_output(int id, int *var, std::string type, std::ofstream *outputStreams);
     void ss_output(int id, T **var, std::string type, std::ofstream *outputStreams);
@@ -193,8 +250,8 @@ public:
 
     std::vector<std::vector<int>> generate_MultSparse_map(int n, int id);
 
-    inline bool pid_in_T(int &pid, std::vector<int> &T_map);
-    inline bool chi_pid_is_T(int& pid, std::vector<int> &T_map);
+    inline bool pid_in_T(int pid, std::vector<int> &T_map);
+    inline bool chi_pid_is_T(int pid, std::vector<int> &T_map);
     std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> &input_parties);
 
     T *SHIFT;
@@ -412,7 +469,7 @@ void replicatedSecretShare<T>::prg_setup(std::map<std::vector<int>, std::string>
     // this doesn't need to be created with "new"
     // since we call new inside prg_keyschedule, and return the memory created inside it to prg_key
     prg_key = new __m128i *[numKeys];
-    for (int i = 0; i < numKeys; i++) {
+    for (uint i = 0; i < numKeys; i++) {
         random_container[i] = new uint8_t[KEYSIZE];
         memset(random_container[i], 0, sizeof(uint8_t) * KEYSIZE);
     }
@@ -515,7 +572,7 @@ void replicatedSecretShare<T>::prg_getrandom(int keyID, uint size, uint length, 
         memcpy(dest, random_container[keyID] + P_container[keyID], CONTAINER_SIZE - P_container[keyID]);
         if (rounds >= 2) {
             prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]), random_container[keyID], prg_key[keyID]);
-            for (int i = 1; i < rounds - 1; i++) {
+            for (uint i = 1; i < rounds - 1; i++) {
                 // segfault in this loop for "large" size
                 // printf("i : %u\n", i);
                 prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]) + (i << 4), dest + (CONTAINER_SIZE - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
@@ -546,7 +603,7 @@ void replicatedSecretShare<T>::prg_getrandom(uint size, uint length, uint8_t *de
         memcpy(dest, random_container[keyID] + P_container[keyID], CONTAINER_SIZE - P_container[keyID]);
         if (rounds >= 2) {
             prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]), random_container[keyID], prg_key[keyID]);
-            for (int i = 1; i < rounds - 1; i++) {
+            for (uint i = 1; i < rounds - 1; i++) {
                 prg_aes(dest + (CONTAINER_SIZE - P_container[keyID]) + (i << 4), dest + (CONTAINER_SIZE - P_container[keyID]) + ((i - 1) << 4), prg_key[keyID]);
             }
             prg_aes(random_container[keyID], dest + (CONTAINER_SIZE - P_container[keyID]) + ((rounds - 2) << 4), prg_key[keyID]);
@@ -611,7 +668,7 @@ std::vector<std::string> replicatedSecretShare<T>::split(const std::string s, co
             //(;) should only be `expected_size` number of entries in result.size(): <"s_0", "s_1", ..., "s_n">
             if (expected_size <= 0)
                 throw std::runtime_error("Attempting to split a string with either an unknown expected_size, or expected_size <= 0");
-            if ((result.size() != expected_size) || (((result.size() == (expected_size))) && result.back().empty())) {
+            if ((int)result.size() != expected_size || (((int)result.size() == (expected_size)) && result.back().empty())) {
                 int offset = result.back().empty() ? 1 : 0; // used for accurate error reporting when the last element is empty, but the comma is present
                 throw std::runtime_error("Encountered an unexpected number of shares than expected.\nInput provided:\n" + s + "\nExpected " + std::to_string(expected_size) + " value(s), but found " + std::to_string(result.size() - offset) + " value(s)");
             }
@@ -654,11 +711,11 @@ void replicatedSecretShare<T>::ss_input(int id, T **var, std::string type, std::
         std::vector<std::string> tokens;
         std::getline(inputStreams[id - 1], line);
         tokens = split(line, "=");
-        tokens = split(tokens[1], ",", numShares);
-        for (int i = 0; i < numShares; i++) {
+        tokens = split(tokens[1], ";", numShares);
+        for (uint i = 0; i < numShares; i++) {
             if (!is_int(tokens[i]))
                 throw std::runtime_error("Non-integer input provided: " + tokens[i]);
-            std::from_chars(tokens[i].data(), tokens[i].data() + tokens[i].size(), (*var)[i]);
+            parse_integer((*var)[i], tokens[i].data(), tokens[i].size());
         }
 
     } catch (const std::runtime_error &ex) {
@@ -691,6 +748,7 @@ void replicatedSecretShare<T>::ss_input(int id, float *var, std::string type, st
 }
 
 // input private float
+// Layout: (*var)[component][share] where component is 0-3 (mantissa, exponent, zero, sign)
 template <typename T>
 void replicatedSecretShare<T>::ss_input(int id, T ***var, std::string type, std::ifstream *inputStreams) {
     try {
@@ -702,10 +760,11 @@ void replicatedSecretShare<T>::ss_input(int id, T ***var, std::string type, std:
         tokens = split(tokens[1], ",", 4); // reusing tokens
         for (int i = 0; i < 4; i++) {
             temp = split(tokens[i], ";", numShares);
-            for (int j = 0; j < numShares; j++) {
+            for (uint j = 0; j < numShares; j++) {
                 if (!is_int(temp[j]))
                     throw std::runtime_error("Non-integer input provided: " + temp[j]);
-                std::from_chars(temp[j].data(), temp[j].data() + temp[j].size(), (*var)[j][i]);
+                // Fixed: was (*var)[j][i], but layout is [component][share] so use [i][j]
+                parse_integer((*var)[i][j], temp[j].data(), temp[j].size());
             }
         }
     } catch (const std::runtime_error &ex) {
@@ -728,10 +787,10 @@ void replicatedSecretShare<T>::ss_input(int id, T **var, int size, std::string t
         tokens = split(tokens[1], ",", size); // reusing tokens
         for (int i = 0; i < size; i++) {
             temp = split(tokens[i], ";", numShares);
-            for (int j = 0; j < numShares; j++) {
+            for (uint j = 0; j < numShares; j++) {
                 if (!is_int(temp[j]))
                     throw std::runtime_error("Non-integer input provided: " + temp[j]);
-                std::from_chars(temp[j].data(), temp[j].data() + temp[j].size(), var[j][i]);
+                parse_integer(var[i][j], temp[j].data(), temp[j].size());
             }
         }
     } catch (const std::runtime_error &ex) {
@@ -779,10 +838,10 @@ void replicatedSecretShare<T>::ss_input(int id, T ***var, int size, std::string 
             tokens = split(tokens[1], ",", 4); // reusing tokens, each line will contain 4 sets of shares
             for (int j = 0; j < 4; j++) {
                 temp = split(tokens[j], ";", numShares);
-                for (int k = 0; k < numShares; k++) { // each set will contain numShares shares
+                for (uint k = 0; k < numShares; k++) { // each set will contain numShares shares
                     if (!is_int(temp[k]))
                         throw std::runtime_error("Non-integer input provided: " + temp[k]);
-                    std::from_chars(temp[k].data(), temp[k].data() + temp[k].size(), var[k][i][j]);
+                    parse_integer(var[k][i][j], temp[k].data(), temp[k].size());
                 }
             }
         }
@@ -832,7 +891,7 @@ void replicatedSecretShare<T>::ss_input(T **var, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
     uint8_t *buffer = new uint8_t[bytes * 4 * numShares];
     prg_getrandom(bytes, 4 * numShares, buffer);
-    for (int i = 0; i < numShares; i++)
+    for (uint i = 0; i < numShares; i++)
         memcpy(var[i], buffer + i * 4 * bytes, 4 * bytes); // check
 
     // this memcpy cant be done in a single line, i..e
@@ -846,18 +905,18 @@ void replicatedSecretShare<T>::ss_input(T **var, int size, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
     uint8_t *buffer = new uint8_t[bytes * size * numShares];
     prg_getrandom(bytes, size * numShares, buffer);
-    for (int i = 0; i < numShares; i++)
+    for (uint i = 0; i < numShares; i++)
         memcpy(var[i], buffer + i * size * bytes, size * bytes); // check
 }
 
 // input randomly generated private float arr
 template <typename T>
-void replicatedSecretShare<T>::ss_input(T ***var, int size, std::string type) {
+void replicatedSecretShare<T>::ss_input(T ***var, uint size, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
     uint8_t *buffer = new uint8_t[bytes * size * 4 * numShares];
     prg_getrandom(bytes, size * 4 * numShares, buffer);
-    for (int i = 0; i < numShares; i++)
-        for (int j = 0; j < size; j++)
+    for (uint i = 0; i < numShares; i++)
+        for (uint j = 0; j < size; j++)
             // memcpy(var[i][j], buffer + i * size * 4 * bytes + j * 4 * bytes, 4 * bytes); // check
             memcpy(var[i][j], buffer + (i * size + j) * 4 * bytes, 4 * bytes); // "simpler" version
 }
@@ -869,8 +928,8 @@ void replicatedSecretShare<T>::ss_input(T ***var, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
     uint8_t *buffer = new uint8_t[bytes * size * 4 * numShares];
     prg_getrandom(bytes, size * 4 * numShares, buffer);
-    for (int i = 0; i < numShares; i++)
-        for (int j = 0; j < size; j++)
+    for (uint i = 0; i < numShares; i++)
+        for (uint j = 0; j < size; j++)
             // memcpy(var[i][j], buffer + i * size * 4 * bytes + j * 4 * bytes, 4 * bytes); // check
             memcpy(var[i][j], buffer + (i * size + j) * 4 * bytes, 4 * bytes); // "simpler" version
 }
@@ -885,13 +944,16 @@ void replicatedSecretShare<T>::ss_output(int id, int *var, std::string type, std
 
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, T **var, std::string type, std::ofstream *outputStreams) {
-    // for (int i = 0; i < numShares; i++) {
-    //     if (i != (numShares - 1))
-    //         outputStreams[id - 1] << std::to_string(var[i]) + ";";
-    //     else
-    //         outputStreams[id - 1] << std::to_string(var[i]) + "\n";
-    //     outputStreams[id - 1].flush();
-    // }
+    // Output all shares for the single value, separated by semicolons
+    // Mask to ring_size to ensure consistent shares across parties
+    for (uint i = 0; i < numShares; i++) {
+        T masked_value = var[0][i] & SHIFT[ring_size];
+        outputStreams[id - 1] << stringify(masked_value);
+        if (i != (numShares - 1))
+            outputStreams[id - 1] << ";";
+        outputStreams[id - 1].flush();
+    }
+    outputStreams[id - 1] << "\n";
 }
 
 template <typename T>
@@ -902,38 +964,42 @@ void replicatedSecretShare<T>::ss_output(int id, float *var, std::string type, s
     outputStreams[id - 1].flush();
 }
 
+// output private float
+// Layout: (*var)[component][share] where component is 0-3 (mantissa, exponent, zero, sign)
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, T ***var, std::string type, std::ofstream *outputStreams) {
-    // for (int i = 0; i < 4; i++) {
-    //     for (int j = 0; j < numShares; j++) {
-    //         if (j != (numShares - 1))
-    //             outputStreams[id - 1] << std::to_string(var[j][i]) + ";";
-    //         else {
-    //             if (i != 3)
-    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + ",";
-    //             else
-    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + "\n";
-    //         }
-    //         outputStreams[id - 1].flush();
-    //     }
-    // }
+    for (int i = 0; i < 4; i++) {
+        for (uint j = 0; j < numShares; j++) {
+            // Fixed: use var[i][j] for [component][share] layout (was var[j][i])
+            // Mask to ring_size to ensure consistent shares across parties
+            T masked_value = (*var)[i][j] & SHIFT[ring_size];
+            outputStreams[id - 1] << stringify(masked_value);
+            if (j != (numShares - 1))
+                outputStreams[id - 1] << ";";
+        }
+        if (i != 3)
+            outputStreams[id - 1] << ",";
+        outputStreams[id - 1].flush();
+    }
+    outputStreams[id - 1] << "\n";
 }
 
 template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, T **var, int size, std::string type, std::ofstream *outputStreams) {
-    // for (int j = 0; j < numShares; j++) {
-    //     for (int i = 0; i < size; i++) {
-    //         if (j != (numShares - 1))
-    //             outputStreams[id - 1] << std::to_string(var[j][i]) + ";";
-    //         else {
-    //             if (i != (size - 1))
-    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + ",";
-    //             else
-    //                 outputStreams[id - 1] << std::to_string(var[j][i]) + "\n";
-    //         }
-    //         outputStreams[id - 1].flush();
-    //     }
-    // }
+    // Output all shares for each array element
+    // Mask to ring_size to ensure consistent shares across parties
+    for (int i = 0; i < size; i++) {
+        for (uint j = 0; j < numShares; j++) {
+            T masked_value = var[i][j] & SHIFT[ring_size];
+            outputStreams[id - 1] << stringify(masked_value);
+            if (j != (numShares - 1))
+                outputStreams[id - 1] << ";";
+        }
+        if (i != (size - 1))
+            outputStreams[id - 1] << ",";
+        outputStreams[id - 1].flush();
+    }
+    outputStreams[id - 1] << "\n";
 }
 
 template <typename T>
@@ -954,7 +1020,7 @@ template <typename T>
 void replicatedSecretShare<T>::ss_output(int id, T ***var, int size, std::string type, std::ofstream *outputStreams) {
     // for (int i = 0; i < size; i++) {              // total number of floats
     //     for (int j = 0; j < 4; j++) {             // always will be 4 PER LINE
-    //         for (int k = 0; k < numShares; k++) { // numShares
+    //         for (uint k = 0; k < numShares; k++) { // numShares
     //             if (k != (numShares - 1))
     //                 outputStreams[id - 1] << std::to_string(var[k][i][j]) + ";";
     //             else {
@@ -991,18 +1057,20 @@ void replicatedSecretShare<T>::modMul(T *result, T *x, T y) {
     }
 }
 
-// we
+// modMul with pointer to scalar - used by smc_shl after modPow2
 template <typename T>
 void replicatedSecretShare<T>::modMul(T *result, T *x, T *y) {
+    // Save scalar before loop to handle aliasing when result == y
+    T scalar = y[0];
     for (size_t i = 0; i < numShares; i++) {
-        result[i] = x[i] * y[0];
+        result[i] = x[i] * scalar;
     }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::modMul(T **result, T **x, T *y, int size) {
     for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[i][j] = x[i][j] * y[j];
     }
 }
@@ -1024,7 +1092,7 @@ void replicatedSecretShare<T>::modMul(T *result, T *x, int y) {
 template <typename T>
 void replicatedSecretShare<T>::modMul(T **result, T **x, long y, int size) {
     for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[i][j] = x[i][j] * (T)y;
     }
 }
@@ -1032,7 +1100,7 @@ void replicatedSecretShare<T>::modMul(T **result, T **x, long y, int size) {
 template <typename T>
 void replicatedSecretShare<T>::modMul(T **result, T **x, T y, int size) {
     for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[i][j] = x[i][j] * y;
     }
 }
@@ -1041,7 +1109,7 @@ void replicatedSecretShare<T>::modMul(T **result, T **x, T y, int size) {
 template <typename T>
 void replicatedSecretShare<T>::modMul(T **result, T **x, int *y, int size) {
     for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[i][j] = x[i][j] * (T)y[j];
     }
 }
@@ -1055,9 +1123,9 @@ void replicatedSecretShare<T>::modAdd(T *result, T *x, T *y) {
 
 template <typename T>
 void replicatedSecretShare<T>::modAdd(T **result, T **x, T **y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] + y[i][j];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] + y[j][i];
     }
 }
 
@@ -1069,34 +1137,34 @@ void replicatedSecretShare<T>::modAdd(T *result, T *x, long y) {
 
 template <typename T>
 void replicatedSecretShare<T>::modAdd(T **result, T **x, long y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] + T(y) * const_map[i];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] + T(y) * const_map[i];
     }
 }
 
 // adding one secret y to every x[j]
 template <typename T>
 void replicatedSecretShare<T>::modAdd(T **result, T **x, T *y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] + y[i];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] + y[i];
     }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::modAdd(T **result, T **x, long *y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] + T(y[j]) * const_map[i];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] + T(y[j]) * const_map[i];
     }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::modAdd(T **result, T **x, int *y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] + T(y[j]) * const_map[i];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] + T(y[j]) * const_map[i];
     }
 }
 
@@ -1108,9 +1176,9 @@ void replicatedSecretShare<T>::modSub(T *result, T *x, T *y) {
 
 template <typename T>
 void replicatedSecretShare<T>::modSub(T **result, T **x, T **y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] - y[i][j];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] - y[j][i];
     }
 }
 
@@ -1129,17 +1197,17 @@ void replicatedSecretShare<T>::modSub(T *result, long x, T *y) {
 
 template <typename T>
 void replicatedSecretShare<T>::modSub(T **result, T **x, long y, int size) {
-    for (size_t i = 0; i < numShares; i++) {
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = x[i][j] - T(y) * const_map[i];
+    for (int j = 0; j < size; j++) {
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = x[j][i] - T(y) * const_map[i];
     }
 }
 
 template <typename T>
 void replicatedSecretShare<T>::modSub(T **result, long x, T **y, int size) {
-    for (size_t i = 0; i < numShares; i++)
-        for (size_t j = 0; j < size; j++)
-            result[i][j] = T(x) * const_map[i] - y[i][j];
+    for (int j = 0; j < size; j++)
+        for (size_t i = 0; i < numShares; i++)
+            result[j][i] = T(x) * const_map[i] - y[j][i];
 }
 
 template <typename T>
@@ -1157,13 +1225,13 @@ void replicatedSecretShare<T>::modSub(T **result, T *x, T **y, int size) {
 template <typename T>
 void replicatedSecretShare<T>::modSub(T **result, T **x, int *y, int size) {
     for (size_t i = 0; i < numShares; i++)
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[i][j] = x[i][j] - T(y[j]) * const_map[i];
 }
 template <typename T>
 void replicatedSecretShare<T>::modSub(T **result, int *x, T **y, int size) {
     for (size_t i = 0; i < numShares; i++)
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[i][j] = T(x[j]) * const_map[i] - y[i][j];
 }
 
@@ -1202,22 +1270,51 @@ template <typename T>
 void replicatedSecretShare<T>::modPow(T *result, T *base, long exponent, int size) {
 }
 
-// these are to be dealt with later, problems explained above
+// modPow2 for single element with T* exponent (private exponent)
 template <typename T>
 void replicatedSecretShare<T>::modPow2(T *result, T *exponent) {
+    // This requires Pow2 protocol for private exponent - not implemented here
+    // For now, leave empty as it requires complex protocol
 }
 
+// modPow2 for single element with public int exponent
+// result is T* (share array for one element), exponent is public
+// Note: This is used with modMul(result, a, result) where modMul uses y[0] as scalar
 template <typename T>
 void replicatedSecretShare<T>::modPow2(T *result, int exponent) {
+    // Compute 2^exponent locally and store in result[0]
+    // modMul(T*, T*, T*) uses y[0] as the scalar multiplier
+    result[0] = T(1) << T(exponent);
 }
+
+// modPow2 for batch with T** exponent (private exponents)
 template <typename T>
 void replicatedSecretShare<T>::modPow2(T **result, T **exponent, int size) {
+    // This requires Pow2 protocol for private exponents - not implemented here
 }
+
+// modPow2 for batch with public int exponents
+// result is T** [size][numShares], exponent is int* array
+// Note: This is used with modMul(result, a, result, size) where modMul uses y[i][0] as scalar
 template <typename T>
 void replicatedSecretShare<T>::modPow2(T **result, int *exponent, int size) {
+    for (int i = 0; i < size; i++) {
+        // Store 2^exponent[i] in result[i][0] for use by modMul
+        result[i][0] = T(1) << T(exponent[i]);
+    }
 }
+
+// modMul for T** arrays where y contains public scalars in y[i][0]
+// Used after modPow2 which stores 2^exp in y[i][0]
 template <typename T>
 void replicatedSecretShare<T>::modMul(T **result, T **x, T **y, int size) {
+    // Multiply each share of x[i] by the public scalar in y[i][0]
+    for (int i = 0; i < size; i++) {
+        T scalar = y[i][0];
+        for (uint s = 0; s < numShares; s++) {
+            result[i][s] = x[i][s] * scalar;
+        }
+    }
 }
 
 template <typename T>
@@ -1516,15 +1613,7 @@ replicatedSecretShare<T>::~replicatedSecretShare() {
     delete[] EVEN;
 }
 
-template <typename T>
-void ss_batch_free_operator(T ***op, int size) {
-    
-}
-
-template <typename T>
-void ss_batch_free_operator(T ****op, int size) {
-    
-}
+// Note: ss_batch_free_operator is implemented in RSSBatch.hpp
 
 // takes an array of public values and creates sparse
 // only useful for testing correctness
@@ -1540,7 +1629,7 @@ void replicatedSecretShare<T>::sparsify(T **result, int *x, int size) {
     static const int idx = generateT_star_index(n); // only needs to be done once ever
     // cout << "idx : " << idx << endl;
     if (idx >= 0) {
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[idx][j] = T(x[j]);
     }
 }
@@ -1555,7 +1644,7 @@ void replicatedSecretShare<T>::sparsify(T **result, T *x, int size) {
     static const int idx = generateT_star_index(n); // only needs to be done once, ever
     // cout << "idx : " << idx << endl;
     if (idx >= 0) {
-        for (size_t j = 0; j < size; j++)
+        for (int j = 0; j < size; j++)
             result[idx][j] = x[j];
     }
 }
@@ -1578,7 +1667,7 @@ void replicatedSecretShare<T>::sparsify_public(T *result, int x) {
 }
 // general-use "is pid in share T?"
 template <typename T>
-inline bool replicatedSecretShare<T>::pid_in_T(int &pid, std::vector<int> &T_map) {
+inline bool replicatedSecretShare<T>::pid_in_T(int pid, std::vector<int> &T_map) {
     switch (n) {
     case 3:
         return (pid == T_map[0]);
@@ -1594,7 +1683,7 @@ inline bool replicatedSecretShare<T>::pid_in_T(int &pid, std::vector<int> &T_map
 
 // checks if \chi(p) == T?
 template <typename T>
-inline bool replicatedSecretShare<T>::chi_pid_is_T(int &pid, std::vector<int> &T_map) {
+inline bool replicatedSecretShare<T>::chi_pid_is_T(int pid, std::vector<int> &T_map) {
     switch (n) {
     case 5: {
         return ((mod_n(pid + 1, n) == T_map[0]) and (mod_n(pid + 2, n) == T_map[1])) or
@@ -1640,7 +1729,7 @@ template <typename T>
 std::vector<std::vector<int>> replicatedSecretShare<T>::generateInputSendRecvMap(std::vector<int> &input_parties) {
     try {
 
-        if (input_parties.size() > n) {
+        if ((int)input_parties.size() > n) {
             throw std::runtime_error("Cannot have more than n input parties");
         }
 

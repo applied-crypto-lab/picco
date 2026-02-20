@@ -43,13 +43,13 @@ long long nChoosek(long long n, long long k) {
 
 /* General utility functions */
 void ss_batch_free_operator(mpz_t **op, int size) {
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < (size_t)size; i++)
         mpz_clear((*op)[i]);
     free(*op);
 }
 
 void ss_batch_free_operator(mpz_t ***op, int size) {
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         for (int j = 0; j < 4; j++)
             mpz_clear((*op)[i][j]);
         free((*op)[i]);
@@ -72,7 +72,9 @@ void convertFloat(float value, int K, int L, long long **elements) {
     m = *newptr & 0x007fffff; // Extract the significand (mantissa)
 
     int z;
-    long v, p, k;
+    // long v; // Unused
+
+    long p, k;
     long long significand = 0, one = 1, two = 2, tmp = 0, tmpm = 0;
 
     if (e == 0 && m == 0) {

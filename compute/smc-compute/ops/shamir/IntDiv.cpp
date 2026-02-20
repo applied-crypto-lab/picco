@@ -18,6 +18,7 @@
    along with PICCO. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "IntDiv.h"
+#include "../../../../common/shared.h"
 #include <math.h>
 
 void doOperation_IntDiv_Pub(mpz_t result, mpz_t a, int b, int k, int threadID, NodeNetwork net, SecretShare *ss) {
@@ -48,7 +49,7 @@ void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, int *b, int k, int size, in
 }
 
 void doOperation_IntDiv_Pub(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int threadID, NodeNetwork net, SecretShare *ss) {
-    int lambda = 8;
+    int lambda = DIVISION_ACCURACY;
     mpz_t const0, const1, const2, constk;
     mpz_init_set_ui(const0, 0);
     mpz_init_set_ui(const1, 1);
@@ -155,8 +156,9 @@ void doOperation_IntDiv(mpz_t *result, mpz_t *a, mpz_t *b, int k, int size, int 
     // Set theta
     double t = k / 3.5;
     int theta = ceil(log2(t));
-    int lambda = 6; // where does this come from? this is not in the original protocol specifiction
-    // this may be what is referred to as "increasing the resolution of y" on page 13 of Catrina and Saxena, 2010
+    // lambda adjusts the resolution of y in the algorithm, reducing error
+    // defined in common/shared.h as DIVISION_ACCURACY
+    int lambda = DIVISION_ACCURACY;
     // Set alpha
     mpz_t alpha, const1, const2, inv2;
     mpz_init_set_ui(const1, 1);

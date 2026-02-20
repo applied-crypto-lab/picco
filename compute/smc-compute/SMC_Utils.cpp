@@ -399,7 +399,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
 #endif
 #if __RSS__
 
-    if (bits > 8 * sizeof(priv_int_t)) {
+    if (bits > (int)(8 * sizeof(priv_int_t))) {
         std::cerr << "ring size cannot be larger than the bitlength of priv_int_t\nExiting...\n";
         std::exit(1);
     }
@@ -658,33 +658,45 @@ void SMC_Utils::smc_output(int id, float *var, int size, std::string type, int t
 
 /* SMC Addition */
 /********* singular operations *******/
-// 1) private int = private int + private int
+// 1) Single integer addition: private int = private int + private int
+// Inputs:  a[numShares], b[numShares]
+// Output:  result[numShares]
 void SMC_Utils::smc_add(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, a, b);
 }
-// 3) private int = private int + public int
+// 3) Single integer addition: private int = private int + public int
+// Inputs:  a[numShares], b (public)
+// Output:  result[numShares]
 void SMC_Utils::smc_add(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, a, b);
 }
-// 4) private int = public int + private int
+// 4) Single integer addition: private int = public int + private int
+// Inputs:  a (public), b[numShares]
+// Output:  result[numShares]
 void SMC_Utils::smc_add(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modAdd(result, b, a);
 }
-// 5) private float = private float + public float
+// 5) Single float addition: private float = private float + public float
+// Inputs:  a[4][numShares], b (public float)
+// Output:  result[4][numShares]
 void SMC_Utils::smc_add(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_add(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
-// 6) private float = private float + public float
+// 6) Single float addition: private float = public float + private float
+// Inputs:  a (public float), b[4][numShares]
+// Output:  result[4][numShares]
 void SMC_Utils::smc_add(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_add(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
-// 2) private float = private float + private float
+// 2) Single float addition: private float = private float + private float
+// Inputs:  a[4][numShares], b[4][numShares]
+// Output:  result[4][numShares]
 void SMC_Utils::smc_add(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "+", threadID, net, ss);
 }
@@ -698,51 +710,94 @@ void SMC_Utils::smc_add(int *a, priv_int *b, int alen, int blen, priv_int *resul
 void SMC_Utils::smc_add(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, a, b, size);
 }
-// 3) private *int = private *int + private *int
+// 3) Batch integer addition: private *int = private *int + private *int
+// Adds two arrays of private integers element-wise
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared sums
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_add(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modAdd(result, a, b, size);
 }
-// 6) private *float = private *float + public *floats
+// 6) Batch float addition: private *float = private *float + public *floats
+// Adds a private float array with a public float array
+// Inputs:  a[size][4][numShares] - array of secret-shared floats (4 components: mantissa, exponent, zero, sign)
+//          b[size] - array of public floats
+// Output:  result[size][4][numShares] - array of secret-shared float sums
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_add(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    priv_int **btmp;
+    priv_int **btmp = nullptr;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     smc_add(a, btmp, alen_sig, alen_exp, alen_sig, alen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&btmp, size);
 }
-// 5) private *float = public *float + private *float
+// 5) Batch float addition: private *float = public *float + private *float
+// Adds a public float array with a private float array
+// Inputs:  a[size] - array of public floats
+//          b[size][4][numShares] - array of secret-shared floats (4 components: mantissa, exponent, zero, sign)
+// Output:  result[size][4][numShares] - array of secret-shared float sums
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_add(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    priv_int **atmp;
+    priv_int **atmp = nullptr;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_add(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
-// 4) private *float = private *float + private *float
+// 4) Batch float addition: private *float = private *float + private *float
+// Adds two arrays of private floats element-wise using FLAdd protocol
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+//          Each float has 4 components: [0]=mantissa, [1]=exponent, [2]=zero_flag, [3]=sign
+// Output:  result[size][4][numShares] - array of secret-shared float sums
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_add(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "+", threadID, net, ss);
 }
 
+// 1) Single float assignment: private float = private float (type conversion/truncation)
+// Converts or truncates a private float to target precision
+// Inputs:  a[4][numShares] - single secret-shared float (mantissa, exponent, zero, sign)
+// Output:  result[4][numShares] - single secret-shared float with target precision
 void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+// 2) Batch float assignment: private *float = private *float (type conversion/truncation)
+// Converts or truncates an array of private floats to target precision
+// Inputs:  a[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][4][numShares] - array of secret-shared floats with target precision
 void SMC_Utils::smc_set(priv_int **a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     for (int i = 0; i < size; i++)
         ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+// 3) Batch float assignment from public: private *float = public *float
+// Converts an array of public floats to secret-shared floats
+// Inputs:  a[size] - array of public floats
+// Output:  result[size][4][numShares] - array of secret-shared floats
 void SMC_Utils::smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size,std::string type, int threadID) {
     for (int i = 0; i < size; i++)
         ss_set(a[i], result[i], alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+// 4) Single float assignment from public: private float = public float
+// Converts a public float to a secret-shared float
+// Inputs:  a - single public float
+// Output:  result[4][numShares] - single secret-shared float
 void SMC_Utils::smc_set(float a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+// 5) Single integer assignment: private int = private int (type conversion/truncation)
+// Converts or truncates a private integer to target bit length
+// Inputs:  a[numShares] - single secret-shared integer
+// Output:  result[numShares] - single secret-shared integer with target bit length
 void SMC_Utils::smc_set(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, ss);
 }
 
+// 6) Batch integer assignment (Shamir only): private *int = private *int
+// Converts or truncates an array of private integers (only for Shamir protocol)
+// Inputs:  a[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared integers with target bit length
 void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
 
 #if __SHAMIR__
@@ -755,119 +810,214 @@ void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen, int resultlen, 
 #endif
 }
 
-// this routine should implement in a way that result = a + share[0]
+// 7) Single integer assignment from public: private int = public int
+// Converts a public integer to secret-shared form (result = a + share[0])
+// Inputs:  a - single public integer
+// Output:  result[numShares] - single secret-shared integer
 void SMC_Utils::smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, ss);
 }
 
+// 8) Batch integer assignment from public: private *int = public *int
+// Converts an array of public integers to secret-shared form
+// Inputs:  a[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared integers
 void SMC_Utils::smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID) {
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         ss_set(a[i], result[i], alen, resultlen, type, threadID, net, ss);
     }
 }
 
+// 1) Integer conditional evaluation: result = (cond ? b : a)
+// Performs private conditional selection between two secret integers based on secret condition
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+//          cond[numShares] - secret-shared condition bit (0 or 1)
+// Output:  Updates a or b based on condition
 void SMC_Utils::smc_priv_eval(priv_int a, priv_int b, priv_int cond, int threadID) {
     ss_priv_eval(a, b, cond, threadID, net, ss);
 }
 
-// floating point
+// 2) Float conditional evaluation: result = (cond ? b : a)
+// Performs private conditional selection between two secret floats based on secret condition
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+//          cond[numShares] - secret-shared condition bit (0 or 1)
+// Output:  Updates a or b based on condition
 void SMC_Utils::smc_priv_eval(priv_int *a, priv_int *b, priv_int cond, int threadID) {
     ss_priv_eval(a, b, cond, threadID, net, ss);
 }
 
 /* SMC Subtraction */
+// 1) Single integer subtraction: private int = private int - private int
+// Subtracts two secret-shared integers
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared difference
 void SMC_Utils::smc_sub(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, a, b);
 }
 
+// 2) Single integer subtraction: private int = private int - public int
+// Subtracts a public integer from a secret-shared integer
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared difference
 void SMC_Utils::smc_sub(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, a, b);
 }
 
+// 3) Single integer subtraction: private int = public int - private int
+// Subtracts a secret-shared integer from a public integer
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared difference
 void SMC_Utils::smc_sub(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, a, b);
 }
 
+// 4) Single float subtraction: private float = private float - public float
+// Subtracts a public float from a secret-shared float
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[4][numShares] - secret-shared float difference
 void SMC_Utils::smc_sub(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_sub(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
 
+// 5) Single float subtraction: private float = public float - private float
+// Subtracts a secret-shared float from a public float
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[4][numShares] - secret-shared float difference
 void SMC_Utils::smc_sub(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_sub(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
+// 6) Single float subtraction: private float = private float - private float
+// Subtracts two secret-shared floats using FLSub protocol
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[4][numShares] - secret-shared float difference
 void SMC_Utils::smc_sub(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_sub(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
-// batch operations of subtraction
+// 7) Batch integer subtraction: private *int = private *int - private *int
+// Subtracts two arrays of secret-shared integers element-wise
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared differences
 void SMC_Utils::smc_sub(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modSub(result, a, b, size);
 }
 
+// 8) Batch integer subtraction: private *int = public *int - private *int
+// Subtracts array of secret-shared integers from array of public integers
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared differences
 void SMC_Utils::smc_sub(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modSub(result, a, b, size);
 }
 
+// 9) Batch integer subtraction: private *int = private *int - public *int
+// Subtracts array of public integers from array of secret-shared integers
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared differences
 void SMC_Utils::smc_sub(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modSub(result, a, b, size);
 }
 
+// Batch float subtraction: private *float = private *float - private *float
+// Subtracts two arrays of private floats element-wise using FLSub protocol (FLAdd with negated second operand)
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+//          Each float has 4 components: [0]=mantissa, [1]=exponent, [2]=zero_flag, [3]=sign
+// Output:  result[size][4][numShares] - array of secret-shared float differences
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_sub(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
 }
 
+// 10) Batch float subtraction: private *float = public *float - private *float
+// Subtracts array of secret-shared floats from array of public floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][4][numShares] - array of secret-shared float differences
 void SMC_Utils::smc_sub(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
 }
 
+// 11) Batch float subtraction: private *float = private *float - public *float
+// Subtracts array of public floats from array of secret-shared floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][4][numShares] - array of secret-shared float differences
 void SMC_Utils::smc_sub(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
 }
-#if __SHAMIR__
+
 /* SMC Multiplication */
-void SMC_Utils::smc_mult(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    // double check this works (passing reference to essentiall up-cast to priv_int*)
-    // cant use & for some reason, wont compile
-    // replacing priv_int* with & works on
+// 1) Single integer multiplication: private int = private int * private int
+// Multiplies two secret-shared integers using secure multiplication protocol
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared product
+// Note: Uses Mult_Single for RSS, Mult for Shamir
+void SMC_Utils::smc_mult(priv_int &a, priv_int &b, priv_int &result, int alen, int blen, int resultlen, std::string type, int threadID) {
+    // For single value multiplication, use Mult_Single wrapper
+    // which converts from single priv_int (T*) to the internal T** format
+#if __RSS__
+    Mult_Single(result, a, b, threadID, net, ss);
+#else
     Mult(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), 1, threadID, net, ss);
-}
 #endif
-/******************************************************/
+}
+
+// 2) Single integer multiplication: private int = private int * public int
+// Multiplies a secret-shared integer with a public integer (local multiplication)
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared product
 void SMC_Utils::smc_mult(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modMul(result, a, b);
 }
 
+// 3) Single integer multiplication: private int = public int * private int
+// Multiplies a public integer with a secret-shared integer (local multiplication)
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared product
 void SMC_Utils::smc_mult(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modMul(result, b, a);
 }
 
+// 4) Single float multiplication: private float = private float * private float
+// Multiplies two secret-shared floats using FLMult protocol
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[4][numShares] - secret-shared float product
 void SMC_Utils::smc_mult(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "*", threadID, net, ss);
 }
 
+// 5) Single float multiplication: private float = public float * private float
+// Multiplies a public float with a secret-shared float
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[4][numShares] - secret-shared float product
 void SMC_Utils::smc_mult(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_mult(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
+// 6) Single float multiplication: private float = private float * public float
+// Multiplies a secret-shared float with a public float
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[4][numShares] - secret-shared float product
 void SMC_Utils::smc_mult(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     smc_mult(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&btmp, 4);
 }
 
 #if __SHAMIR__
-// private float * private int (needs more examinations)
+// 7) Shamir-only: private float * private int (needs more examinations)
+// Special case for Shamir protocol: multiplies private float with private integer
+// Inputs:  a[4][numShares] - secret-shared float, b[numShares] - secret-shared integer
+// Output:  result[4][numShares] - modified secret-shared float
 void SMC_Utils::smc_mult(priv_int *a, priv_int b, priv_int *result, int alen_sig, int alen_exp, int blen, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     priv_int b1, one;
     ss_init(b1);
@@ -881,73 +1031,129 @@ void SMC_Utils::smc_mult(priv_int *a, priv_int b, priv_int *result, int alen_sig
 }
 #endif
 
+// 8) Batch integer multiplication: private *int = public *int * private *int
+// Multiplies array of public integers with array of secret-shared integers (local)
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared products
 void SMC_Utils::smc_mult(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modMul(result, b, a, size);
 }
 
+// 9) Batch integer multiplication: private *int = private *int * public *int
+// Multiplies array of secret-shared integers with array of public integers (local)
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared products
 void SMC_Utils::smc_mult(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modMul(result, a, b, size);
 }
 
+// 10) Batch integer multiplication: private *int = private *int * private *int
+// Multiplies two arrays of secret-shared integers using secure multiplication protocol
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared products
 void SMC_Utils::smc_mult(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
+    // Mult now expects interface format [size][numShares], which matches priv_int* layout
     Mult(result, a, b, size, threadID, net, ss);
 }
 
+// 11) Batch float multiplication: private *float = private *float * public *float
+// Multiplies array of secret-shared floats with array of public floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][4][numShares] - array of secret-shared float products
 void SMC_Utils::smc_mult(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    priv_int **btmp;
+    priv_int **btmp = nullptr;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     smc_mult(a, btmp, alen_sig, alen_exp, alen_sig, alen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&btmp, size);
 }
 
+// 12) Batch float multiplication: private *float = public *float * private *float
+// Multiplies array of public floats with array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][4][numShares] - array of secret-shared float products
 void SMC_Utils::smc_mult(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    priv_int **atmp;
+    priv_int **atmp = nullptr;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_mult(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
 
+// Batch float multiplication: private *float = private *float * private *float
+// Multiplies two arrays of private floats element-wise using FLMult protocol
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+//          Each float has 4 components: [0]=mantissa, [1]=exponent, [2]=zero_flag, [3]=sign
+// Output:  result[size][4][numShares] - array of secret-shared float products
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_mult(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "*", threadID, net, ss);
 }
 
 /* SMC Integer Division*/
-#if __SHAMIR__
+// 1) Single integer division: private int = private int / private int
+// Divides two secret-shared integers using secure integer division protocol
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared quotient
 void SMC_Utils::smc_div(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), resultlen, 1, threadID, net, ss);
-    // doOperation_IntDiv(result, a, b, resultlen, threadID, net, ss);
 }
 
+// 2) Single integer division: private int = private int / public int
+// Divides a secret-shared integer by a public integer (optimized public divisor)
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared quotient
 void SMC_Utils::smc_div(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv_Pub(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, resultlen, 1, threadID, net, ss);
 }
 
+// 3) Single integer division: private int = public int / private int
+// Divides a public integer by a secret-shared integer
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared quotient
 void SMC_Utils::smc_div(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_IntDiv(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), resultlen, 1, threadID, net, ss);
 }
-#endif
 
+// 4) Batch integer division: private *int = private *int / private *int
+// Divides two arrays of secret-shared integers element-wise
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared quotients
 void SMC_Utils::smc_div(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, ss);
 }
 
+// 5) Batch integer division: private *int = public *int / private *int
+// Divides array of public integers by array of secret-shared integers
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared quotients
 void SMC_Utils::smc_div(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv(result, a, b, resultlen, size, threadID, net, ss);
 }
 
+// 6) Batch integer division: private *int = private *int / public *int
+// Divides array of secret-shared integers by array of public integers (optimized)
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared quotients
 void SMC_Utils::smc_div(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_IntDiv_Pub(result, a, b, resultlen, size, threadID, net, ss);
 }
 
 /* SMC Floating-point division */
+// 7) Single float division: private float = private float / private float
+// Divides two secret-shared floats using FLDiv protocol
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[4][numShares] - secret-shared float quotient
 void SMC_Utils::smc_div(priv_int *a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     ss_single_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, "/", threadID, net, ss);
 }
 
+// 8) Single float division: private float = private float / public float
+// Divides a secret-shared float by a public float (optimized public divisor)
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[4][numShares] - secret-shared float quotient
 void SMC_Utils::smc_div(priv_int *a, float b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
     priv_int **results = (priv_int **)malloc(sizeof(priv_int *));
     priv_int **as = (priv_int **)malloc(sizeof(priv_int *));
-    priv_int **bs;
+    priv_int **bs = nullptr;
 
     as[0] = (priv_int *)malloc(sizeof(priv_int) * 4);
     results[0] = (priv_int *)malloc(sizeof(priv_int) * 4);
@@ -970,70 +1176,97 @@ void SMC_Utils::smc_div(priv_int *a, float b, priv_int *result, int alen_sig, in
     ss_batch_free_operator(&results, 1);
 }
 
+// 9) Single float division: private float = public float / private float
+// Divides a public float by a secret-shared float
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[4][numShares] - secret-shared float quotient
 void SMC_Utils::smc_div(float a, priv_int *b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     smc_div(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, type, threadID);
     ss_batch_free_operator(&atmp, 4);
 }
 
+// 10) Batch float division: private *float = private *float / private *float
+// Divides two arrays of secret-shared floats element-wise using FLDiv protocol
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+// Output:  result[size][4][numShares] - array of secret-shared float quotients
 void SMC_Utils::smc_div(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "/", threadID, net, ss);
 }
 
+// 11) Batch float division: private *float = private *float / public *float
+// Divides array of secret-shared floats by array of public floats (optimized)
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][4][numShares] - array of secret-shared float quotients
 void SMC_Utils::smc_div(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    priv_int **btmp;
+    priv_int **btmp = nullptr;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
     doOperation_FLDiv_Pub(a, btmp, result, alen_sig, size, threadID, net, ss);
     ss_process_results(result, resultlen_sig, resultlen_exp, alen_sig, alen_exp, size, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
 
+// 12) Batch float division: private *float = public *float / private *float
+// Divides array of public floats by array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][4][numShares] - array of secret-shared float quotients
 void SMC_Utils::smc_div(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
-    priv_int **atmp;
+    priv_int **atmp = nullptr;
     ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
     smc_div(atmp, b, blen_sig, blen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID);
     ss_batch_free_operator(&atmp, size);
 }
 
 /* All Comparisons */
-#if __SHAMIR__
 // Int
-// 1) private int < private int
+// 1) Single integer less-than: private int < private int
+// Compares two secret-shared integers, returns secret-shared bit (1 if a < b, 0 otherwise)
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_lt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
-// 2) private int < public int
+// 2) Single integer less-than: private int < public int
+// Compares secret-shared integer with public integer
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_lt(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
 }
-// 3) public int < private int
+// 3) Single integer less-than: public int < private int
+// Compares public integer with secret-shared integer
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_lt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
-#endif
 
 // Float
-// 4) private float < private float
+// 4) Single float less-than: private float < private float
+// Compares two secret-shared floats using FLLT protocol
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a < b, 0 otherwise)
 void SMC_Utils::smc_lt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
 }
-// take b turn to array of 4 ints, using convertfloat same like the flltz and tq. 
-// float can be larger than priv below -> but the size can be different for float, so we can use
-// same as a or float -> so if the float is larger than a then it can change the size of the private a -> so we keeep the size same for both a and pub b
-// 5) private float < public float -> (a, pb)
+// 5) Single float less-than: private float < public float
+// Compares secret-shared float with public float
+// Note: Converts public float to match the precision of private float (alen_sig, alen_exp)
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_lt(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&btmp, 4);
-  
-    // New_A_Code 
+
+    // New_A_Code
     // int *btmp = new int[4]; // add memory for btmp
     // long long *elements = new long long[4];
     // convertFloat(b, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     btmp[j] = (int)elements[j]; 
+    //     btmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
@@ -1041,9 +1274,12 @@ void SMC_Utils::smc_lt(priv_int *a, float b, priv_int result, int alen_sig, int 
     // delete[] btmp;
     // delete[] elements;
 }
-// 6) public float < private float -> (pa, b) -> Flip the order (b, pa) and the result (modSub)
+// 6) Single float less-than: public float < private float
+// Compares public float with secret-shared float
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_lt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&atmp, 4);
@@ -1053,81 +1289,113 @@ void SMC_Utils::smc_lt(float a, priv_int *b, priv_int result, int alen_sig, int 
     // long long *elements = new long long[4];
     // convertFloat(a, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     atmp[j] = (int)elements[j]; 
+    //     atmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
-    
+
     // delete[] atmp;
     // delete[] elements;
 }
 
     /************ batch operations *********/
-// 1) private *int = private *int < private *int
+// 7) Batch integer less-than: private *int = private *int < private *int
+// Compares two arrays of secret-shared integers element-wise
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_lt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-// 2) private *int = private *float < private *float
+// 8) Batch float less-than: private *float < private *float
+// Compares two arrays of secret-shared floats element-wise using FLLT protocol
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+//          Each float has 4 components: [0]=mantissa, [1]=exponent, [2]=zero_flag, [3]=sign
+// Output:  result[size][numShares] - array of secret-shared bits (1 if a[i] < b[i], 0 otherwise)
+// For RSS: numShares=2 (two shares per party for 3-party computation)
 void SMC_Utils::smc_lt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
 
-// New_A_code
-// int 
-// 3) private *int = public *int < private *int
+// 9) Batch integer less-than: private *int = public *int < private *int
+// Compares array of public integers with array of secret-shared integers element-wise
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_lt(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-// 4) private *int = private *int < public *int
+// 10) Batch integer less-than: private *int = private *int < public *int
+// Compares array of secret-shared integers with array of public integers element-wise
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_lt(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
 
 // float
-// 5) private *int = public *float < private *float
+// 11) Batch float less-than: public *float < private *float (stub - not yet implemented)
+// Would compare array of public floats with array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_lt(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
-// 6) private *int = private *float < public *float
+// 12) Batch float less-than: private *float < public *float (stub - not yet implemented)
+// Would compare array of secret-shared floats with array of public floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_lt(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, b, a, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
 }
 
-#if __SHAMIR__
-// 1) private int > private int
+/* SMC Greater-Than (implemented as LT with swapped arguments: a > b = b < a) */
+// 1) Single integer greater-than: private int > private int
+// Compares two secret-shared integers (implemented as b < a)
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a > b, 0 otherwise)
 void SMC_Utils::smc_gt(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
 }
-// 2) private int > public int
+// 2) Single integer greater-than: private int > public int
+// Compares secret-shared integer with public integer (implemented as b < a)
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_gt(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&b, MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
 }
-// 3) public int > private int
+// 3) Single integer greater-than: public int > private int
+// Compares public integer with secret-shared integer (implemented as b < a)
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_gt(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
 }
-#endif
-// 4) private float > private float
+// 4) Single float greater-than: private float > private float
+// Compares two secret-shared floats (implemented as b < a)
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a > b, 0 otherwise)
 void SMC_Utils::smc_gt(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
 }
 
-// 5) private float > public float
+// 5) Single float greater-than: private float > public float
+// Compares secret-shared float with public float (implemented as b < a)
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[numShares] - secret-shared comparison result bit
 
 void SMC_Utils::smc_gt(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&btmp, 4);
-    
+
     // New_A_Code
-    // New version that uses the new protocol between private and public 
-    // int *btmp = new int[4]; 
+    // New version that uses the new protocol between private and public
+    // int *btmp = new int[4];
 
     // long long *elements = new long long[4];
     // convertFloat(b, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     btmp[j] = (int)elements[j]; 
+    //     btmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
@@ -1136,23 +1404,26 @@ void SMC_Utils::smc_gt(priv_int *a, float b, priv_int result, int alen_sig, int 
     // delete[] elements;
 }
 
-// 6) public float > private float
+// 6) Single float greater-than: public float > private float
+// Compares public float with secret-shared float (implemented as b < a)
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_gt(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss_batch_free_operator(&atmp, 4);
 
     // New_A_Code
-    // New version that uses the new protocol between private and public 
+    // New version that uses the new protocol between private and public
     // int *atmp = new int[4];
 
     // long long *elements = new long long[4];
     // convertFloat(a, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     atmp[j] = (int)elements[j]; 
+    //     atmp[j] = (int)elements[j];
     // }
-    
+
     // ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
 
     // delete[] atmp;
@@ -1160,61 +1431,90 @@ void SMC_Utils::smc_gt(float a, priv_int *b, priv_int result, int alen_sig, int 
 }
 
     /************ batch operations *********/
-// 1) private *int = private *int > private *int
+// 7) Batch integer greater-than: private *int > private *int
+// Compares two arrays of secret-shared integers element-wise (implemented as b < a)
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_gt(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
-// 2) private *int = private *float > private *float
+// 8) Batch float greater-than: private *float > private *float
+// Compares two arrays of secret-shared floats element-wise (implemented as b < a)
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_gt(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 }
 
-// New_A_code
-// int 
-// 3) private *int = public *int > private *int
+// 9) Batch integer greater-than: public *int > private *int
+// Compares array of public integers with array of secret-shared integers (implemented as b < a)
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_gt(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
-// 4) private *int = private *int > public *int
+// 10) Batch integer greater-than: private *int > public *int
+// Compares array of secret-shared integers with array of public integers (implemented as b < a)
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_gt(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
 }
 
-// float 
-// 5) private *int = public *float > private *float
+// 11) Batch float greater-than: public *float > private *float (stub - not yet implemented)
+// Would compare array of public floats with array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_gt(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 }
-// 6) private *int = private *float > public *float
+// 12) Batch float greater-than: private *float > public *float (stub - not yet implemented)
+// Would compare array of secret-shared floats with array of public floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_gt(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
 }
 
-#if __SHAMIR__
-// 1) private int <= private int
+/* SMC Less-Than-Or-Equal (implemented as NOT(b < a): a <= b = 1 - (b < a)) */
+// 1) Single integer less-than-or-equal: private int <= private int
+// Compares two secret-shared integers (implemented as 1 - (b < a))
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a <= b, 0 otherwise)
 void SMC_Utils::smc_leq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 2) private int <= public int
+// 2) Single integer less-than-or-equal: private int <= public int
+// Compares secret-shared integer with public integer (implemented as 1 - (b < a))
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_leq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&b, MPZ_CAST(a), blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 3) public int <= private int
+// 3) Single integer less-than-or-equal: public int <= private int
+// Compares public integer with secret-shared integer (implemented as 1 - (b < a))
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_leq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-#endif
-// 4) private float <= private float
+// 4) Single float less-than-or-equal: private float <= private float
+// Compares two secret-shared floats (implemented as 1 - (b < a))
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a <= b, 0 otherwise)
 void SMC_Utils::smc_leq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, b, a, resultlen, blen_sig, blen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 5) private float <= public float
+// 5) Single float less-than-or-equal: private float <= public float
+// Compares secret-shared float with public float (implemented as 1 - (b < a))
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_leq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, btmp, a, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
@@ -1235,21 +1535,24 @@ void SMC_Utils::smc_leq(priv_int *a, float b, priv_int result, int alen_sig, int
     // delete[] elements;
 }
 
-// 6) public float <= private float
+// 6) Single float less-than-or-equal: public float <= private float
+// Compares public float with secret-shared float (implemented as 1 - (b < a))
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_leq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&atmp, 4);
 
-    // New_A_Code 
+    // New_A_Code
     // int *atmp = new int[4];
 
     // long long *elements = new long long[4];
     // convertFloat(a, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     atmp[j] = (int)elements[j]; 
+    //     atmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, b, atmp, resultlen, blen_sig, blen_exp, "<0", threadID, net, ss);
@@ -1260,88 +1563,120 @@ void SMC_Utils::smc_leq(float a, priv_int *b, priv_int result, int alen_sig, int
 }
 
     /************ batch operations *********/
-// 1) private *int = private *int <= private *int
+// 7) Batch integer less-than-or-equal: private *int <= private *int
+// Compares two arrays of secret-shared integers (implemented as 1 - (b < a))
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_leq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// 2) private *int = private *float <= private *float
+// 8) Batch float less-than-or-equal: private *float <= private *float
+// Compares two arrays of secret-shared floats (implemented as 1 - (b < a))
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_leq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
-// New_A_code
-// int 
-// 3) private *int = public *int <= private *int
+// 9) Batch integer less-than-or-equal: public *int <= private *int
+// Compares array of public integers with array of secret-shared integers
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_leq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// 4) private *int = private *int <= public *int
+// 10) Batch integer less-than-or-equal: private *int <= public *int
+// Compares array of secret-shared integers with array of public integers
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_leq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, b, a, blen, alen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// float 
-// 5) private *int = public *float <= private *float
+// 11) Batch float less-than-or-equal: public *float <= private *float (stub - not yet implemented)
+// Would compare array of public floats with array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_leq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
-// 6) private *int = private *float <= public *float
+// 12) Batch float less-than-or-equal: private *float <= public *float (stub - not yet implemented)
+// Would compare array of secret-shared floats with array of public floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_leq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, b, a, resultlen, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
 
-#if __SHAMIR__
-// 1) private int >= private int
+/* SMC Greater-Than-Or-Equal (implemented as NOT(a < b): a >= b = 1 - (a < b)) */
+// 1) Single integer greater-than-or-equal: private int >= private int
+// Compares two secret-shared integers (implemented as 1 - (a < b))
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a >= b, 0 otherwise)
 void SMC_Utils::smc_geq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 2) private int >= public int
+// 2) Single integer greater-than-or-equal: private int >= public int
+// Compares secret-shared integer with public integer (implemented as 1 - (a < b))
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_geq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 3) public int >= private int
+// 3) Single integer greater-than-or-equal: public int >= private int
+// Compares public integer with secret-shared integer (implemented as 1 - (a < b))
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_geq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_LT(MPZ_CAST(result), (int *)&a, MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-#endif
-// 4) private float >= private float
+// 4) Single float greater-than-or-equal: private float >= private float
+// Compares two secret-shared floats (implemented as 1 - (a < b))
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[numShares] - secret-shared comparison result bit (1 if a >= b, 0 otherwise)
 void SMC_Utils::smc_geq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 5) private float >= public float
+// 5) Single float greater-than-or-equal: private float >= public float
+// Compares secret-shared float with public float (implemented as 1 - (a < b))
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_geq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&btmp, 4);
 
     // New_A_code
-    // int *btmp = new int[4]; 
+    // int *btmp = new int[4];
     // long long *elements = new long long[4];
     // convertFloat(b, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     btmp[j] = (int)elements[j]; 
+    //     btmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "<0", threadID, net, ss);
-    // ss->modSub(result, 1, result); 
+    // ss->modSub(result, 1, result);
 
     // delete[] btmp;
     // delete[] elements;
 }
-// 6) public float >= private float
+// 6) Single float greater-than-or-equal: public float >= private float
+// Compares public float with secret-shared float (implemented as 1 - (a < b))
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[numShares] - secret-shared comparison result bit
 void SMC_Utils::smc_geq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "<0", threadID, net, ss);
     ss->modSub(result, 1, result);
@@ -1363,83 +1698,114 @@ void SMC_Utils::smc_geq(float a, priv_int *b, priv_int result, int alen_sig, int
 }
 
     /************ batch operations *********/
-// 1) private *int = private *int >= private *int
+// 7) Batch integer greater-than-or-equal: private *int >= private *int
+// Compares two arrays of secret-shared integers (implemented as 1 - (a < b))
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_geq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// 2) private *int = private *float >= private *float
+// 8) Batch float greater-than-or-equal: private *float >= private *float
+// Compares two arrays of secret-shared floats (implemented as 1 - (a < b))
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_geq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
-// New_A_code 
-// int
-// 3) private *int = public *int >= private *int
+// 9) Batch integer greater-than-or-equal: public *int >= private *int
+// Compares array of public integers with array of secret-shared integers
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_geq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// 4) private *int = private *int >= public *int
+// 10) Batch integer greater-than-or-equal: private *int >= public *int
+// Compares array of secret-shared integers with array of public integers
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_geq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_LT(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// float
-// 5) private *int = public *float >= private *float
+// 11) Batch float greater-than-or-equal: public *float >= private *float (stub - not yet implemented)
+// Would compare array of public floats with array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_geq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
-// 6) private *int = private *float >= public *float
+// 12) Batch float greater-than-or-equal: private *float >= public *float (stub - not yet implemented)
+// Would compare array of secret-shared floats with array of public floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][numShares] - array of secret-shared comparison result bits
 void SMC_Utils::smc_geq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
 
-#if __SHAMIR__
-// Equality and Inequality
-// 1) private int == private int
+/* SMC Equality */
+// 1) Single integer equality: private int == private int
+// Tests equality of two secret-shared integers using EQZ protocol
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared equality result bit (1 if a == b, 0 otherwise)
 void SMC_Utils::smc_eqeq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
 }
-// 2) private int == public int
+// 2) Single integer equality: private int == public int
+// Tests equality of secret-shared integer with public integer
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared equality result bit
 void SMC_Utils::smc_eqeq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
 }
-// 3) public int == private int
+// 3) Single integer equality: public int == private int
+// Tests equality of public integer with secret-shared integer
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared equality result bit
 void SMC_Utils::smc_eqeq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
 }
-#endif
-// 4) private float == private float
+// 4) Single float equality: private float == private float
+// Tests equality of two secret-shared floats
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[numShares] - secret-shared equality result bit (1 if a == b, 0 otherwise)
 void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
 }
-// 5) private float == public float
+// 5) Single float equality: private float == public float
+// Tests equality of secret-shared float with public float
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[numShares] - secret-shared equality result bit
 void SMC_Utils::smc_eqeq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "==", threadID, net, ss);
     ss_batch_free_operator(&btmp, 4);
 
     // New_A_Code
-    // int *btmp = new int[4]; 
+    // int *btmp = new int[4];
     // long long *elements = new long long[4];
     // convertFloat(b, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     btmp[j] = (int)elements[j]; 
+    //     btmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "==", threadID, net, ss);
-    
+
     // delete[] btmp;
     // delete[] elements;
 }
-// 6) public float == private float
+// 6) Single float equality: public float == private float
+// Tests equality of public float with secret-shared float
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[numShares] - secret-shared equality result bit
 void SMC_Utils::smc_eqeq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
     ss_batch_free_operator(&atmp, 4);
@@ -1449,67 +1815,98 @@ void SMC_Utils::smc_eqeq(float a, priv_int *b, priv_int result, int alen_sig, in
     // long long *elements = new long long[4];
     // convertFloat(a, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     atmp[j] = (int)elements[j]; 
+    //     atmp[j] = (int)elements[j];
     // }
 
     // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "==", threadID, net, ss);
-   
+
     // delete[] atmp;
     // delete[] elements;
 }
 
     /************ batch operations *********/
-// 1) private *int == private *int
+// 7) Batch integer equality: private *int == private *int
+// Tests equality of two arrays of secret-shared integers element-wise
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared equality result bits
 void SMC_Utils::smc_eqeq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-// 3) private *int == public *int
+// 8) Batch integer equality: private *int == public *int
+// Tests equality of array of secret-shared integers with array of public integers
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared equality result bits
 void SMC_Utils::smc_eqeq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
 }
-// 4) public *int == private *int
+// 9) Batch integer equality: public *int == private *int
+// Tests equality of array of public integers with array of secret-shared integers
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared equality result bits
 void SMC_Utils::smc_eqeq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, b, a, alen, blen, resultlen, size, threadID, net, ss);
 }
-// 2) private *float == private *float
+// 10) Batch float equality: private *float == private *float
+// Tests equality of two arrays of secret-shared floats element-wise
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared equality result bits
 void SMC_Utils::smc_eqeq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 }
-// New_A_code
-// 5) public *float == private **float
+// 11) Batch float equality: public *float == private *float (stub - not yet implemented)
+// Would test equality of array of public floats with array of secret-shared floats
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared equality result bits
 void SMC_Utils::smc_eqeq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 }
-// 6) private **float == public *float
+// 12) Batch float equality: private *float == public *float (stub - not yet implemented)
+// Would test equality of array of secret-shared floats with array of public floats
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][numShares] - array of secret-shared equality result bits
 void SMC_Utils::smc_eqeq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
 }
 
-#if __SHAMIR__
-// 1) private int != private int
+/* SMC Inequality (implemented as NOT(equality): a != b = 1 - (a == b)) */
+// 1) Single integer inequality: private int != private int
+// Tests inequality of two secret-shared integers (implemented as 1 - (a == b))
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared inequality result bit (1 if a != b, 0 otherwise)
 void SMC_Utils::smc_neq(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), MPZ_CAST(b), alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 2) private int != public int
+// 2) Single integer inequality: private int != public int
+// Tests inequality of secret-shared integer with public integer (implemented as 1 - (a == b))
+// Inputs:  a[numShares] - secret-shared integer, b - public integer
+// Output:  result[numShares] - secret-shared inequality result bit
 void SMC_Utils::smc_neq(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(a), (int *)&b, alen, blen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 3) public int != private int
+// 3) Single integer inequality: public int != private int
+// Tests inequality of public integer with secret-shared integer (implemented as 1 - (a == b))
+// Inputs:  a - public integer, b[numShares] - secret-shared integer
+// Output:  result[numShares] - secret-shared inequality result bit
 void SMC_Utils::smc_neq(int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     doOperation_EQZ(MPZ_CAST(result), MPZ_CAST(b), (int *)&a, blen, alen, resultlen, 1, threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-#endif
-// 4) private float != private float
+// 4) Single float inequality: private float != private float
+// Tests inequality of two secret-shared floats (implemented as 1 - (a == b))
+// Inputs:  a[4][numShares], b[4][numShares] - two secret-shared floats
+// Output:  result[numShares] - secret-shared inequality result bit (1 if a != b, 0 otherwise)
 void SMC_Utils::smc_neq(priv_int *a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
     ss_single_fop_comparison(result, a, b, resultlen, alen_sig, alen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
     ss->modSub(result, 1, result);
 }
-// 6) public float != private float
+// 5) Single float inequality: public float != private float
+// Tests inequality of public float with secret-shared float (implemented as 1 - (a == b))
+// Inputs:  a - public float, b[4][numShares] - secret-shared float
+// Output:  result[numShares] - secret-shared inequality result bit
 void SMC_Utils::smc_neq(float a, priv_int *b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *atmp;
+    priv_int *atmp = nullptr;
     ss_single_convert_to_private_float(a, &atmp, blen_sig, blen_exp, ss);
     ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, blen_sig, blen_exp, "==", threadID, net, ss);
     ss->modSub(result, 1, result);
@@ -1520,27 +1917,30 @@ void SMC_Utils::smc_neq(float a, priv_int *b, priv_int result, int alen_sig, int
     // long long *elements = new long long[4];
     // convertFloat(a, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     atmp[j] = (int)elements[j]; 
+    //     atmp[j] = (int)elements[j];
     // }
-    // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "==", threadID, net, ss);    
+    // ss_single_fop_comparison(result, atmp, b, resultlen, blen_sig, blen_exp, "==", threadID, net, ss);
     // ss->modSub(result, 1, result);
     // delete[] atmp;
     // delete[] elements;
 }
-// 5) private float != public float
+// 6) Single float inequality: private float != public float
+// Tests inequality of secret-shared float with public float (implemented as 1 - (a == b))
+// Inputs:  a[4][numShares] - secret-shared float, b - public float
+// Output:  result[numShares] - secret-shared inequality result bit
 void SMC_Utils::smc_neq(priv_int *a, float b, priv_int result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen, std::string type, int threadID) {
-    priv_int *btmp;
+    priv_int *btmp = nullptr;
     ss_single_convert_to_private_float(b, &btmp, alen_sig, alen_exp, ss);
     ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, alen_sig, alen_exp, "==", threadID, net, ss);
     ss->modSub(result, 1, result);
     ss_batch_free_operator(&btmp, 4);
 
     // New_A_code
-    // int *btmp = new int[4]; 
+    // int *btmp = new int[4];
     // long long *elements = new long long[4];
     // convertFloat(b, alen_sig, alen_exp, &elements);
     // for (int j = 0; j < 4; ++j) {
-    //     btmp[j] = (int)elements[j]; 
+    //     btmp[j] = (int)elements[j];
     // }
     // ss_single_fop_comparison(result, a, btmp, resultlen, alen_sig, alen_exp, "==", threadID, net, ss);
     // ss->modSub(result, 1, result);
@@ -1549,58 +1949,91 @@ void SMC_Utils::smc_neq(priv_int *a, float b, priv_int result, int alen_sig, int
 }
 
     /************ batch operations *********/
-// 1) private *int != private *int
+// 7) Batch integer inequality: private *int != private *int
+// Tests inequality of two arrays of secret-shared integers element-wise (implemented as 1 - (a == b))
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared inequality result bits
 void SMC_Utils::smc_neq(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// 2) private *float != private *float
+// 8) Batch float inequality: private *float != private *float
+// Tests inequality of two arrays of secret-shared floats element-wise (implemented as 1 - (a == b))
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - arrays of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared inequality result bits
 void SMC_Utils::smc_neq(priv_int **a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
 
-// New_A_code 
-// int
-// 3) private *int != public *int
+// 9) Batch integer inequality: private *int != public *int
+// Tests inequality of a secret-shared integer array with a public integer array element-wise
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared inequality result bits
 void SMC_Utils::smc_neq(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     ss->modSub(result, 1, result, size);
 }
-// 4) public *int != private *int
+
+// 10) Batch integer inequality: public *int != private *int
+// Tests inequality of a public integer array with a secret-shared integer array element-wise
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared inequality result bits
 void SMC_Utils::smc_neq(int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // doOperation_EQZ(result, a, b, alen, blen, resultlen, size, threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
 
-// New_A_code
-// float
-// 5) private *float != public *float
+// 11) Batch float inequality: private *float != public *float
+// Tests inequality of a secret-shared float array with a public float array element-wise
+// Inputs:  a[size][4][numShares] - array of secret-shared floats, b[size] - array of public floats
+// Output:  result[size][numShares] - array of secret-shared inequality result bits
 void SMC_Utils::smc_neq(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
-// 6) public *float != private *float
+
+// 12) Batch float inequality: public *float != private *float
+// Tests inequality of a public float array with a secret-shared float array element-wise
+// Inputs:  a[size] - array of public floats, b[size][4][numShares] - array of secret-shared floats
+// Output:  result[size][numShares] - array of secret-shared inequality result bits
 void SMC_Utils::smc_neq(float *a, priv_int **b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     // ss_batch_fop_comparison(result, a, b, resultlen, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
     // ss->modSub(result, 1, result, size);
 }
 
-// batch logical operations
-// 2) private float && private float 
+/* SMC Logical AND */
+// 1) Batch logical AND: private *int && private *int
+// Performs element-wise logical AND on two arrays of secret-shared integers
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared logical AND results
 void SMC_Utils::smc_land(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
+/* SMC Logical OR */
+// 1) Batch logical OR: private *int || private *int
+// Performs element-wise logical OR on two arrays of secret-shared integers
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared logical OR results
 void SMC_Utils::smc_lor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
-// batch logical operations
+/* SMC Logical NOT */
+// 1) Batch logical NOT: !private *int
+// Performs element-wise logical NOT on an array of secret-shared integers (implemented as 1 - a)
+// Inputs:  a[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared logical NOT results
 void SMC_Utils::smc_lnot(priv_int *a, int size, priv_int *result, int alen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, 1, a, size);
 }
 
+/* SMC Bitwise AND */
+// 1) Batch bitwise AND: private *int & private *int
+// Performs element-wise bitwise AND on two arrays of secret-shared integers
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared bitwise AND results
 void SMC_Utils::smc_band(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     // ensuring the first argument always has the longer bitlength
     if (blen > alen) {
@@ -1609,12 +2042,28 @@ void SMC_Utils::smc_band(priv_int *a, priv_int *b, int size, priv_int *result, i
         BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
     }
 }
+
+// 2) Batch bitwise AND: public *int & private *int
+// Performs element-wise bitwise AND of a public integer array with a secret-shared integer array
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared bitwise AND results
 void SMC_Utils::smc_band(int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitAnd(b, a, result, blen, alen, resultlen, size, threadID, net, ss);
 }
+
+// 3) Batch bitwise AND: private *int & public *int
+// Performs element-wise bitwise AND of a secret-shared integer array with a public integer array
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared bitwise AND results
 void SMC_Utils::smc_band(priv_int *a, int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitAnd(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
+
+/* SMC Bitwise XOR */
+// 1) Batch bitwise XOR: private *int ^ private *int
+// Performs element-wise bitwise XOR on two arrays of secret-shared integers
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared bitwise XOR results
 void SMC_Utils::smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     // ensuring the first argument always has the longer bitlength
     if (blen > alen) {
@@ -1624,13 +2073,28 @@ void SMC_Utils::smc_bxor(priv_int *a, priv_int *b, int size, priv_int *result, i
         BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
     }
 }
+
+// 2) Batch bitwise XOR: public *int ^ private *int
+// Performs element-wise bitwise XOR of a public integer array with a secret-shared integer array
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared bitwise XOR results
 void SMC_Utils::smc_bxor(int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitXor(b, a, result, blen, alen, resultlen, size, threadID, net, ss);
 }
+
+// 3) Batch bitwise XOR: private *int ^ public *int
+// Performs element-wise bitwise XOR of a secret-shared integer array with a public integer array
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared bitwise XOR results
 void SMC_Utils::smc_bxor(priv_int *a, int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitXor(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
+/* SMC Bitwise OR */
+// 1) Batch bitwise OR: private *int | private *int
+// Performs element-wise bitwise OR on two arrays of secret-shared integers
+// Inputs:  a[size][numShares], b[size][numShares] - arrays of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared bitwise OR results
 void SMC_Utils::smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     if (blen > alen) {
         BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
@@ -1639,16 +2103,26 @@ void SMC_Utils::smc_bor(priv_int *a, priv_int *b, int size, priv_int *result, in
     }
 }
 
+// 2) Batch bitwise OR: public *int | private *int
+// Performs element-wise bitwise OR of a public integer array with a secret-shared integer array
+// Inputs:  a[size] - array of public integers, b[size][numShares] - array of secret-shared integers
+// Output:  result[size][numShares] - array of secret-shared bitwise OR results
 void SMC_Utils::smc_bor(int *a, priv_int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitOr(b, a, result, blen, alen, resultlen, size, threadID, net, ss);
 }
+
+// 3) Batch bitwise OR: private *int | public *int
+// Performs element-wise bitwise OR of a secret-shared integer array with a public integer array
+// Inputs:  a[size][numShares] - array of secret-shared integers, b[size] - array of public integers
+// Output:  result[size][numShares] - array of secret-shared bitwise OR results
 void SMC_Utils::smc_bor(priv_int *a, int *b, int size, priv_int *result, int alen, int blen, int resultlen, std::string type, int threadID) {
     BitOr(a, b, result, alen, blen, resultlen, size, threadID, net, ss);
 }
 
-#if __SHAMIR__
-
-// bitwise operations
+// 4) Single bitwise AND: private int & private int
+// Performs bitwise AND on two secret-shared integers
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared bitwise AND result
 void SMC_Utils::smc_band(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     if (blen > alen) {
         BitAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
@@ -1657,6 +2131,10 @@ void SMC_Utils::smc_band(priv_int a, priv_int b, priv_int result, int alen, int 
     }
 }
 
+// 4) Single bitwise XOR: private int ^ private int
+// Performs bitwise XOR on two secret-shared integers
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared bitwise XOR result
 void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     if (blen > alen) {
         BitXor(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
@@ -1665,6 +2143,10 @@ void SMC_Utils::smc_bxor(priv_int a, priv_int b, priv_int result, int alen, int 
     }
 }
 
+// 4) Single bitwise OR: private int | private int
+// Performs bitwise OR on two secret-shared integers
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared bitwise OR result
 void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     if (blen > alen) {
         BitOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
@@ -1673,29 +2155,51 @@ void SMC_Utils::smc_bor(priv_int a, priv_int b, priv_int result, int alen, int b
     }
 }
 
-// logical Operations
-// 1) private int && private int 
+// 2) Single logical AND: private int && private int
+// Performs logical AND on two secret-shared integers
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared logical AND result
 void SMC_Utils::smc_land(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalAnd(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
+// 2) Single logical NOT: !private int
+// Performs logical NOT on a secret-shared integer (implemented as 1 - a)
+// Inputs:  a[numShares] - a secret-shared integer
+// Output:  result[numShares] - secret-shared logical NOT result
 void SMC_Utils::smc_lnot(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss->modSub(result, 1, a);
 }
 
+// 2) Single logical OR: private int || private int
+// Performs logical OR on two secret-shared integers
+// Inputs:  a[numShares], b[numShares] - two secret-shared integers
+// Output:  result[numShares] - secret-shared logical OR result
 void SMC_Utils::smc_lor(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     LogicalOr(MPZ_CAST(a), MPZ_CAST(b), MPZ_CAST(result), alen, blen, resultlen, 1, threadID, net, ss);
 }
 
+/* SMC Right Shift */
+// 1) Single right shift: private int >> private int
+// Performs right shift on a secret-shared integer by a secret-shared amount
+// Inputs:  a[numShares] - secret-shared integer to shift, b[numShares] - secret-shared shift amount
+// Output:  result[numShares] - secret-shared right shift result
 void SMC_Utils::smc_shr(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    smc_shr(MPZ_CAST(a), MPZ_CAST(b), alen, blen, MPZ_CAST(result), resultlen, 1, type, threadID);
+    doOperation_TruncS(MPZ_CAST(result), MPZ_CAST(a), alen, MPZ_CAST(b), 1, threadID, net, ss);
 }
 
+// 2) Single right shift: private int >> public int
+// Performs right shift on a secret-shared integer by a public amount
+// Inputs:  a[numShares] - secret-shared integer to shift, b - public shift amount
+// Output:  result[numShares] - secret-shared right shift result
 void SMC_Utils::smc_shr(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
-    smc_shr(MPZ_CAST(a), (int *)&b, alen, blen, MPZ_CAST(result), resultlen, 1, type, threadID);
+    doOperation_Trunc(MPZ_CAST(result), MPZ_CAST(a), alen, b, 1, threadID, net, ss);
 }
-#endif
 
+// 3) Batch right shift: private *int >> private *int or public *int
+// Performs element-wise right shift on an array of secret-shared integers
+// Inputs:  a[size][numShares] - array of secret-shared integers to shift, b[size][numShares] or b[size] - shift amounts (secret or public)
+// Output:  result[size][numShares] - array of secret-shared right shift results
 void SMC_Utils::smc_shr(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) { // public b
         // check that m is !> k
@@ -1708,28 +2212,46 @@ void SMC_Utils::smc_shr(priv_int *a, priv_int *b, int alen, int blen, priv_int *
         doOperation_TruncS(result, a, alen, b, size, threadID, net, ss);
 }
 
+// 4) Batch right shift: private *int >> public *int
+// Performs element-wise right shift on an array of secret-shared integers by public shift amounts
+// Inputs:  a[size][numShares] - array of secret-shared integers to shift, b[size] - array of public shift amounts
+// Output:  result[size][numShares] - array of secret-shared right shift results
 void SMC_Utils::smc_shr(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     doOperation_Trunc(result, a, alen, b, size, threadID, net, ss);
 }
 
-#if __SHAMIR__
-// ANB: does the compiler actually ever produce code that calls this?
+/* SMC Left Shift */
+// 1) Single left shift: private int << private int
+// Performs left shift on a secret-shared integer by a secret-shared amount (implemented as a * 2^b)
+// Inputs:  a[numShares] - secret-shared integer to shift, b[numShares] - secret-shared shift amount
+// Output:  result[numShares] - secret-shared left shift result
 void SMC_Utils::smc_shl(priv_int a, priv_int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     if (blen == -1) {           // b is public, but stored in an priv_int
-        ss->modPow2(result, b); // problem for RSS, since we have an incompatible type ()
+        ss->modPow2(result, b);
         ss->modMul(result, a, result);
     } else {
         doOperation_Pow2(MPZ_CAST(result), MPZ_CAST(b), blen, 1, threadID, net, ss);
+#if __RSS__
+        Mult_Single(result, result, a, threadID, net, ss);
+#else
         Mult(MPZ_CAST(result), MPZ_CAST(result), MPZ_CAST(a), 1, threadID, net, ss);
+#endif
     }
 }
-#endif
 
+// 2) Single left shift: private int << public int
+// Performs left shift on a secret-shared integer by a public amount (implemented as a * 2^b)
+// Inputs:  a[numShares] - secret-shared integer to shift, b - public shift amount
+// Output:  result[numShares] - secret-shared left shift result
 void SMC_Utils::smc_shl(priv_int a, int b, priv_int result, int alen, int blen, int resultlen, std::string type, int threadID) {
     ss->modPow2(result, b);
     ss->modMul(result, a, result);
 }
 
+// 3) Batch left shift: private *int << private *int or public *int
+// Performs element-wise left shift on an array of secret-shared integers (implemented as a * 2^b)
+// Inputs:  a[size][numShares] - array of secret-shared integers to shift, b[size][numShares] or b[size] - shift amounts (secret or public)
+// Output:  result[size][numShares] - array of secret-shared left shift results
 void SMC_Utils::smc_shl(priv_int *a, priv_int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     if (blen == -1) {
         // b is PUBLIC, but stored in type priv_int
@@ -1741,16 +2263,28 @@ void SMC_Utils::smc_shl(priv_int *a, priv_int *b, int alen, int blen, priv_int *
     }
 }
 
+// 4) Batch left shift: private *int << public *int
+// Performs element-wise left shift on an array of secret-shared integers by public shift amounts (implemented as a * 2^b)
+// Inputs:  a[size][numShares] - array of secret-shared integers to shift, b[size] - array of public shift amounts
+// Output:  result[size][numShares] - array of secret-shared left shift results
 void SMC_Utils::smc_shl(priv_int *a, int *b, int alen, int blen, priv_int *result, int resultlen, int size, std::string type, int threadID) {
     ss->modPow2(result, b, size);
     ss->modMul(result, a, result, size);
 }
 
-// Dot Product
+/* SMC Dot Product */
+// 1) Integer dot product: private *int . private *int
+// Computes the dot product of two arrays of secret-shared integers (sum of element-wise products)
+// Inputs:  a[size][numShares], b[size][numShares] - two arrays of secret-shared integers
+// Output:  result[numShares] - secret-shared dot product result
 void SMC_Utils::smc_dot(priv_int *a, priv_int *b, int size, priv_int result, int threadID) {
     doOperation_DotProduct(a, b, result, size, threadID, net, ss);
 }
 
+// 2) Float dot product: private *float . private *float
+// Computes the dot product of two arrays of secret-shared floats (sum of element-wise products)
+// Inputs:  a[size][4][numShares], b[size][4][numShares] - two arrays of secret-shared floats
+// Output:  result[array_size][numShares] - array of secret-shared dot product results
 void SMC_Utils::smc_dot(priv_int **a, priv_int **b, int size, int array_size, priv_int *result, std::string type, int threadID) {
     doOperation_DotProduct(a, b, result, size, array_size, threadID, net, ss);
 }
@@ -1905,6 +2439,7 @@ void SMC_Utils::smc_set_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, std::string
 
 void SMC_Utils::smc_set_ptr(priv_ptr ptr, int var_loc, std::string type, int threadID) {
 }
+
 /****************/
 void SMC_Utils::smc_update_int_ptr(priv_ptr ptr, priv_int *var_loc, priv_int private_tag, int index, int threadID) {
     update_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, index, threadID, net, ss);
@@ -2000,7 +2535,20 @@ void SMC_Utils::smc_free_ptr(priv_ptr **ptrs, int num) {
 
 #endif
 
-#if __SHAMIR__
+// For batch operations: copy priv_int shares from src to dest (available for both Shamir and RSS)
+void SMC_Utils::smc_set_ptr(priv_int dest, priv_int src, std::string type, int threadID) {
+#if __RSS__
+    // RSS: priv_int is uint32_t* or uint64_t*, copy all shares
+    uint nShares = ss->getNumShares();
+    for (uint i = 0; i < nShares; i++) {
+        dest[i] = src[i];
+    }
+#else
+    // Shamir: priv_int is mpz_t, use mpz_set to copy
+    mpz_set(dest, src);
+#endif
+}
+
 // private float = private int
 void SMC_Utils::smc_int2fl(priv_int value, priv_int *result, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, gamma, K, L, threadID, net, ss);
@@ -2025,15 +2573,14 @@ void SMC_Utils::smc_fl2int(priv_int *value, priv_int result, int K, int L, int g
 void SMC_Utils::smc_fl2int(float value, priv_int result, int K, int L, int gamma, int threadID) {
     ss_fl2int(value, result, K, L, gamma, threadID, net, ss);
 }
-// Public float casted to private float
+// Public float casted to private float (single element)
 void SMC_Utils::smc_fl2fl(float value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
     ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, ss);
 }
-// private float = public float
+// private float = private float (single element)
 void SMC_Utils::smc_fl2fl(priv_int *value, priv_int *result, int K1, int L1, int K2, int L2, int threadID) {
     ss_fl2fl(value, result, K1, L1, K2, L2, threadID, net, ss);
 }
-#endif
 // private float* = private int* -> array
 void SMC_Utils::smc_int2fl(priv_int *value, priv_int **result, int size, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, size, gamma, K, L, threadID, net, ss);
@@ -2070,12 +2617,12 @@ void SMC_Utils::smc_fl2fl(float *value, priv_int **result, int size, int K1, int
     ss_fl2fl(value, result, size, K1, L1, K2, L2, threadID, net, ss);
 }
 
-#if __SHAMIR__
 /************************************ INTEGER BATCH ****************************************/
 void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 }
 
+#if __SHAMIR__ // Special batch functions with shorter parameter lists (not available for RSS)
 // used to compute 1-priv_cond in a batch stmt
 void SMC_Utils::smc_batch(int a, priv_int *b, priv_int *result, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
     ss_batch(a, b, result, out_cond, priv_cond, counter, index_array, size, op, threadID, net, ss);
@@ -2084,6 +2631,7 @@ void SMC_Utils::smc_batch(int a, priv_int *b, priv_int *result, priv_int out_con
 void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
     ss_batch(a, b, result, out_cond, priv_cond, counter, index_array, size, op, threadID, net, ss);
 }
+#endif // Special batch functions with shorter parameter lists
 
 // first param: int array
 // second param: int array
@@ -2092,6 +2640,7 @@ void SMC_Utils::smc_batch(int *a, int *b, priv_int *result, int alen, int blen, 
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 }
 
+#if __SHAMIR__ // All priv_int** (2D/float) batch operations - not available for RSS
 // first param: int array
 // second param: int array
 // third param: two-dim private int array
@@ -2349,7 +2898,6 @@ void SMC_Utils::smc_batch(priv_int ***a, priv_int **b, priv_int *result, int ale
 void SMC_Utils::smc_batch(priv_int **a, priv_int **b, priv_int *result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen_sig, alen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 }
-#endif
 
 void SMC_Utils::smc_batch_dot(priv_int **a, priv_int **b, int size, int array_size, int *index_array, priv_int *result, int threadID) {
     ss_batch_dot(a, b, size, array_size, index_array, result, threadID, net, ss);
@@ -2459,6 +3007,7 @@ void SMC_Utils::smc_batch_fl2fl(priv_int ***a, priv_int **result, int adim, int 
 void SMC_Utils::smc_batch_fl2fl(priv_int ***a, priv_int ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
 }
+#endif // All priv_int** (2D/float) batch operations
 
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;

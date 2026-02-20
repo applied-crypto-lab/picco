@@ -9,4 +9,8 @@ typedef uint32_t priv_int_t;
 typedef uint64_t *priv_int;
 typedef uint64_t priv_int_t;
 #endif
+#if __RSS_128__
+typedef __uint128_t *priv_int;
+typedef __uint128_t priv_int_t;
+#endif
 #endif // _RSS_TYPES_HPP_
