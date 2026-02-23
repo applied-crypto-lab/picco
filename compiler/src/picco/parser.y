@@ -54,7 +54,7 @@
 void    check_uknown_var(char *name);
 void    parse_error(int exitvalue, char *format, ...);
 void    parse_warning(char *format, ...);
-void    yyerror(char *s);
+void    yyerror(const char *s);
 void    check_for_main_and_declare(astspec s, astdecl d);
 void    add_declaration_links(astspec s, astdecl d, int);
 void    set_pointer_flag(astspec s, astdecl d);
@@ -689,9 +689,9 @@ cast_expression:
     }
     | '(' type_name ')'
     {
-        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
-            tmp_index++; 
-        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        if($2->spec->subtype == SPEC_int || ($2->spec->subtype == SPEC_Rlist && $2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+            tmp_index++;
+        if($2->spec->subtype == SPEC_float || ($2->spec->subtype == SPEC_Rlist && $2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
             tmp_float_index++;  
         num_index = num_index > tmp_index? num_index: tmp_index;
         num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
@@ -700,20 +700,41 @@ cast_expression:
     {
         $$ = CastedExpr($2, $5);
         $$->thread_id = thread_id; 
-        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && $2->spec->u.next->subtype == SPEC_int)
+        if($2->spec->subtype == SPEC_int || ($2->spec->subtype == SPEC_Rlist && $2->spec->u.next != NULL && $2->spec->u.next->subtype == SPEC_int))
             $$->ftype = 0;
-        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && $2->spec->u.next->subtype == SPEC_float)
+        if($2->spec->subtype == SPEC_float || ($2->spec->subtype == SPEC_Rlist && $2->spec->u.next != NULL && $2->spec->u.next->subtype == SPEC_float))
             $$->ftype = 1;
         $$->flag = $5->flag;
 
-        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+        if($2->spec->subtype == SPEC_int && ($2->spec->body == NULL || $2->spec->body->subtype != SPEC_private))
+        {
+            // Bare cast like (int<32>) — set size from spec, treat as private (source is private)
+            $$->size = $2->spec->size;
+            if($5->flag == PRI) {
+                tmp_index--;
+                $$->index = tmp_index;
+                $$->flag = PRI;
+            }
+        }
+        else if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
         {
             $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;
             tmp_index--;
             $$->index = tmp_index;
             $$->flag = PRI;
         }
-        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        if($2->spec->subtype == SPEC_float && ($2->spec->body == NULL || $2->spec->body->subtype != SPEC_private))
+        {
+            // Bare cast like (float<24,8>) — set size/sizeexp from spec, treat as private
+            $$->size = $2->spec->size;
+            $$->sizeexp = $2->spec->sizeexp;
+            if($5->flag == PRI) {
+                tmp_float_index--;
+                $$->index = tmp_float_index;
+                $$->flag = PRI;
+            }
+        }
+        else if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
         {
             $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;
             $$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;
@@ -3630,7 +3651,7 @@ ox_funccall_expression:
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
-void yyerror(char *s)
+void yyerror(const char *s)
 {
   fprintf(stderr, "(file %s, line %d, column %d):\n\t%s\n",
                   sc_original_file(), sc_original_line(), sc_column(), s);

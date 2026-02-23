@@ -405,6 +405,7 @@ SMC_Utils::SMC_Utils(int _id, std::string runtime_config, std::string privatekey
     }
     printf("Technique: RSS\n");
     ss = new replicatedSecretShare<std::remove_pointer_t<priv_int>>(id, numOfPeers, threshold, bits, rss_share_seeds);
+    init_privptr(ss);
 
 #endif
 
@@ -760,6 +761,16 @@ void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_ex
     ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
 }
 
+// 1b) Single float element assignment with size parameter (for array element assignments like FA[i] = FB[j])
+// The size parameter is unused; this overload exists because the compiler generates the same
+// signature for single element and array operations in array element contexts.
+// RSS-only: In Shamir mode, mpz_t array decay resolves these calls to the existing array overloads.
+#if __RSS__
+void SMC_Utils::smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
+    ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, type, threadID, net, ss);
+}
+#endif
+
 // 2) Batch float assignment: private *float = private *float (type conversion/truncation)
 // Converts or truncates an array of private floats to target precision
 // Inputs:  a[size][4][numShares] - array of secret-shared floats
@@ -793,6 +804,16 @@ void SMC_Utils::smc_set(float a, priv_int *result, int alen_sig, int alen_exp, i
 void SMC_Utils::smc_set(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID) {
     ss_set(a, result, alen, resultlen, type, threadID, net, ss);
 }
+
+// 5b) Single integer element assignment with size parameter (for array element assignments like C[i] = tmp)
+// The size parameter is unused; this overload exists because the compiler generates the same
+// signature for single element and array operations in array element contexts.
+// RSS-only: In Shamir mode, mpz_t array decay resolves these calls to the existing array overloads.
+#if __RSS__
+void SMC_Utils::smc_set(priv_int a, priv_int result, int alen, int resultlen, int size, std::string type, int threadID) {
+    ss_set(a, result, alen, resultlen, type, threadID, net, ss);
+}
+#endif
 
 // 6) Batch integer assignment (Shamir only): private *int = private *int
 // Converts or truncates an array of private integers (only for Shamir protocol)
@@ -1160,15 +1181,24 @@ void SMC_Utils::smc_div(priv_int *a, float b, priv_int *result, int alen_sig, in
     ss_batch_convert_to_private_float(&b, &bs, alen_sig, alen_exp, 1, ss);
 
     for (int i = 0; i < 4; i++) {
+#if __RSS__
+        ss_init(results[0][i], ss->getNumShares());
+        ss_init_set(as[0][i], a[i], ss);
+#else
         ss_init(results[0][i]);
         ss_init_set(as[0][i], a[i]);
+#endif
     }
 
-    doOperation_FLDiv_Pub(as, bs, results, alen_sig, 1, threadID, net, ss);
+    ss_single_fop_arithmetic(results[0], as[0], bs[0], resultlen_sig, resultlen_exp, alen_sig, alen_exp, alen_sig, alen_exp, "/", threadID, net, ss);
     ss_process_results(results, resultlen_sig, resultlen_exp, alen_sig, alen_exp, 1, threadID, net, ss);
 
     for (int i = 0; i < 4; i++)
+#if __RSS__
+        ss_set(result[i], results[0][i], ss->getNumShares());
+#else
         ss_set(result[i], results[0][i]);
+#endif
 
     // free the memory
     ss_batch_free_operator(&as, 1);
@@ -1202,7 +1232,7 @@ void SMC_Utils::smc_div(priv_int **a, priv_int **b, int alen_sig, int alen_exp, 
 void SMC_Utils::smc_div(priv_int **a, float *b, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int **result, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID) {
     priv_int **btmp = nullptr;
     ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
-    doOperation_FLDiv_Pub(a, btmp, result, alen_sig, size, threadID, net, ss);
+    ss_batch_fop_arithmetic(result, a, btmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, alen_sig, alen_exp, size, "/", threadID, net, ss);
     ss_process_results(result, resultlen_sig, resultlen_exp, alen_sig, alen_exp, size, threadID, net, ss);
     ss_batch_free_operator(&btmp, size);
 }
@@ -2329,6 +2359,31 @@ void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_si
 void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, priv_int value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
     doOperation_PrivIndex_Write_2d(MPZ_CAST(index), array, MPZ_CAST(value), dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
 }
+#elif __RSS__
+// one-dimension private integer singular write (RSS)
+// For RSS, priv_int = T*, so wrap single values as T** for doOperation_PrivIndex_Write
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
+    priv_int *idx_wrap = &index;
+    doOperation_PrivIndex_Write(idx_wrap, array, &value, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+}
+
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int *array, int len_sig, int len_exp, priv_int value, int dim, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
+    priv_int *idx_wrap = &index;
+    priv_int *val_wrap = &value;
+    doOperation_PrivIndex_Write(idx_wrap, array, val_wrap, dim, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+}
+
+// two-dimension private integer singular write (RSS)
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, int value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
+    priv_int *idx_wrap = &index;
+    doOperation_PrivIndex_Write_2d(idx_wrap, array, (int *)&value, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+}
+
+void SMC_Utils::smc_privindex_write(priv_int index, priv_int **array, int len_sig, int len_exp, priv_int value, int dim1, int dim2, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID) {
+    priv_int *idx_wrap = &index;
+    priv_int *val_wrap = &value;
+    doOperation_PrivIndex_Write_2d(idx_wrap, array, val_wrap, dim1, dim2, 1, out_cond, priv_cond, counter, threadID, 0, net, ss);
+}
 #endif
 
 // one-dimension private float singular write
@@ -2404,9 +2459,7 @@ void SMC_Utils::smc_privindex_write(priv_int *indices, priv_int ***array, int le
     ;
 }
 
-#if __SHAMIR__
-
-// private pointer arithmetic only supported by shamirSS currently
+// private pointer arithmetic
 
 priv_ptr SMC_Utils::smc_new_ptr(int level, int type) {
     return create_ptr(level, type);
@@ -2418,19 +2471,19 @@ priv_ptr *SMC_Utils::smc_new_ptr(int level, int type, int num) {
 
 /*************/
 void SMC_Utils::smc_set_int_ptr(priv_ptr ptr, priv_int *var_loc, std::string type, int threadID) {
-    set_ptr(ptr, var_loc, NULL, NULL, NULL, threadID);
+    set_ptr(ptr, var_loc, (priv_int **)nullptr, (void *)nullptr, (priv_ptr *)nullptr, threadID);
 }
 
 void SMC_Utils::smc_set_float_ptr(priv_ptr ptr, priv_int **var_loc, std::string type, int threadID) {
-    set_ptr(ptr, NULL, var_loc, NULL, NULL, threadID);
+    set_ptr(ptr, (priv_int *)nullptr, var_loc, (void *)nullptr, (priv_ptr *)nullptr, threadID);
 }
 
 void SMC_Utils::smc_set_struct_ptr(priv_ptr ptr, void *var_loc, std::string type, int threadID) {
-    set_ptr(ptr, NULL, NULL, var_loc, NULL, threadID);
+    set_ptr(ptr, (priv_int *)nullptr, (priv_int **)nullptr, var_loc, (priv_ptr *)nullptr, threadID);
 }
 
 void SMC_Utils::smc_set_ptr(priv_ptr assign_ptr, priv_ptr *ptr_loc, std::string type, int threadID) {
-    set_ptr(assign_ptr, NULL, NULL, NULL, ptr_loc, threadID);
+    set_ptr(assign_ptr, (priv_int *)nullptr, (priv_int **)nullptr, (void *)nullptr, ptr_loc, threadID);
 }
 
 void SMC_Utils::smc_set_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, std::string type, int threadID) {
@@ -2442,19 +2495,19 @@ void SMC_Utils::smc_set_ptr(priv_ptr ptr, int var_loc, std::string type, int thr
 
 /****************/
 void SMC_Utils::smc_update_int_ptr(priv_ptr ptr, priv_int *var_loc, priv_int private_tag, int index, int threadID) {
-    update_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, index, threadID, net, ss);
+    update_ptr(ptr, var_loc, (priv_int **)nullptr, (void *)nullptr, (priv_ptr *)nullptr, private_tag, index, threadID, net, ss);
 }
 
 void SMC_Utils::smc_update_float_ptr(priv_ptr ptr, priv_int **var_loc, priv_int private_tag, int index, int threadID) {
-    update_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, index, threadID, net, ss);
+    update_ptr(ptr, (priv_int *)nullptr, var_loc, (void *)nullptr, (priv_ptr *)nullptr, private_tag, index, threadID, net, ss);
 }
 
 void SMC_Utils::smc_update_struct_ptr(priv_ptr ptr, void *var_loc, priv_int private_tag, int index, int threadID) {
-    update_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, index, threadID, net, ss);
+    update_ptr(ptr, (priv_int *)nullptr, (priv_int **)nullptr, var_loc, (priv_ptr *)nullptr, private_tag, index, threadID, net, ss);
 }
 
 void SMC_Utils::smc_update_ptr(priv_ptr ptr, priv_ptr *ptr_loc, priv_int private_tag, int index, int threadID) {
-    update_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, index, threadID, net, ss);
+    update_ptr(ptr, (priv_int *)nullptr, (priv_int **)nullptr, (void *)nullptr, ptr_loc, private_tag, index, threadID, net, ss);
 }
 
 void SMC_Utils::smc_update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, priv_int private_tag, int index, int threadID) {
@@ -2462,19 +2515,19 @@ void SMC_Utils::smc_update_ptr(priv_ptr assign_ptr, priv_ptr right_ptr, priv_int
 }
 
 void SMC_Utils::smc_add_int_ptr(priv_ptr ptr, priv_int *var_loc, priv_int private_tag, int threadID) {
-    add_ptr(ptr, var_loc, NULL, NULL, NULL, private_tag, threadID);
+    add_ptr(ptr, var_loc, (priv_int **)nullptr, (void *)nullptr, (priv_ptr *)nullptr, private_tag, threadID);
 }
 
 void SMC_Utils::smc_add_float_ptr(priv_ptr ptr, priv_int **var_loc, priv_int private_tag, int threadID) {
-    add_ptr(ptr, NULL, var_loc, NULL, NULL, private_tag, threadID);
+    add_ptr(ptr, (priv_int *)nullptr, var_loc, (void *)nullptr, (priv_ptr *)nullptr, private_tag, threadID);
 }
 
 void SMC_Utils::smc_add_struct_ptr(priv_ptr ptr, void *var_loc, priv_int private_tag, int threadID) {
-    add_ptr(ptr, NULL, NULL, var_loc, NULL, private_tag, threadID);
+    add_ptr(ptr, (priv_int *)nullptr, (priv_int **)nullptr, var_loc, (priv_ptr *)nullptr, private_tag, threadID);
 }
 
 void SMC_Utils::smc_add_ptr(priv_ptr ptr, priv_ptr *ptr_loc, priv_int private_tag, int threadID) {
-    add_ptr(ptr, NULL, NULL, NULL, ptr_loc, private_tag, threadID);
+    add_ptr(ptr, (priv_int *)nullptr, (priv_int **)nullptr, (void *)nullptr, ptr_loc, private_tag, threadID);
 }
 
 /*******************/
@@ -2499,7 +2552,7 @@ void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_int value, int num_
 }
 
 void SMC_Utils::smc_dereference_write_int_ptr(priv_ptr ptr, priv_int *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
-    dereference_ptr_write(ptr, value, NULL, NULL, NULL, num_of_dereferences, private_cond, threadID, net, ss);
+    dereference_ptr_write(ptr, value, (priv_int **)nullptr, (void *)nullptr, (priv_ptr *)nullptr, num_of_dereferences, private_cond, threadID, net, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_int *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
@@ -2507,15 +2560,15 @@ void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_int *value, int num
 }
 
 void SMC_Utils::smc_dereference_write_float_ptr(priv_ptr ptr, priv_int **value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
-    dereference_ptr_write(ptr, NULL, value, NULL, NULL, num_of_dereferences, private_cond, threadID, net, ss);
+    dereference_ptr_write(ptr, (priv_int *)nullptr, value, (void *)nullptr, (priv_ptr *)nullptr, num_of_dereferences, private_cond, threadID, net, ss);
 }
 
 void SMC_Utils::smc_dereference_write_struct_ptr(priv_ptr ptr, void *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
-    dereference_ptr_write(ptr, NULL, NULL, value, NULL, num_of_dereferences, private_cond, threadID, net, ss);
+    dereference_ptr_write(ptr, (priv_int *)nullptr, (priv_int **)nullptr, value, (priv_ptr *)nullptr, num_of_dereferences, private_cond, threadID, net, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr *value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
-    dereference_ptr_write(ptr, NULL, NULL, NULL, value, num_of_dereferences, private_cond, threadID, net, ss);
+    dereference_ptr_write(ptr, (priv_int *)nullptr, (priv_int **)nullptr, (void *)nullptr, value, num_of_dereferences, private_cond, threadID, net, ss);
 }
 
 void SMC_Utils::smc_dereference_write_ptr(priv_ptr ptr, priv_ptr value, int num_of_dereferences, priv_int private_cond, std::string type, int threadID) {
@@ -2532,8 +2585,6 @@ void SMC_Utils::smc_free_ptr(priv_ptr *ptr) {
 void SMC_Utils::smc_free_ptr(priv_ptr **ptrs, int num) {
     destroy_ptr(ptrs, num);
 }
-
-#endif
 
 // For batch operations: copy priv_int shares from src to dest (available for both Shamir and RSS)
 void SMC_Utils::smc_set_ptr(priv_int dest, priv_int src, std::string type, int threadID) {
@@ -2622,7 +2673,6 @@ void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, int alen, 
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 }
 
-#if __SHAMIR__ // Special batch functions with shorter parameter lists (not available for RSS)
 // used to compute 1-priv_cond in a batch stmt
 void SMC_Utils::smc_batch(int a, priv_int *b, priv_int *result, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
     ss_batch(a, b, result, out_cond, priv_cond, counter, index_array, size, op, threadID, net, ss);
@@ -2631,7 +2681,6 @@ void SMC_Utils::smc_batch(int a, priv_int *b, priv_int *result, priv_int out_con
 void SMC_Utils::smc_batch(priv_int *a, priv_int *b, priv_int *result, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, int threadID) {
     ss_batch(a, b, result, out_cond, priv_cond, counter, index_array, size, op, threadID, net, ss);
 }
-#endif // Special batch functions with shorter parameter lists
 
 // first param: int array
 // second param: int array
@@ -2640,7 +2689,22 @@ void SMC_Utils::smc_batch(int *a, int *b, priv_int *result, int alen, int blen, 
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 }
 
-#if __SHAMIR__ // All priv_int** (2D/float) batch operations - not available for RSS
+// Mixed-type 1D batch operations (available for both RSS and Shamir)
+// first param: int array
+// second param: one-dim private int array
+// third param: one-dim private int array
+void SMC_Utils::smc_batch(int *a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+    ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+}
+
+// first param: one-dim private int array
+// second param: int array
+// third param: one-dim private int array
+void SMC_Utils::smc_batch(priv_int *a, int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
+    ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+}
+
+// priv_int** (2D/float) batch operations - available for both RSS and Shamir
 // first param: int array
 // second param: int array
 // third param: two-dim private int array
@@ -2650,22 +2714,8 @@ void SMC_Utils::smc_batch(int *a, int *b, priv_int **result, int alen, int blen,
 
 // first param: int array
 // second param: one-dim private int array
-// third param: one-dim private int array
-void SMC_Utils::smc_batch(int *a, priv_int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
-    ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
-}
-
-// first param: int array
-// second param: one-dim private int array
 // third param: two-dim private int array
 void SMC_Utils::smc_batch(int *a, priv_int *b, priv_int **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
-    ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
-}
-
-// first param: one-dim private int array
-// second param: int array
-// third param: one-dim private int array
-void SMC_Utils::smc_batch(priv_int *a, int *b, priv_int *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID) {
     ss_batch(a, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
 }
 
@@ -3007,7 +3057,7 @@ void SMC_Utils::smc_batch_fl2fl(priv_int ***a, priv_int **result, int adim, int 
 void SMC_Utils::smc_batch_fl2fl(priv_int ***a, priv_int ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, priv_int out_cond, priv_int *priv_cond, int counter, int *index_array, int size, int threadID) {
     ss_batch_fl2fl(a, result, adim, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
 }
-#endif // All priv_int** (2D/float) batch operations
+// End of priv_int** (2D/float) batch operations
 
 double SMC_Utils::time_diff(struct timeval *t1, struct timeval *t2) {
     double elapsed;
@@ -3070,7 +3120,7 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
                 sort(T_recv_test.begin(), T_recv_test.end());
 #if __SHAMIR__
                 coefficients = generateCoefficients(T_recv, threshold);
-                shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_recv), coefficients));
+                shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(std::string(reinterpret_cast<char *>(RandomData_recv), 2 * KEYSIZE), coefficients));
 
 #endif
 #if __RSS__
@@ -3087,8 +3137,8 @@ void SMC_Utils::seedSetup(std::vector<int> &seed_map, int peers, int threshold) 
             sort(recv_map.begin(), recv_map.end());                   // sorting now that we're done using it to know the order which we're recieving shares
             sort(recv_map_original.begin(), recv_map_original.end()); // sorting now that we're done using it to know the order which we're recieving shares
 #if __SHAMIR__
-            coefficients = generateCoefficients(recv_map, threshold);
-            shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(reinterpret_cast<char *>(RandomData_send), coefficients));
+            coefficients = generateCoefficients(recv_map_original, threshold);
+            shamir_seeds_coefs.insert(std::pair<std::string, std::vector<int>>(std::string(reinterpret_cast<char *>(RandomData_send), 2 * KEYSIZE), coefficients));
 
 #endif
 #if __RSS__

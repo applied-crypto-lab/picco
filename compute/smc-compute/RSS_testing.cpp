@@ -225,7 +225,6 @@ void SMC_Utils::smc_test_rss(int threadID, int batch_size) {
 
     // Test cases with actual float values
     int fldiv_K = 23;  // IEEE 754 single precision mantissa bits
-    int fldiv_L = 8;   // IEEE 754 single precision exponent bits
     int fldiv_size = 5;
 
     // Test values: simple divisions

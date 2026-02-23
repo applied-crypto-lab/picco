@@ -30,6 +30,7 @@ void ss_init_set(mpz_t x, mpz_t x_val);
 void ss_init_set_ui(mpz_t x, unsigned long x_val);
 void ss_init(mpz_t x);
 void ss_set(mpz_t x, mpz_t x_val);
+void ss_set(mpz_t x, mpz_t x_val, uint numShares);
 void ss_set_ui(mpz_t x, unsigned long x_val);
 void ss_clear(mpz_t x);
 void ss_add_ui(mpz_t rop, mpz_t op1, uint op2);

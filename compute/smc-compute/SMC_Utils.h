@@ -465,17 +465,27 @@ public:
     void smc_set(float *a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     // 3) private float = private float
     void smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, std::string type, int threadID);
+    // 3b) private float = private float (single element with size param, for array element assignments)
+    // RSS-only: In Shamir, mpz_t array decay resolves these calls to the array overloads.
+#if __RSS__
+    void smc_set(priv_int *a, priv_int *result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
+#endif
     // 5) private array of float = private array of float
     void smc_set(priv_int **a, priv_int **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID);
     
     // for integer set
-    // 1) private int = private int 
+    // 1) private int = private int
     void smc_set(priv_int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
-    // 2) private *int = private *int  
+    // 2) private *int = private *int
     void smc_set(priv_int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
+    // 2b) private int = private int (single element with size param, for array element assignments)
+    // RSS-only: In Shamir, mpz_t array decay resolves these calls to the array overloads.
+#if __RSS__
+    void smc_set(priv_int a, priv_int result, int alen, int resultlen, int size, std::string type, int threadID);
+#endif
     // 3) private int = public int
     void smc_set(int a, priv_int result, int alen, int resultlen, std::string type, int threadID);
-    // 4) public array of int = private array of int 
+    // 4) public array of int = private array of int
     void smc_set(int *a, priv_int *result, int alen, int resultlen, int size, std::string type, int threadID);
     // Dot Product
     // 1) private int = private *int @ private *int
@@ -535,8 +545,7 @@ public:
     void smc_privindex_write(priv_int *index, priv_int ***array, int len_sig, int len_exp, float *result, int dim1, int dim2, int batch_size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID);
     void smc_privindex_write(priv_int *index, priv_int ***array, int len_sig, int len_exp, priv_int **result, int dim1, int dim2, int batch_size, priv_int out_cond, priv_int *priv_cond, int counter, std::string type, int threadID);
 
-    /********************** pointer interfaces (for int) **************************************/
-#if __SHAMIR__
+    /********************** pointer interfaces **************************************/
 
     // int
     priv_ptr smc_new_ptr(int level, int type);
@@ -583,8 +592,6 @@ public:
     void smc_clear_ptr(priv_ptr *ptr);
     void smc_free_ptr(priv_ptr *ptr);
     void smc_free_ptr(priv_ptr **arrays, int num);
-
-#endif
 
     // For batch operations: copy priv_int shares (available for both Shamir and RSS)
     void smc_set_ptr(priv_int dest, priv_int src, std::string type, int threadID);

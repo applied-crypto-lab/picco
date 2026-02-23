@@ -635,7 +635,8 @@ void NodeNetwork::sendModeToPeers(int id) {
 
 /* the function sends different data to each peer and receive data from each peer */
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int threadID) {
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
     // struct timeval tv1, tv2;
     if (size == 0)
@@ -708,7 +709,8 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
 
 /* the function sends the same data to each peer and receives data from each peer */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int threadID) {
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
 
     if (size == 0)
@@ -1116,7 +1118,8 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 
 // why is this needed for send/recv to work?
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
 
     if (size == 0)
@@ -1190,7 +1193,8 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 // sends one piece of data to recvFromIds
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
     // std::cout << "multicast threadID : "<<threadID << std::endl;
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
     if (size == 0)
         return;

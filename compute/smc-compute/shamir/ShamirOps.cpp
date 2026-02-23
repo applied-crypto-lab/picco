@@ -31,6 +31,10 @@ void ss_set(mpz_t x, mpz_t x_val) {
     mpz_set(x, x_val);
 }
 
+void ss_set(mpz_t x, mpz_t x_val, uint /*numShares*/) {
+    mpz_set(x, x_val);
+}
+
 void ss_set_ui(mpz_t x, unsigned long x_val) {
     mpz_set_ui(x, x_val);
 }

@@ -95,6 +95,6 @@ fi
 mkdir -p build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Release $mode $bits_flag $technique_flag ..
+cmake -Wno-dev -DCMAKE_BUILD_TYPE=Release $mode $bits_flag $technique_flag ..
 make -j8
 cd ..

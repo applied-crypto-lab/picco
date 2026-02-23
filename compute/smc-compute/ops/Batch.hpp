@@ -38,16 +38,17 @@
 // Uses auto-deduced types to work with both RSS and Shamir
 template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
 void ss_batch_handle_priv_cond(PRIV_TYPE *result, PRIV_TYPE *result_org, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int size, int threadID, NodeNetwork &net, SS_TYPE *ss) {
+    uint _numShares = ss->getNumShares();
     PRIV_TYPE *tmp = (PRIV_TYPE *)malloc(sizeof(PRIV_TYPE) * size);
     for (int i = 0; i < size; ++i)
-        ss_init(tmp[i], ss->getNumShares());
+        ss_init(tmp[i], _numShares);
 
     if (out_cond == NULL && counter == -1 && priv_cond == NULL) {
         // No condition - result stays as computed
     } else if (out_cond != NULL && counter == -1 && priv_cond == NULL) {
         // Public outer condition
         for (int i = 0; i < size; i++)
-            ss_set(tmp[i], out_cond);
+            ss_set(tmp[i], out_cond, _numShares);
         ss->modSub(result, result, result_org, size);
         Mult(result, result, tmp, size, threadID, net, ss);
         ss->modAdd(result, result, result_org, size);
@@ -55,9 +56,9 @@ void ss_batch_handle_priv_cond(PRIV_TYPE *result, PRIV_TYPE *result_org, COND_TY
         // Private condition array
         for (int i = 0; i < size; i++) {
             if (counter != size)
-                ss_set(tmp[i], priv_cond[i / (size / counter)]);
+                ss_set(tmp[i], priv_cond[i / (size / counter)], _numShares);
             else
-                ss_set(tmp[i], priv_cond[i]);
+                ss_set(tmp[i], priv_cond[i], _numShares);
         }
         ss->modSub(result, result, result_org, size);
         Mult(result, result, tmp, size, threadID, net, ss);
@@ -67,12 +68,12 @@ void ss_batch_handle_priv_cond(PRIV_TYPE *result, PRIV_TYPE *result_org, COND_TY
         ss->modSub(result, result, result_org, size);
         if (priv_cond != NULL) {
             for (int i = 0; i < size; i++)
-                ss_set(tmp[i], priv_cond[i]);
+                ss_set(tmp[i], priv_cond[i], _numShares);
             Mult(result, result, tmp, size, threadID, net, ss);
         }
         if (out_cond != NULL) {
             for (int i = 0; i < size; i++)
-                ss_set(tmp[i], out_cond);
+                ss_set(tmp[i], out_cond, _numShares);
             Mult(result, result, tmp, size, threadID, net, ss);
         }
         ss->modAdd(result, result, result_org, size);
@@ -146,11 +147,48 @@ void ss_batch(PRIV_TYPE *a, PRIV_TYPE *b, PRIV_TYPE *result, int alen, int blen,
     ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
 
     for (int i = 0; i < size; ++i)
-        ss_set(result_tmp[i], result[index_array[3 * i + 2]]);
+        ss_set(result[index_array[3 * i + 2]], result_tmp[i], numShares);
 
     ss_batch_free_operator(&a_tmp, size);
     ss_batch_free_operator(&b_tmp, size);
     ss_batch_free_operator(&result_tmp, size);
+}
+
+// Short-parameter-list batch: compute (int_constant - priv_array) optionally multiplied by out_cond
+// Used for computing 1 - priv_cond in batch conditional statements
+template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
+void ss_batch(int a, PRIV_TYPE *b, PRIV_TYPE *result, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int *index_array, int size, std::string op, int threadID, NodeNetwork &net, SS_TYPE *ss) {
+    uint numShares = ss->getNumShares();
+
+    ss->modSub(result, (long)a, b, size);
+
+    if (out_cond != NULL) {
+        PRIV_TYPE *out_tmp = (PRIV_TYPE *)malloc(sizeof(PRIV_TYPE) * size);
+        for (int i = 0; i < size; i++) {
+            ss_init(out_tmp[i], numShares);
+            ss_set(out_tmp[i], out_cond, numShares);
+        }
+        Mult(result, result, out_tmp, size, threadID, net, ss);
+        ss_batch_free_operator(&out_tmp, size);
+    }
+}
+
+// Short-parameter-list batch: compute (priv_array - priv_array)
+// Used for batch conditional subtraction
+template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
+void ss_batch(PRIV_TYPE *a, PRIV_TYPE *b, PRIV_TYPE *result, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int *index_array, int size, std::string op, int threadID, NodeNetwork &net, SS_TYPE *ss) {
+    uint numShares = ss->getNumShares();
+    if (counter == size)
+        ss->modSub(result, a, b, size);
+    else {
+        PRIV_TYPE *tmp = (PRIV_TYPE *)malloc(sizeof(PRIV_TYPE) * size);
+        for (int i = 0; i < size; i++) {
+            ss_init(tmp[i], numShares);
+            ss_set(tmp[i], a[i / (size / counter)], numShares);
+        }
+        ss->modSub(result, tmp, b, size);
+        ss_batch_free_operator(&tmp, size);
+    }
 }
 
 // Overload for PRIV_TYPE*, int*, PRIV_TYPE* (secret op public = secret)
