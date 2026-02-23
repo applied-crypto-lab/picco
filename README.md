@@ -55,27 +55,27 @@ Once the compiler is ready, it can now be used to compile user programs into cor
 
 ## 2. Translation of User Programs
 
-User programs can be compiled and executed using one of the three supported modes:
+Sample user programs are available in the `compute/sample-programs` directory (multi-threaded programs may not run with the current version of the compiler). User programs can be compiled and executed using one of the three supported modes:
 
-1. The **measurement mode** (specified using the flag `-m`) requires the least amount of setup and is intended for measuring the runtime when benchmarking specific computations. It makes security shortcuts (such as foregoing public key infrastructure for secure key establishment) and doesn't require private inputs to be entered into the program. Instead, private inputs are randomly generated before the computation starts. The goal of this mode is to facilitate accurate performance measurement while minimizing the setup effort. **Note that at this time the measurement mode generates only random private inputs and thus does not handle public inputs.**
-2. The **testing mode** (specified using the flag `-t`) permits proper execution of secure protocols on private data. It uses public keys owned by computational parties to set up secure communication channels and processed private inputs contributed by different data owners (input parties). It uses terminal-based interfaces for execution, data entry, and output assembly and is well suited for evaluating programs and their correctness.
-3. The **deployment mode** (specified using the flag `-d`) also permits proper execution of secure protocols on private data. It differs from the testing mode in how private inputs are entered into the computation. Instead of specifying inputs in text files and creating shares using terminal-based `picco-utility` executable, this mode produces a web server setup that allows different input parties to enter their information and properly create encrypted shares prior to storing them at the web server.
+1. The **measurement mode** (specified using the flag `-m`) requires the least amount of setup and is intended for measuring the runtime when benchmarking specific computations. It makes security shortcuts (such as foregoing public key infrastructure for secure key establishment) and doesn't require private inputs to be entered into the program. Instead, private inputs are randomly generated before the computation starts. The goal of this mode is to facilitate accurate performance measurement while minimizing the setup effort. **Note that the measurement mode only generates random private inputs.** Execution time is not independent of public inputs and thus public inputs should not be randomly generated.
+2. The **testing mode** (specified using the flag `-t`) permits proper execution of secure protocols on private data. It uses public keys owned by computational parties to set up secure communication channels and processed private inputs contributed by different data owners (input parties). It uses command-line-based interfaces for execution, data entry, and output assembly and is well suited for evaluating programs and their correctness.
+3. The **deployment mode** (specified using the flag `-d`) also permits proper execution of secure protocols on private data. It differs from the testing mode in how private inputs are entered into the computation. Instead of specifying inputs in text files and creating shares using command-line-based `picco-utility` executable, this mode produces a web server setup that allows different input parties to enter their information and properly create encrypted shares prior to storing them at the web server.
 
 Regardless of the mode, it is necessary to create an **SMC config** file that provides computation parameters to the compiler.
 
 **SMC config.** The SMC config is a text file that consists of 6 lines, with each of them being in the format of `param=value`, where `param` indicates an SMC parameter and `value` indicates its value. The following parameters are expected:
 
-1. `technique` - the secret sharing technique to be used. Currently, we only support the value `shamir` for Shamir secret sharing.
+1. `technique` - the secret sharing technique to be used. The value `shamir` is used for Shamir secret sharing, while `rss` is used for replicated secret sharing (RSS). RSS doesn't have support for pointers/dynamic memory management. 
 2. `bits` - the bitlength of the modulus used with the secret sharing scheme. This parameter is optional. When the value is left blank in the config file, the compiler will determine the optimal bitlength based on the program to guarantee correctness. Otherwise, the programmer has the ability to overwrite the bitlength.
-3. `peers` - the number of computational parties $n$.
+3. `peers` - the number of computational parties $n$. (RSS implementation supports up to 7 computational parties.)
 4. `threshold` - the threshold value $t$, which is the maximum number of corrupted/colluding parties. The current implementation supports only honest majority techniques and expects $n = 2 t + 1$.
 5. `inputs` - the number of parties contributing input to the computation.
 6. `outputs` - the number of parties receiving output from the computation.
 
-The parameters can be placed in any order in the config file.
+The parameters can be placed in any order in the config file, and a sample smc-config file can be found in the `compiler` directory.
 The `inputs` and `outputs` parameters allow a user to run a program with inputs distributed multiple parties and produce multiple outputs with each of them being sent to a distinct output party. It will be assumed that input/output computational parties are numbered sequentially from 1 up until the specified number of parties. For example, if the number of inputs parties is $k$, they are expected to be numbered 1 through $k$. The same entity can take on different roles (e.g., input party 1 can also be output party 2).
 
-**Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command (assuming the `picco` executable is present in the current directory):
+**Program compilation.** To compile a user's program into its secure implementation, one needs to execute the following command (assuming the `picco` executable is present in the current directory; otherwise a path to the executable should be specified):
 
 ```
 ./picco -d|-t|-m <user program> <SMC config> <translated program> <utility config>
@@ -118,7 +118,7 @@ Executing a secure program requires another configuration file, **runtime config
 2. an IP address or a domain name of the computational party; and
 3. a port number for connecting to that party.
 
-The values should be listed in the specified order on each line and a line with each ID between 1 and $n$ should be present. The same runtime config file is then distributed to all computational parties.
+The values should be listed in the specified order on each line and a line with each ID between 1 and $n$ should be present. The same runtime config file is then distributed to all computational parties. A sample runtime config can be found in the `compute` directory.
 
 To start secure computation in measurement mode, each computational party executes the following command (assuming the program resides in the current directory):
 
@@ -145,30 +145,30 @@ Once a computational party creates its key pair, the party needs to distribute t
 
 ### 5.2. Testing Mode Input Entry
 
-Prior to performing secure computation, the input parties must prepare input data (that could be private, public, or both) and distribute them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to call the program `picco-utility` to produce shares of private inputs. The same program is also used to assemble the output of upon completion of secure computation, as described later. In what follows, we first describe the usage of built-in I/O functions within user programs, then the format of files that contains plaintext input of an input party, followed by usage of the utility program for input generation.
+Prior to performing secure computation, the input parties must prepare input data (that could be private, public, or both) and distribute them to the computational parties. Assuming that at least one of the inputs is private, an input party needs to call the program `picco-utility` to produce shares of private inputs. The same program is also used to assemble the output of upon completion of secure computation, as described later. 
 
-- **Built-in I/O functions.**
-  Input and output in user programs is handled through built-in I/O functions `smcinput` and `smcoutput`, respectively. Both have the same interface and take as the first argument the name of a variable and as the second argument the ID of an input (output) party from whom the variable will be read (to whom the variable will be written). If the variable is an array, the sizes of each array dimension need to be specified as additional arguments (i.e., the number of arguments depends on the variable type). For instance, if `x` was declared as a two-dimensional array with both dimensions being 10, the program can specify `smcinput(x,1,10,10)` to read shares of 100 elements from input party 1. Note that if an array variable was declared to have a larger number of elements than the number of elements being read from the input, the read values will always be placed in the beginning of the array (or in the beginning of each row for the specified number of rows for two-dimensional arrays).
+Recall from the original PICCO paper that input and output in user programs is handled through built-in I/O functions `smcinput` and `smcoutput`, respectively. Both have the same interface and take as the first argument the name of a variable and as the second argument the ID of an input (output) party from whom the variable will be read (to whom the variable will be written). If the variable is an array, the sizes of each array dimension need to be specified as additional arguments (i.e., the number of arguments depends on the variable type). For instance, if `x` was declared as a two-dimensional array with both dimensions being 10, the program can specify `smcinput(x,1,10,10)` to read shares of 100 elements from input party 1. Note that if an array variable was declared to have a larger number of elements than the number of elements being read from the input, the read values will always be placed in the beginning of the array (or in the beginning of each row for the specified number of rows for two-dimensional arrays).
 
-  In the current implementation, both `smcinput` and `smcoutput` are not allowed to be placed within loops or iterations. That is, a user should not write code such as:
+ In the current implementation, `smcinput` or `smcoutput` cannot be called on the same variable more than once or applear within loops or iterations. This is because the parser extracts each call to `smcinput`/`smcoutput` by a scan without performing a more complex analysis or trial execution of the program. 
+ <!---That is, a user should not write code such as:
 
   ```
   for(i = 0; i < 10; i++)
       for(j = 0; j < 10; j++)
           smcinput(x[i][j], 1);
   ```
-
-  The reason is that the parser extracts each call to `smcinput`/`smcoutput` by a scan without performing a more complex analysis or trial execution of the program. Thus, the code above will result in a single integer variable (i.e., `x[i][j]`) being read from the input instead of the entire 100-element array.
-
+Thus, the code above will result in a single integer variable (i.e., `x[i][j]`) being read from the input instead of the entire 100-element array.
+--->
+ 
 - **Input file format.** Each input party needs to prepare their input data in a text file as described below. This text file will be used by the utility program. Note that the user program may read input from multiple parties, and each input party prepares their data independently of other inputs parties.
 
   - _Order of input data_: A user's program may read more than one variable from an input party, and the order of variables in an input file for that party needs to be the same as their relative order in the user program. For instance, three I/O statements `smcinput(x,1,2)`, `smcinput(y,2,10)`, and `smcinput(z,1,10,10)` appear in a user program in that order, the value of `x` should precede that of `z` in the input file of party 1.
 
   - _Data format_: If a variable is a single integer/real or a one-dimensional array, its value should be listed on a separate single line as `var = value1,value2,...` for both public and private variables. For instance, in the above example, we will have `x = 1,2` when `x` is a private array containing two elements `1` and `2`. If a variable is a two-dimensional array of integers, each row in a matrix (if we think of a two-dimensional array as a matrix) should be listed on a separate line with the name of the variable repeated on each line.
 
-  - _Floating point data_: If a float variable is public, it will be treated in the same manner as integer variables mentioned earlier. However, if a variable is private, each float element will occupy a separate line in the format of `var = v,p,s,z`, where `v` is an ${\ell}$-bit significand, `p` is a k-bit exponent, and `s` and `z` are sign and zero bits, respectively (for more information, please refer to [Aliasgari et al., 2013](https://www.ndss-symposium.org/wp-content/uploads/2017/09/11_4_0.pdf)). Namely, if a private float variable is type of array, each array element will occupy a separate line in the above format e.g., in `smcinput(z,1,10,10)` with a private float array `z`, its array elements will occupy 100 lines in an input file.
+  - _Floating point data_: If a float variable is public, it will be treated in the same manner as integer variables mentioned earlier. However, if a variable is private, each float element will occupy a separate line in the format of `var = v,p,s,z`, where `v` is an ${\ell}$-bit significand, `p` is a $k$-bit exponent, and `s` and `z` are sign and zero bits, respectively (for more information, please refer to [Aliasgari et al., 2013](https://www.ndss-symposium.org/wp-content/uploads/2017/09/11_4_0.pdf)). Namely, if a private float variable is type of array, each array element will occupy a separate line in the above format e.g., in `smcinput(z,1,10,10)` with a private float array `z`, its array elements will occupy 100 lines in an input file.
 
-- **Generating input data**. After an input party generates input data in the specified format and saves it in a file of the user's choice, the utility program can be invoked as follows:
+  Sample input files are available together with sample programs in the `compute/sample-programs` directory.
 
 - **Generating input shares**. After an input party generates input data in the specified format and saves it in a file of the user's choice, the utility program can be invoked as follows:
 
