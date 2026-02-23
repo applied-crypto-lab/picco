@@ -7,16 +7,16 @@ public int main()
 
 	smcinput(A, 1, K); 
 
-	for(i = 0; i < 100000000; i++)
+	for(i = 0; i < 10000000; i++)
 		B[0] = A[0] + A[1];  
 	printf("first done...\n"); 
-	for(i = 0; i < 100000000; i++)
+	for(i = 0; i < 10000000; i++)
 		B[0] = A[0] + A[1];  
 	printf("second done...\n"); 
-	for(i = 0; i < 100000000; i++)
+	for(i = 0; i < 10000000; i++)
 		B[0] = A[0] + A[1];  
 	printf("third done...\n"); 
-	for(i = 0; i < 100000000; i++)
+	for(i = 0; i < 10000000; i++)
 		B[0] = A[0] + A[1];  
 	printf("fourth done...\n");
 	

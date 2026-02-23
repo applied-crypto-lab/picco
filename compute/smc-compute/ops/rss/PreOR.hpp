@@ -36,13 +36,14 @@ void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, 
 // we should probably have it compute the "normal" ordered parallel prefix, but have the bits of the input reversed
 // follows similar logic to that in BitAdd implementation
 // although, there isn't a protocol which directly uses it
+// All arrays use interface format [size][numShares]
 template <typename T>
 void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
 
-    for (size_t s = 0; s < numShares; s++) {
-        memcpy(result[s], input[s], sizeof(T) * size);
+    for (size_t i = 0; i < size; i++) {
+        memcpy(result[i], input[i], sizeof(T) * numShares);
     }
     
     T i, j, l, y, z, op_r; // used for loops
@@ -51,6 +52,7 @@ void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork n
     if (r_size > 1) {
 
         uint num = ((r_size + 7) >> 3) * size;
+        uint initial_num = num;  // Save initial allocation size for cleanup
         uint n_uints = ((r_size + 7) >> 3);
         uint t_index;
         T mask1, mask2, mask1m8;
@@ -58,30 +60,33 @@ void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork n
         uint rounds = ceil(log2(r_size_2));
 
         uint **index_array = new uint *[2];
-        T **buffer = new T *[2 * numShares];
+        // buffer uses [2*size][numShares] - two buffers back to back
+        T **buffer = new T *[2 * size];
 
         // we need at most (r_size + 7)/8 bytes to store bits from the buffer
-        uint8_t **a = new uint8_t *[numShares];
-        uint8_t **b = new uint8_t *[numShares];
-        uint8_t **u = new uint8_t *[numShares];
+        // Interface format: a[i][s] = share s of byte i
+        uint8_t **a = new uint8_t *[num];
+        uint8_t **b = new uint8_t *[num];
+        uint8_t **u = new uint8_t *[num];
 
         for (i = 0; i < 2; i++) {
             index_array[i] = new uint[r_size_2];
             memset(index_array[i], 0, sizeof(uint) * r_size_2);
         }
 
-        for (i = 0; i < numShares; i++) {
-            buffer[i] = new T[size];
-            buffer[numShares + i] = new T[size];
-            memset(buffer[i], 0, sizeof(T) * size);
-            memset(buffer[numShares + i], 0, sizeof(T) * size);
+        for (i = 0; i < 2 * size; i++) {
+            buffer[i] = new T[numShares];
+            memset(buffer[i], 0, sizeof(T) * numShares);
+        }
+
+        for (i = 0; i < num; i++) {
             // memsets are actually needed here since are ORing
-            a[i] = new uint8_t[num];
-            memset(a[i], 0, sizeof(uint8_t) * num);
-            b[i] = new uint8_t[num];
-            memset(b[i], 0, sizeof(uint8_t) * num);
-            u[i] = new uint8_t[num];
-            memset(u[i], 0, sizeof(uint8_t) * num);
+            a[i] = new uint8_t[numShares];
+            memset(a[i], 0, sizeof(uint8_t) * numShares);
+            b[i] = new uint8_t[numShares];
+            memset(b[i], 0, sizeof(uint8_t) * numShares);
+            u[i] = new uint8_t[numShares];
+            memset(u[i], 0, sizeof(uint8_t) * numShares);
         }
 
         for (i = 1; i <= rounds; i++) {
@@ -114,12 +119,15 @@ void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork n
             // extracting terms into buffer
             CarryBufferPreOR(buffer, result, index_array, size, op_r, numShares);
 
+            // Copy from buffer [size][numShares] to a, b in interface format [num][numShares]
+            // Each byte position gets its share values
             for (j = 0; j < size; ++j) {
-                for (size_t s = 0; s < numShares; s++) {
-                    memcpy(a[s] + j * n_uints, buffer[s] + j, n_uints);
-                    // memcpy(a[1] + j * n_uints, buffer[1] + j, n_uints);
-                    memcpy(b[s] + j * n_uints, buffer[numShares + s] + j, n_uints);
-                    // memcpy(b[1] + j * n_uints, buffer[3] + j, n_uints);
+                for (size_t byte_idx = 0; byte_idx < n_uints; byte_idx++) {
+                    size_t flat_idx = j * n_uints + byte_idx;
+                    for (size_t s = 0; s < numShares; s++) {
+                        a[flat_idx][s] = ((uint8_t*)&buffer[j][s])[byte_idx];
+                        b[flat_idx][s] = ((uint8_t*)&buffer[size + j][s])[byte_idx];
+                    }
                 }
             }
             // break;
@@ -139,22 +147,20 @@ void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork n
                     // printf("j %u:  (mask1, mask2) -- t_index, mask1m8 = (%u, %u) \t %u, %u \n", j ,mask1, mask2, t_index, mask1m8);
 
                     for (size_t s = 0; s < numShares; s++) {
-                        // input[s][l] = SET_BIT(input[s][l], mask2, GET_BIT(u[s][t_index], mask1m8));
-                        // input[1][l] = SET_BIT(input[1][l], mask2, GET_BIT(u[1][t_index], mask1m8));
-
-                        temp = GET_BIT(result[s][l], mask1) ^ GET_BIT(result[s][l], mask2) ^ GET_BIT(static_cast<T>(u[s][t_index]), mask1m8);
+                        // u is now in interface format [num][numShares], so u[t_index][s]
+                        temp = GET_BIT(result[l][s], mask1) ^ GET_BIT(result[l][s], mask2) ^ GET_BIT(static_cast<T>(u[t_index][s]), mask1m8);
 
                         // simplified from needing two separate loops
-                        result[s][l] = SET_BIT(result[s][l], mask2, temp);
-                        // input[3][l] = SET_BIT(input[3][l], mask2, (GET_BIT(u[1][t_index], mask2m8) ^ GET_BIT(input[3][l], mask2)));
+                        result[l][s] = SET_BIT(result[l][s], mask2, temp);
                     }
                 }
             }
         }
 
-        for (i = 0; i < numShares; i++) {
+        for (i = 0; i < 2 * size; i++) {
             delete[] buffer[i];
-            delete[] buffer[numShares + i];
+        }
+        for (i = 0; i < initial_num; i++) {
             delete[] a[i];
             delete[] b[i];
             delete[] u[i];
@@ -183,8 +189,8 @@ void CarryBufferPreOR(T **buffer, T **a, uint **index_array, uint size, uint k, 
             // printf("i,j %u, %u:  (mask1, mask2) = (%u, %u) \n", i,j ,mask1p, mask2p);
 
             for (T s = 0; s < numShares; s++) {
-                buffer[s][i] = SET_BIT(buffer[s][i], j, GET_BIT(a[s][i], mask1p));
-                buffer[numShares + s][i] = SET_BIT(buffer[numShares + s][i], j, GET_BIT(a[s][i], mask2p));
+                buffer[i][s] = SET_BIT(buffer[i][s], j, GET_BIT(a[i][s], mask1p));
+                buffer[size + i][s] = SET_BIT(buffer[size + i][s], j, GET_BIT(a[i][s], mask2p));
             }
         }
     }

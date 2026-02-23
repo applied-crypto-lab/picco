@@ -28,16 +28,16 @@
 // we are now sorting the T_map in the SecertShare constructor
 // so we no longer really need to do this, provided we sort calculate what T_map[i] is compared against
 
-inline bool chi_p_prime_in_T(int &p_prime, std::vector<int> &T_map, uint &n) {
-    return (((((p_prime + 1 - 1) % n + 1) == T_map[0]) and (((p_prime + 2 - 1) % n + 1) == T_map[1])) or
-            ((((p_prime + 1 - 1) % n + 1) == T_map[1]) and (((p_prime + 2 - 1) % n + 1) == T_map[0])));
+inline bool chi_p_prime_in_T(int p_prime, std::vector<int> &T_map, uint n) {
+    return (((((p_prime + 1 - 1) % n + 1) == (uint)T_map[0]) and (((p_prime + 2 - 1) % n + 1) == (uint)T_map[1])) or
+            ((((p_prime + 1 - 1) % n + 1) == (uint)T_map[1]) and (((p_prime + 2 - 1) % n + 1) == (uint)T_map[0])));
 }
 
-inline bool p_prime_in_T(int &p_prime, std::vector<int> &T_map) {
+inline bool p_prime_in_T(int p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1]);
 }
 
-inline bool chi_p_prime_in_T_7(int &p_prime, std::vector<int> &T_map, uint &n) {
+inline bool chi_p_prime_in_T_7(int p_prime, std::vector<int> &T_map, uint n) {
 
     int chi_0 = (p_prime + 1 - 1) % n + 1;
     int chi_1 = (p_prime + 2 - 1) % n + 1;
@@ -47,152 +47,170 @@ inline bool chi_p_prime_in_T_7(int &p_prime, std::vector<int> &T_map, uint &n) {
             (chi_2 == T_map[0] or chi_2 == T_map[1] or chi_2 == T_map[2]));
 }
 
-inline bool p_prime_in_T_7(int &p_prime, std::vector<int> &T_map) {
+inline bool p_prime_in_T_7(int p_prime, std::vector<int> &T_map) {
     return (p_prime == T_map[0] or p_prime == T_map[1] or p_prime == T_map[2]);
 }
 
+// Arrays use interface format [size][numShares] where:
+//   a[i][0], a[i][1] are share 0 and share 1 of element i
 template <typename T>
 void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
-    int i;
+    uint i;
     T *v = new T[size];
+    T *prg0_vals = new T[size];  // PRG(0) values for masking
+    T *c_share1 = new T[size];   // buffer for receiving
 
     uint8_t *buffer = new uint8_t[bytes * size];
-    ss->prg_getrandom(1, bytes, size, buffer);
 
-    for (i = 0; i < size; i++) {
-        memcpy(c[0] + i, buffer + i * bytes, bytes);
-        v[i] = ((a[0][i] & b[0][i]) ^ (a[0][i] & b[1][i]) ^ (a[1][i] & b[0][i])) ^ c[0][i];
-    }
-    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map);
+    // FIX: The communication pattern is P1←P2, P2←P3, P3←P1
+    // PRG relationships: P1.PRG(1)=P2.PRG(0), P2.PRG(1)=P3.PRG(0), P3.PRG(1)=P1.PRG(0)
+    // For sender's mask to match receiver's unmask:
+    //   - Each party masks with PRG(0), receiver unmasks with PRG(1)
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
-        c[1][i] = c[1][i] ^ c[0][i];
-        memcpy(c[0] + i, buffer + i * bytes, bytes);
-        c[0][i] = c[0][i] ^ v[i];
+        memcpy(&prg0_vals[i], buffer + i * bytes, bytes);
+        // v = local_and XOR PRG(0)
+        v[i] = ((a[i][0] & b[i][0]) ^ (a[i][0] & b[i][1]) ^ (a[i][1] & b[i][0])) ^ prg0_vals[i];
     }
+
+    nodeNet.SendAndGetDataFromPeer(v, c_share1, size, ring_size, ss->general_map);
+
+    // Get PRG(1) for unmasking (sender's PRG(0) = our PRG(1))
+    ss->prg_getrandom(1, bytes, size, buffer);
+
+    for (i = 0; i < size; i++) {
+        // c[1] = recv XOR PRG(1) (sender's PRG(0) = our PRG(1), so this unmasks correctly)
+        T prg1_val;
+        memcpy(&prg1_val, buffer + i * bytes, bytes);
+        c[i][1] = c_share1[i] ^ prg1_val;
+        // c[0] = v XOR PRG(0) = (local XOR PRG(0)) XOR PRG(0) = local
+        c[i][0] = prg0_vals[i] ^ v[i];
+    }
+
+    delete[] prg0_vals;
+
     // free
     delete[] v;
+    delete[] c_share1;
     delete[] buffer;
 }
 
 //  For party 1, a[0,1]=a_2,3; b[0,1]=b_2,3;  c[0,1] = c_2,3;
 //  For party 2, a[0,1]=a_3,1; b[0,1]=b_3,1;  c[0,1] = c_3,1;
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
+// Arrays use interface format [size][numShares] where:
+//   a[i][0], a[i][1] are share 0 and share 1 of element i
 template <typename T>
 void Rss_Mult_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
-    int i;
+    uint i;
 
     T *v = new T[size];
+    T *c_share0 = new T[size];  // temporary for share 0 values
+    T *c_share1 = new T[size];  // buffer for receiving share 1
 
     uint8_t *buffer = new uint8_t[bytes * size];
     ss->prg_getrandom(1, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
-        // original
-        memcpy(c[0] + i, buffer + i * bytes, bytes);
-        v[i] = a[0][i] * b[0][i] + a[0][i] * b[1][i] + a[1][i] * b[0][i] - c[0][i];
-
-        // alternate version that allows for buffers to be reused for inputs/outputs
-        // v[i] = a[0][i] * b[0][i] + a[0][i] * b[1][i] + a[1][i] * b[0][i];
-        // memcpy(c[0] + i, buffer + i * bytes, bytes);
-        // v[i] -= c[0][i];
+        // Copy random value to c_share0[i] (was c[0][i] in old format)
+        memcpy(&c_share0[i], buffer + i * bytes, bytes);
+        // Compute v using interface format: a[i][0], a[i][1], b[i][0], b[i][1]
+        v[i] = a[i][0] * b[i][0] + a[i][0] * b[i][1] + a[i][1] * b[i][0] - c_share0[i];
     }
 
-    nodeNet.SendAndGetDataFromPeer(v, c[1], size, ring_size, ss->general_map);
+    // Send v, receive into c_share1
+    nodeNet.SendAndGetDataFromPeer(v, c_share1, size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
-        c[1][i] = c[1][i] + c[0][i];
-        memcpy(c[0] + i, buffer + i * bytes, bytes);
-        c[0][i] = c[0][i] + v[i];
+        // c[i][1] = received + c_share0
+        c[i][1] = c_share1[i] + c_share0[i];
+        // Get new random for c[i][0]
+        memcpy(&c_share0[i], buffer + i * bytes, bytes);
+        c[i][0] = c_share0[i] + v[i];
     }
 
     // free
     delete[] v;
+    delete[] c_share0;
+    delete[] c_share1;
     delete[] buffer;
 }
 
 //  For party 1, a[0,1]=a_2,3; b[0,1]=b_2,3;  c[0,1] = c_2,3;
 //  For party 2, a[0,1]=a_3,1; b[0,1]=b_3,1;  c[0,1] = c_3,1;
 //  For party 3, a[0,1]=a_1,2; b[0,1]=b_1,2;  c[0,1] = c_1,2;
+// Arrays use interface format [size][numShares] where:
+//   a[i][0], a[i][1] are share 0 and share 1 of element i
+//   b[b_index][0], b[b_index][1] are the fixed shares being multiplied with all elements
 template <typename T>
 void Rss_Mult_fixed_b_3pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    // uint bytes = (nodeNet.RING[ring_size] + 7) >> 3;
     uint bytes = (ring_size + 7) >> 3;
-    int i;
+    uint i;
 
     T *v = new T[size];
-
-    T **c_placeholder = new T *[2];
-    for (i = 0; i < 2; i++) {
-        c_placeholder[i] = new T[size];
-        memset(c_placeholder[i], 0, sizeof(T) * size);
-    }
+    T *c_share0 = new T[size];
+    T *c_share1 = new T[size];
 
     uint8_t *buffer = new uint8_t[bytes * size];
     ss->prg_getrandom(1, bytes, size, buffer);
-    // memcpy(c[0], buffer, size*bytes);
 
     for (i = 0; i < size; i++) {
-        memcpy(c_placeholder[0] + i, buffer + i * bytes, bytes);
-        v[i] = a[0][i] * b[0][b_index] + a[0][i] * b[1][b_index] + a[1][i] * b[0][b_index] - c_placeholder[0][i];
+        memcpy(&c_share0[i], buffer + i * bytes, bytes);
+        // Use interface format: a[i][0], a[i][1] for element i, b[b_index][0], b[b_index][1] for fixed b
+        v[i] = a[i][0] * b[b_index][0] + a[i][0] * b[b_index][1] + a[i][1] * b[b_index][0] - c_share0[i];
     }
     // communication
-    nodeNet.SendAndGetDataFromPeer(v, c_placeholder[1], size, ring_size, ss->general_map);
+    nodeNet.SendAndGetDataFromPeer(v, c_share1, size, ring_size, ss->general_map);
     ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
-        c[1][i] = c_placeholder[1][i] + c_placeholder[0][i];
-        // ss->prg_getrandom(0, bytes, c[0]+i);
-        memcpy(c_placeholder[0] + i, buffer + i * bytes, bytes);
-        c[0][i] = c_placeholder[0][i] + v[i];
-    }
-    for (i = 0; i < 2; i++) {
-        delete[] c_placeholder[i];
+        c[i][1] = c_share1[i] + c_share0[i];
+        memcpy(&c_share0[i], buffer + i * bytes, bytes);
+        c[i][0] = c_share0[i] + v[i];
     }
 
     // free
     delete[] v;
-    delete[] c_placeholder;
+    delete[] c_share0;
+    delete[] c_share1;
     delete[] buffer;
 }
 
+// Arrays use interface format [size][numShares] where:
+//   a[i][0], a[i][1] are share 0 and share 1 of element i
 template <typename T>
 void Rss_Mult_Byte_3pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     // size == how many bytes we're multiplying
-    // uint bytes = (size+8-1)>>3;  //number of bytes need to be send/recv
-    // uint bytes = size;  //number of bytes need to be send/recv
-    // printf("size: %llu\n", size);
-
-    int i = 0;
+    // REVERT: Try original pattern to see if it works for byte operations
+    uint i = 0;
     uint8_t *v = new uint8_t[size];
-    ss->prg_getrandom(1, 1, size, c[0]); //<-- COMMENT OUT FOR TESTING
-    // for(i = 0; i < 2; i++) memset(c[i], 0, sizeof(uint8_t)*size); //<-- COMMENT IN FOR TESTING
+    uint8_t *c_share0 = new uint8_t[size];
+    uint8_t *c_share1 = new uint8_t[size];
 
-    for (i = 0; i < size; i++) { // do operations byte by byte
-        uint8_t temp = ((a[0][i] & (b[0][i] ^ b[1][i])) ^ (a[1][i] & b[0][i]));
-        v[i] = temp ^ c[0][i];
-        // v[i] = ((a[0][i] & b[0][i]) ^ (a[0][i] & b[1][i]) ^ (a[1][i] & b[0][i])) ^ c[0][i]; // original, do not modify
-    }
+    ss->prg_getrandom(1, 1, size, c_share0);
 
-    // communication
-    nodeNet.SendAndGetDataFromPeer_bit(v, c[1], size, ss->general_map);
     for (i = 0; i < size; i++) {
-        c[1][i] = c[1][i] ^ c[0][i];
-    }
-    ss->prg_getrandom(0, 1, size, c[0]); //<-- COMMENT OUT FOR TESTING
-    for (i = 0; i < size; i++) {
-        c[0][i] = c[0][i] ^ v[i];
+        uint8_t temp = ((a[i][0] & (b[i][0] ^ b[i][1])) ^ (a[i][1] & b[i][0]));
+        v[i] = temp ^ c_share0[i];
     }
 
-    // free
+    nodeNet.SendAndGetDataFromPeer_bit(v, c_share1, size, ss->general_map);
+    for (i = 0; i < size; i++) {
+        c[i][1] = c_share1[i] ^ c_share0[i];
+    }
+    ss->prg_getrandom(0, 1, size, c_share0);
+    for (i = 0; i < size; i++) {
+        c[i][0] = c_share0[i] ^ v[i];
+    }
+
     delete[] v;
+    delete[] c_share0;
+    delete[] c_share1;
 }
 
 template <typename T>
@@ -211,7 +229,7 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitleng
         memset(recvbuf[i], 0, sizeof(T) * size);
     }
 
-    static int pid = ss->getID();
+    int pid = ss->getID();
 
     T *v = new T[size];
     T *v_a = new T[size];
@@ -279,56 +297,60 @@ void Rss_MultPub_3pc(T *c, T **a, T **b, uint size, uint ring_size, uint bitleng
     delete[] recvbuf;
 }
 
+// Interface format: [size][numShares] where array[i][s] = share s of element i
 template <typename T>
 void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint bytes = (ring_size + 7) >> 3;
     uint i;
-    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    uint pid = (uint)ss->getID();
 
     T *v = new T[size];
     memset(v, 0, sizeof(T) * size);
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
-    // uint8_t prg_ctrs[6] = {1, 1, 1, 1, 1, 1}; // FOR TESTING
 
     T **recv_buf = new T *[threshold];
     for (i = 0; i < threshold; i++) {
         recv_buf[i] = new T[size];
         memset(recv_buf[i], 0, sizeof(T) * size);
     }
-    // printf("prg start\n");
 
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
         ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
-        memset(c[i], 0, sizeof(T) * size);
     }
+
+    // Sanitize output in interface format [size][numShares]
+    for (i = 0; i < size; i++) {
+        memset(c[i], 0, sizeof(T) * numShares);
+    }
+
     T z = 0;
     uint trackers[6] = {0, 0, 0, 0, 0, 0};
-    // uint tracker;
     for (i = 0; i < size; i++) {
-        v[i] = (a[0][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^ (a[1][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^ (a[2][i] & (b[1][i] ^ b[3][i])) ^ (a[3][i] & (b[0][i] ^ b[2][i])) ^ (a[4][i] & (b[0][i] ^ b[1][i])) ^ (a[5][i] & (b[0][i] ^ b[4][i]));
-        // printf("\n------------v[i]: %llu\t", v[i]  & ss->SHIFT[ring_size] );
+        // Fixed: use a[i][s] instead of a[s][i]
+        v[i] = (a[i][0] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5])) ^
+               (a[i][1] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5])) ^
+               (a[i][2] & (b[i][1] ^ b[i][3])) ^
+               (a[i][3] & (b[i][0] ^ b[i][2])) ^
+               (a[i][4] & (b[i][0] ^ b[i][1])) ^
+               (a[i][5] & (b[i][0] ^ b[i][4]));
 
-        // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            // printf("\n");
-            for (T_index = 0; T_index < numShares; T_index++) {
-                // tracker = 0;
+        for (uint p_prime = 1; p_prime < numParties + 1; p_prime++) {
+            for (uint T_index = 0; T_index < numShares; T_index++) {
                 z = T(0);
 
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
-                    c[T_index][i] = c[T_index][i] ^ z;
+                    c[i][T_index] = c[i][T_index] ^ z;  // Fixed: [element][share]
                     trackers[T_index] += 1;
                 } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (trackers[T_index]) * bytes, bytes);
-                    c[T_index][i] = c[T_index][i] ^ z;
+                    c[i][T_index] = c[i][T_index] ^ z;  // Fixed: [element][share]
                     v[i] = v[i] ^ z;
                     trackers[T_index] += 1;
                 }
@@ -340,9 +362,9 @@ void Rss_Mult_Bitwise_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
 
     for (i = 0; i < size; i++) {
-        c[3][i] = c[3][i] ^ recv_buf[1][i];
-        c[5][i] = c[5][i] ^ recv_buf[0][i];
-        c[0][i] = c[0][i] ^ v[i];
+        c[i][3] = c[i][3] ^ recv_buf[1][i];  // Fixed: [element][share]
+        c[i][5] = c[i][5] ^ recv_buf[0][i];  // Fixed: [element][share]
+        c[i][0] = c[i][0] ^ v[i];            // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -364,11 +386,10 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
 
     uint bytes = (ring_size + 7) >> 3;
     uint i;
-    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    uint pid = (uint)ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -387,33 +408,34 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     T z = T(0);
     uint tracker;
     for (i = 0; i < size; i++) {
-        v[i] = a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i]) +
-               a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i]) +
-               a[2][i] * (b[1][i] + b[3][i]) +
-               a[3][i] * (b[0][i] + b[2][i]) +
-               a[4][i] * (b[0][i] + b[1][i]) +
-               a[5][i] * (b[0][i] + b[4][i]);
+        // Fixed indexing: arrays are [element][share] not [share][element]
+        v[i] = a[i][0] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5]) +
+               a[i][1] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5]) +
+               a[i][2] * (b[i][1] + b[i][3]) +
+               a[i][3] * (b[i][0] + b[i][2]) +
+               a[i][4] * (b[i][0] + b[i][1]) +
+               a[i][5] * (b[i][0] + b[i][4]);
     }
-    for (int s = 0; s < numShares; s++) {
+    for (i = 0; i < size; i++) {
         // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(T) * size);
+        memset(c[i], 0, sizeof(T) * numShares);
     }
     // printf("finished calculating v\n");
-    for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+    for (uint p_prime = 1; p_prime < numParties + 1; p_prime++) {
         // printf("\n");
-        for (T_index = 0; T_index < numShares; T_index++) {
+        for (uint T_index = 0; T_index < numShares; T_index++) {
             tracker = 0;
             if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                 for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                 }
                 tracker += 1;
             } else if (
                 (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                 for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                     v[i] -= z;
                 }
                 tracker += 1;
@@ -427,10 +449,10 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
-        c[3][i] = c[3][i] + recv_buf[1][i];
-        c[5][i] = c[5][i] + recv_buf[0][i];
+        c[i][3] = c[i][3] + recv_buf[1][i];  // Fixed: [element][share]
+        c[i][5] = c[i][5] + recv_buf[0][i];  // Fixed: [element][share]
 
-        c[0][i] = c[0][i] + v[i];
+        c[i][0] = c[i][0] + v[i];  // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -447,6 +469,8 @@ void Rss_Mult_5pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     delete[] recv_buf;
 }
 
+// Interface format: [size][numShares] where array[i][s] = share s of element i
+// b[b_index][s] is the fixed element being multiplied with all elements of a
 template <typename T>
 void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
@@ -455,7 +479,7 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
@@ -469,35 +493,36 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * bytes * size];
         ss->prg_getrandom(i, bytes, prg_ctrs[i] * size, buffer[i]);
-
-        // memset(c[i], 0, sizeof(T) * size);
     }
     T z = 0;
     uint tracker;
     for (i = 0; i < size; i++) {
-        v[i] = a[0][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index]) +
-               a[1][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index]) +
-               a[2][i] * (b[1][b_index] + b[3][b_index]) +
-               a[3][i] * (b[0][b_index] + b[2][b_index]) +
-               a[4][i] * (b[0][b_index] + b[1][b_index]) +
-               a[5][i] * (b[0][b_index] + b[4][b_index]);
+        // Fixed: use a[i][s] for element i, b[b_index][s] for fixed element
+        v[i] = a[i][0] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5]) +
+               a[i][1] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5]) +
+               a[i][2] * (b[b_index][1] + b[b_index][3]) +
+               a[i][3] * (b[b_index][0] + b[b_index][2]) +
+               a[i][4] * (b[b_index][0] + b[b_index][1]) +
+               a[i][5] * (b[b_index][0] + b[b_index][4]);
     }
-    for (int s = 0; s < numShares; s++) {
-        // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(T) * size);
+
+    // Sanitize output in interface format [size][numShares]
+    for (i = 0; i < size; i++) {
+        memset(c[i], 0, sizeof(T) * numShares);
     }
+
     for (i = 0; i < size; i++) {
         for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
             for (T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                     tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                     v[i] -= z;
                     tracker += 1;
                 }
@@ -508,10 +533,9 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     // communication
     nodeNet.SendAndGetDataFromPeer(v, recv_buf, size, ring_size, ss->general_map);
     for (i = 0; i < size; i++) {
-        c[3][i] = c[3][i] + recv_buf[1][i];
-        c[5][i] = c[5][i] + recv_buf[0][i];
-
-        c[0][i] = c[0][i] + v[i];
+        c[i][3] = c[i][3] + recv_buf[1][i];  // Fixed: [element][share]
+        c[i][5] = c[i][5] + recv_buf[0][i];  // Fixed: [element][share]
+        c[i][0] = c[i][0] + v[i];            // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -528,60 +552,56 @@ void Rss_Mult_fixed_b_5pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     delete[] recv_buf;
 }
 
+// Interface format: [size][numShares] where array[i][s] = share s of element i
 template <typename T>
 void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint i = 0;
-    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
-
-    // printf("size: %u\n", size);
+    uint pid = (uint)ss->getID();
 
     uint8_t *v = new uint8_t[size];
     memset(v, 0, sizeof(uint8_t) * size);
     uint8_t prg_ctrs[6] = {2, 3, 3, 2, 3, 2};
-    // uint8_t prg_ctrs[6] = {1, 1, 1, 1, 1, 1}; // FOR TESTING
 
     uint8_t **recv_buf = new uint8_t *[threshold];
     for (i = 0; i < threshold; i++) {
         recv_buf[i] = new uint8_t[size];
         memset(recv_buf[i], 0, sizeof(uint8_t) * size);
     }
-    // printf("prg start\n");
 
     uint8_t **buffer = new uint8_t *[numShares];
     for (i = 0; i < numShares; i++) {
         buffer[i] = new uint8_t[prg_ctrs[i] * size];
         ss->prg_getrandom(i, 1, prg_ctrs[i] * size, buffer[i]);
-        // memset(c[i], 0, sizeof(uint8_t) * size);
     }
-    // uint tracker;
     uint trackers[6] = {0, 0, 0, 0, 0, 0};
 
     for (i = 0; i < size; i++) {
+        // Fixed: use a[i][s] instead of a[s][i]
+        v[i] = (a[i][0] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5])) ^
+               (a[i][1] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5])) ^
+               (a[i][2] & (b[i][1] ^ b[i][3])) ^
+               (a[i][3] & (b[i][0] ^ b[i][2])) ^
+               (a[i][4] & (b[i][0] ^ b[i][1])) ^
+               (a[i][5] & (b[i][0] ^ b[i][4]));
+    }
 
-        v[i] = (a[0][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^
-               (a[1][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i])) ^
-               (a[2][i] & (b[1][i] ^ b[3][i])) ^
-               (a[3][i] & (b[0][i] ^ b[2][i])) ^
-               (a[4][i] & (b[0][i] ^ b[1][i])) ^
-               (a[5][i] & (b[0][i] ^ b[4][i]));
-    }
-    for (int s = 0; s < numShares; s++) {
-        // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(uint8_t) * size);
-    }
+    // Sanitize output in interface format [size][numShares]
     for (i = 0; i < size; i++) {
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
-            for (T_index = 0; T_index < numShares; T_index++) {
+        memset(c[i], 0, sizeof(uint8_t) * numShares);
+    }
+
+    for (i = 0; i < size; i++) {
+        for (uint p_prime = 1; p_prime < numParties + 1; p_prime++) {
+            for (uint T_index = 0; T_index < numShares; T_index++) {
                 if ((p_prime != (pid)) and (!(p_prime_in_T(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T(p_prime, ss->T_map_mpc[T_index], numParties)))) {
-                    c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
+                    c[i][T_index] = c[i][T_index] ^ buffer[T_index][trackers[T_index]];  // Fixed: [element][share]
                     trackers[T_index] += 1;
                 } else if ((p_prime == pid) and (!(chi_p_prime_in_T(pid, ss->T_map_mpc[T_index], numParties)))) {
-                    c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
+                    c[i][T_index] = c[i][T_index] ^ buffer[T_index][trackers[T_index]];  // Fixed: [element][share]
                     v[i] = v[i] ^ buffer[T_index][trackers[T_index]];
                     trackers[T_index] += 1;
                 }
@@ -590,12 +610,10 @@ void Rss_Mult_Byte_5pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     }
     nodeNet.SendAndGetDataFromPeer_bit(v, recv_buf, size, ss->general_map);
 
-    // nodeNet.SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
-        c[3][i] = c[3][i] ^ recv_buf[1][i];
-        c[5][i] = c[5][i] ^ recv_buf[0][i];
-
-        c[0][i] = c[0][i] ^ v[i];
+        c[i][3] = c[i][3] ^ recv_buf[1][i];  // Fixed: [element][share]
+        c[i][5] = c[i][5] ^ recv_buf[0][i];  // Fixed: [element][share]
+        c[i][0] = c[i][0] ^ v[i];            // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -621,11 +639,10 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
 
     uint bytes = (ring_size + 7) >> 3;
     uint i;
-    int p_prime, T_index;
-    static uint numShares = ss->getNumShares();
-    static uint numParties = ss->getPeers();
-    static uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    uint numShares = ss->getNumShares();
+    uint numParties = ss->getPeers();
+    uint threshold = ss->getThreshold();
+    uint pid = (uint)ss->getID();
 
     // std::cout << "numShares  " << numShares << std::endl;
     // std::cout << "numParties  " << numParties << std::endl;
@@ -649,50 +666,51 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
     T z = T(0);
     uint tracker;
     // gettimeofday(&start, NULL);
+    // Fixed indexing: arrays are [element][share] not [share][element]
     for (i = 0; i < size; i++) {
         v[i] =
-            a[0][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[1][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[2][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[3][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[4][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[15][i]) +
-            a[5][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[6][i] + b[7][i] + b[8][i] + b[9][i] + b[10][i] + b[11][i] + b[12][i] + b[13][i] + b[14][i] + b[15][i] + b[16][i] + b[17][i] + b[18][i] + b[19][i]) +
-            a[6][i] * (b[2][i] + b[5][i] + b[7][i] + b[9][i] + b[11][i] + b[13][i]) +
-            a[7][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i] + b[10][i] + b[11][i] + b[12][i]) +
-            a[8][i] * (b[0][i] + b[4][i] + b[5][i] + b[10][i] + b[11][i] + b[16][i]) +
-            a[9][i] * (b[1][i] + b[4][i] + b[7][i] + b[8][i] + b[10][i] + b[13][i]) +
-            a[10][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[4][i] + b[5][i] + b[9][i]) +
-            a[11][i] * (b[0][i] + b[1][i] + b[4][i] + b[6][i] + b[7][i] + b[8][i]) +
-            a[12][i] * (b[0][i] + b[1][i] + b[2][i] + b[4][i] + b[5][i] + b[7][i]) +
-            a[13][i] * (b[0][i] + b[4][i] + b[5][i] + b[6][i]) +
-            a[14][i] * (b[2][i] + b[4][i] + b[5][i]) +
-            a[15][i] * (b[1][i] + b[4][i]) +
-            a[16][i] * (b[0][i] + b[1][i] + b[2][i] + b[3][i] + b[15][i]) +
-            a[17][i] * (b[0][i] + b[1][i] + b[2][i]) +
-            a[18][i] * (b[1][i] + b[8][i]) +
-            a[19][i] * (b[0][i] + b[5][i] + b[6][i]);
+            a[i][0] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5] + b[i][6] + b[i][7] + b[i][8] + b[i][9] + b[i][10] + b[i][11] + b[i][12] + b[i][13] + b[i][14] + b[i][15] + b[i][16] + b[i][17] + b[i][18] + b[i][19]) +
+            a[i][1] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5] + b[i][6] + b[i][7] + b[i][8] + b[i][9] + b[i][10] + b[i][11] + b[i][12] + b[i][13] + b[i][14] + b[i][15] + b[i][16] + b[i][17] + b[i][18] + b[i][19]) +
+            a[i][2] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5] + b[i][6] + b[i][7] + b[i][8] + b[i][9] + b[i][10] + b[i][11] + b[i][12] + b[i][13] + b[i][14] + b[i][15] + b[i][16] + b[i][17] + b[i][18] + b[i][19]) +
+            a[i][3] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5] + b[i][6] + b[i][7] + b[i][8] + b[i][9] + b[i][10] + b[i][11] + b[i][12] + b[i][13] + b[i][14] + b[i][15] + b[i][16] + b[i][17] + b[i][18] + b[i][19]) +
+            a[i][4] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][10] + b[i][11] + b[i][12] + b[i][13] + b[i][15]) +
+            a[i][5] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5] + b[i][6] + b[i][7] + b[i][8] + b[i][9] + b[i][10] + b[i][11] + b[i][12] + b[i][13] + b[i][14] + b[i][15] + b[i][16] + b[i][17] + b[i][18] + b[i][19]) +
+            a[i][6] * (b[i][2] + b[i][5] + b[i][7] + b[i][9] + b[i][11] + b[i][13]) +
+            a[i][7] * (b[i][0] + b[i][4] + b[i][5] + b[i][6] + b[i][10] + b[i][11] + b[i][12]) +
+            a[i][8] * (b[i][0] + b[i][4] + b[i][5] + b[i][10] + b[i][11] + b[i][16]) +
+            a[i][9] * (b[i][1] + b[i][4] + b[i][7] + b[i][8] + b[i][10] + b[i][13]) +
+            a[i][10] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][4] + b[i][5] + b[i][9]) +
+            a[i][11] * (b[i][0] + b[i][1] + b[i][4] + b[i][6] + b[i][7] + b[i][8]) +
+            a[i][12] * (b[i][0] + b[i][1] + b[i][2] + b[i][4] + b[i][5] + b[i][7]) +
+            a[i][13] * (b[i][0] + b[i][4] + b[i][5] + b[i][6]) +
+            a[i][14] * (b[i][2] + b[i][4] + b[i][5]) +
+            a[i][15] * (b[i][1] + b[i][4]) +
+            a[i][16] * (b[i][0] + b[i][1] + b[i][2] + b[i][3] + b[i][15]) +
+            a[i][17] * (b[i][0] + b[i][1] + b[i][2]) +
+            a[i][18] * (b[i][1] + b[i][8]) +
+            a[i][19] * (b[i][0] + b[i][5] + b[i][6]);
     }
 
-    for (int s = 0; s < numShares; s++) {
-        memset(c[s], 0, sizeof(T) * size);
+    for (i = 0; i < size; i++) {
+        memset(c[i], 0, sizeof(T) * numShares);
     }
 
     // printf("finished calculating v\n");
-    for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+    for (uint p_prime = 1; p_prime < numParties + 1; p_prime++) {
         // printf("\n");
-        for (T_index = 0; T_index < numShares; T_index++) {
+        for (uint T_index = 0; T_index < numShares; T_index++) {
             tracker = 0;
             if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                 for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                 }
                 tracker += 1;
             } else if (
                 (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                 for (i = 0; i < size; i++) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                     v[i] -= z;
                 }
                 tracker += 1;
@@ -715,11 +733,11 @@ void Rss_Mult_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNetwork no
 
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
-        c[19][i] = c[19][i] + recv_buf[0][i];
-        c[16][i] = c[16][i] + recv_buf[1][i];
-        c[10][i] = c[10][i] + recv_buf[2][i];
+        c[i][19] = c[i][19] + recv_buf[0][i];  // Fixed: [element][share]
+        c[i][16] = c[i][16] + recv_buf[1][i];  // Fixed: [element][share]
+        c[i][10] = c[i][10] + recv_buf[2][i];  // Fixed: [element][share]
 
-        c[0][i] = c[0][i] + v[i];
+        c[i][0] = c[i][0] + v[i];  // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -744,7 +762,7 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    int pid = ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -766,32 +784,33 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
     }
     T z = T(0);
     uint tracker;
+    // Fixed indexing: arrays are [element][share] not [share][element]
     for (i = 0; i < size; i++) {
         v[i] =
-            a[0][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
-            a[1][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
-            a[2][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
-            a[3][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
-            a[4][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[15][b_index]) +
-            a[5][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index] + b[9][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index] + b[13][b_index] + b[14][b_index] + b[15][b_index] + b[16][b_index] + b[17][b_index] + b[18][b_index] + b[19][b_index]) +
-            a[6][i] * (b[2][b_index] + b[5][b_index] + b[7][b_index] + b[9][b_index] + b[11][b_index] + b[13][b_index]) +
-            a[7][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index] + b[10][b_index] + b[11][b_index] + b[12][b_index]) +
-            a[8][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[10][b_index] + b[11][b_index] + b[16][b_index]) +
-            a[9][i] * (b[1][b_index] + b[4][b_index] + b[7][b_index] + b[8][b_index] + b[10][b_index] + b[13][b_index]) +
-            a[10][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[4][b_index] + b[5][b_index] + b[9][b_index]) +
-            a[11][i] * (b[0][b_index] + b[1][b_index] + b[4][b_index] + b[6][b_index] + b[7][b_index] + b[8][b_index]) +
-            a[12][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[4][b_index] + b[5][b_index] + b[7][b_index]) +
-            a[13][i] * (b[0][b_index] + b[4][b_index] + b[5][b_index] + b[6][b_index]) +
-            a[14][i] * (b[2][b_index] + b[4][b_index] + b[5][b_index]) +
-            a[15][i] * (b[1][b_index] + b[4][b_index]) +
-            a[16][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index] + b[3][b_index] + b[15][b_index]) +
-            a[17][i] * (b[0][b_index] + b[1][b_index] + b[2][b_index]) +
-            a[18][i] * (b[1][b_index] + b[8][b_index]) +
-            a[19][i] * (b[0][b_index] + b[5][b_index] + b[6][b_index]);
+            a[i][0] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5] + b[b_index][6] + b[b_index][7] + b[b_index][8] + b[b_index][9] + b[b_index][10] + b[b_index][11] + b[b_index][12] + b[b_index][13] + b[b_index][14] + b[b_index][15] + b[b_index][16] + b[b_index][17] + b[b_index][18] + b[b_index][19]) +
+            a[i][1] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5] + b[b_index][6] + b[b_index][7] + b[b_index][8] + b[b_index][9] + b[b_index][10] + b[b_index][11] + b[b_index][12] + b[b_index][13] + b[b_index][14] + b[b_index][15] + b[b_index][16] + b[b_index][17] + b[b_index][18] + b[b_index][19]) +
+            a[i][2] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5] + b[b_index][6] + b[b_index][7] + b[b_index][8] + b[b_index][9] + b[b_index][10] + b[b_index][11] + b[b_index][12] + b[b_index][13] + b[b_index][14] + b[b_index][15] + b[b_index][16] + b[b_index][17] + b[b_index][18] + b[b_index][19]) +
+            a[i][3] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5] + b[b_index][6] + b[b_index][7] + b[b_index][8] + b[b_index][9] + b[b_index][10] + b[b_index][11] + b[b_index][12] + b[b_index][13] + b[b_index][14] + b[b_index][15] + b[b_index][16] + b[b_index][17] + b[b_index][18] + b[b_index][19]) +
+            a[i][4] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][10] + b[b_index][11] + b[b_index][12] + b[b_index][13] + b[b_index][15]) +
+            a[i][5] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5] + b[b_index][6] + b[b_index][7] + b[b_index][8] + b[b_index][9] + b[b_index][10] + b[b_index][11] + b[b_index][12] + b[b_index][13] + b[b_index][14] + b[b_index][15] + b[b_index][16] + b[b_index][17] + b[b_index][18] + b[b_index][19]) +
+            a[i][6] * (b[b_index][2] + b[b_index][5] + b[b_index][7] + b[b_index][9] + b[b_index][11] + b[b_index][13]) +
+            a[i][7] * (b[b_index][0] + b[b_index][4] + b[b_index][5] + b[b_index][6] + b[b_index][10] + b[b_index][11] + b[b_index][12]) +
+            a[i][8] * (b[b_index][0] + b[b_index][4] + b[b_index][5] + b[b_index][10] + b[b_index][11] + b[b_index][16]) +
+            a[i][9] * (b[b_index][1] + b[b_index][4] + b[b_index][7] + b[b_index][8] + b[b_index][10] + b[b_index][13]) +
+            a[i][10] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][4] + b[b_index][5] + b[b_index][9]) +
+            a[i][11] * (b[b_index][0] + b[b_index][1] + b[b_index][4] + b[b_index][6] + b[b_index][7] + b[b_index][8]) +
+            a[i][12] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][4] + b[b_index][5] + b[b_index][7]) +
+            a[i][13] * (b[b_index][0] + b[b_index][4] + b[b_index][5] + b[b_index][6]) +
+            a[i][14] * (b[b_index][2] + b[b_index][4] + b[b_index][5]) +
+            a[i][15] * (b[b_index][1] + b[b_index][4]) +
+            a[i][16] * (b[b_index][0] + b[b_index][1] + b[b_index][2] + b[b_index][3] + b[b_index][15]) +
+            a[i][17] * (b[b_index][0] + b[b_index][1] + b[b_index][2]) +
+            a[i][18] * (b[b_index][1] + b[b_index][8]) +
+            a[i][19] * (b[b_index][0] + b[b_index][5] + b[b_index][6]);
     }
-    for (int s = 0; s < numShares; s++) {
+    for (i = 0; i < size; i++) {
         // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(T) * size);
+        memset(c[i], 0, sizeof(T) * numShares);
     }
     for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
@@ -801,12 +820,12 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
                 tracker = 0;
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                     tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] += z;
+                    c[i][T_index] += z;  // Fixed: [element][share]
                     v[i] -= z;
 
                     tracker += 1;
@@ -820,11 +839,11 @@ void Rss_Mult_fixed_b_7pc(T **c, T **a, T **b, uint b_index, uint size, uint rin
 
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
-        c[19][i] = c[19][i] + recv_buf[0][i];
-        c[16][i] = c[16][i] + recv_buf[1][i];
-        c[10][i] = c[10][i] + recv_buf[2][i];
+        c[i][19] = c[i][19] + recv_buf[0][i];  // Fixed: [element][share]
+        c[i][16] = c[i][16] + recv_buf[1][i];  // Fixed: [element][share]
+        c[i][10] = c[i][10] + recv_buf[2][i];  // Fixed: [element][share]
 
-        c[0][i] = c[0][i] + v[i];
+        c[i][0] = c[i][0] + v[i];  // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -846,11 +865,10 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
 
     uint bytes = (ring_size + 7) >> 3;
     uint i;
-    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    uint pid = (uint)ss->getID();
 
     T *v = new T[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -872,47 +890,48 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     }
     T z = T(0);
     uint tracker;
+    // Fixed indexing: arrays are [element][share] not [share][element]
     for (i = 0; i < size; i++) {
         v[i] =
-            (a[0][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[1][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[2][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[3][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[4][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[15][i])) ^
-            (a[5][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[6][i] & (b[2][i] ^ b[5][i] ^ b[7][i] ^ b[9][i] ^ b[11][i] ^ b[13][i])) ^
-            (a[7][i] & (b[0][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[10][i] ^ b[11][i] ^ b[12][i])) ^
-            (a[8][i] & (b[0][i] ^ b[4][i] ^ b[5][i] ^ b[10][i] ^ b[11][i] ^ b[16][i])) ^
-            (a[9][i] & (b[1][i] ^ b[4][i] ^ b[7][i] ^ b[8][i] ^ b[10][i] ^ b[13][i])) ^
-            (a[10][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[9][i])) ^
-            (a[11][i] & (b[0][i] ^ b[1][i] ^ b[4][i] ^ b[6][i] ^ b[7][i] ^ b[8][i])) ^
-            (a[12][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[4][i] ^ b[5][i] ^ b[7][i])) ^
-            (a[13][i] & (b[0][i] ^ b[4][i] ^ b[5][i] ^ b[6][i])) ^
-            (a[14][i] & (b[2][i] ^ b[4][i] ^ b[5][i])) ^
-            (a[15][i] & (b[1][i] ^ b[4][i])) ^
-            (a[16][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[15][i])) ^
-            (a[17][i] & (b[0][i] ^ b[1][i] ^ b[2][i])) ^
-            (a[18][i] & (b[1][i] ^ b[8][i])) ^
-            (a[19][i] & (b[0][i] ^ b[5][i] ^ b[6][i]));
+            (a[i][0] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][1] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][2] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][3] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][4] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][15])) ^
+            (a[i][5] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][6] & (b[i][2] ^ b[i][5] ^ b[i][7] ^ b[i][9] ^ b[i][11] ^ b[i][13])) ^
+            (a[i][7] & (b[i][0] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][10] ^ b[i][11] ^ b[i][12])) ^
+            (a[i][8] & (b[i][0] ^ b[i][4] ^ b[i][5] ^ b[i][10] ^ b[i][11] ^ b[i][16])) ^
+            (a[i][9] & (b[i][1] ^ b[i][4] ^ b[i][7] ^ b[i][8] ^ b[i][10] ^ b[i][13])) ^
+            (a[i][10] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][9])) ^
+            (a[i][11] & (b[i][0] ^ b[i][1] ^ b[i][4] ^ b[i][6] ^ b[i][7] ^ b[i][8])) ^
+            (a[i][12] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][4] ^ b[i][5] ^ b[i][7])) ^
+            (a[i][13] & (b[i][0] ^ b[i][4] ^ b[i][5] ^ b[i][6])) ^
+            (a[i][14] & (b[i][2] ^ b[i][4] ^ b[i][5])) ^
+            (a[i][15] & (b[i][1] ^ b[i][4])) ^
+            (a[i][16] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][15])) ^
+            (a[i][17] & (b[i][0] ^ b[i][1] ^ b[i][2])) ^
+            (a[i][18] & (b[i][1] ^ b[i][8])) ^
+            (a[i][19] & (b[i][0] ^ b[i][5] ^ b[i][6]));
     }
-    for (int s = 0; s < numShares; s++) {
+    for (i = 0; i < size; i++) {
         // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(T) * size);
+        memset(c[i], 0, sizeof(T) * numShares);
     }
     for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+        for (uint p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
-            for (T_index = 0; T_index < numShares; T_index++) {
+            for (uint T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] ^= z;
+                    c[i][T_index] ^= z;  // Fixed: [element][share]
                     tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
                     memcpy(&z, buffer[T_index] + (i * prg_ctrs[T_index] + tracker) * bytes, bytes);
-                    c[T_index][i] ^= z;
+                    c[i][T_index] ^= z;  // Fixed: [element][share]
                     v[i] ^= z;
 
                     tracker += 1;
@@ -926,11 +945,11 @@ void Rss_Mult_Bitwise_7pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     // nodeNet.SendAndGetDataFromPeer_Mult(v, recv_buf, size, ring_size);
     // ss->prg_getrandom(0, bytes, size, buffer);
     for (i = 0; i < size; i++) {
-        c[19][i] = c[19][i] ^ recv_buf[0][i];
-        c[16][i] = c[16][i] ^ recv_buf[1][i];
-        c[10][i] = c[10][i] ^ recv_buf[2][i];
+        c[i][19] = c[i][19] ^ recv_buf[0][i];  // Fixed: [element][share]
+        c[i][16] = c[i][16] ^ recv_buf[1][i];  // Fixed: [element][share]
+        c[i][10] = c[i][10] ^ recv_buf[2][i];  // Fixed: [element][share]
 
-        c[0][i] = c[0][i] ^ v[i];
+        c[i][0] = c[i][0] ^ v[i];  // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {
@@ -951,11 +970,10 @@ template <typename T>
 void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     uint i;
-    int p_prime, T_index;
     uint numShares = ss->getNumShares();
     uint numParties = ss->getPeers();
     uint threshold = ss->getThreshold();
-    static int pid = ss->getID();
+    uint pid = (uint)ss->getID();
 
     uint8_t *v = new uint8_t[size];
     uint8_t prg_ctrs[20] = {3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3};
@@ -977,45 +995,46 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
     uint tracker = 0;
     uint trackers[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+    // Fixed indexing: arrays are [element][share] not [share][element]
     for (i = 0; i < size; i++) {
         v[i] =
-            (a[0][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[1][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[2][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[3][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[4][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[15][i])) ^
-            (a[5][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[7][i] ^ b[8][i] ^ b[9][i] ^ b[10][i] ^ b[11][i] ^ b[12][i] ^ b[13][i] ^ b[14][i] ^ b[15][i] ^ b[16][i] ^ b[17][i] ^ b[18][i] ^ b[19][i])) ^
-            (a[6][i] & (b[2][i] ^ b[5][i] ^ b[7][i] ^ b[9][i] ^ b[11][i] ^ b[13][i])) ^
-            (a[7][i] & (b[0][i] ^ b[4][i] ^ b[5][i] ^ b[6][i] ^ b[10][i] ^ b[11][i] ^ b[12][i])) ^
-            (a[8][i] & (b[0][i] ^ b[4][i] ^ b[5][i] ^ b[10][i] ^ b[11][i] ^ b[16][i])) ^
-            (a[9][i] & (b[1][i] ^ b[4][i] ^ b[7][i] ^ b[8][i] ^ b[10][i] ^ b[13][i])) ^
-            (a[10][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[4][i] ^ b[5][i] ^ b[9][i])) ^
-            (a[11][i] & (b[0][i] ^ b[1][i] ^ b[4][i] ^ b[6][i] ^ b[7][i] ^ b[8][i])) ^
-            (a[12][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[4][i] ^ b[5][i] ^ b[7][i])) ^
-            (a[13][i] & (b[0][i] ^ b[4][i] ^ b[5][i] ^ b[6][i])) ^
-            (a[14][i] & (b[2][i] ^ b[4][i] ^ b[5][i])) ^
-            (a[15][i] & (b[1][i] ^ b[4][i])) ^
-            (a[16][i] & (b[0][i] ^ b[1][i] ^ b[2][i] ^ b[3][i] ^ b[15][i])) ^
-            (a[17][i] & (b[0][i] ^ b[1][i] ^ b[2][i])) ^
-            (a[18][i] & (b[1][i] ^ b[8][i])) ^
-            (a[19][i] & (b[0][i] ^ b[5][i] ^ b[6][i]));
+            (a[i][0] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][1] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][2] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][3] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][4] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][15])) ^
+            (a[i][5] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][7] ^ b[i][8] ^ b[i][9] ^ b[i][10] ^ b[i][11] ^ b[i][12] ^ b[i][13] ^ b[i][14] ^ b[i][15] ^ b[i][16] ^ b[i][17] ^ b[i][18] ^ b[i][19])) ^
+            (a[i][6] & (b[i][2] ^ b[i][5] ^ b[i][7] ^ b[i][9] ^ b[i][11] ^ b[i][13])) ^
+            (a[i][7] & (b[i][0] ^ b[i][4] ^ b[i][5] ^ b[i][6] ^ b[i][10] ^ b[i][11] ^ b[i][12])) ^
+            (a[i][8] & (b[i][0] ^ b[i][4] ^ b[i][5] ^ b[i][10] ^ b[i][11] ^ b[i][16])) ^
+            (a[i][9] & (b[i][1] ^ b[i][4] ^ b[i][7] ^ b[i][8] ^ b[i][10] ^ b[i][13])) ^
+            (a[i][10] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][4] ^ b[i][5] ^ b[i][9])) ^
+            (a[i][11] & (b[i][0] ^ b[i][1] ^ b[i][4] ^ b[i][6] ^ b[i][7] ^ b[i][8])) ^
+            (a[i][12] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][4] ^ b[i][5] ^ b[i][7])) ^
+            (a[i][13] & (b[i][0] ^ b[i][4] ^ b[i][5] ^ b[i][6])) ^
+            (a[i][14] & (b[i][2] ^ b[i][4] ^ b[i][5])) ^
+            (a[i][15] & (b[i][1] ^ b[i][4])) ^
+            (a[i][16] & (b[i][0] ^ b[i][1] ^ b[i][2] ^ b[i][3] ^ b[i][15])) ^
+            (a[i][17] & (b[i][0] ^ b[i][1] ^ b[i][2])) ^
+            (a[i][18] & (b[i][1] ^ b[i][8])) ^
+            (a[i][19] & (b[i][0] ^ b[i][5] ^ b[i][6]));
     }
-    for (int s = 0; s < numShares; s++) {
+    for (i = 0; i < size; i++) {
         // sanitizing after the product is computed, so we can reuse the buffer
-        memset(c[s], 0, sizeof(uint8_t) * size);
+        memset(c[i], 0, sizeof(uint8_t) * numShares);
     }
     for (i = 0; i < size; i++) {
         // printf("finished calculating v\n");
-        for (p_prime = 1; p_prime < numParties + 1; p_prime++) {
+        for (uint p_prime = 1; p_prime < numParties + 1; p_prime++) {
             // printf("\n");
-            for (T_index = 0; T_index < numShares; T_index++) {
+            for (uint T_index = 0; T_index < numShares; T_index++) {
                 tracker = 0;
                 if ((p_prime != (pid)) and (!(p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index]))) and (!(chi_p_prime_in_T_7(p_prime, ss->T_map_mpc[T_index], numParties)))) {
-                    c[T_index][i] ^= buffer[T_index][trackers[T_index]];
+                    c[i][T_index] ^= buffer[T_index][trackers[T_index]];  // Fixed: [element][share]
                     tracker += 1;
                 } else if (
                     (p_prime == pid) and (!(chi_p_prime_in_T_7(pid, ss->T_map_mpc[T_index], numParties)))) {
-                    c[T_index][i] = c[T_index][i] ^ buffer[T_index][trackers[T_index]];
+                    c[i][T_index] = c[i][T_index] ^ buffer[T_index][trackers[T_index]];  // Fixed: [element][share]
 
                     v[i] ^= buffer[T_index][trackers[T_index]];
 
@@ -1029,11 +1048,11 @@ void Rss_Mult_Byte_7pc(uint8_t **c, uint8_t **a, uint8_t **b, uint size, NodeNet
 
     // nodeNet.SendAndGetDataFromPeer_bit_Mult(v, recv_buf, size);
     for (i = 0; i < size; i++) {
-        c[19][i] = c[19][i] ^ recv_buf[0][i];
-        c[16][i] = c[16][i] ^ recv_buf[1][i];
-        c[10][i] = c[10][i] ^ recv_buf[2][i];
+        c[i][19] = c[i][19] ^ recv_buf[0][i];  // Fixed: [element][share]
+        c[i][16] = c[i][16] ^ recv_buf[1][i];  // Fixed: [element][share]
+        c[i][10] = c[i][10] ^ recv_buf[2][i];  // Fixed: [element][share]
 
-        c[0][i] = c[0][i] ^ v[i];
+        c[i][0] = c[i][0] ^ v[i];  // Fixed: [element][share]
     }
 
     for (i = 0; i < threshold; i++) {

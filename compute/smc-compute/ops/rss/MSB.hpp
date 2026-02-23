@@ -33,24 +33,27 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     uint i; // used for loops
 
     // only need to generate a single random bit per private value
-    T **b = new T *[numShares];
-    T **sum = new T *[numShares];
-    T **u_2 = new T *[numShares];
-    T **edaBit_r = new T *[numShares];
-    T **edaBit_b_2 = new T *[numShares];
-    T **rprime = new T *[numShares];
+    T **b = new T *[size];
+    T **sum = new T *[size];
+    T **u_2 = new T *[size];
+    T **rprime = new T *[size];
+
+    // edaBit uses interface format [size][numShares]
+    T **edaBit_r = new T *[size];
+    T **edaBit_b_2 = new T *[size];
 
     T *c = new T[size];
     T *e = new T[size];
 
-    for (i = 0; i < numShares; i++) {
-        b[i] = new T[size];
-        edaBit_r[i] = new T[size];
-        edaBit_b_2[i] = new T[size];
-        sum[i] = new T[size];
-        u_2[i] = new T[size];
-
-        rprime[i] = new T[size];
+    for (i = 0; i < size; i++) {
+        b[i] = new T[numShares];
+        sum[i] = new T[numShares];
+        u_2[i] = new T[numShares];
+        rprime[i] = new T[numShares];
+        edaBit_r[i] = new T[numShares];
+        edaBit_b_2[i] = new T[numShares];
+        memset(edaBit_r[i], 0, sizeof(T) * numShares);
+        memset(edaBit_b_2[i], 0, sizeof(T) * numShares);
     }
 
     T *ai = new T[numShares];
@@ -63,32 +66,25 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     // generating a full-sized edaBit
     edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 
+    // edaBit outputs are already in interface format [size][numShares]
     for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
-            rprime[s][i] = edaBit_r[s][i] - (GET_BIT(edaBit_b_2[s][i], T(ring_size - 1)) << T(ring_size - 1));
-            // rprime[1][i] = edaBit_r[1][i] - (GET_BIT(edaBit_b_2[1][i], T(ring_size - 1)) << T(ring_size - 1));
+            rprime[i][s] = edaBit_r[i][s] - (GET_BIT(edaBit_b_2[i][s], T(ring_size - 1)) << T(ring_size - 1));
             // combining w the next loop
             // combining w the previous loop
-            sum[s][i] = (a[s][i] + edaBit_r[s][i]);
-            // sum[1][i] = (a[1][i] + edaBit_r[1][i]);
-            // sum[0][i] = (a[0][i] + edaBit_r[0][i]) << T(1);
-            // sum[1][i] = (a[1][i] + edaBit_r[1][i]) << T(1);
+            sum[i][s] = (a[i][s] + edaBit_r[i][s]);
         }
     }
 
     Open(c, sum, size, -1, nodeNet, ss);
 
+    // edaBit_b_2 is already in interface format [size][numShares], just mask the values
     for (i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++)
-            edaBit_b_2[s][i] = edaBit_b_2[s][i] & ss->SHIFT[ring_size - 1];
-
-        // used for alternate solution
-        // prevents us from using it directly later on
-        // edaBit_b_2[1][i] = edaBit_b_2[1][i] & ss->SHIFT[ring_size - 1];
-
+        for (size_t s = 0; s < numShares; s++) {
+            edaBit_b_2[i][s] = edaBit_b_2[i][s] & ss->SHIFT[ring_size - 1];
+        }
         // definitely needed
         c[i] = c[i] & ss->SHIFT[ring_size - 1];
-        // c[i] = c[i] >> T(1);
     }
 
     // Rss_Open_Bitwise(r_2_open, edaBit_b_2, size, ring_size, nodeNet, ss);
@@ -98,11 +94,8 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     Rss_BitLT(u_2, c, edaBit_b_2, size, ring_size, nodeNet, ss);
 
     for (i = 0; i < size; ++i) {
-        // cant do this because we modify edaBit_b_2 earlier
-        // for (size_t s = 0; s < numShares; s++)
         for (size_t s = 0; s < numShares; s++)
-            sum[s][i] = a[s][i] - c[i] * ai[s] + rprime[s][i] - (u_2[s][i] << T(ring_size - 1)) + (b[s][i] << T(ring_size - 1));
-        // sum[1][i] = a[1][i] - c[i] * a2 + rprime[1][i] - (u_2[1][i] << T(ring_size - 1)) + (b[1][i] << T(ring_size - 1));
+            sum[i][s] = a[i][s] - c[i] * ai[s] + rprime[i][s] - (u_2[i][s] << T(ring_size - 1)) + (b[i][s] << T(ring_size - 1));
     }
     // opening sum
     Open(e, sum, size, -1, nodeNet, ss);
@@ -111,9 +104,8 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     for (i = 0; i < size; ++i) {
         e_bit = GET_BIT(e[i], T(ring_size - 1)); // getting the (k-1)th bit
         for (size_t s = 0; s < numShares; s++) {
-            res[s][i] = e_bit * ai[s] + b[s][i] - (e_bit * b[s][i] << T(1));
+            res[i][s] = e_bit * ai[s] + b[i][s] - (e_bit * b[i][s] << T(1));
         }
-        // res[1][i] = e_bit * a2 + b[1][i] - (e_bit * b[1][i] << T(1));
     }
 
     // cleanup
@@ -121,7 +113,7 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     delete[] c;
     delete[] e;
 
-    for (i = 0; i < numShares; i++) {
+    for (i = 0; i < size; i++) {
         delete[] edaBit_r[i];
         delete[] edaBit_b_2[i];
         delete[] b[i];
@@ -147,24 +139,24 @@ void Rss_lth_bit(T **res, T **a, uint bitlength, uint size, uint ring_size, Node
     uint i; // used for loops
 
     // only need to generate a single random bit per private value
-    T **b = new T *[numShares];
-    T **sum = new T *[numShares];
-    T **u_2 = new T *[numShares];
-    T **edaBit_r = new T *[numShares];
-    T **edaBit_b_2 = new T *[numShares];
-    T **rprime = new T *[numShares];
+    T **b = new T *[size];
+    T **sum = new T *[size];
+    T **u_2 = new T *[size];
+    T **edaBit_r = new T *[size];
+    T **edaBit_b_2 = new T *[size];
+    T **rprime = new T *[size];
 
     T *c = new T[size];
     T *e = new T[size];
 
-    for (i = 0; i < numShares; i++) {
-        b[i] = new T[size];
-        edaBit_r[i] = new T[size];
-        edaBit_b_2[i] = new T[size];
-        sum[i] = new T[size];
-        u_2[i] = new T[size];
+    for (i = 0; i < size; i++) {
+        b[i] = new T[numShares];
+        edaBit_r[i] = new T[numShares];
+        edaBit_b_2[i] = new T[numShares];
+        sum[i] = new T[numShares];
+        u_2[i] = new T[numShares];
 
-        rprime[i] = new T[size];
+        rprime[i] = new T[numShares];
     }
 
     T *ai = new T[numShares];
@@ -179,44 +171,35 @@ void Rss_lth_bit(T **res, T **a, uint bitlength, uint size, uint ring_size, Node
 
     for (i = 0; i < size; i++) {
         for (size_t s = 0; s < numShares; s++) {
-            rprime[s][i] = edaBit_r[s][i] - (GET_BIT(edaBit_b_2[s][i], T(ring_size - 1)) << T(ring_size - 1));
-            // rprime[1][i] = edaBit_r[1][i] - (GET_BIT(edaBit_b_2[1][i], T(ring_size - 1)) << T(ring_size - 1));
+            rprime[i][s] = edaBit_r[i][s] - (GET_BIT(edaBit_b_2[i][s], T(ring_size - 1)) << T(ring_size - 1));
             // combining w the next loop
             // combining w the previous loop
-            sum[s][i] = (a[s][i] + edaBit_r[s][i]);
-            // sum[1][i] = (a[1][i] + edaBit_r[1][i]);
-            // sum[0][i] = (a[0][i] + edaBit_r[0][i]) << T(1);
-            // sum[1][i] = (a[1][i] + edaBit_r[1][i]) << T(1);
+            sum[i][s] = (a[i][s] + edaBit_r[i][s]);
         }
     }
 
     Open(c, sum, size, -1, nodeNet, ss);
 
+    // Create temporary edaBit_b_2_interface for BitLT (which expects [size][numShares])
+    T **edaBit_b_2_interface = new T *[size];
     for (i = 0; i < size; i++) {
-        for (size_t s = 0; s < numShares; s++)
-            edaBit_b_2[s][i] = edaBit_b_2[s][i] & ss->SHIFT[ring_size - 1];
-
-        // used for alternate solution
-        // prevents us from using it directly later on
-        // edaBit_b_2[1][i] = edaBit_b_2[1][i] & ss->SHIFT[ring_size - 1];
-
+        edaBit_b_2_interface[i] = new T[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            edaBit_b_2_interface[i][s] = edaBit_b_2[s][i] & ss->SHIFT[ring_size - 1];
+        }
         // definitely needed
         c[i] = c[i] & ss->SHIFT[ring_size - 1];
-        // c[i] = c[i] >> T(1);
     }
 
     // Rss_Open_Bitwise(r_2_open, edaBit_b_2, size, ring_size, nodeNet, ss);
     // // this part is still correct
     // however, the edaBit_b_2 shares do get modified
     // which may not be desierable
-    Rss_BitLT(u_2, c, edaBit_b_2, size, ring_size, nodeNet, ss);
+    Rss_BitLT(u_2, c, edaBit_b_2_interface, size, ring_size, nodeNet, ss);
 
     for (i = 0; i < size; ++i) {
-        // cant do this because we modify edaBit_b_2 earlier
-        // for (size_t s = 0; s < numShares; s++)
         for (size_t s = 0; s < numShares; s++)
-            sum[s][i] = a[s][i] - c[i] * ai[s] + rprime[s][i] - (u_2[s][i] << T(ring_size - 1)) + (b[s][i] << T(ring_size - 1));
-        // sum[1][i] = a[1][i] - c[i] * a2 + rprime[1][i] - (u_2[1][i] << T(ring_size - 1)) + (b[1][i] << T(ring_size - 1));
+            sum[i][s] = a[i][s] - c[i] * ai[s] + rprime[i][s] - (u_2[i][s] << T(ring_size - 1)) + (b[i][s] << T(ring_size - 1));
     }
     // opening sum
     Open(e, sum, size, -1, nodeNet, ss);
@@ -225,9 +208,8 @@ void Rss_lth_bit(T **res, T **a, uint bitlength, uint size, uint ring_size, Node
     for (i = 0; i < size; ++i) {
         e_bit = GET_BIT(e[i], ring_size - 1); // getting the (k-1)th bit
         for (size_t s = 0; s < numShares; s++) {
-            res[s][i] = e_bit * ai[s] + b[s][i] - (e_bit * b[s][i] << T(1));
+            res[i][s] = e_bit * ai[s] + b[i][s] - (e_bit * b[i][s] << T(1));
         }
-        // res[1][i] = e_bit * a2 + b[1][i] - (e_bit * b[1][i] << T(1));
     }
 
     // cleanup
@@ -235,16 +217,20 @@ void Rss_lth_bit(T **res, T **a, uint bitlength, uint size, uint ring_size, Node
     delete[] c;
     delete[] e;
 
-    for (i = 0; i < numShares; i++) {
-        delete[] edaBit_r[i];
-        delete[] edaBit_b_2[i];
+    for (i = 0; i < size; i++) {
+        delete[] edaBit_b_2_interface[i];
         delete[] b[i];
         delete[] sum[i];
         delete[] u_2[i];
         delete[] rprime[i];
     }
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] edaBit_r[s];
+        delete[] edaBit_b_2[s];
+    }
     delete[] edaBit_r;
     delete[] edaBit_b_2;
+    delete[] edaBit_b_2_interface;
     delete[] b;
     delete[] sum;
     delete[] u_2;

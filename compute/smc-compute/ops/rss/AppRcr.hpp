@@ -28,20 +28,23 @@
 template <typename T>
 void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
     // assertm(ring_size > 2 * bitlength, "The ring size must be at least 2*bitlength");
+    // NOTE: Interface format is [size][numShares] where array[i][s] is share s of element i
 
-    static uint numShares = ss->getNumShares();
-    T alpha = T((double)2.9142 * double(1 << (bitlength)));
+    uint numShares = ss->getNumShares();
+    // Use T(1) << bitlength to avoid 32-bit integer overflow
+    T alpha = T((double)2.9142 * (double)(T(1) << bitlength));
 
-    T **c = new T *[numShares];
-    T **v = new T *[numShares];
-    T **d = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        c[i] = new T[size];
-        memset(c[i], 0, sizeof(T) * size);
-        v[i] = new T[size];
-        memset(v[i], 0, sizeof(T) * size);
-        d[i] = new T[size];
-        memset(d[i], 0, sizeof(T) * size);
+    // All arrays use interface format [size][numShares]
+    T **c = new T *[size];
+    T **v = new T *[size];
+    T **d = new T *[size];
+    for (int i = 0; i < size; i++) {
+        c[i] = new T[numShares];
+        memset(c[i], 0, sizeof(T) * numShares);
+        v[i] = new T[numShares];
+        memset(v[i], 0, sizeof(T) * numShares);
+        d[i] = new T[numShares];
+        memset(d[i], 0, sizeof(T) * numShares);
     }
 
     T *ai = new T[numShares];
@@ -50,17 +53,19 @@ void doOperation_IntAppRcr(T **w, T **b, int bitlength, int size, uint ring_size
 
     doOperation_Norm(c, v, b, bitlength, size, ring_size, threadID, net, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            d[s][i] = (ai[s] * alpha) - T(2) * c[s][i];
+    // d = alpha - 2*c
+    for (int i = 0; i < size; i++) {
+        for (uint s = 0; s < numShares; s++) {
+            d[i][s] = (ai[s] * alpha) - T(2) * c[i][s];
         }
     }
 
+    // w = d * v
     Mult(w, d, v, size, threadID, net, ss);
 
     doOperation_Trunc(w, w, bitlength, bitlength, size, threadID, net, ss);
 
-    for (size_t i = 0; i < numShares; i++) {
+    for (int i = 0; i < size; i++) {
         delete[] c[i];
         delete[] d[i];
         delete[] v[i];

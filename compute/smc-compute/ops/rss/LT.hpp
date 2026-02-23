@@ -30,18 +30,18 @@ void doOperation_LT(T **result, T **a, T **b, int alen, int blen, int resultlen,
 
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
-    T **diff = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        diff[i] = new T[size];
+    T **diff = new T *[size];
+    for (int i = 0; i < size; i++) {
+        diff[i] = new T[numShares];
     }
 
-    for (size_t s = 0; s < numShares; s++)
-        for (size_t i = 0; i < size; i++)
-            diff[s][i] = a[s][i] - b[s][i]; // compinting the difference of a and b
+    for (int i = 0; i < size; i++)
+        for (uint s = 0; s < numShares; s++)
+            diff[i][s] = a[i][s] - b[i][s]; // computing the difference of a and b
 
     Rss_MSB(result, diff, size, ring_size, nodeNet, ss);
 
-    for (size_t i = 0; i < numShares; i++) {
+    for (int i = 0; i < size; i++) {
         delete[] diff[i];
     }
 
@@ -52,22 +52,22 @@ template <typename T> // a pub/ b priv
 void doOperation_LT(T **result, int *a, T **b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
-    T **diff = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        diff[i] = new T[size];
+    T **diff = new T *[size];
+    for (int i = 0; i < size; i++) {
+        diff[i] = new T[numShares];
     }
 
     T *ai = new T[numShares];
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, 1);
 
-    for (size_t s = 0; s < numShares; s++)
-        for (size_t i = 0; i < size; i++)
-            diff[s][i] = T(a[s]) * ai[s] - b[s][i]; // compinting the difference of a and b
+    for (int i = 0; i < size; i++)
+        for (uint s = 0; s < numShares; s++)
+            diff[i][s] = T(a[i]) * ai[s] - b[i][s]; // computing the difference of a and b
 
     Rss_MSB(result, diff, size, ring_size, nodeNet, ss);
 
-    for (size_t i = 0; i < numShares; i++) {
+    for (int i = 0; i < size; i++) {
         delete[] diff[i];
     }
 
@@ -79,26 +79,42 @@ template <typename T> // a priv , b pub
 void doOperation_LT(T **result, T **a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
-    T **diff = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        diff[i] = new T[size];
+    T **diff = new T *[size];
+    for (int i = 0; i < size; i++) {
+        diff[i] = new T[numShares];
     }
     T *ai = new T[numShares];
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, 1);
 
-    for (size_t s = 0; s < numShares; s++)
-        for (size_t i = 0; i < size; i++)
-            diff[s][i] = a[s][i] - T(b[i]) * ai[s]; // compinting the difference of a and b
+    for (int i = 0; i < size; i++)
+        for (uint s = 0; s < numShares; s++)
+            diff[i][s] = a[i][s] - T(b[i]) * ai[s]; // computing the difference of a and b
 
     Rss_MSB(result, diff, size, ring_size, nodeNet, ss);
 
-    for (size_t i = 0; i < numShares; i++) {
+    for (int i = 0; i < size; i++) {
         delete[] diff[i];
     }
 
     delete[] diff;
     delete[] ai;
+}
+
+// Scalar wrapper functions for RSS - converts priv_int& to priv_int**
+template <typename T>
+void doOperation_LT(priv_int &result, priv_int &a, priv_int &b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_LT(&result, &a, &b, alen, blen, resultlen, size, threadID, nodeNet, ss);
+}
+
+template <typename T>
+void doOperation_LT(priv_int &result, priv_int &a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_LT(&result, &a, b, alen, blen, resultlen, size, threadID, nodeNet, ss);
+}
+
+template <typename T>
+void doOperation_LT(priv_int &result, int *a, priv_int &b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
+    doOperation_LT(&result, a, &b, alen, blen, resultlen, size, threadID, nodeNet, ss);
 }
 
 #endif // _LT_HPP_

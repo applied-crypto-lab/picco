@@ -25,12 +25,13 @@
 #include "bit_utils.hpp"
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 // input:  a_i [numShares][size] of bits shared in Z_2, stored in a T
 // output: out [numShares][1] a bit in Z_2 which is the k-ary OR of all the bits a_i (a_0 | a_1 | ... | a_size)
 template <typename T>
 void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
     uint num_uints = ((size + 15) >> 4);
 
     uint8_t **a = new uint8_t *[numShares];
@@ -57,16 +58,19 @@ void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetw
         for (size_t i = 0; i < size; i++) {
             idx = (i >> 3);
             bpos_in = uint8_t(i % 8);
-            u[s][idx] = SET_BIT(u[s][idx], bpos_in, uint8_t(GET_BIT(a_i[s][i], 0)));
+            // u[s][idx] = SET_BIT(u[s][idx], bpos_in, uint8_t(GET_BIT(a_i[s][i], T(0)))); // segfault here, need to fix
         }
     }
 
+    // cout << "mult byte\n";
+    Mult_Byte(u, a, b, num_uints, nodeNet, ss);
+
     while (tmp_size > 1) {
+        // std::cout<<"tmp_size "<<tmp_size<<std::endl;
         new_tmp_size = tmp_size >> 1; // rounds down
         num_uints = ((new_tmp_size + 7) >> 3);
 
         process_bytes(a, b, u, tmp_size, ss);
-        Mult_Byte(u, a, b, num_uints, nodeNet, ss);
 
         for (size_t s = 0; s < numShares; s++) {
             for (size_t i = 0; i < num_uints; i++) {
@@ -108,14 +112,12 @@ void OR_ALL(T **output, T **a_i, int size, int ring_size, int threadID, NodeNetw
 template <typename T>
 void process_bytes(uint8_t **a, uint8_t **b, uint8_t **in_buff, int size, replicatedSecretShare<T> *ss) {
 
-    static uint numShares = ss->getNumShares();
-
+    uint numShares = ss->getNumShares();
     int even_size = size - (size % 2);
     int num_bytes = even_size / 16;
     int remainder = even_size % 16;
 
-    // we have enough data to memcpy
-    if (num_bytes) {
+    if (num_bytes) { // we have enough data to memcpy
         for (size_t s = 0; s < numShares; s++) {
             memcpy(a[s], in_buff[s], num_bytes);
             memcpy(b[s], in_buff[s] + num_bytes, num_bytes);

@@ -19,146 +19,36 @@
 */
 #include "FLEQZ.h"
 
-// Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
-// Based on Protocol FLLT, page 9
-/* 
-Formula:
-    b1 = (v_a == v_b)
-    b2 = (p_a == p_b)
-    b3 = 1 - XOR(s_a, s_b) 
-    b4 = AND(b1, b2, b3)
-    b5 = AND(z_a, z_b)
-    b = OR(b4, b5)
+/*
+ * Float Equality (FLEQZ) - Checks if two floating-point numbers are equal
+ *
+ * Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
+ *
+ * Float representation: [mantissa, exponent, zero_flag, sign]
+ *   - A[0] = mantissa (v)
+ *   - A[1] = exponent (p)
+ *   - A[2] = zero flag (z)
+ *   - A[3] = sign (s)
+ *
+ * Algorithm:
+ *   b1 = EQZ(v_a - v_b)           // mantissas are equal
+ *   b2 = EQZ(p_a - p_b)           // exponents are equal
+ *   b3 = 1 - XOR(s_a, s_b)        // signs are equal (XNOR)
+ *        where XOR(a,b) = a + b - 2*a*b, so XNOR = 1 - a - b + 2*a*b
+ *   b4 = AND(b1, b2, b3)          // all non-zero components match
+ *   b5 = AND(z_a, z_b)            // both are zero
+ *   result = OR(b4, b5)           // equal if components match OR both zero
+ *
+ * Optimized multiplication rounds (for private-private comparison):
+ *   Round 1: s_a * s_b, b1 * b2   (2 mults in parallel)
+ *   Round 2: (b1*b2) * b3, z_a * z_b   (2 mults in parallel)
+ *   Round 3: b4 * b5              (1 mult for OR: a+b-a*b)
+ */
 
-Updated:
-    compute b1, b2
-    Round 1 of Mult - b3, b6=AND(b1, b2)
-    Round 2 of Mult - b4=And(b3, b6), b5
-    Round 3 of Mult - b
-*/
-// void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
+// Private-Private comparison: A == B (both private floats)
+void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 
-//     /***********************************************************************/
-//     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
-//     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
-//     for (int i = 0; i < 4; i++) {
-//         A[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//         B[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//         for (int j = 0; j < size; j++) {
-//             mpz_init_set(A[i][j], A1[j][i]);
-//             mpz_init_set(B[i][j], B1[j][i]);
-//         }
-//     }
-
-//     /***********************************************************************/
-//     mpz_t const1, const2;
-//     mpz_init_set_ui(const1, 1);
-//     mpz_init_set_ui(const2, 2);
-
-//     mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     mpz_t *b1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     mpz_t *b2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     mpz_t *b5 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     mpz_t *b6 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-
-//     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-//     mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-
-//     for (int i = 0; i < size; i++) {
-//         mpz_init(b[i]);
-//         mpz_init(b1[i]);
-//         mpz_init(b2[i]);
-//         mpz_init(b5[i]);
-//         mpz_init(b6[i]);
-
-//         mpz_init(temp1[i]);
-//         mpz_init(temp2[i]);
-//     }
-
-//     mpz_t *first_array = (mpz_t *)malloc(sizeof(mpz_t) * size * 2); 
-//     mpz_t *second_array = (mpz_t *)malloc(sizeof(mpz_t) * size * 2);
-
-//     // compute b1 = v_a == v_b
-//     ss->modSub(temp1, A[0], B[0], size);
-//     doOperation_EQZ(temp1, b1, K, size, threadID, net, ss);
-//     // compute b2 = p_a == p_b
-//     ss->modSub(temp1, A[1], B[1], size);
-//     doOperation_EQZ(temp1, b2, L, size, threadID, net, ss);
-
-//     // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
-//     ss->modAdd(temp1, A[3], B[3], size);
-//     // Mult(temp2, A[3], B[3], size, threadID, net, ss); // 1
-//     ss->copy(A[3], first_array, size);
-//     ss->copy(B[3], second_array, size);
-
-//     // compute b4 = AND(b1, b2, b3)
-//     // b6 = Mult(temp1, b1, b2, size, threadID, net, ss); // 1
-//     ss->copy(b1, &first_array[size], size);
-//     ss->copy(b2, &second_array[size], size);
-
-//     // Round 1 of Mult - b3, b6=AND(b1, b2) (temp2 = b3 = first_array), (b6 = second_array)
-//     Mult(first_array, first_array, second_array, 2*size, threadID, net, ss);
-//     ss->copy(b6, &first_array[size], size); // copy the first part of b4 to b6
-
-//     ss->modMul(temp2, first_array, const2, size); // first_array used instead of temp2
-//     ss->modSub(temp1, temp1, temp2, size);
-//     ss->modSub(temp2, const1, temp1, size); // temp2 = b3
-
-//     // this is b5 done in round 2
-//     // Mult(b5, A[2], B[2], size, threadID, net, ss); // 2
-//     ss->copy(A[3], first_array, size);
-//     ss->copy(B[3], second_array, size);
-
-//     // this is b4=And(b3, b6) from above
-//     // Mult(temp2, temp1, temp2, size, threadID, net, ss);
-//     ss->copy(b6, &first_array[size], size); // we use b6 instead of temp1 to calculate the second half
-//     ss->copy(temp2, &second_array[size], size);
-
-//     // Mult for Round 2 - b4=And(b3, b6), b5
-//     Mult(first_array, first_array, second_array, 2*size, threadID, net, ss);
-
-//     // compute b = OR(b4, b5)
-//     // Mult for Round 2 - b
-//     ss->modAdd(temp1, &first_array[size], first_array, size); // first_array used instead of b5, &first_array[size] instead of temp3
-//     Mult(temp2, temp2, b5, size, threadID, net, ss); 
-
-//     ss->modSub(b, temp1, temp2, size);
-
-//     for (int i = 0; i < size; i++)
-//         mpz_set(result[i], b[i]);
-
-//     // free the memory
-//     for (int i = 0; i < 4; i++) {
-//         for (int j = 0; j < size; j++) {
-//             mpz_clear(A[i][j]);
-//             mpz_clear(B[i][j]);
-//         }
-//         free(A[i]);
-//         free(B[i]);
-//     }
-//     free(A);
-//     free(B);
-//     /***********************************************************************/
-//     for (int i = 0; i < size; i++) {
-//         mpz_clear(b[i]);
-//         mpz_clear(b1[i]);
-//         mpz_clear(b2[i]);
-//         mpz_clear(b5[i]);
-//         mpz_clear(temp1[i]);
-//         mpz_clear(temp2[i]);
-//     }
-
-//     free(b);
-//     free(b1);
-//     free(b2);
-//     free(b5);
-//     free(temp1);
-//     free(temp2);
-// }
-
-void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
-
-    /***********************************************************************/
+    // Convert input format: A1[element][component] -> A[component][element]
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     for (int i = 0; i < 4; i++) {
@@ -170,56 +60,102 @@ void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int 
         }
     }
 
-    /***********************************************************************/
     mpz_t const1, const2;
     mpz_init_set_ui(const1, 1);
     mpz_init_set_ui(const2, 2);
 
-    mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b3 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b4 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b5 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b6 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *sa_sb = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *diff = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // Buffers for batched multiplications - max 2*size
+    mpz_t *mult_buffer1 = (mpz_t *)malloc(sizeof(mpz_t) * size * 2);
+    mpz_t *mult_buffer2 = (mpz_t *)malloc(sizeof(mpz_t) * size * 2);
+    mpz_t *mult_result = (mpz_t *)malloc(sizeof(mpz_t) * size * 2);
 
     for (int i = 0; i < size; i++) {
-        mpz_init(b[i]);
         mpz_init(b1[i]);
         mpz_init(b2[i]);
+        mpz_init(b3[i]);
+        mpz_init(b4[i]);
         mpz_init(b5[i]);
-
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
+        mpz_init(b6[i]);
+        mpz_init(sa_sb[i]);
+        mpz_init(diff[i]);
     }
-    // compute b1 = v_a == v_b
-    ss->modSub(temp1, A[0], B[0], size);
-    doOperation_EQZ(temp1, b1, K, size, threadID, net, ss);
-    // compute b2 = p_a == p_b
-    ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, b2, L, size, threadID, net, ss);
 
-    // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
-    ss->modAdd(temp1, A[3], B[3], size);
-    Mult(temp2, A[3], B[3], size, threadID, net, ss);
-    ss->modMul(temp2, temp2, const2, size);
-    ss->modSub(temp1, temp1, temp2, size);
-    ss->modSub(temp2, const1, temp1, size); // temp2 = b3
-    Mult(b5, A[2], B[2], size, threadID, net, ss);
+    for (int i = 0; i < 2 * size; i++) {
+        mpz_init(mult_buffer1[i]);
+        mpz_init(mult_buffer2[i]);
+        mpz_init(mult_result[i]);
+    }
 
-    // compute b4 = AND(b1, b2, b3)
-    Mult(temp1, b1, b2, size, threadID, net, ss);
-    Mult(temp2, temp1, temp2, size, threadID, net, ss);
+    // Step 0: Compute EQZ for mantissa and exponent
+    // b1 = EQZ(v_a - v_b)
+    ss->modSub(diff, A[0], B[0], size);
+    doOperation_EQZ(diff, b1, K, size, threadID, net, ss);
 
-    // compute b = OR(b4, b5)
-    ss->modAdd(temp1, temp2, b5, size);
-    Mult(temp2, temp2, b5, size, threadID, net, ss);
-    ss->modSub(b, temp1, temp2, size);
+    // b2 = EQZ(p_a - p_b)
+    ss->modSub(diff, A[1], B[1], size);
+    doOperation_EQZ(diff, b2, L, size, threadID, net, ss);
 
-    for (int i = 0; i < size; i++)
-        mpz_set(result[i], b[i]);
+    // Round 1: Compute s_a * s_b and b1 * b2 in parallel
+    for (int i = 0; i < size; i++) {
+        mpz_set(mult_buffer1[i], A[3][i]);           // s_a
+        mpz_set(mult_buffer2[i], B[3][i]);           // s_b
+        mpz_set(mult_buffer1[i + size], b1[i]);      // b1
+        mpz_set(mult_buffer2[i + size], b2[i]);      // b2
+    }
 
-    // free the memory
+    Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, threadID, net, ss);
+
+    // Extract results and compute b3 = 1 - XOR(s_a, s_b) = 1 - s_a - s_b + 2*s_a*s_b
+    for (int i = 0; i < size; i++) {
+        mpz_set(sa_sb[i], mult_result[i]);           // s_a * s_b
+        mpz_set(b6[i], mult_result[i + size]);       // b1 * b2
+
+        // b3 = 1 - s_a - s_b + 2*s_a*s_b
+        mpz_set(b3[i], const1);
+        ss->modSub(b3[i], b3[i], A[3][i]);
+        ss->modSub(b3[i], b3[i], B[3][i]);
+        mpz_t temp;
+        mpz_init(temp);
+        ss->modMul(temp, sa_sb[i], const2);
+        ss->modAdd(b3[i], b3[i], temp);
+        mpz_clear(temp);
+    }
+
+    // Round 2: Compute (b1*b2) * b3 = b4 and z_a * z_b = b5 in parallel
+    for (int i = 0; i < size; i++) {
+        mpz_set(mult_buffer1[i], b6[i]);             // b1 * b2
+        mpz_set(mult_buffer2[i], b3[i]);             // b3
+        mpz_set(mult_buffer1[i + size], A[2][i]);    // z_a
+        mpz_set(mult_buffer2[i + size], B[2][i]);    // z_b
+    }
+
+    Mult(mult_result, mult_buffer1, mult_buffer2, 2 * size, threadID, net, ss);
+
+    // Extract results: b4 = (b1*b2)*b3, b5 = z_a * z_b
+    for (int i = 0; i < size; i++) {
+        mpz_set(b4[i], mult_result[i]);              // b4 = b1 * b2 * b3
+        mpz_set(b5[i], mult_result[i + size]);       // b5 = z_a * z_b
+    }
+
+    // Round 3: Compute OR(b4, b5) = b4 + b5 - b4*b5
+    Mult(mult_result, b4, b5, size, threadID, net, ss);
+
+    // Final result: result = b4 + b5 - b4*b5
+    for (int i = 0; i < size; i++) {
+        ss->modAdd(result[i], b4[i], b5[i]);
+        ss->modSub(result[i], result[i], mult_result[i]);
+    }
+
+    // Free memory
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < size; j++) {
             mpz_clear(A[i][j]);
@@ -230,31 +166,45 @@ void doOperation_FLEQZ(mpz_t **A1, mpz_t **B1, mpz_t *result, int K, int L, int 
     }
     free(A);
     free(B);
-    /***********************************************************************/
+
+    mpz_clear(const1);
+    mpz_clear(const2);
+
     for (int i = 0; i < size; i++) {
-        mpz_clear(b[i]);
         mpz_clear(b1[i]);
         mpz_clear(b2[i]);
+        mpz_clear(b3[i]);
+        mpz_clear(b4[i]);
         mpz_clear(b5[i]);
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
+        mpz_clear(b6[i]);
+        mpz_clear(sa_sb[i]);
+        mpz_clear(diff[i]);
     }
 
-    free(b);
+    for (int i = 0; i < 2 * size; i++) {
+        mpz_clear(mult_buffer1[i]);
+        mpz_clear(mult_buffer2[i]);
+        mpz_clear(mult_result[i]);
+    }
+
     free(b1);
     free(b2);
+    free(b3);
+    free(b4);
     free(b5);
-    free(temp1);
-    free(temp2);
+    free(b6);
+    free(sa_sb);
+    free(diff);
+    free(mult_buffer1);
+    free(mult_buffer2);
+    free(mult_result);
 }
 
+// Private-Public comparison: A (private) == B (public int)
+// When B is public, multiplications with B become modMul (no communication needed)
+void doOperation_FLEQZ(mpz_t **A1, int **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 
-
-// PRIVATE AND PUBLIC
-void doOperation_FLEQZ(mpz_t **A1, int **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
-
-
-    /***********************************************************************/
+    // Convert input format
     mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     int **B = (int **)malloc(sizeof(int *) * 4);
     for (int i = 0; i < 4; i++) {
@@ -266,77 +216,62 @@ void doOperation_FLEQZ(mpz_t **A1, int **B1, mpz_t *result, int K, int L, int si
         }
     }
 
-    // long long *elements = new long long[4];
-    // for (int i = 0; i < size; ++i) {
-    //     convertFloat(B1[i], K, L, &elements);
-    //     for (int j = 0; j < 4; ++j) {
-    //         B[j][i] = (int)elements[j]; 
-    //     }
-    // }
-
-    /***********************************************************************/
     mpz_t const1, const2;
     mpz_init_set_ui(const1, 1);
     mpz_init_set_ui(const2, 2);
 
-    mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b3 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b4 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b5 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *diff = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
     for (int i = 0; i < size; i++) {
-        mpz_init(b[i]);
         mpz_init(b1[i]);
         mpz_init(b2[i]);
+        mpz_init(b3[i]);
+        mpz_init(b4[i]);
         mpz_init(b5[i]);
-
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
+        mpz_init(diff[i]);
+        mpz_init(temp[i]);
     }
-    // compute b1 = v_a == v_b
-    std::cout << "Start" << std::endl;
-    ss->modSub(temp1, A[0], B[0], size); // B[0] -> now an int // -> no change cause line 114 will be called from secrectshare.h
-    std::cout << temp1 << std::endl;
-    std::cout << A[0] << std::endl;
-    std::cout << B[0] << std::endl;
-    doOperation_EQZ(temp1, b1, K, size, threadID, net, ss); 
-    std::cout << temp1 << std::endl;
-    std::cout << b1 << std::endl;
-    std::cout << "End" << std::endl;
 
-    // compute b2 = p_a == p_b
-    ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, b2, L, size, threadID, net, ss);
+    // Step 0: Compute EQZ
+    // b1 = EQZ(v_a - v_b)
+    ss->modSub(diff, A[0], B[0], size);
+    doOperation_EQZ(diff, b1, K, size, threadID, net, ss);
 
-    // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
-    ss->modAdd(temp1, A[3], B[3], size); // line 102 
+    // b2 = EQZ(p_a - p_b)
+    ss->modSub(diff, A[1], B[1], size);
+    doOperation_EQZ(diff, b2, L, size, threadID, net, ss);
 
-    // Mult(temp2, A[3], B[3], size, threadID, net, ss); // modMult
-    ss->modMul(temp2, A[3], B[3], size); // line 93
+    // Compute b3 = 1 - XOR(s_a, s_b) where s_b is public
+    // Since s_b is public, s_a * s_b is just modMul (no communication)
+    ss->modAdd(temp, A[3], B[3], size);         // s_a + s_b
+    ss->modMul(b3, A[3], B[3], size);           // s_a * s_b (public mul)
+    ss->modMul(b3, b3, const2, size);           // 2 * s_a * s_b
+    ss->modSub(temp, temp, b3, size);           // s_a + s_b - 2*s_a*s_b = XOR
+    ss->modSub(b3, const1, temp, size);         // 1 - XOR = b3
 
-    ss->modMul(temp2, temp2, const2, size);
-    ss->modSub(temp1, temp1, temp2, size);
-    ss->modSub(temp2, const1, temp1, size); // temp2 = b3
+    // Compute b5 = z_a * z_b (public mul)
+    ss->modMul(b5, A[2], B[2], size);
 
-    // Mult(b5, A[2], B[2], size, threadID, net, ss); // change to modMult
-    ss->modMul(b5, A[2], B[2], size); // line 93
+    // Round 1: b1 * b2
+    Mult(temp, b1, b2, size, threadID, net, ss);
 
-    // compute b4 = AND(b1, b2, b3) // no change cause all b1, b2, b3 are pri no pub involved like the B
-    Mult(temp1, b1, b2, size, threadID, net, ss); 
-    Mult(temp2, temp1, temp2, size, threadID, net, ss);
+    // Round 2: (b1*b2) * b3
+    Mult(b4, temp, b3, size, threadID, net, ss);
 
-    // compute b = OR(b4, b5)
-    ss->modAdd(temp1, temp2, b5, size);
-    Mult(temp2, temp2, b5, size, threadID, net, ss);
-    ss->modSub(b, temp1, temp2, size);
+    // Round 3: OR(b4, b5) = b4 + b5 - b4*b5
+    Mult(temp, b4, b5, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        ss->modAdd(result[i], b4[i], b5[i]);
+        ss->modSub(result[i], result[i], temp[i]);
+    }
 
-    for (int i = 0; i < size; i++)
-        mpz_set(result[i], b[i]);
-
-    // free the memory
+    // Free memory
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < size; j++) {
             mpz_clear(A[i][j]);
@@ -346,29 +281,34 @@ void doOperation_FLEQZ(mpz_t **A1, int **B1, mpz_t *result, int K, int L, int si
     }
     free(A);
     free(B);
-    /***********************************************************************/
+
+    mpz_clear(const1);
+    mpz_clear(const2);
+
     for (int i = 0; i < size; i++) {
-        mpz_clear(b[i]);
         mpz_clear(b1[i]);
         mpz_clear(b2[i]);
+        mpz_clear(b3[i]);
+        mpz_clear(b4[i]);
         mpz_clear(b5[i]);
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
+        mpz_clear(diff[i]);
+        mpz_clear(temp[i]);
     }
 
-    free(b);
     free(b1);
     free(b2);
+    free(b3);
+    free(b4);
     free(b5);
-    free(temp1);
-    free(temp2);
+    free(diff);
+    free(temp);
 }
 
+// Public-Private comparison: A (public int) == B (private)
+// When A is public, multiplications with A become modMul (no communication needed)
+void doOperation_FLEQZ(int **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net, SecretShare *ss) {
 
-// Implemented the same as above with flipping the multiplication order while calling modMul functions 
-void doOperation_FLEQZ(int **A1, mpz_t **B1, mpz_t *result, int K, int L, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
-
-    /***********************************************************************/
+    // Convert input format
     int **A = (int **)malloc(sizeof(int *) * 4);
     mpz_t **B = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
     for (int i = 0; i < 4; i++) {
@@ -380,57 +320,62 @@ void doOperation_FLEQZ(int **A1, mpz_t **B1, mpz_t *result, int K, int L, int si
         }
     }
 
-    /***********************************************************************/
     mpz_t const1, const2;
     mpz_init_set_ui(const1, 1);
     mpz_init_set_ui(const2, 2);
 
-    mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b3 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b4 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b5 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-
-    mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *diff = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
     for (int i = 0; i < size; i++) {
-        mpz_init(b[i]);
         mpz_init(b1[i]);
         mpz_init(b2[i]);
+        mpz_init(b3[i]);
+        mpz_init(b4[i]);
         mpz_init(b5[i]);
-
-        mpz_init(temp1[i]);
-        mpz_init(temp2[i]);
+        mpz_init(diff[i]);
+        mpz_init(temp[i]);
     }
 
-    // compute b2 = p_a == p_b
-    ss->modSub(temp1, A[1], B[1], size);
-    doOperation_EQZ(temp1, b2, L, size, threadID, net, ss);
+    // Step 0: Compute EQZ
+    // b1 = EQZ(v_a - v_b)
+    ss->modSub(diff, A[0], B[0], size);
+    doOperation_EQZ(diff, b1, K, size, threadID, net, ss);
 
-    // compute b3 = 1 - XOR(s_a, s_b) and b5 = AND(z_a, z_b)
-    ss->modAdd(temp1, B[3], A[3], size); // line 102 
+    // b2 = EQZ(p_a - p_b)
+    ss->modSub(diff, A[1], B[1], size);
+    doOperation_EQZ(diff, b2, L, size, threadID, net, ss);
 
-    ss->modMul(temp2, B[3], A[3], size); // line 93
+    // Compute b3 = 1 - XOR(s_a, s_b) where s_a is public
+    // Since s_a is public, s_a * s_b is just modMul (no communication)
+    ss->modAdd(temp, B[3], A[3], size);         // s_a + s_b
+    ss->modMul(b3, B[3], A[3], size);           // s_a * s_b (public mul)
+    ss->modMul(b3, b3, const2, size);           // 2 * s_a * s_b
+    ss->modSub(temp, temp, b3, size);           // s_a + s_b - 2*s_a*s_b = XOR
+    ss->modSub(b3, const1, temp, size);         // 1 - XOR = b3
 
-    ss->modMul(temp2, temp2, const2, size);
-    ss->modSub(temp1, temp1, temp2, size);
-    ss->modSub(temp2, const1, temp1, size); // temp2 = b3
+    // Compute b5 = z_a * z_b (public mul)
+    ss->modMul(b5, B[2], A[2], size);
 
-    ss->modMul(b5, B[2], A[2], size); // line 93
+    // Round 1: b1 * b2
+    Mult(temp, b1, b2, size, threadID, net, ss);
 
-    // compute b4 = AND(b1, b2, b3) // no change cause all b1, b2, b3 are pri no pub involved like the B
-    Mult(temp1, b1, b2, size, threadID, net, ss); 
-    Mult(temp2, temp1, temp2, size, threadID, net, ss);
+    // Round 2: (b1*b2) * b3
+    Mult(b4, temp, b3, size, threadID, net, ss);
 
-    // compute b = OR(b4, b5)
-    ss->modAdd(temp1, temp2, b5, size);
-    Mult(temp2, temp2, b5, size, threadID, net, ss);
-    ss->modSub(b, temp1, temp2, size);
+    // Round 3: OR(b4, b5) = b4 + b5 - b4*b5
+    Mult(temp, b4, b5, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        ss->modAdd(result[i], b4[i], b5[i]);
+        ss->modSub(result[i], result[i], temp[i]);
+    }
 
-    for (int i = 0; i < size; i++)
-        mpz_set(result[i], b[i]);
-
-    // free the memory
+    // Free memory
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < size; j++) {
             mpz_clear(B[i][j]);
@@ -440,20 +385,25 @@ void doOperation_FLEQZ(int **A1, mpz_t **B1, mpz_t *result, int K, int L, int si
     }
     free(A);
     free(B);
-    /***********************************************************************/
+
+    mpz_clear(const1);
+    mpz_clear(const2);
+
     for (int i = 0; i < size; i++) {
-        mpz_clear(b[i]);
         mpz_clear(b1[i]);
         mpz_clear(b2[i]);
+        mpz_clear(b3[i]);
+        mpz_clear(b4[i]);
         mpz_clear(b5[i]);
-        mpz_clear(temp1[i]);
-        mpz_clear(temp2[i]);
+        mpz_clear(diff[i]);
+        mpz_clear(temp[i]);
     }
 
-    free(b);
     free(b1);
     free(b2);
+    free(b3);
+    free(b4);
     free(b5);
-    free(temp1);
-    free(temp2);
+    free(diff);
+    free(temp);
 }

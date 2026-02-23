@@ -83,6 +83,7 @@ char technique[100] = ""; /* The technique used either rss or shamir */
 int total_threads = 0;
 int nu;
 int kappa_nu;
+int rss_overhead;  // RSS protocol overhead for modulus computation (set to 1)
 int technique_var = 0; // Default to 0 -> user should assign 1 or 2
 
 void getPrime(mpz_t, int);
@@ -98,17 +99,20 @@ int createDirectory(const char *path) {
 #endif
 }
 
-// Function that creates the path and directory needed for files needed 
+// Function that creates the path and directory needed for files needed
 void pathCreater(char *final_list) {
     char *path_separator = final_list;
     char *next_separator = strchr(path_separator, '/');
-    
+
     // Loop through each segment of the path
     while (next_separator != NULL) {
         *next_separator = '\0'; // temporarily truncate the path
-        if (createDirectory(final_list) < 0 && errno != EEXIST) {
-            fprintf(stderr, "Failed to create directory: %s\n", final_list);
-            exit(EXIT_FAILURE); // or handle error appropriately
+        // Skip empty path segment (happens when path starts with '/')
+        if (strlen(final_list) > 0) {
+            if (createDirectory(final_list) < 0 && errno != EEXIST) {
+                fprintf(stderr, "Failed to create directory: %s\n", final_list);
+                exit(EXIT_FAILURE); // or handle error appropriately
+            }
         }
         *next_separator = '/'; // restore the path separator
         path_separator = next_separator + 1; // move to the next segment
@@ -492,7 +496,16 @@ int main(int argc, char *argv[]) {
 
     loadConfig(argv[3]);
     nu = ceil(log2(nChoosek(peers, threshold))); //Catrina and de Hoogh, 2010, pg. 4
-    kappa_nu = SECURITY_PARAMETER + nu;
+    // Compute kappa_nu based on secret sharing technique
+    // For RSS: kappa_nu = 1 (just protocol overhead for RNTE headroom, 3x RandBit handles security)
+    // For Shamir: kappa_nu = SECURITY_PARAMETER + nu (full statistical security)
+    if (technique_var == REPLICATED_SS) {
+        kappa_nu = 0; // not used for RSS
+        rss_overhead = 1;
+    } else {
+        kappa_nu = SECURITY_PARAMETER + nu;
+        rss_overhead = 0;  // not used for Shamir
+    }
     unsigned int map_size; // how many items are in seed_map, used to calculate buffer size
     unsigned int *seed_map = generateSeedMap(peers, threshold, &map_size);
     int map_tmp_size = sizeof(int) * 4 * map_size + 200;
@@ -539,8 +552,10 @@ int main(int argc, char *argv[]) {
     ast = parse_file(filename, &r);
 
     if (technique_var == SHAMIR_SS) {
+        // Shamir needs prime p > 2^(formula), so minimum bits = formula + 1
+        modulus = modulus + 1;
         if (bits == 0)
-            bits = modulus + 1; // setting modulus to right above the computed bitlength
+            bits = modulus;
         else if (bits > 0 && bits < modulus)
             printf("WARNING: the modulus user provided is not large enough for correct computation.\nThe program is not expected to run correctly and produce correct results.\nThe minimum number of bits required to produce correct results is %i, \nbut the number of bits provided in %s is %i.\n",modulus,argv[3], bits);
         bits = fmax(bits, ceil(log(peers)) + 1);

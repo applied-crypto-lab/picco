@@ -58,7 +58,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     for (int i = 0; i < m; i++)
         mpz_init(bitm[i]);
 
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_init(C[i]);
         mpz_init(c[i]);
         mpz_init(c_test[i]);
@@ -69,7 +69,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
 
     for (int i = 0; i < peers; ++i) {
         resultShares[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; ++j)
+        for (size_t j = 0; j < (size_t)size; ++j)
             mpz_init(resultShares[i][j]);
     }
 
@@ -77,19 +77,19 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     mpz_t **V = (mpz_t **)malloc(sizeof(mpz_t *) * (K + 1));
     for (int i = 0; i < K + 1; ++i) {
         V[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; ++j)
+        for (size_t j = 0; j < (size_t)size; ++j)
             mpz_init(V[i][j]);
     }
     mpz_t **U = (mpz_t **)malloc(sizeof(mpz_t *) * (m + 1));
     for (int i = 0; i < m + 1; ++i) {
         U[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; ++j)
+        for (size_t j = 0; j < (size_t)size; ++j)
             mpz_init(U[i][j]);
     }
 
     // testing
     // Open(shares, c_test, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
+    // for (size_t i = 0; i < (size_t)size; i++) {
     //     gmp_printf("input[%i]  = %Zd \n", i, c_test[i]);
     // }
 
@@ -104,7 +104,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
 
     Open(C, c, size, threadID, net, ss);
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         binarySplit(c[i], bitK, K);              // Line 3 of EQZ
         for (int j = 0; j < K; j++) {            // Line 4 of EQZ
             ss->modAdd(temp1, bitK[j], V[j][i]); // [c_i]+[r_i]
@@ -116,7 +116,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     }
 
     // Open(sum, c_test, size, threadID, net, ss);
-    // for (size_t i = 0; i < size; i++) {
+    // for (size_t i = 0; i < (size_t)size; i++) {
     //     gmp_printf("sum[%i] = %Zd \n", i, c_test[i]);
     // }
 
@@ -129,7 +129,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     ss->modAdd(C, C, r_pp, size);
     Open(C, c, size, threadID, net, ss); // Line 2 of EQZ
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         binarySplit(c[i], bitm, m);
         mpz_set_ui(sum[i], 0);
         for (int j = 0; j < m; j++) {
@@ -148,7 +148,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     mpz_t **T = (mpz_t **)malloc(sizeof(mpz_t *) * m);
     for (int i = 0; i < m; ++i) {
         T[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; ++j) {
+        for (size_t j = 0; j < (size_t)size; ++j) {
             mpz_init(T[i][j]);
         }
     }
@@ -163,7 +163,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     // the sum of all the bits
     // symmetric function evaluation works: f(1) = 0, f(2,3,...,m) = 1
     // something wrong above with the input summation
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_set(temp2, ss->coef[m_idx][m]);
         mpz_set_ui(result[i], 0);
         ss->modAdd(result[i], result[i], temp2);
@@ -177,19 +177,19 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     ss->modSub(result, const1, result, size); // Line 5 of EQZ
     // used for testing
     // Open(result, c_test, size, threadID, net, ss); // Line 2 of EQZ
-    // for (size_t i = 0; i < size; i++) {
+    // for (size_t i = 0; i < (size_t)size; i++) {
     //     gmp_printf("result[%i]  = %Zd \n", i, c_test[i]);
     // }
 
     /*Free the memory*/
     for (int i = 0; i < K + 1; ++i) {
-        for (int j = 0; j < size; ++j)
+        for (size_t j = 0; j < (size_t)size; ++j)
             mpz_clear(V[i][j]);
         free(V[i]);
     }
     free(V);
     for (int i = 0; i < m + 1; ++i) {
-        for (int j = 0; j < size; ++j)
+        for (size_t j = 0; j < (size_t)size; ++j)
             mpz_clear(U[i][j]);
         free(U[i]);
     }
@@ -205,7 +205,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     mpz_clear(constK_m1);
     mpz_clear(const2K_m1);
 
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < (size_t)size; ++i) {
         mpz_clear(C[i]);
         mpz_clear(c[i]);
         mpz_clear(c_test[i]);
@@ -229,14 +229,14 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
     free(bitm);
 
     for (int i = 0; i < peers; ++i) {
-        for (int j = 0; j < size; ++j)
+        for (size_t j = 0; j < (size_t)size; ++j)
             mpz_clear(resultShares[i][j]);
         free(resultShares[i]);
     }
     free(resultShares);
 
     for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < size; ++j) {
+        for (size_t j = 0; j < (size_t)size; ++j) {
             mpz_clear(T[i][j]);
         }
         free(T[i]);
@@ -246,7 +246,7 @@ void doOperation_EQZ(mpz_t *shares, mpz_t *result, int K, int size, int threadID
 
 void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
     if (len < 2) {
@@ -260,7 +260,7 @@ void doOperation_EQZ(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, int 
 
 void doOperation_EQZ(mpz_t *result, mpz_t *a, int *b, int alen, int blen, int resultlen, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
     mpz_t *sub = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < (size_t)size; ++i)
         mpz_init(sub[i]);
     int len = smc_compute_len(alen, blen);
     if (len < 2) {
@@ -285,7 +285,7 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
     mpz_init_set_ui(const2, 2);
 
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_init(temp[i]);
     }
     // computing the expression 2*a*b + 1 - a - b, which is equivalent to EQZ(a-b) for BITS
@@ -297,7 +297,7 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, mpz_t *b, int alen, int blen, 
 
     mpz_clear(const1);
     mpz_clear(const2);
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         mpz_clear(temp[i]);
     }
 
@@ -310,7 +310,7 @@ void doOperation_EQZ_bit(mpz_t *result, mpz_t *a, int *b, int alen, int blen, in
     // printf("ALT EQZ, private-public\n");
     mpz_t const1;
     mpz_init_set_ui(const1, 1);
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         if (b[i]) {
             mpz_set(result[i], a[i]); // return a
         } else {

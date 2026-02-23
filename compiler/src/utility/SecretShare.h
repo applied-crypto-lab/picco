@@ -25,6 +25,7 @@
 #include "stdint.h"
 #include <charconv>
 #include <cstdlib>
+#include <type_traits>
 #include <gmp.h>
 #include <inttypes.h>
 #include <iostream>
@@ -65,6 +66,50 @@ inline __attribute__((always_inline)) T SET_BIT(T X, T N, T B) {
     return (X & ~(T(1) << N)) | (B << N);
 }
 
+// Helper functions for 128-bit integer string conversion
+// std::from_chars and std::to_string don't support __uint128_t
+inline void from_string_helper_utility(__uint128_t &value, const char *str, size_t len) {
+    value = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            value = value * 10 + (str[i] - '0');
+        } else if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r') {
+            continue;
+        } else {
+            break;
+        }
+    }
+}
+
+inline std::string to_string_helper_utility(__uint128_t value) {
+    if (value == 0) return "0";
+    std::string result;
+    while (value > 0) {
+        result = char('0' + value % 10) + result;
+        value /= 10;
+    }
+    return result;
+}
+
+// Generic template wrapper for from_chars (works with all types)
+template <typename T>
+inline void parse_integer_utility(T &value, const char *data, size_t len) {
+    if constexpr (std::is_same_v<T, __uint128_t>) {
+        from_string_helper_utility(value, data, len);
+    } else {
+        std::from_chars(data, data + len, value);
+    }
+}
+
+// Generic template wrapper for to_string (works with all types)
+template <typename T>
+inline std::string stringify_utility(T value) {
+    if constexpr (std::is_same_v<T, __uint128_t>) {
+        return to_string_helper_utility(value);
+    } else {
+        return std::to_string(value);
+    }
+}
 
 template <typename T>
 void print_binary(T n, uint size) {
@@ -341,7 +386,7 @@ std::vector<std::string> RSS<T>::getShares(long long input) {
         // joined_stream << "(";
         std::string share_str = "";
         for (auto &value : result_T) {
-            share_str.append(std::to_string(value) + ";");
+            share_str.append(stringify_utility(value) + ";");
             // joined_stream << value << ",";
         }
         if (share_str.empty()) {
@@ -380,7 +425,7 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
             // for (auto &share : share_strs) {                // share: string of a single share
             for (size_t j = 0; j < share_strs.size(); j++) {
                 T extracted_input = 0;
-                std::from_chars(share_strs[j].data(), share_strs[j].data() + share_strs[j].size(), extracted_input);
+                parse_integer_utility(extracted_input, share_strs[j].data(), share_strs[j].size());
                 // putting party p's jth share of secret i into its right place (potentially overwriting the EXACT same share that is already there)
                 // could theoretically do it directly in the above line
                 extracted[i][share_mapping[p][j]] = extracted_input;
@@ -402,10 +447,67 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
 }
 
 
-// TODO: float implementation for RSS reconstruction is not done yet! 
+// Float reconstruction for RSS - reconstructs a float from its 4 secret-shared components
 template <typename T>
 double RSS<T>::floatreconstructSecret(std::vector<std::vector<std::string>> input, int size) {
-    double element = 0.0;
+    std::vector<std::string> share_strs;
+    std::vector<std::vector<T>> extracted(size, std::vector<T>(totalNumShares, 0));
+
+    // Parse and extract shares (same logic as reconstructSecret)
+    for (size_t p = 0; p < input.size(); p++) {
+        auto peer = input[p];
+        for (size_t i = 0; i < peer.size(); i++) {
+            share_strs = splitfunc(peer[i].c_str(), ";");
+            for (size_t j = 0; j < share_strs.size(); j++) {
+                T extracted_input = 0;
+                parse_integer_utility(extracted_input, share_strs[j].data(), share_strs[j].size());
+                int idx = share_mapping[p][j];
+                extracted[i][idx] = extracted_input;
+            }
+        }
+    }
+
+    // Reconstruct each float component (v, p, z, s)
+    std::vector<long long> result(4);
+    for (int i = 0; i < 4; i++) {
+        T accumulator = 0;
+        for (auto &s : extracted[i]) {
+            accumulator += s;
+        }
+        accumulator = accumulator & SHIFT;  // Mask to ring size
+        result[i] = (long long)(accumulator);
+    }
+
+    // Handle negative exponent: when ring_size < 64, the unsigned-to-long-long cast
+    // doesn't sign-extend (e.g., uint32_t(2^25-1) -> long long = 33554431, not -1).
+    // Check if the MSB of the ring value is set (two's complement negative) and adjust.
+    // For ring_size == 64 with uint64_t, the cast naturally reinterprets the bit pattern.
+    // For ring_size > 64 with __uint128_t, truncation to 64 bits preserves the sign.
+    if (ring_size < (int)(sizeof(long long) * 8)) {
+        // Exponent (index 1) can be negative in PICCO float representation
+        long long msb = 1LL << (ring_size - 1);
+        if (result[1] >= msb) {
+            // Value is negative in the ring: subtract 2^ring_size
+            result[1] -= (1LL << ring_size);
+        }
+    }
+
+    // Get the float components
+    long v = result[0];  // mantissa
+    long p = result[1];  // exponent (may be negative)
+    long z = result[2];  // zero flag
+    long s = result[3];  // sign
+
+    // Reconstruct the float value
+    double element = 0;
+    if (z == 1) {
+        element = 0;
+    } else {
+        element = v * pow(2, p);
+        if (s == 1)
+            element = -element;
+    }
+
     return element;
 }
 

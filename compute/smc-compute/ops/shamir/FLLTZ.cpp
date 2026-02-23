@@ -331,11 +331,11 @@ void doOperation_FLLTZ(mpz_t **A1, float *B1, mpz_t *result, int K, int L, int s
     Mult(temp3, temp3, A[2], size, threadID, net, ss); // changed to ss->modMul
 
     mpz_t *temp_arr1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_init(temp_arr1[i]);
     }
-    for (size_t i = 0; i < size; i++) {
-        mpz_set_ui(temp_arr1[i], (1-B[2][i])*(1-B[3][i])); // takes (1-Exp * 1-sign) 
+    for (int i = 0; i < size; i++) {
+        mpz_set_ui(temp_arr1[i], (1-B[2][i])*(1-B[3][i])); // takes (1-Exp * 1-sign)
     }
     ss->modMul(temp3, temp_arr1, A[2], size);
     ss->modAdd(b, b, temp3, size);
@@ -350,20 +350,20 @@ void doOperation_FLLTZ(mpz_t **A1, float *B1, mpz_t *result, int K, int L, int s
     // ss->modSub(temp1, const1, B[2], size);
     ss->modSub(temp3, const1, A[2], size);
     mpz_t *temp_arr2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_init(temp_arr2[i]);
     }
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_set_ui(temp_arr2[i], 1-B[2][i]);
     }
     ss->modMul(b_p, temp_arr2, temp3, size); // changed too from MUlt
     /* compute [s1] * (1 - [s2])  */
-    // ss->modSub(temp1, const1, B[3], size); // temp1 is directly computed on line below, 
+    // ss->modSub(temp1, const1, B[3], size); // temp1 is directly computed on line below,
     mpz_t *temp_arr3 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_init(temp_arr3[i]);
     }
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_set_ui(temp_arr3[i], 1-B[3][i]);
     }
     ss->modMul(temp2, temp_arr3, A[3], size);
@@ -526,11 +526,11 @@ void doOperation_FLLTZ(float *A1, mpz_t **B1, mpz_t *result, int K, int L, int s
     Mult(temp3, temp1, temp2, size, threadID, net, ss);
 
     mpz_t *temp_arr1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_init(temp_arr1[i]);
     }
-    for (size_t i = 0; i < size; i++) {
-        mpz_set_ui(temp_arr1[i], (1-A[2][i])*(1-A[3][i])); // takes (1-Exp * 1-sign) 
+    for (int i = 0; i < size; i++) {
+        mpz_set_ui(temp_arr1[i], (1-A[2][i])*(1-A[3][i])); // takes (1-Exp * 1-sign)
     }
 
     ss->modAdd(b, b, temp3, size);
@@ -543,22 +543,22 @@ void doOperation_FLLTZ(float *A1, mpz_t **B1, mpz_t *result, int K, int L, int s
     /* compute (1-[z1]) * (1-[z2]) */
     ss->modSub(temp1, const1, B[2], size);
     mpz_t *temp_arr2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_init(temp_arr2[i]);
     }
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_set_ui(temp_arr2[i], 1-A[2][i]);
     }
     ss->modMul(b_p, temp_arr2, temp3, size);
-    
+
     /* compute [s1] * (1 - [s2])  */
     ss->modSub(temp1, const1, B[3], size);
     /* compute (1-[s1]) *(1-[s2]) * b+ */
     mpz_t *temp_arr3 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_init(temp_arr3[i]);
     }
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         mpz_set_ui(temp_arr3[i], 1-A[3][i]);
     }
     ss->modMul(temp1, temp_arr3, A[3], size);

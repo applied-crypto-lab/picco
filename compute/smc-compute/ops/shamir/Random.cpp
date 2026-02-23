@@ -119,15 +119,15 @@ void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, Secr
     unsigned long i, j;
 
     // do initialization
-    for (i = 0; i < size * M; i++) {
+    for (i = 0; i < (size_t)(size * M); i++) {
         mpz_init(tempResult[i]);
     }
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < (size_t)size; i++) {
         mpz_init(temp[i]);
     }
     // generating size*M random bits, storing in tempResult
     PRandBit(size * M, tempResult, threadID, net, ss);
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < (size_t)size; i++) {
         // using result[M] as accumulator for summation
         mpz_set(result[M][i], tempResult[i]);
         // storing result[0] where it actually is going to go
@@ -136,9 +136,9 @@ void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, Secr
 
     // computing [r'] <- \sum_{i=0}^{m-1} 2^i [b_i]
     // result[M] accumulates the sum
-    for (i = 1; i < M; i++) {
+    for (i = 1; i < (size_t)M; i++) {
         pow = pow << 1;
-        for (j = 0; j < size; j++) {
+        for (j = 0; j < (size_t)size; j++) {
             mpz_set(result[i][j], tempResult[i * size + j]);
             mpz_mul_ui(temp[j], result[i][j], pow);
         }
@@ -146,11 +146,11 @@ void PRandM(int M, int size, mpz_t **result, int threadID, NodeNetwork net, Secr
     }
 
     // free the memory
-    for (i = 0; i < size * M; i++)
+    for (i = 0; i < (size_t)(size * M); i++)
         mpz_clear(tempResult[i]);
     free(tempResult);
 
-    for (i = 0; i < size; i++)
+    for (i = 0; i < (size_t)size; i++)
         mpz_clear(temp[i]);
     free(temp);
 }

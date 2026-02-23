@@ -27,38 +27,44 @@
 #include "MSB.hpp"
 #include "Mult.hpp"
 #include "PreOR.hpp"
+#include "Open.hpp"
 
 template <typename T>
 void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
 
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
 
-    T **b_bits = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        b_bits[i] = new T[size];
-        memset(b_bits[i], 0, sizeof(T) * size);
+    T **b_bits = new T *[size];
+    for (size_t i = 0; i < (size_t)size; i++) {
+        b_bits[i] = new T[numShares];
+        memset(b_bits[i], 0, sizeof(T) * numShares);
     }
 
-    T **b_msb = new T *[numShares];
-    T **x = new T *[numShares];
-    T **x_bits = new T *[numShares];
-    T **prod = new T *[numShares];
-    T **z = new T *[numShares];
-    T **z_res = new T *[numShares];
-    for (size_t i = 0; i < numShares; i++) {
-        b_msb[i] = new T[size];
-        x[i] = new T[size];
+    T **b_msb = new T *[size];
+    T **x = new T *[size];
+    T **x_bits = new T *[size];
+    T **prod = new T *[size];
+    for (size_t i = 0; i < (size_t)size; i++) {
+        b_msb[i] = new T[numShares];
+        x[i] = new T[numShares];
 
-        x_bits[i] = new T[size];
-        memset(x_bits[i], 0, sizeof(T) * size);
+        x_bits[i] = new T[numShares];
+        memset(x_bits[i], 0, sizeof(T) * numShares);
 
-        prod[i] = new T[size];
-        memset(prod[i], 0, sizeof(T) * size);
+        prod[i] = new T[numShares];
+        memset(prod[i], 0, sizeof(T) * numShares);
 
-        z_res[i] = new T[size * bitlength];
-        memset(z_res[i], 0, sizeof(T) * bitlength * size);
-        z[i] = new T[size * bitlength];
-        memset(z[i], 0, sizeof(T) * bitlength * size);
+        // Initialize v[i] to zero - critical for += accumulation later
+        memset(v[i], 0, sizeof(T) * numShares);
+    }
+
+    T **z = new T *[size * bitlength];
+    T **z_res = new T *[size * bitlength];
+    for (size_t i = 0; i < (size_t)(size * bitlength); i++) {
+        z_res[i] = new T[numShares];
+        memset(z_res[i], 0, sizeof(T) * numShares);
+        z[i] = new T[numShares];
+        memset(z[i], 0, sizeof(T) * numShares);
     }
 
     T *ai = new T[numShares];
@@ -68,15 +74,15 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     Rss_BitDec(x_bits, b, bitlength, size, ring_size, net, ss);
 
     // sanitizing?
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            x_bits[s][i] = x_bits[s][i] & ss->SHIFT[bitlength];
+    for (size_t i = 0; i < (size_t)size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            x_bits[i][s] = x_bits[i][s] & ss->SHIFT[bitlength];
         }
     }
 
     // santiziing since we're dealing with bits
-    for (size_t s = 0; s < numShares; s++) {
-        memset(prod[s], 0, sizeof(T) * size);
+    for (size_t i = 0; i < (size_t)size; i++) {
+        memset(prod[i], 0, sizeof(T) * numShares);
     }
 
     // commputing the "reverse" prefixOR
@@ -84,24 +90,26 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     // reusing prod
     Rss_PreOR(prod, x_bits, size, bitlength, net, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t j = 0; j < bitlength - 1; j++) {
-            for (size_t i = 0; i < size; i++) {
-                z[s][j * size + i] = GET_BIT(prod[s][i], T(j)) ^ GET_BIT(prod[s][i], T(j + 1));
+    for (size_t j = 0; j < (size_t)(bitlength - 1); j++) {
+        for (size_t i = 0; i < (size_t)size; i++) {
+            for (size_t s = 0; s < numShares; s++) {
+                z[j * size + i][s] = GET_BIT(prod[i][s], T(j)) ^ GET_BIT(prod[i][s], T(j + 1));
             }
         }
-        for (size_t i = 0; i < size; i++) {
-            z[s][(bitlength - 1) * size + i] = GET_BIT(prod[s][i], T(bitlength - 1));
+    }
+    for (size_t i = 0; i < (size_t)size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            z[(bitlength - 1) * size + i][s] = GET_BIT(prod[i][s], T(bitlength - 1));
         }
     }
 
     // reusing z
     Rss_B2A(z_res, z, bitlength * size, ring_size, net, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t j = 0; j < bitlength; j++) {
-            for (size_t i = 0; i < size; i++) {
-                v[s][i] += (T(1) << T(bitlength - j - 1)) * z_res[s][j * size + i];
+    for (size_t j = 0; j < (size_t)bitlength; j++) {
+        for (size_t i = 0; i < (size_t)size; i++) {
+            for (size_t s = 0; s < numShares; s++) {
+                v[i][s] += (T(1) << T(bitlength - j - 1)) * z_res[j * size + i][s];
             }
         }
     }
@@ -111,15 +119,19 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
     Mult(c, b, v, size, threadID, net, ss);
 
     delete[] ai;
-    for (size_t i = 0; i < numShares; i++) {
+    for (size_t i = 0; i < (size_t)size; i++) {
         delete[] b_bits[i];
         delete[] prod[i];
         delete[] x[i];
         delete[] x_bits[i];
+        delete[] b_msb[i];
+    }
+    for (size_t i = 0; i < (size_t)(size * bitlength); i++) {
         delete[] z[i];
         delete[] z_res[i];
     }
     delete[] b_bits;
+    delete[] b_msb;
     delete[] x;
     delete[] prod;
     delete[] x_bits;

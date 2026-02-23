@@ -26,7 +26,18 @@
 #define SHAMIR_SS 2
 #define REPLICATED_SS 1
 
-#define SECURITY_PARAMETER 48 // the security parameter kappa
+// Statistical security parameter (formerly kappa)
+// For Shamir: used as part of kappa_nu = STATISTICAL_SECURITY + nu
+// For RSS: used as a constant (no nu term needed)
+#define STATISTICAL_SECURITY 40
+
+// Division accuracy parameter (lambda)
+// Controls precision in division algorithms (IntDiv, MDiv, SDiv)
+// Higher values = more precision but larger intermediate values
+#define DIVISION_ACCURACY 8
+
+// Legacy alias for backwards compatibility
+#define SECURITY_PARAMETER STATISTICAL_SECURITY
 
 // these constants ARE common with the compute directory. If they are changed here in compiler/, they must be changed in compute/
 #define KEYSIZE 16

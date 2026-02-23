@@ -95,8 +95,8 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
 
     // allocate space for prgSeeds
     threshold = peers / 2;
-    prgSeeds = new unsigned char *[2 * threshold];
-    for (unsigned int i = 0; i < peers; i++) {
+    prgSeeds = new unsigned char *[peers];
+    for (int i = 0; i < peers; i++) {
         prgSeeds[i] = new unsigned char[KEYSIZE];
         memset(prgSeeds[i], 0, KEYSIZE);
         // print_hexa(prgSeeds[i],KEYSIZE);
@@ -166,15 +166,15 @@ NodeNetwork::NodeNetwork(NodeConfiguration *nodeConfig, std::string privatekey_f
     for (int i = 0; i < numOfThreads; i++)
         test_flags[i] = 0;
 
-        /*
-        ANB, 3/4/24
-        - there is a VERY strange "bug", where if the array sizes of the shifts below are declared to be of length sizeof(priv_int) * 8, and the subsequent for loops which populate each element with the corresponding mask
-        - if the for loop is upper bounded by sizeof(priv_int) * 8 + 1 (1 larger than allowed), it DOES NOT CAUSE A SEGFAULT
-        - e.g. if k = 32, and we declare SHIFT_RSS to be of length 32
-        - and the for loop is upper bounded by 32 INCLUSIVE, then we are accessing the following:
-            SHIFT_RSS[32]
-        - which is out of bounds, and should've ended in a segfault
-         */
+    /*
+    ANB, 3/4/24
+    - there is a VERY strange "bug", where if the array sizes of the shifts below are declared to be of length sizeof(priv_int) * 8, and the subsequent for loops which populate each element with the corresponding mask
+    - if the for loop is upper bounded by sizeof(priv_int) * 8 + 1 (1 larger than allowed), it DOES NOT CAUSE A SEGFAULT
+    - e.g. if k = 32, and we declare SHIFT_RSS to be of length 32
+    - and the for loop is upper bounded by 32 INCLUSIVE, then we are accessing the following:
+        SHIFT_RSS[32]
+    - which is out of bounds, and should've ended in a segfault
+     */
 #if __RSS__
     SHIFT_RSS = new priv_int_t[sizeof(priv_int_t) * 8 + 1];
     for (priv_int_t i = 0; i <= sizeof(priv_int_t) * 8; i++) {
@@ -635,7 +635,8 @@ void NodeNetwork::sendModeToPeers(int id) {
 
 /* the function sends different data to each peer and receive data from each peer */
 void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int threadID) {
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
     // struct timeval tv1, tv2;
     if (size == 0)
@@ -708,7 +709,8 @@ void NodeNetwork::multicastToPeers(mpz_t **data, mpz_t **buffers, int size, int 
 
 /* the function sends the same data to each peer and receives data from each peer */
 void NodeNetwork::broadcastToPeers(mpz_t *data, int size, mpz_t **buffers, int threadID) {
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
 
     if (size == 0)
@@ -857,9 +859,36 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             if (priRkey == NULL)
                 throw std::runtime_error("Read Private Key for RSA");
             char *buffer = (char *)malloc(RSA_size(priRkey));
-            int n = read(sockfd[i], buffer, RSA_size(priRkey));
-            if (n < 0)
-                throw std::runtime_error("reading from socket 1");
+            // int num_tries = 0;
+
+            int n;
+            while (true) {
+                n = read(sockfd[i], buffer, RSA_size(priRkey));
+
+                if (n < 0) {
+                    if (num_tries < MAX_RETRIES) {
+                        // cross platform version of sleep(), C++14 and onward
+                        std::this_thread::sleep_for(WAIT_INTERVAL);
+                        num_tries += 1;
+                    } else {
+                        throw std::runtime_error("timeout, error recieving secret key  " + std::to_string(errno) + " - " + strerror(errno));
+                    }
+                } else{
+                    break;
+                }
+            }
+            // int n;
+            // while ((n = read(sockfd[i], buffer, RSA_size(priRkey))) < 0) {
+            //     continue;
+            // }
+
+            // int n;
+            // while ((n = read(sockfd[i], buffer, RSA_size(priRkey))) < 0) {
+            //     continue;
+            // }
+            // int n = read(sockfd[i], buffer, RSA_size(priRkey));
+            // if (n < 0)
+            //     throw std::runtime_error("reading from socket 1");
             char *decrypt = (char *)malloc(n);
             memset(decrypt, 0x00, n);
             int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
@@ -1076,7 +1105,7 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int count = 0, rounds = 0;
     int idx = 0;
     getRounds(size, &count, &rounds);
-    for (uint k = 0; k <= rounds; k++) {
+    for (int k = 0; k <= rounds; k++) {
         for (uint i = 0; i < threshold; i++) {
             sendDataToPeer(sendtoIDs[i], data[i], k * count, count, size);
         }
@@ -1089,7 +1118,8 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 
 // why is this needed for send/recv to work?
 void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_t **data, int size, int threadID) {
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
 
     if (size == 0)
@@ -1163,7 +1193,8 @@ void NodeNetwork::multicastToPeers_Mult(uint *sendtoIDs, uint *RecvFromIDs, mpz_
 // sends one piece of data to recvFromIds
 void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_t *data, mpz_t **buffer, int size, int threadID) {
     // std::cout << "multicast threadID : "<<threadID << std::endl;
-    test_flags[threadID]++;
+    if (threadID >= 0)
+        test_flags[threadID]++;
     int id = getID();
     if (size == 0)
         return;
@@ -1200,7 +1231,7 @@ void NodeNetwork::multicastToPeers_Open(uint *sendtoIDs, uint *RecvFromIDs, mpz_
     int count = 0, rounds = 0;
     int idx = 0;
     getRounds(size, &count, &rounds);
-    for (uint k = 0; k <= rounds; k++) {
+    for (int k = 0; k <= rounds; k++) {
         for (uint i = 0; i < threshold; i++) {
             sendDataToPeer((int)sendtoIDs[i], data, k * count, count, size);
         }
@@ -1231,7 +1262,7 @@ void NodeNetwork::getRounds_RSS(int size, uint *count, uint *rounds, uint ring_s
 void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t *RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
         for (size_t i = 0; i < send_recv_map[0].size(); i++) {
             if (send_recv_map[0][i] > 0) {
@@ -1250,7 +1281,7 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t *RecvD
 void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         for (size_t i = 0; i < send_recv_map[0].size(); i++) {
             // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
             if (send_recv_map[0][i] > 0) {
@@ -1271,14 +1302,13 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t *SendData, priv_int_t **Recv
             }
         }
     }
-
 }
 
 // used for Open (5 and 7 pc)
 void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **SendData, priv_int_t **RecvData, int size, uint ring_size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         // these conditionals are here in the event of a computational party not sending (i.e. input, B2A, edaBit)
         for (size_t i = 0; i < send_recv_map[0].size(); i++) {
             if (send_recv_map[0][i] > 0) {
@@ -1291,7 +1321,6 @@ void NodeNetwork::SendAndGetDataFromPeer(priv_int_t **SendData, priv_int_t **Rec
             }
         }
     }
-
 }
 
 void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount, int size, uint ring_size) {
@@ -1306,7 +1335,7 @@ void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount
         char *buffer = (char *)malloc(sizeof(char) * buffer_size);
         char *pointer = buffer;
         memset(buffer, 0, buffer_size);
-        for (int i = start; i < start + read_amount; i++) {
+        for (int i = start; i < start + static_cast<int>(read_amount); i++) {
             // I think this is here to preserve security beyond the ell (or k) bits of the shares
             data[i] = data[i] & SHIFT_RSS[ring_size];
             memcpy(pointer, &data[i], unit_size);
@@ -1325,7 +1354,7 @@ void NodeNetwork::sendDataToPeer(int id, priv_int_t *data, int start, int amount
 void NodeNetwork::sendDataToPeer(int id, int size, priv_int_t *data, uint ring_size) {
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++)
+    for (uint k = 0; k <= rounds; k++)
         sendDataToPeer(id, data, k * count, count, size, ring_size);
 }
 
@@ -1333,7 +1362,7 @@ void NodeNetwork::getDataFromPeer(int id, int size, priv_int_t *buffer, uint rin
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
     memset(buffer, 0, sizeof(priv_int_t) * size);
-    for (int k = 0; k <= rounds; k++)
+    for (uint k = 0; k <= rounds; k++)
         getDataFromPeer(id, buffer, k * count, count, size, ring_size);
 }
 
@@ -1368,7 +1397,7 @@ void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int 
     int id = getID();
     uint count = 0, rounds = 0;
     getRounds_RSS(size, &count, &rounds, ring_size);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         for (int j = 1; j <= peers + 1; j++) {
             if (id == j)
                 continue;
@@ -1386,7 +1415,7 @@ void NodeNetwork::multicastToPeers(priv_int_t **data, priv_int_t **buffers, int 
 void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
     getRounds_bit(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         for (size_t i = 0; i < send_recv_map[0].size(); i++) {
             sendDataToPeer_bit(send_recv_map[0][i], SendData, k * count, count, size);
         }
@@ -1394,14 +1423,13 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t *RecvDat
             getDataFromPeer_bit(send_recv_map[1][i], RecvData, k * count, count, size);
         }
     }
-
 }
 
 // used for multiplication
 void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
     getRounds_bit(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         for (size_t i = 0; i < send_recv_map[0].size(); i++) {
             sendDataToPeer_bit(send_recv_map[0][i], SendData, k * count, count, size);
         }
@@ -1415,7 +1443,7 @@ void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t *SendData, uint8_t **RecvDa
 void NodeNetwork::SendAndGetDataFromPeer_bit(uint8_t **SendData, uint8_t **RecvData, int size, std::vector<std::vector<int>> send_recv_map) {
     uint count = 0, rounds = 0;
     getRounds_bit(size, &count, &rounds);
-    for (int k = 0; k <= rounds; k++) {
+    for (uint k = 0; k <= rounds; k++) {
         for (size_t i = 0; i < send_recv_map[0].size(); i++) {
             sendDataToPeer_bit(send_recv_map[0][i], SendData[i], k * count, count, size);
         }
@@ -1481,8 +1509,5 @@ void NodeNetwork::getRounds_bit(int size, uint *count, uint *rounds) {
     else
         *rounds = size / (*count) - 1;
 }
-
-
-
 
 #endif

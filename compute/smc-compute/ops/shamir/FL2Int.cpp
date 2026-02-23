@@ -40,6 +40,7 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
     mpz_t *a = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *frac = (mpz_t *)malloc(sizeof(mpz_t) * size);  // Flag for truly fractional values
     mpz_t *u = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *pow2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
@@ -50,6 +51,7 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
         mpz_init(a[i]);
         mpz_init(b[i]);
         mpz_init(c[i]);
+        mpz_init(frac[i]);
         mpz_init(u[i]);
         mpz_init(pow2[i]);
     }
@@ -64,6 +66,11 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
 
     // line 4
     doOperation_LTZ(c, valuesP[1], K, size, threadID, net, ss);
+
+    // Additional check for truly fractional values: |value| < 1 when p' < -(L-1)
+    // frac = LTZ(p' + (L-1)) = 1 when p' < -(L-1), i.e., value is fractional
+    ss->modAdd(temp1, valuesP[1], L - 1, size);
+    doOperation_LTZ(frac, temp1, K, size, threadID, net, ss);
 
     // line 5
     ss->modSub(temp1, gamma - 1, valuesP[1], size);
@@ -114,6 +121,7 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
     Mult(temp1, temp1, valuesP[1], size, threadID, net, ss);
     doOperation_Pow2(pow2, temp1, gamma - 1, size, threadID, net, ss);
     // line 14
+    // g = (1-z')*(1-2s')*pow2*a*v'
     ss->modSub(temp1, 1, valuesP[2], size);
     ss->modMul(temp2, valuesP[3], 2, size);
     ss->modSub(temp2, 1, temp2, size);
@@ -121,6 +129,12 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
     Mult(results, temp1, pow2, size, threadID, net, ss);
     Mult(results, results, a, size, threadID, net, ss);
     Mult(results, results, valuesP[0], size, threadID, net, ss);
+
+    // Fix for fractional values: When frac=1 (p' < -(L-1), meaning |value| < 1),
+    // the result should be 0 (truncation toward zero). Multiply by (1 - frac).
+    ss->modSub(temp1, 1, frac, size);
+    Mult(results, results, temp1, size, threadID, net, ss);
+
     // free memory
     for (int i = 0; i < size; i++) {
         mpz_clear(modes[i]);
@@ -129,6 +143,7 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
         mpz_clear(a[i]);
         mpz_clear(b[i]);
         mpz_clear(c[i]);
+        mpz_clear(frac[i]);
         mpz_clear(u[i]);
         mpz_clear(pow2[i]);
     }
@@ -138,6 +153,7 @@ void doOperation_FL2Int(mpz_t **values1, mpz_t *results, int L, int K, int gamma
     free(a);
     free(b);
     free(c);
+    free(frac);
     free(u);
     free(pow2);
 

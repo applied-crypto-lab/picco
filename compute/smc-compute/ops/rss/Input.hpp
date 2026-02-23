@@ -11,11 +11,12 @@ std::vector<std::vector<int>> generateInputSendRecvMap(std::vector<int> input_pa
  * this implementation is **independent** of the number of parties in the computation
  * if pid is NOT an input party, then the argument (T *input) is (void/null/whatever)
  * numInputParties = input_parties.size()
- * input dimensiopns : [size]
- * result dimensions : [numInputParties][numShares][size]
+ * input dimensions : [size]
+ * result dimensions : [numInputParties][size][numShares] (interface format)
+ *   where result[p_star_index][i][s] = share s of element i from input party p_star
  * This is a different/better representation than what is used in edaBit, since it allows us to test individual outputs, while keeping the structure well-formed
  * e.g.,
- * we, buy default, set T* to be the canonnically "first" share that the input party possesses (and is thus the "computed" share)
+ * we, by default, set T* to be the canonically "first" share that the input party possesses (and is thus the "computed" share)
  * which is dictated by T_map (defined in RepSecretShare)
  * example input_parties  = {1, 2, 3} (for 7pc B2A)
  * we assume input_parties is in increasing order
@@ -31,9 +32,6 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
     uint bytes = (ring_size + 7) >> 3;
     int pid = ss->getID();
     std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
-    // printf("---\nsend_recv_map\n");
-    // std::cout << "send : "<< send_recv_map[0] << std::endl;
-    // std::cout << "recv : "<< send_recv_map[1] << std::endl;
 
     // allocated based on the size of recv_map()
     T **recvbuf = new T *[send_recv_map[1].size()];
@@ -46,6 +44,11 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
     for (uint s = 0; s < numShares; s++) {
         buffer[s] = new uint8_t[bytes * size];
     }
+
+    // Temporary buffer for T_star values (contiguous for network send)
+    T *T_star_send_buf = new T[size];
+    memset(T_star_send_buf, 0, sizeof(T) * size);
+
     // instead of generating T_star, just get the index in T_map where it exists (different for each party)
     // iterating through every input party
     int T_star_index;
@@ -54,13 +57,14 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
     int my_T_star_index = 0;
     for (auto p_star : input_parties) {
         T_star_index = ss->generateT_star_index(p_star); // cannot be made static/const
-        // iterating through every set T in mapping T_map_mpc (every share, exclusing T^*)
+        // iterating through every set T in mapping T_map_mpc (every share, excluding T^*)
         // calling the PRGs whenever applicable
         for (uint s = 0; s < numShares; s++) {
-            if (s != T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
+            if (s != (uint)T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
                 ss->prg_getrandom(s, bytes, size, buffer[s]);
+                // Interface format: result[p_star_index][i][s] = share s of element i
                 for (size_t i = 0; i < size; i++) {
-                    memcpy(result[p_star_index][s] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[p_star][s][i]
+                    memcpy(&result[p_star_index][i][s], buffer[s] + i * bytes, bytes);
                 }
             }
         }
@@ -73,35 +77,30 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
             my_T_star_index = T_star_index; // storing the index of my T_star
             // very small number of if statements are being executed, no degradation to performance
             for (uint s = 0; s < numShares; s++) {
-                if (s != T_star_index) {
+                if (s != (uint)T_star_index) {
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] -= result[my_index][s][i];
+                        // Interface format: result[my_index][i][T_star_index] -= result[my_index][i][s]
+                        result[my_index][i][T_star_index] -= result[my_index][i][s];
                     }
                 } else {
                     // only happens once, p_star adding the value which is being inputted to share T_star
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] += input[i];
+                        result[my_index][i][T_star_index] += input[i];
                     }
                 }
             }
         }
         p_star_index += 1;
-        // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
-        // However, will still need to extract the shares received into the correct locations
     }
 
-    // std::cout << "my_index : " << my_index << std::endl;
-    // std::cout << "my_T_star_index : " << my_T_star_index << std::endl;
-    // std::cout << "send_recv_map : " << send_recv_map << std::endl;
-    // sending everything in the result[my_index][my_T_star_index]
-    nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, size, ring_size, send_recv_map);
-    /*
-    the order which data is received into recvbuf corresponds to the recv component of send_recv_map
-    e.g. supposed input_parties = {1,2,3}
-    5 receives from parties 2 and 1 (in that order)
-    p5 will iterate through recv_map, then through input_parties
-    if a match is found (e.g., we first find "2" at index 1 in input_parties), this informs us that everything in recv_buff at position[1] is from party 2
-     */
+    // Copy T_star shares into contiguous buffer for network send
+    for (size_t i = 0; i < size; i++) {
+        T_star_send_buf[i] = result[my_index][i][my_T_star_index];
+    }
+
+    // sending everything in the T_star_send_buf
+    nodeNet.SendAndGetDataFromPeer(T_star_send_buf, recvbuf, size, ring_size, send_recv_map);
+
     // iterate through recv_map, look for match in input_parties
     p_star_index = 0;
     for (auto p_star : input_parties) {
@@ -111,7 +110,10 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
             if (p_star == send_recv_map[1][recv_id_idx]) {
                 // getting the index of the share T_star
                 T_star_index = ss->generateT_star_index(p_star);
-                memcpy(result[p_star_index][T_star_index], recvbuf[recv_id_idx], sizeof(T) * size);
+                // Copy received data into interface format
+                for (size_t i = 0; i < size; i++) {
+                    result[p_star_index][i][T_star_index] = recvbuf[recv_id_idx][i];
+                }
             }
         }
         p_star_index += 1;
@@ -122,6 +124,7 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
     }
 
     delete[] recvbuf;
+    delete[] T_star_send_buf;
     for (size_t i = 0; i < numShares; i++) {
         delete[] buffer[i];
     }
@@ -131,18 +134,16 @@ void Rss_Input_p_star(T ***result, T *input, std::vector<int> input_parties, uin
 /*
 the input functionality called by edaBit
 input : [size]
-result : [numInputParties][numShares][2*size]
-first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2)
+result : [numInputParties][total_size][numShares] (interface format)
+  where result[p_star_index][i][s] = share s of element i from input party p_star
+  total_size = 2*size: first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2)
 */
 template <typename T>
 void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-    // std::cout << "size = " << size<<std::endl;
-    // std::cout << "ring_size = " << ring_size<<std::endl;
-
     // uint numInputParties = input_parties.size();
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
-    static int pid = ss->getID();
+    int pid = ss->getID();
     uint total_size = 2 * size;
     std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
 
@@ -157,6 +158,11 @@ void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uin
     for (uint s = 0; s < numShares; s++) {
         buffer[s] = new uint8_t[bytes * total_size];
     }
+
+    // Temporary buffer for T_star values (contiguous for network send)
+    T *T_star_send_buf = new T[total_size];
+    memset(T_star_send_buf, 0, sizeof(T) * total_size);
+
     // instead of generating T_star, just get the index in T_map where it exists (different for each party)
     // iterating through every input party
     int T_star_index;
@@ -165,13 +171,23 @@ void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uin
     int my_T_star_index = 0;
     for (auto p_star : input_parties) {
         T_star_index = ss->generateT_star_index(p_star); // cannot be made static/const
-        // iterating through every set T in mapping T_map_mpc (every share, exclusing T^*)
+        // iterating through every set T in mapping T_map_mpc (every share, excluding T^*)
         // calling the PRGs whenever applicable
+        // ORIGINAL LOGIC: Call PRG if p_star is NOT in T_map_mpc[s]
+        // T_map_mpc[s] contains parties that share PRG seed for share s with current party
+        // If p_star is NOT in T_map_mpc[s], generate via PRG
         for (uint s = 0; s < numShares; s++) {
-            if (s != T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
-                ss->prg_getrandom(s, bytes, total_size, buffer[s]);
-                for (size_t i = 0; i < total_size; i++) {
-                    memcpy(result[p_star_index][s] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[p_star][s][i]
+            bool p_star_in_T = std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end();
+            // Original condition from Input_p_star: generate if s != T_star AND p_star NOT in T_map_mpc[s]
+            bool call_prg = (s != (uint)T_star_index) && !p_star_in_T;
+            if (call_prg) {
+                // For edaBit, arithmetic and bitwise must use the SAME random value
+                // Only generate 'size' random values, use each for both arithmetic and bitwise
+                ss->prg_getrandom(s, bytes, size, buffer[s]);
+                for (size_t i = 0; i < size; i++) {
+                    // Use the same random value for both arithmetic and bitwise
+                    memcpy(&result[p_star_index][i][s], buffer[s] + i * bytes, bytes);           // arithmetic
+                    memcpy(&result[p_star_index][size + i][s], buffer[s] + i * bytes, bytes);   // bitwise (same!)
                 }
             }
         }
@@ -184,37 +200,36 @@ void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uin
             my_T_star_index = T_star_index; // storing the index of my T_star
             // very small number of if statements are being executed, no degradation to performance
             for (uint s = 0; s < numShares; s++) {
-                if (s != T_star_index) {
+                if (s != (uint)T_star_index) {
+                    // Interface format: result[my_index][i][T_star_index]
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] -= result[my_index][s][i];
+                        result[my_index][i][T_star_index] -= result[my_index][i][s];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][size + i] ^= result[my_index][s][size + i];
+                        result[my_index][size + i][T_star_index] ^= result[my_index][size + i][s];
                     }
                 } else {
                     // only happens once, p_star adding the value which is being inputted to share T_star
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] += input[i];
+                        result[my_index][i][T_star_index] += input[i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][size + i] ^= input[i];
+                        result[my_index][size + i][T_star_index] ^= input[i];
                     }
                 }
             }
         }
         p_star_index += 1;
-        // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
-        // However, will still need to extract the shares received into the correct locations
     }
-    // sending everything in the result[my_index][my_T_star_index]
-    nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, total_size, ring_size, send_recv_map);
-    /*
-    the order which data is received into recvbuf corresponds to the recv component of send_recv_map
-    e.g. supposed input_parties = {1,2,3}
-    5 receives from parties 2 and 1 (in that order)
-    p5 will iterate through recv_map, then through input_parties
-    if a match is found (e.g., we first find "2" at index 1 in input_parties), this informs us that everything in recv_buff at position[1] is from party 2
-     */
+
+    // Copy T_star shares into contiguous buffer for network send
+    for (size_t i = 0; i < total_size; i++) {
+        T_star_send_buf[i] = result[my_index][i][my_T_star_index];
+    }
+
+    // sending everything in T_star_send_buf
+    nodeNet.SendAndGetDataFromPeer(T_star_send_buf, recvbuf, total_size, ring_size, send_recv_map);
+
     // iterate through recv_map, look for match in input_parties
     p_star_index = 0;
     for (auto p_star : input_parties) {
@@ -224,7 +239,10 @@ void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uin
             if (p_star == send_recv_map[1][recv_id_idx]) {
                 // getting the index of the share T_star
                 T_star_index = ss->generateT_star_index(p_star);
-                memcpy(result[p_star_index][T_star_index], recvbuf[recv_id_idx], sizeof(T) * total_size);
+                // Copy received data into interface format
+                for (size_t i = 0; i < total_size; i++) {
+                    result[p_star_index][i][T_star_index] = recvbuf[recv_id_idx][i];
+                }
             }
         }
         p_star_index += 1;
@@ -235,6 +253,7 @@ void Rss_Input_edaBit(T ***result, T *input, std::vector<int> input_parties, uin
     }
 
     delete[] recvbuf;
+    delete[] T_star_send_buf;
     for (size_t i = 0; i < numShares; i++) {
         delete[] buffer[i];
     }
@@ -249,10 +268,10 @@ first (size) elements are shared in Z_2k, second (size) elements are packed shar
 */
 template <typename T>
 void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_parties, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-    static uint numShares = ss->getNumShares();
+    // result : [numInputParties][total_size][numShares] (interface format)
+    uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
-    static int pid = ss->getID();
+    int pid = ss->getID();
     uint total_size = 3 * size;
     std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
 
@@ -268,6 +287,9 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
         buffer[s] = new uint8_t[bytes * total_size];
     }
 
+    // Temporary buffer for T_star shares to send (interface format needs element-wise copy)
+    T *T_star_send_buf = new T[total_size];
+
     // instead of generating T_star, just get the index in T_map where it exists (different for each party)
     // iterating through every input party
     int T_star_index;
@@ -279,10 +301,11 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
         // iterating through every set T in mapping T_map_mpc (every share, exclusing T^*)
         // calling the PRGs whenever applicable
         for (uint s = 0; s < numShares; s++) {
-            if (s != T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
+            if (s != (uint)T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
                 ss->prg_getrandom(s, bytes, total_size, buffer[s]);
+                // result is in interface format [p_star_index][i][s]
                 for (size_t i = 0; i < total_size; i++) {
-                    memcpy(result[p_star_index][s] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[p_star][s][i]
+                    memcpy(&result[p_star_index][i][s], buffer[s] + i * bytes, bytes);
                 }
             }
         }
@@ -295,26 +318,26 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
             my_T_star_index = T_star_index; // storing the index of my T_star
             // very small number of if statements are being executed, no degradation to performance
             for (uint s = 0; s < numShares; s++) {
-                if (s != T_star_index) {
+                if (s != (uint)T_star_index) {
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] -= result[my_index][s][i];
+                        result[my_index][i][T_star_index] -= result[my_index][i][s];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][size + i] ^= result[my_index][s][size + i];
+                        result[my_index][size + i][T_star_index] ^= result[my_index][size + i][s];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][2 * size + i] -= result[my_index][s][2 * size + i];
+                        result[my_index][2 * size + i][T_star_index] -= result[my_index][2 * size + i][s];
                     }
                 } else {
                     // only happens once, p_star adding the value which is being inputted to share T_star
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] += input[i];
+                        result[my_index][i][T_star_index] += input[i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][size + i] ^= input[i];
+                        result[my_index][size + i][T_star_index] ^= input[i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][2 * size + i] += (input[i] >> T(m));
+                        result[my_index][2 * size + i][T_star_index] += (input[i] >> T(m));
                     }
                 }
             }
@@ -323,8 +346,12 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
         // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
         // However, will still need to extract the shares received into the correct locations
     }
-    // sending everything in the result[my_index][my_T_star_index]
-    nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, total_size, ring_size, send_recv_map);
+    // Copy T_star shares into contiguous buffer for network send
+    for (size_t i = 0; i < total_size; i++) {
+        T_star_send_buf[i] = result[my_index][i][my_T_star_index];
+    }
+    // sending everything in the T_star_send_buf
+    nodeNet.SendAndGetDataFromPeer(T_star_send_buf, recvbuf, total_size, ring_size, send_recv_map);
     /*
     the order which data is received into recvbuf corresponds to the recv component of send_recv_map
     e.g. supposed input_parties = {1,2,3}
@@ -341,7 +368,10 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
             if (p_star == send_recv_map[1][recv_id_idx]) {
                 // getting the index of the share T_star
                 T_star_index = ss->generateT_star_index(p_star);
-                memcpy(result[p_star_index][T_star_index], recvbuf[recv_id_idx], sizeof(T) * total_size);
+                // Copy from contiguous recvbuf into interface format result
+                for (size_t i = 0; i < total_size; i++) {
+                    result[p_star_index][i][T_star_index] = recvbuf[recv_id_idx][i];
+                }
             }
         }
         p_star_index += 1;
@@ -352,6 +382,7 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
     }
 
     delete[] recvbuf;
+    delete[] T_star_send_buf;
     for (size_t i = 0; i < numShares; i++) {
         delete[] buffer[i];
     }
@@ -359,17 +390,17 @@ void Rss_Input_edaBit_Trunc(T ***result, T *input, std::vector<int> input_partie
 }
 
 /*
-the input functionality called by edaBit_trunc
+the input functionality called by edaBit_RNTE
 input : [size]
-result : [numInputParties][numShares][3*size]
-first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2), third (size) elements are shared in Z_2k (for r_hat value)
+result : [numInputParties][total_size][numShares] (interface format)
+first (size) elements are shared in Z_2k, second (size) elements are packed shared random bits (in Z_2), third (size) elements are shared in Z_2k (for r_hat value), fourth (size) elements are for r_hat_hat
 */
 template <typename T>
 void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties, uint m, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-
-    static uint numShares = ss->getNumShares();
+    // result : [numInputParties][total_size][numShares] (interface format)
+    uint numShares = ss->getNumShares();
     uint bytes = (ring_size + 7) >> 3;
-    static int pid = ss->getID();
+    int pid = ss->getID();
     uint total_size = 4 * size;
     std::vector<std::vector<int>> send_recv_map = ss->generateInputSendRecvMap(input_parties);
 
@@ -385,6 +416,9 @@ void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties
         buffer[s] = new uint8_t[bytes * total_size];
     }
 
+    // Temporary buffer for T_star shares to send (interface format needs element-wise copy)
+    T *T_star_send_buf = new T[total_size];
+
     // instead of generating T_star, just get the index in T_map where it exists (different for each party)
     // iterating through every input party
     int T_star_index;
@@ -396,10 +430,11 @@ void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties
         // iterating through every set T in mapping T_map_mpc (every share, exclusing T^*)
         // calling the PRGs whenever applicable
         for (uint s = 0; s < numShares; s++) {
-            if (s != T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
+            if (s != (uint)T_star_index and !(std::find(ss->T_map_mpc[s].begin(), ss->T_map_mpc[s].end(), p_star) != ss->T_map_mpc[s].end())) {
                 ss->prg_getrandom(s, bytes, total_size, buffer[s]);
+                // result is in interface format [p_star_index][i][s]
                 for (size_t i = 0; i < total_size; i++) {
-                    memcpy(result[p_star_index][s] + i, buffer[s] + i * bytes, bytes); // copying bytes amount of randomness into result[p_star][s][i]
+                    memcpy(&result[p_star_index][i][s], buffer[s] + i * bytes, bytes);
                 }
             }
         }
@@ -412,32 +447,32 @@ void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties
             my_T_star_index = T_star_index; // storing the index of my T_star
             // very small number of if statements are being executed, no degradation to performance
             for (uint s = 0; s < numShares; s++) {
-                if (s != T_star_index) {
+                if (s != (uint)T_star_index) {
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] -= result[my_index][s][i];
+                        result[my_index][i][T_star_index] -= result[my_index][i][s];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][size + i] ^= result[my_index][s][size + i];
+                        result[my_index][size + i][T_star_index] ^= result[my_index][size + i][s];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][2 * size + i] -= result[my_index][s][2 * size + i];
+                        result[my_index][2 * size + i][T_star_index] -= result[my_index][2 * size + i][s];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][3 * size + i] -= result[my_index][s][3 * size + i];
+                        result[my_index][3 * size + i][T_star_index] -= result[my_index][3 * size + i][s];
                     }
                 } else {
                     // only happens once, p_star adding the value which is being inputted to share T_star
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][i] += input[i];
+                        result[my_index][i][T_star_index] += input[i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][size + i] ^= input[i];
+                        result[my_index][size + i][T_star_index] ^= input[i];
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][2 * size + i] += (input[i] >> T(m));
+                        result[my_index][2 * size + i][T_star_index] += (input[i] >> T(m));
                     }
                     for (size_t i = 0; i < size; i++) {
-                        result[my_index][T_star_index][3 * size + i] += (input[i] >> T(m-2));
+                        result[my_index][3 * size + i][T_star_index] += (input[i] >> T(m-2));
                     }
                 }
             }
@@ -446,8 +481,12 @@ void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties
         // no need to modify send buffer -> can just pass the array of T_star shares pid needs to send into the send-recv function (just as in edabit)
         // However, will still need to extract the shares received into the correct locations
     }
-    // sending everything in the result[my_index][my_T_star_index]
-    nodeNet.SendAndGetDataFromPeer(result[my_index][my_T_star_index], recvbuf, total_size, ring_size, send_recv_map);
+    // Copy T_star shares into contiguous buffer for network send
+    for (size_t i = 0; i < total_size; i++) {
+        T_star_send_buf[i] = result[my_index][i][my_T_star_index];
+    }
+    // sending everything in the T_star_send_buf
+    nodeNet.SendAndGetDataFromPeer(T_star_send_buf, recvbuf, total_size, ring_size, send_recv_map);
     /*
     the order which data is received into recvbuf corresponds to the recv component of send_recv_map
     e.g. supposed input_parties = {1,2,3}
@@ -464,7 +503,10 @@ void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties
             if (p_star == send_recv_map[1][recv_id_idx]) {
                 // getting the index of the share T_star
                 T_star_index = ss->generateT_star_index(p_star);
-                memcpy(result[p_star_index][T_star_index], recvbuf[recv_id_idx], sizeof(T) * total_size);
+                // Copy from contiguous recvbuf into interface format result
+                for (size_t i = 0; i < total_size; i++) {
+                    result[p_star_index][i][T_star_index] = recvbuf[recv_id_idx][i];
+                }
             }
         }
         p_star_index += 1;
@@ -475,6 +517,7 @@ void Rss_Input_edaBit_RNTE(T ***result, T *input, std::vector<int> input_parties
     }
 
     delete[] recvbuf;
+    delete[] T_star_send_buf;
     for (size_t i = 0; i < numShares; i++) {
         delete[] buffer[i];
     }

@@ -67,6 +67,8 @@ static int  start_token = 0;   // For starting with a particular token
 
 %}
 
+%option nounput
+
 %%
 
 %{

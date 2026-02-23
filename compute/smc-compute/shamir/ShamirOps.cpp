@@ -31,6 +31,10 @@ void ss_set(mpz_t x, mpz_t x_val) {
     mpz_set(x, x_val);
 }
 
+void ss_set(mpz_t x, mpz_t x_val, uint /*numShares*/) {
+    mpz_set(x, x_val);
+}
+
 void ss_set_ui(mpz_t x, unsigned long x_val) {
     mpz_set_ui(x, x_val);
 }
@@ -224,7 +228,7 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
     /***********************************************/
 
     if (!strcmp(op.c_str(), "<0"))
-        doOperation_FLLTZ(as, bs, results, len_sig, len_exp, 1, threadID, net, ss);
+        doOperation_FLLT(as, bs, results, len_sig, len_exp, 1, threadID, net, ss);
     else if (!strcmp(op.c_str(), "=="))
         doOperation_FLEQZ(as, bs, results, len_sig, len_exp, 1, threadID, net, ss);
 
@@ -262,7 +266,7 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
 //     /***********************************************/
 
 //     if (!strcmp(op.c_str(), "<0"))
-//         doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+//         doOperation_FLLT(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
 //     else if (!strcmp(op.c_str(), "=="))
 //         doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
 
@@ -300,7 +304,7 @@ void ss_single_fop_comparison(mpz_t result, mpz_t *a, mpz_t *b, int resultlen, i
 //     /***********************************************/
 
 //     if (!strcmp(op.c_str(), "<0"))
-//         doOperation_FLLTZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
+//         doOperation_FLLT(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
 //     else if (!strcmp(op.c_str(), "=="))
 //         doOperation_FLEQZ(as, bs, results, alen_sig, alen_exp, 1, threadID, net, ss);
 
@@ -357,7 +361,7 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_
     int len_sig = 0, len_exp = 0;
     ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
     if (!strcmp(op.c_str(), "<0"))
-        doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+        doOperation_FLLT(a, b, result, len_sig, len_exp, size, threadID, net, ss);
     else if (!strcmp(op.c_str(), "=="))
         doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 }
@@ -366,11 +370,11 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_
 // void ss_batch_fop_comparison(mpz_t *result, float *a, mpz_t **b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int size, std::string op, int threadID, NodeNetwork net, SecretShare *ss) {
 //     // Do the conversion here, to avoid doing the same change in all the functions 
 //     // this also allows to make sure the man range is good by calling ss_process_operands then 
-//     // call FLLTZ
+//     // call FLLT
 //     int len_sig = 0, len_exp = 0;
 //     // ss_process_operands(a, b, alen_sig, alen_exp, blen_sig, blen_exp, &len_sig, &len_exp, size, ss);
 //     // if (!strcmp(op.c_str(), "<0"))
-//     //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+//     //     doOperation_FLLT(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 //     // else if (!strcmp(op.c_str(), "=="))
 //     //     doOperation_FLEQZ(b, a, result, len_sig, len_exp, size, threadID, net, ss);
 // }
@@ -383,7 +387,7 @@ void ss_batch_fop_comparison(mpz_t *result, mpz_t **a, mpz_t **b, int resultlen_
 
 //     // commented out to get the single version working
 //     // if (!strcmp(op.c_str(), "<0"))
-//     //     doOperation_FLLTZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
+//     //     doOperation_FLLT(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 //     // else if (!strcmp(op.c_str(), "=="))
 //     //     doOperation_FLEQZ(a, b, result, len_sig, len_exp, size, threadID, net, ss);
 // }
@@ -1001,7 +1005,14 @@ void ss_fl2fl(mpz_t *value, mpz_t *result, int K1, int L1, int K2, int L2, int t
         mpz_clear(tmp);
         mpz_clear(two);
     }
-    ss->modAdd(result[1], value[1], K1 - K2);
+    // Adjust exponent: result[1] = value[1] + (1-z)*(K1 - K2)
+    // When z=1 (value is zero), don't adjust the exponent
+    mpz_t one_minus_z;
+    mpz_init(one_minus_z);
+    ss->modSub(one_minus_z, 1, value[2]);  // one_minus_z = 1 - z
+    ss->modMul(one_minus_z, one_minus_z, K1 - K2);  // one_minus_z = (1-z) * (K1-K2)
+    ss->modAdd(result[1], value[1], one_minus_z);  // result[1] = value[1] + (1-z)*(K1-K2)
+    mpz_clear(one_minus_z);
     mpz_set(result[2], value[2]);
     mpz_set(result[3], value[3]);
 }

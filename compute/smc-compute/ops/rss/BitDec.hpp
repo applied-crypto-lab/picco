@@ -31,23 +31,23 @@
 // would additionally need to call B2A (After unpacking the shares) to get results over Z2k
 // not implementing the functionality explicitly, since theres only a few floating point protocols where it's used
 // better to do the allocations/B2A there
+// All arrays use interface format [size][numShares]
 template <typename T>
 void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
-    static uint numShares = ss->getNumShares();
+    uint numShares = ss->getNumShares();
 
     T *c = new T[size];
 
-    T **edaBit_r = new T *[numShares];
-    T **edaBit_b_2 = new T *[numShares];
-    T **sum = new T *[numShares];
+    // edaBit uses interface format [size][numShares]
+    T **edaBit_r = new T *[size];
+    T **edaBit_b_2 = new T *[size];
 
-
-    for (size_t i = 0; i < numShares; i++) {
-        sum[i] = new T[size];
-
-        edaBit_r[i] = new T[size];
-        edaBit_b_2[i] = new T[size];
+    for (size_t i = 0; i < size; i++) {
+        edaBit_r[i] = new T[numShares];
+        edaBit_b_2[i] = new T[numShares];
+        memset(edaBit_r[i], 0, sizeof(T) * numShares);
+        memset(edaBit_b_2[i], 0, sizeof(T) * numShares);
     }
 
     T *ai = new T[numShares];
@@ -58,26 +58,35 @@ void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeN
     // first protection and b2a
     edaBit(edaBit_r, edaBit_b_2, bitlength, size, ring_size, nodeNet, ss);
 
-    for (size_t s = 0; s < numShares; s++) {
-        for (size_t i = 0; i < size; i++) {
-            sum[s][i] = (a[s][i] - edaBit_r[s][i]);
+    // Compute sum = a - edaBit_r and store in interface format [size][numShares] for Open
+    // Note: both a and edaBit_r are now in interface format [size][numShares]
+    T **sum = new T *[size];
+    for (size_t i = 0; i < size; i++) {
+        sum[i] = new T[numShares];
+        for (size_t s = 0; s < numShares; s++) {
+            sum[i][s] = (a[i][s] - edaBit_r[i][s]);
         }
     }
 
     Open(c, sum, size, -1, nodeNet, ss);
 
-    Rss_BitAdd(res, c, edaBit_b_2, size, bitlength, nodeNet, ss);
+    // Free sum
+    for (size_t i = 0; i < size; i++) {
+        delete[] sum[i];
+    }
+    delete[] sum;
+
+    // edaBit_b_2 is already in interface format [size][numShares], use directly
+    Rss_BitAdd(res, c, edaBit_b_2, size, ring_size, nodeNet, ss);
 
     delete[] ai;
     delete[] c;
 
-    for (size_t i = 0; i < numShares; i++) {
+    for (size_t i = 0; i < size; i++) {
         delete[] edaBit_r[i];
         delete[] edaBit_b_2[i];
-        delete[] sum[i];
     }
     delete[] edaBit_r;
     delete[] edaBit_b_2;
-    delete[] sum;
 }
 

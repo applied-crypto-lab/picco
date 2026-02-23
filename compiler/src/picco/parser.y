@@ -54,7 +54,7 @@
 void    check_uknown_var(char *name);
 void    parse_error(int exitvalue, char *format, ...);
 void    parse_warning(char *format, ...);
-void    yyerror(char *s);
+void    yyerror(const char *s);
 void    check_for_main_and_declare(astspec s, astdecl d);
 void    add_declaration_links(astspec s, astdecl d, int);
 void    set_pointer_flag(astspec s, astdecl d);
@@ -72,7 +72,8 @@ int     check_func_param(astexpr funcname, astexpr arglist);
 stentry get_entry_from_expr(astexpr);
 void    get_arraysize(astexpr, str);
 void	compute_modulus_for_declaration(astspec); 
-void 	compute_modulus_for_BOP(astexpr, astexpr, int); 
+void 	compute_modulus_for_BOP(astexpr, astexpr, int);
+void 	compute_modulus_for_UOP(astexpr, astexpr);
 int     compare_specs(astspec, int);
 astdecl fix_known_typename(astspec s);
 void    store_struct_information(struct_node_stack, astspec);
@@ -688,9 +689,9 @@ cast_expression:
     }
     | '(' type_name ')'
     {
-        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
-            tmp_index++; 
-        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        if($2->spec->subtype == SPEC_int || ($2->spec->subtype == SPEC_Rlist && $2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+            tmp_index++;
+        if($2->spec->subtype == SPEC_float || ($2->spec->subtype == SPEC_Rlist && $2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
             tmp_float_index++;  
         num_index = num_index > tmp_index? num_index: tmp_index;
         num_float_index = num_float_index > tmp_float_index ? num_float_index: tmp_float_index; 
@@ -699,43 +700,50 @@ cast_expression:
     {
         $$ = CastedExpr($2, $5);
         $$->thread_id = thread_id; 
-        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && $2->spec->u.next->subtype == SPEC_int)
+        if($2->spec->subtype == SPEC_int || ($2->spec->subtype == SPEC_Rlist && $2->spec->u.next != NULL && $2->spec->u.next->subtype == SPEC_int))
             $$->ftype = 0;
-        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && $2->spec->u.next->subtype == SPEC_float)
+        if($2->spec->subtype == SPEC_float || ($2->spec->subtype == SPEC_Rlist && $2->spec->u.next != NULL && $2->spec->u.next->subtype == SPEC_float))
             $$->ftype = 1;
         $$->flag = $5->flag;
 
-        if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
+        if($2->spec->subtype == SPEC_int && ($2->spec->body == NULL || $2->spec->body->subtype != SPEC_private))
         {
-            $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
-            tmp_index--;
-            $$->index = tmp_index; 
-            $$->flag = PRI; 
-            //FL2INT
-            if($5->ftype == 1)
-                modulus = fmax(modulus, fmax(2*$5->size+1, $5->sizeexp)+kappa_nu);
+            // Bare cast like (int<32>) — set size from spec, treat as private (source is private)
+            $$->size = $2->spec->size;
+            if($5->flag == PRI) {
+                tmp_index--;
+                $$->index = tmp_index;
+                $$->flag = PRI;
+            }
         }
-        if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        else if(($2->spec->subtype == SPEC_int || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_int))
         {
-            $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;  
-            $$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;  
+            $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;
+            tmp_index--;
+            $$->index = tmp_index;
+            $$->flag = PRI;
+        }
+        if($2->spec->subtype == SPEC_float && ($2->spec->body == NULL || $2->spec->body->subtype != SPEC_private))
+        {
+            // Bare cast like (float<24,8>) — set size/sizeexp from spec, treat as private
+            $$->size = $2->spec->size;
+            $$->sizeexp = $2->spec->sizeexp;
+            if($5->flag == PRI) {
+                tmp_float_index--;
+                $$->index = tmp_float_index;
+                $$->flag = PRI;
+            }
+        }
+        else if(($2->spec->subtype == SPEC_float || $2->spec->subtype == SPEC_Rlist) && ($2->spec->body != NULL && $2->spec->body->subtype == SPEC_private && $2->spec->u.next->subtype == SPEC_float))
+        {
+            $$->size = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->size : $2->spec->size;
+            $$->sizeexp = $2->spec->subtype == SPEC_Rlist ? $2->spec->u.next->sizeexp : $2->spec->sizeexp;
             tmp_float_index--;
-            $$->index = tmp_float_index; 
-            $$->flag = PRI; // old
-            // $$->flag = $5->flag; // new
-            //FL2FL
-            if($5->ftype == 1 && $5->size > $$->size)
-                if($5->flag == PRI)
-                    modulus = fmax(modulus, $5->size+kappa_nu); 
-                    // modulus = fmax(modulus,  $5->size+48 );
-            //INT2FL
-            if($5->ftype == 0)
-                if($5->flag == PRI)
-                    modulus = fmax(modulus, $5->size+kappa_nu); 
-                    // modulus = fmax(modulus, $5->size+48); 
-                    // modulus = fmax(modulus, $5->flag == PRI ? $5->size+48 : 32+48); 
-                
-        } 
+            $$->index = tmp_float_index;
+            $$->flag = PRI;
+        }
+        // Compute modulus for cast operations (FL2INT, FL2FL, INT2FL)
+        compute_modulus_for_UOP($$, $5); 
     }
 ;
 
@@ -3643,7 +3651,7 @@ ox_funccall_expression:
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
-void yyerror(char *s)
+void yyerror(const char *s)
 {
   fprintf(stderr, "(file %s, line %d, column %d):\n\t%s\n",
                   sc_original_file(), sc_original_line(), sc_column(), s);
@@ -4734,64 +4742,103 @@ bool is_float_literal(const char *literal) {
 
 void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
 
-    // Update the ftype of float and int constants 
+    // Update the ftype of float and int constants
     if (e1->flag == PUB && e1->type == CONSTVAL) { // if the value is public and constant, find if it is float or int
-        if (is_float_literal(e1->u.str)) 
+        if (is_float_literal(e1->u.str))
             e1->ftype = 1; // float
-        else 
+        else
             e1->ftype = 0; // int
     }
-    
+
     if (e2->flag == PUB && e2->type == CONSTVAL) { // if the value is public and constant, find if it is float or int
-        if (is_float_literal(e2->u.str)) 
+        if (is_float_literal(e2->u.str))
             e2->ftype = 1; // float
-        else 
+        else
             e2->ftype = 0; // int
     }
-        
+
 	if(e1->ftype == 0 && e2->ftype == 0){ // integer computation
-		int len = fmax(e1->size, e2->size); 
+		int len = fmax(e1->size, e2->size);
 		if(e1->flag == PRI || e2->flag == PRI){
-			if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq   )
-				modulus = fmax(modulus, len+kappa_nu); 
-			else if ( ( opid == BOP_eqeq || opid == BOP_neq ) && len > 1)
-				modulus = fmax(modulus, len+kappa_nu); 
-			else if(opid == BOP_div)
-				modulus = fmax(modulus, 2*len+kappa_nu+8);
-			else if(opid == BOP_shr){ // checking for right shifts, 
-                // if shifting by public amount --> truncation (Catrina and de Hoogh, 2010)
-                // if shifting by a private amount, the security of the first argument doesnt matter, and we call truncation by a private value in floating point paper (Aliasgari et al., 2013)
-				modulus = fmax(modulus, e1->size+kappa_nu);
+            if(technique_var == REPLICATED_SS){
+                // RSS: rss_overhead (=1) provides protocol overhead for RNTE headroom
+                // DIVISION_ACCURACY (lambda) controls precision in division algorithms
+                if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq)
+                    modulus = fmax(modulus, len + rss_overhead);
+                else if ((opid == BOP_eqeq || opid == BOP_neq) && len > 1)
+                    modulus = fmax(modulus, len + rss_overhead);
+                else if(opid == BOP_div)
+                    modulus = fmax(modulus, 2*len + rss_overhead + DIVISION_ACCURACY);
+                else if(opid == BOP_shr)
+                    modulus = fmax(modulus, e1->size + rss_overhead);
+                else if(opid == BOP_shl && e2->flag == PRI)
+                    modulus = fmax(modulus, e2->size);
+            } else { // SHAMIR_SS
+                // Shamir: SECURITY_PARAMETER + nu provides full statistical security
+                int shamir_overhead = SECURITY_PARAMETER + nu;
+                if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq)
+                    modulus = fmax(modulus, len + shamir_overhead);
+                else if ((opid == BOP_eqeq || opid == BOP_neq) && len > 1)
+                    modulus = fmax(modulus, len + shamir_overhead);
+                else if(opid == BOP_div)
+                    modulus = fmax(modulus, 2*len + shamir_overhead + DIVISION_ACCURACY);
+                else if(opid == BOP_shr)
+                    modulus = fmax(modulus, e1->size + shamir_overhead);
+                else if(opid == BOP_shl && e2->flag == PRI)
+                    modulus = fmax(modulus, e2->size + shamir_overhead);
             }
-			else if(opid == BOP_shl && e2->flag == PRI) // checking for private left shift
-                // left shifting by a private number of bits, call pow2 (Aliasgari et al., 2013)
-				modulus = fmax(modulus, e2->size+kappa_nu);
-		}		
+		}
 	} else if(e1->ftype == 1 && e2->ftype == 1){ // floating-point
-		int len = 0, k = 0; 
+		// len = mantissa (significand) bits, k = exponent bits
+		int len = 0, k = 0;
 		if(e1->size == e2->size && e1->sizeexp == e2->sizeexp){
-			len = e1->size; 
-			k = e1->sizeexp; 
+			len = e1->size;
+			k = e1->sizeexp;
 		}else{
-			len = fmax(e1->size, e2->size); 
-			k = fmax(e1->sizeexp, e2->sizeexp); 
-			
-			int d = abs(e1->size-e2->size); 
+			len = fmax(e1->size, e2->size);
+			k = fmax(e1->sizeexp, e2->sizeexp);
+
+			int d = abs(e1->size-e2->size);
 			if(pow(2, k) >= d)
 				k++;
 			else
-				k = (int)ceil(log(d))+1; 
+				k = (int)ceil(log(d))+1;
 		}
-		if(opid == BOP_add || opid == BOP_sub)
-			modulus = fmax(modulus, fmax(2*len+1, k)+kappa_nu);
-		else if(opid == BOP_mul)
-			modulus = fmax(modulus, 2*len+kappa_nu); 
-		else if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq)
-			modulus = fmax(modulus, fmax(len+1, k)+kappa_nu); 	
-		else if(opid == BOP_eqeq || opid == BOP_neq)
-			modulus = fmax(modulus, fmax(len, k)+kappa_nu); 
-		else if(opid == BOP_div)
-			modulus = fmax(modulus, 2*len+kappa_nu+1);  
+		if(technique_var == REPLICATED_SS){
+            // RSS floating-point modulus formulas
+            // rss_overhead (=1) provides protocol overhead
+            if(opid == BOP_add || opid == BOP_sub)
+                // FLAdd/FLSub: 2q + 3 (BitDec(2K+2) needs ring_size > 2K+2, i.e., >= 2K+3)
+                modulus = fmax(modulus, 2*len + 3);
+            else if(opid == BOP_mul)
+                // FLMult: product is 2*len bits, RNTE needs +1 headroom
+                modulus = fmax(modulus, 2*len + rss_overhead);
+            else if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq)
+                // FP comparisons: max(q+1, k) + (1)
+                modulus = fmax(modulus, fmax(len+1, k) + rss_overhead);
+            else if(opid == BOP_eqeq || opid == BOP_neq)
+                // FP equality: max(q, k)
+                modulus = fmax(modulus, fmax(len, k));
+            else if(opid == BOP_div)
+                // FLDiv/SDiv: Trunc needs bitlength(2*len+1) < ring_size, so +1 extra
+                modulus = fmax(modulus, 2*len + 1 + rss_overhead);
+        } else { // SHAMIR_SS
+            int shamir_overhead = SECURITY_PARAMETER + nu;
+            if(opid == BOP_add || opid == BOP_sub)
+                // FLAdd/FLSub: max(2q+1, k) + kappa + nu
+                modulus = fmax(modulus, fmax(2*len+1, k) + shamir_overhead);
+            else if(opid == BOP_mul)
+                modulus = fmax(modulus, 2*len + shamir_overhead);
+            else if(opid == BOP_gt || opid == BOP_lt || opid == BOP_leq || opid == BOP_geq)
+                // FP comparisons: max(q+1, k) + kappa + nu
+                modulus = fmax(modulus, fmax(len+1, k) + shamir_overhead);
+            else if(opid == BOP_eqeq || opid == BOP_neq)
+                // FP equality: max(q, k) + kappa + nu
+                modulus = fmax(modulus, fmax(len, k) + shamir_overhead);
+            else if(opid == BOP_div)
+                // FP division: 2q + kappa + nu + 1
+                modulus = fmax(modulus, 2*len + 1 + shamir_overhead);
+        }
 	} else if(e1->flag == PRI && e2->flag == PRI && ((e1->ftype == 0 && e2->ftype == 1) || (e1->ftype == 1 && e2->ftype == 0))){
 		parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
 		exit(0); 
@@ -4809,7 +4856,49 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
             }
         }
     } else if ((e1->arraytype == 1 && e2->arraytype == 1) && ((e1->ftype == 1 && e2->ftype == 0) || (e1->ftype == 0 && e2->ftype == 1))) { // if it is that case of exception, but on array -> prevent this too! -> a user should just use a float array instead 
-        parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n"); 
-        exit(0); 
+        parse_error(-1, "Operands of the same type are expected (use casting or change the variable type).\n");
+        exit(0);
+    }
+}
+
+// Compute modulus for unary operations (type casts: FL2INT, FL2FL, INT2FL)
+// target: the cast target expression (with ftype, size, sizeexp set from target type)
+// source: the source expression being cast (with ftype, size, sizeexp, flag)
+void compute_modulus_for_UOP(astexpr target, astexpr source){
+    if(source->flag != PRI)
+        return;  // Only private expressions affect modulus
+
+    if(technique_var == REPLICATED_SS){
+        // FL2INT: float -> int
+        // max(q+1, k+(1)) where (1) is rss_overhead
+        if(target->ftype == 0 && source->ftype == 1)
+            modulus = fmax(modulus, fmax(source->size + 1, source->sizeexp + rss_overhead));
+
+        // FL2FL: float -> float (precision reduction)
+        // q1 + (1) when q1 > q2
+        if(target->ftype == 1 && source->ftype == 1 && source->size > target->size)
+            modulus = fmax(modulus, source->size + rss_overhead);
+
+        // INT2FL: int -> float
+        // ell + 1
+        if(target->ftype == 1 && source->ftype == 0)
+            modulus = fmax(modulus, source->size + rss_overhead);
+
+    } else { // SHAMIR_SS
+        int shamir_overhead = SECURITY_PARAMETER + nu;
+
+        // FL2INT: max(log(ell), k, q+1) + kappa + nu
+        if(target->ftype == 0 && source->ftype == 1){
+            int log_ell = (int)ceil(log((double)target->size) / log(2.0));
+            modulus = fmax(modulus, fmax(fmax(log_ell, source->sizeexp), source->size + 1) + shamir_overhead);
+        }
+
+        // FL2FL: q1 + kappa + nu when q1 > q2
+        if(target->ftype == 1 && source->ftype == 1 && source->size > target->size)
+            modulus = fmax(modulus, source->size + shamir_overhead);
+
+        // INT2FL: ell + kappa + nu
+        if(target->ftype == 1 && source->ftype == 0)
+            modulus = fmax(modulus, source->size + shamir_overhead);
     }
 }

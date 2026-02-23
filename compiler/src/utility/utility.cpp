@@ -885,6 +885,12 @@ void loadConfig() {
             ss = new RSS<uint32_t>(numOfComputeNodes, threshold, bits);
         } else if (bits >= 33 && bits <= 64) { // Between 33 and 64 inclusive
             ss = new RSS<uint64_t>(numOfComputeNodes, threshold, bits);
+        } else if (bits >= 65 && bits <= 128) { // Between 65 and 128 inclusive
+            ss = new RSS<__uint128_t>(numOfComputeNodes, threshold, bits);
+        } else {
+            // bits > 128: RSS does not support more than 128 bits
+            throw std::runtime_error("[Reading var_list] bits value (" + std::to_string(bits) +
+                                    ") exceeds maximum supported value of 128 for RSS. Please use bits <= 128.");
         }
     }
 }

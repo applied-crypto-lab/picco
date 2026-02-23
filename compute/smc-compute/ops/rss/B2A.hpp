@@ -43,21 +43,22 @@ p2 : [(3, 4, 5), (3, 4, 6), (3, 4, 7), (1, 3, 4), (3, 5, 6), (1, 3, 5), (3, 6, 7
 p3 : [(4, 5, 6), (4, 5, 7), (1, 4, 5), (2, 4, 5), (1, 4, 6), (1, 4, 7), (1, 2, 4), (5, 6, 7), (1, 5, 6), (1, 2, 5), (1, 2, 6), (1, 2, 7)]
  */
 // [a] is a secret bit shared in Z_2 (stored in a T)
+// Both input (a) and output (res) use interface format [size][numShares]
 template <typename T>
 void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
 
     assertm((ring_size == ss->ring_size ) , "checking ring_size argument == ss->ring_size" );
 
     //  int n = ss->getPeers();
-    static int threshold = ss->getThreshold();
-    static int numParties = ss->getPeers();
-    static int id = ss->getID();
-    static uint numShares = ss->getNumShares();
+    int threshold = ss->getThreshold();
+    int numParties = ss->getPeers();
+    int id = ss->getID();
+    uint numShares = ss->getNumShares();
     // passing 0 will always give us index of the nonzero share:
     // n = 3 -> {1}
     // n = 5 -> {1,2}
     // n = 7 -> {1,2,3}
-    static const int T_star_index = ss->generateT_star_index(0);
+    const int T_star_index = ss->generateT_star_index(0);
     // std::cout << "T_star_index = "<<T_star_index << std::endl;
     // std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
 
@@ -71,26 +72,60 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     std::vector<int> input_parties(threshold);
     std::iota(input_parties.begin(), input_parties.end(), 1);
     // std::cout << "input_parties = "<< input_parties << std::endl;
+    // result uses interface format [threshold][size][numShares] as expected by Rss_Input_p_star
     T ***result = new T **[threshold];
-    for (size_t s = 0; s < threshold; s++) {
-        result[s] = new T *[numShares];
-        for (size_t i = 0; i < numShares; i++) {
-            result[s][i] = new T[size];
-            memset(result[s][i], 0, sizeof(T) * size); // sanitizing destination
+    for (size_t s = 0; s < (size_t)threshold; s++) {
+        result[s] = new T *[size];
+        for (size_t i = 0; i < size; i++) {
+            result[s][i] = new T[numShares];
+            memset(result[s][i], 0, sizeof(T) * numShares); // sanitizing destination
         }
     }
 
-    T **a_sparse = new T *[numShares];
-    T **w = new T *[numShares];
-    for (size_t s = 0; s < numShares; s++) {
-        a_sparse[s] = new T[size];
-        w[s] = new T[size];
-        memset(a_sparse[s], 0, sizeof(T) * size); // sanitizing destination
-        memset(w[s], 0, sizeof(T) * size);        // sanitizing destination
+    // a_sparse and w use interface format [size][numShares] for Mult_Sparse
+    T **a_sparse = new T *[size];
+    T **w = new T *[size];
+    for (size_t i = 0; i < size; i++) {
+        a_sparse[i] = new T[numShares];
+        w[i] = new T[numShares];
+        memset(a_sparse[i], 0, sizeof(T) * numShares); // sanitizing destination
+        memset(w[i], 0, sizeof(T) * numShares);        // sanitizing destination
     }
 
     // only t participants need to compute the XOR of a subset of their shares of [a]
     // mapping \xi predefined
+    // All parties need to sparsify their share for the multiplication
+    // sparsify_from_interface: input a is in interface format [size][numShares], output a_sparse also in interface format
+    // We need to extract T_star_index share from each element and sparsify it
+    T *a_T_star = new T[size];
+    memset(a_T_star, 0, sizeof(T) * size);  // Initialize to zero
+    // Only extract if party has access (T_star_index >= 0)
+    if (T_star_index >= 0) {
+        for (size_t i = 0; i < size; i++) {
+            a_T_star[i] = a[i][T_star_index];
+        }
+    }
+
+    // Temporary array for sparsify output in internal format [numShares][size]
+    T **a_sparse_internal = new T *[numShares];
+    for (size_t s = 0; s < numShares; s++) {
+        a_sparse_internal[s] = new T[size];
+        memset(a_sparse_internal[s], 0, sizeof(T) * size);
+    }
+    ss->sparsify(a_sparse_internal, a_T_star, size);
+    // Convert a_sparse_internal [numShares][size] to a_sparse [size][numShares]
+    for (size_t i = 0; i < size; i++) {
+        for (size_t s = 0; s < numShares; s++) {
+            a_sparse[i][s] = a_sparse_internal[s][i];
+        }
+    }
+    delete[] a_T_star;
+    // Clean up a_sparse_internal
+    for (size_t s = 0; s < numShares; s++) {
+        delete[] a_sparse_internal[s];
+    }
+    delete[] a_sparse_internal;
+
     if (id < threshold + 1) {
         // std::cout << id << " is an input party" << std::endl;
         std::vector<int> xi_map = ss->generateXi_map();
@@ -98,11 +133,9 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
         T *xors = new T[size];
         memset(xors, 0, sizeof(T) * size);
         for (auto idx : xi_map) {
-            // doing it this way since each share array of a is a contiguous block
-            // can just swap loop order later on if performance is better?
-            // this is better, since all of a[idx] can be loaded into the cache
+            // a is in interface format [size][numShares]
             for (size_t i = 0; i < size; i++) {
-                xors[i] ^= a[idx][i];
+                xors[i] ^= a[i][idx];
             }
         }
 
@@ -111,82 +144,87 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
         delete[] xors; // not needed anymore
     } else {
         // std::cout << id << " is NOT an input party" << std::endl;
-        // performing sparsiy "while" parties <= t compute their xors
-        // this means i (id) have access to the last share of a
-        // call sparsify on the share at index (T_star_index)
-        ss->sparsify(a_sparse, a[T_star_index], size);
         Rss_Input_p_star(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
 
     // for Mult, we cant store the output in one of the variables we use for sparsify, since we need the original values to compute the XOR (after mult)
+    // result[0] is now in interface format [size][numShares], can use directly with Mult_Sparse
+
     switch (numParties) {
     case 3:
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
 
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                res[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
+        // w, a_sparse, and result[0] are all in interface format [size][numShares]
+        // res is also in interface format [size][numShares]
+        for (size_t i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                res[i][s] = result[0][i][s] + a_sparse[i][s] - 2 * w[i][s]; // XOR
             }
         }
         break;
-    case 5:
+    case 5: {
+        // result[0] and result[1] are in interface format [size][numShares]
         Mult_Sparse(w, result[0], a_sparse, size, nodeNet, ss);
 
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                w[s][i] = result[0][s][i] + a_sparse[s][i] - 2 * w[s][i]; // XOR
+        // w and a_sparse are in interface format [size][numShares]
+        for (size_t i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                w[i][s] = result[0][i][s] + a_sparse[i][s] - 2 * w[i][s]; // XOR
             }
         }
 
         // reusing a_sparse
         Mult(a_sparse, result[1], w, size, nodeNet, ss);
 
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                res[s][i] = result[1][s][i] + w[s][i] - 2 * a_sparse[s][i]; // XOR
+        for (size_t i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                res[i][s] = result[1][i][s] + w[i][s] - 2 * a_sparse[i][s]; // XOR
             }
         }
-
         break;
+    }
     case 7: {
+        // result[0], result[1], result[2] are in interface format [size][numShares]
         // pack result[0], result[1] into A (2*size)
         // pack x_sparse , result[2] into B_hat (2*size)
 
-        T **A_buff = new T *[numShares];
-        T **B_buff = new T *[numShares];
-        T **C_buff = new T *[numShares];
-        for (size_t s = 0; s < numShares; s++) {
-            A_buff[s] = new T[2 * size];
-            B_buff[s] = new T[2 * size];
-            C_buff[s] = new T[2 * size];
-            memcpy(A_buff[s], result[0][s], sizeof(T) * size);
-            memcpy(A_buff[s] + size, result[1][s], sizeof(T) * size);
-            memcpy(B_buff[s], a_sparse[s], sizeof(T) * size);
-            memcpy(B_buff[s] + size, result[2][s], sizeof(T) * size);
-            // result[0]*a_sparse
-            // result[1]*result[2]
-            memset(C_buff[s], 0, sizeof(T) * 2 * size); // sanitizing destination
+        // Use interface format [2*size][numShares]
+        T **A_buff = new T *[2 * size];
+        T **B_buff = new T *[2 * size];
+        T **C_buff = new T *[2 * size];
+        for (size_t i = 0; i < 2 * size; i++) {
+            A_buff[i] = new T[numShares];
+            B_buff[i] = new T[numShares];
+            C_buff[i] = new T[numShares];
+            memset(C_buff[i], 0, sizeof(T) * numShares);
+        }
+        // Pack in interface format - result arrays are already in interface format
+        for (size_t i = 0; i < size; i++) {
+            for (size_t s = 0; s < numShares; s++) {
+                A_buff[i][s] = result[0][i][s];
+                A_buff[size + i][s] = result[1][i][s];
+                B_buff[i][s] = a_sparse[i][s];
+                B_buff[size + i][s] = result[2][i][s];
+            }
         }
         // this can theoretically be done with a Mult_and_MultSparse special function
         Mult(C_buff, A_buff, B_buff, 2*size, nodeNet, ss);
 
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                w[s][i] = A_buff[s][i] + B_buff[s][i] - 2 * C_buff[s][i]; // XOR
-            }
-            for (size_t i = 0; i < size; i++) {
-                a_sparse[s][i] = A_buff[s][size + i] + B_buff[s][size + i] - 2 * C_buff[s][size + i]; // XOR, reusing a_sparse
+        for (size_t i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                w[i][s] = A_buff[i][s] + B_buff[i][s] - 2 * C_buff[i][s]; // XOR
+                a_sparse[i][s] = A_buff[size + i][s] + B_buff[size + i][s] - 2 * C_buff[size + i][s]; // XOR, reusing a_sparse
             }
         }
         // reusing half of C_buff (not needed anymore)
         Mult(C_buff, a_sparse, w, size, nodeNet, ss);
-        for (uint s = 0; s < numShares; s++) {
-            for (size_t i = 0; i < size; i++) {
-                res[s][i] = a_sparse[s][i] + w[s][i] - 2 * C_buff[s][i]; // XOR
+        for (size_t i = 0; i < size; i++) {
+            for (uint s = 0; s < numShares; s++) {
+                res[i][s] = a_sparse[i][s] + w[i][s] - 2 * C_buff[i][s]; // XOR
             }
         }
 
-        for (size_t i = 0; i < numShares; i++) {
+        for (size_t i = 0; i < 2 * size; i++) {
             delete[] A_buff[i];
             delete[] B_buff[i];
             delete[] C_buff[i];
@@ -200,21 +238,20 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
         break;
     }
 
-    // cleanup
-    for (size_t s = 0; s < threshold; s++) {
-        for (size_t i = 0; i < numShares; i++) {
+    // cleanup - result is [threshold][size][numShares]
+    for (size_t s = 0; s < (size_t)threshold; s++) {
+        for (size_t i = 0; i < size; i++) {
             delete[] result[s][i];
         }
         delete[] result[s];
     }
     delete[] result;
 
-    for (size_t i = 0; i < numShares; i++) {
+    // w and a_sparse are in interface format [size][numShares]
+    for (size_t i = 0; i < size; i++) {
         delete[] w[i];
         delete[] a_sparse[i];
     }
     delete[] w;
     delete[] a_sparse;
 }
-
-#endif // _B2A_HPP_

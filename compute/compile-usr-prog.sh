@@ -55,9 +55,15 @@ parse_config
 
 # Set bits_flag based on the bits value
 if [ "$bits" -le 32 ]; then
-  bits_flag="-DUSE_32=ON -DUSE_64=OFF"
+  bits_flag="-DUSE_32=ON -DUSE_64=OFF -DUSE_128=OFF"
 elif [ "$bits" -le 64 ]; then
-  bits_flag="-DUSE_32=OFF -DUSE_64=ON"
+  bits_flag="-DUSE_32=OFF -DUSE_64=ON -DUSE_128=OFF"
+elif [ "$bits" -le 128 ]; then
+  bits_flag="-DUSE_32=OFF -DUSE_64=OFF -DUSE_128=ON"
+else
+  # For bits > 128, error out
+  echo "Error: Ring size $bits exceeds maximum supported (128 bits)"
+  exit 1
 fi
 
 # Handle technique values
@@ -89,6 +95,6 @@ fi
 mkdir -p build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Release $mode $bits_flag $technique_flag ..
+cmake -Wno-dev -DCMAKE_BUILD_TYPE=Release $mode $bits_flag $technique_flag ..
 make -j8
 cd ..

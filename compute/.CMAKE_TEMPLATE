@@ -34,6 +34,11 @@ option(DEPLOYMENT "Deployment or benchmarking mode (default=Deployment)" ON) # O
 option(SHAMIR "Shamir secret sharing (default=ON)" ON) # ON by default
 option(RSS "Replicated secret sharing (default=OFF)" OFF) # OFF by default
 
+# Exclude RSS_testing.cpp when building Shamir
+if(SHAMIR)
+      list(FILTER SOURCES EXCLUDE REGEX ".*RSS_testing\\.cpp$")
+endif()
+
 if(OMPI_FOUND)
       set(OMPI_INC "${OMPI_INCLUDES}")
 endif()
@@ -51,27 +56,32 @@ if(SHAMIR)
 endif()
 
 
-# used for setting the data types for RSS 
+# used for setting the data types for RSS
 option(USE_32 "32 bit or less ring sizes" ON)
-option(USE_64 "33 to 64 bit rings" OFF) 
+option(USE_64 "33 to 64 bit rings" OFF)
+option(USE_128 "65 to 128 bit rings" OFF)
 
 if(RSS)
       set(TECHNIQUE_DIR "rss")
       add_definitions(-D__RSS__=1)
       add_definitions(-D__SHAMIR__=0)
 
-      if(USE_64)
+      if(USE_128)
+            add_definitions(-D__RSS_32__=0)
+            add_definitions(-D__RSS_64__=0)
+            add_definitions(-D__RSS_128__=1)
+      elseif(USE_64)
             add_definitions(-D__RSS_32__=0)
             add_definitions(-D__RSS_64__=1)
-
-      endif()
-      unset(USE_64 CACHE) 
-
-      if(USE_32)
+            add_definitions(-D__RSS_128__=0)
+      elseif(USE_32)
             add_definitions(-D__RSS_32__=1)
             add_definitions(-D__RSS_64__=0)
+            add_definitions(-D__RSS_128__=0)
       endif()
-      unset(USE_32 CACHE) 
+      unset(USE_128 CACHE)
+      unset(USE_64 CACHE)
+      unset(USE_32 CACHE)
 endif()
 
 INCLUDE_DIRECTORIES(

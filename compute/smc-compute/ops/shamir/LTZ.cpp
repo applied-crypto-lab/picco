@@ -20,14 +20,47 @@
 
 #include "LTZ.h"
 
-// Source: Catrina and de Hoogh, "Improved Primites for Secure Multiparty Integer Computation," 2010
+// Source: Catrina and de Hoogh, "Improved Primitives for Secure Multiparty Integer Computation," 2010
 // Protocol 3.6, page 9
+// LTZ(x) returns 1 if x < 0, else 0
+// For K-bit signed x in range [-2^{K-1}, 2^{K-1}):
+//   1. Shift to unsigned: y = x + 2^{K-1} (now y in [0, 2^K))
+//   2. Extract MSB: msb = Trunc(y, K, K-1) = floor(y / 2^{K-1})
+//      - If x < 0: y < 2^{K-1}, so msb = 0
+//      - If x >= 0: y >= 2^{K-1}, so msb = 1
+//   3. Return 1 - msb
 void doOperation_LTZ(mpz_t *result, mpz_t *shares, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
-    mpz_t const0;
-    mpz_init_set_ui(const0, 0);
-    doOperation_Trunc(result, shares, K, K - 1, size, threadID, net, ss);
-    ss->modSub(result, const0, result, size);
-    mpz_clear(const0);
+    mpz_t const1, const2, power, const2K_m1;
+    mpz_init_set_ui(const1, 1);
+    mpz_init_set_ui(const2, 2);
+    mpz_init_set_ui(power, K - 1);
+    mpz_init(const2K_m1);
+    ss->modPow(const2K_m1, const2, power);  // 2^{K-1}
+
+    // Allocate temp array for shifted values
+    mpz_t *shifted = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    for (int i = 0; i < size; i++) {
+        mpz_init(shifted[i]);
+    }
+
+    // Step 1: Shift to unsigned range: y = x + 2^{K-1}
+    ss->modAdd(shifted, shares, const2K_m1, size);
+
+    // Step 2: Extract MSB via truncation: msb = Trunc(y, K, K-1)
+    doOperation_Trunc(result, shifted, K, K - 1, size, threadID, net, ss);
+
+    // Step 3: Return 1 - msb (so negative gives 1, non-negative gives 0)
+    ss->modSub(result, const1, result, size);
+
+    // Cleanup
+    for (int i = 0; i < size; i++) {
+        mpz_clear(shifted[i]);
+    }
+    free(shifted);
+    mpz_clear(const1);
+    mpz_clear(const2);
+    mpz_clear(power);
+    mpz_clear(const2K_m1);
 }
 
 // computes  a <? b or a >? b (if args are reversed)

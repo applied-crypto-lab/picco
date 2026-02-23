@@ -102,4 +102,7 @@ extern int nChoosek(int n, int k);
 // The constant variable for the technique_var: REPLICATED_SS-1 or SHAMIR_SS-2
 extern int technique_var;
 
+// RSS protocol overhead for modulus computation (set to 1 for RSS, unused for Shamir)
+extern int rss_overhead;
+
 #endif

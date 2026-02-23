@@ -66,7 +66,7 @@ void doOperation_PrefixMult(mpz_t **input, mpz_t **result, int length_k, int siz
     ss->getFieldSize(field);
     ss->generateRandValue(field, length_k * size, R, threadID);
     ss->generateRandValue(field, length_k * size, S, threadID);
-    ss->PRZS(field, size, przs);
+    ss->PRZS(field, length_k * size, przs);
 
     // step 4, MulPub (can't be replaced with Open)
     ss->modMul(U, R, S, length_k * size);

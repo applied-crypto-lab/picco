@@ -21,6 +21,14 @@
 
 // Source: Aliasgari et al., "Secure Computation on Floating Point Numbers," 2013
 // Protocol FLRound, page 8
+//
+// Input: A2[4][size] = (v, p, z, s) - float representation
+//        mode[size] - rounding mode (0 = toward zero/truncation, 1 = away from zero)
+// Output: result[4][size] = rounded float (v', p', z', s')
+// Parameters: L = mantissa bits (q in paper), K = exponent bits (k in paper)
+//
+// This implementation mirrors the RSS FLRound algorithm (no 0.5 addition).
+// For FL2Int with mode=0, this provides truncation toward zero.
 void doOperation_FLRound(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, int size, int threadID, NodeNetwork net,  SecretShare *ss) {
 
     mpz_t constPower2L, constPower2L1, const2, constL, constL1;
@@ -32,165 +40,151 @@ void doOperation_FLRound(mpz_t **A2, mpz_t **result, mpz_t *mode, int L, int K, 
     ss->modPow(constPower2L, const2, constL);
     ss->modPow(constPower2L1, const2, constL1);
 
-    mpz_t *a = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *b = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *c = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *d = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *V2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    // Allocate temporary arrays (Shamir uses [size] arrays of mpz_t)
+    mpz_t *a_flag = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *b_flag = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *c_flag = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *d_flag = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *V = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *V2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *powM = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *temp1 = (mpz_t *)malloc(sizeof(mpz_t) * size);
     mpz_t *temp2 = (mpz_t *)malloc(sizeof(mpz_t) * size);
-    mpz_t *powM = (mpz_t *)malloc(sizeof(mpz_t) * size);
+    mpz_t *m = (mpz_t *)malloc(sizeof(mpz_t) * size);
 
     for (int i = 0; i < size; i++) {
-        mpz_init(a[i]);
-        mpz_init(b[i]);
-        mpz_init(c[i]);
-        mpz_init(d[i]);
+        mpz_init(a_flag[i]);
+        mpz_init(b_flag[i]);
+        mpz_init(c_flag[i]);
+        mpz_init(d_flag[i]);
         mpz_init(V[i]);
         mpz_init(V2[i]);
+        mpz_init(powM[i]);
         mpz_init(temp1[i]);
         mpz_init(temp2[i]);
-        mpz_init(powM[i]);
+        mpz_init(m[i]);
     }
 
-    mpz_t **A1 = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-    mpz_t **constOneHalf = (mpz_t **)malloc(sizeof(mpz_t *) * size);
-    mpz_t **A = (mpz_t **)malloc(sizeof(mpz_t *) * 4);
+    // Line 1: a = LTZ(p) - check if exponent is negative
+    doOperation_LTZ(a_flag, A2[1], K, size, threadID, net, ss);
 
-    for (int i = 0; i < size; i++) {
-        A1[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        constOneHalf[i] = (mpz_t *)malloc(sizeof(mpz_t) * 4);
-        for (int j = 0; j < 4; j++)
-            mpz_init_set(A1[i][j], A2[j][i]);
-        mpz_init_set(constOneHalf[i][0], constPower2L1);
-        mpz_init_set_si(constOneHalf[i][1], -L);
-        mpz_init_set_ui(constOneHalf[i][2], 0);
-        mpz_init_set_ui(constOneHalf[i][3], 0);
-    }
+    // Line 1 continued: b = LT(p, -L+1) = LTZ(p + L - 1)
+    // If b=1, the value is very small (< 2^{-L+1}), should round to 0 or ±1
+    ss->modAdd(temp1, A2[1], L - 1, size);
+    doOperation_LTZ(b_flag, temp1, K, size, threadID, net, ss);
 
-    // line 0
-    doOperation_FLAdd(A1, constOneHalf, A1, L, K, size, threadID, net, ss);
-    for (int i = 0; i < 4; i++) {
-        A[i] = (mpz_t *)malloc(sizeof(mpz_t) * size);
-        for (int j = 0; j < size; j++)
-            mpz_init_set(A[i][j], A1[j][i]);
-    }
-    // free memory for A1 and constOneHalf
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < 4; j++) {
-            mpz_clear(constOneHalf[i][j]);
-            mpz_clear(A1[i][j]);
-        }
-        free(constOneHalf[i]);
-        free(A1[i]);
-    }
-    free(constOneHalf);
-    free(A1);
-    // line 1
-    doOperation_LTZ(a, A[1], K, size, threadID, net, ss);
+    // Line 2: Compute m = -a*(1-b)*p (shift amount for Mod2MS)
+    // When a=1 (p<0) and b=0 (p >= -L+1): m = -p = |p|
+    // Otherwise: m = 0
+    ss->modSub(temp1, 1, b_flag, size);               // 1 - b
+    Mult(temp1, temp1, a_flag, size, threadID, net, ss);  // a * (1 - b)
+    Mult(temp1, temp1, A2[1], size, threadID, net, ss);   // a * (1 - b) * p
+    ss->modSub(m, (long)0, temp1, size);              // m = -a*(1-b)*p
 
-    // line 2
-    ss->modSub(temp1, A[1], 1, size);
-    ss->modAdd(temp1, temp1, L, size);
-    doOperation_LTZ(b, temp1, K, size, threadID, net, ss);
-    // line 3
-    ss->modSub(temp1, 1, b, size);
-    Mult(temp1, temp1, a, size, threadID, net, ss);
-    Mult(temp1, temp1, A[1], size, threadID, net, ss);
-    ss->modSub(temp1, (long)0, temp1, size);
-    doOperation_Mod2MS(V2, A[0], temp1, powM, L, size, threadID, net, ss);
-    // line 4
-    doOperation_EQZ(V2, c, L, size, threadID, net, ss);
+    // Mod2MS: V2 = v mod 2^m, powM = 2^m
+    doOperation_Mod2MS(V2, A2[0], m, powM, L, size, threadID, net, ss);
 
-    // line 5
-    ss->modAdd(temp1, mode, A[3], size);
-    Mult(temp2, mode, A[3], size, threadID, net, ss);
-    ss->modMul(temp2, temp2, 2, size);
-    ss->modSub(temp1, temp1, temp2, size);
-    ss->modSub(temp2, 1, c, size);
-    Mult(temp1, temp1, temp2, size, threadID, net, ss);
-    Mult(temp1, temp1, powM, size, threadID, net, ss);
-    ss->modSub(temp2, A[0], V2, size);
-    ss->modAdd(V, temp2, temp1, size);
+    // Line 3: c = EQZ(V2) - check if fractional part is zero
+    doOperation_EQZ(V2, c_flag, L, size, threadID, net, ss);
 
-    // line 6
-    ss->modSub(temp1, constPower2L, V, size);
-    doOperation_EQZ(temp1, d, L + 1, size, threadID, net, ss);
+    // Line 4: V = v - V2 + (1-c) * powM * mode
+    // For mode 0 (toward zero): just subtract V2 (floor the mantissa)
+    // For mode 1 (away from zero): add powM to round up (ceil the mantissa)
+    ss->modSub(temp2, 1, c_flag, size);               // 1 - c
+    Mult(temp1, temp2, powM, size, threadID, net, ss);    // (1-c) * powM
+    Mult(temp1, temp1, mode, size, threadID, net, ss);    // (1-c) * powM * mode
+    ss->modSub(temp2, A2[0], V2, size);               // v - V2
+    ss->modAdd(V, temp2, temp1, size);                // v - V2 + (1-c)*powM*mode
 
-    // line 7
-    ss->modMul(temp1, d, constPower2L1, size);
-    ss->modSub(temp2, 1, d, size);
-    Mult(temp2, temp2, V, size, threadID, net, ss);
-    ss->modAdd(V, temp2, temp1, size);
+    // Line 5: d = EQ(V, 2^L) = EQZ(V - 2^L) - check for mantissa overflow
+    ss->modSub(temp1, V, constPower2L, size);
+    doOperation_EQZ(temp1, d_flag, L + 1, size, threadID, net, ss);
 
-    // line 8
-    ss->modSub(temp1, 1, b, size);
-    Mult(temp1, temp1, V, size, threadID, net, ss);
-    ss->modSub(temp2, mode, A[3], size);
-    Mult(temp2, temp2, b, size, threadID, net, ss);
+    // Line 6: V = d * 2^{L-1} + (1-d) * V
+    // If overflow occurred, normalize mantissa to 2^{L-1}
+    ss->modSub(temp1, 1, d_flag, size);               // 1 - d
+    Mult(temp1, temp1, V, size, threadID, net, ss);       // (1-d) * V
+    ss->modMul(temp2, d_flag, constPower2L1, size);       // d * 2^{L-1}
+    ss->modAdd(V, temp2, temp1, size);                // d * 2^{L-1} + (1-d) * V
+
+    // Line 7: V = a * ((1-b)*V + b*(mode - s)) + (1-a) * v
+    // First: (1-b)*V
+    ss->modSub(temp1, 1, b_flag, size);               // 1 - b
+    Mult(temp1, temp1, V, size, threadID, net, ss);       // (1-b)*V
+
+    // Second: b*(mode - s)
+    ss->modSub(temp2, mode, A2[3], size);             // mode - s
+    Mult(temp2, b_flag, temp2, size, threadID, net, ss);  // b*(mode - s)
+
+    // (1-b)*V + b*(mode - s)
     ss->modAdd(temp1, temp1, temp2, size);
-    Mult(temp1, temp1, a, size, threadID, net, ss);
-    ss->modSub(temp2, 1, a, size);
-    Mult(temp2, temp2, A[0], size, threadID, net, ss);
+
+    // a * ((1-b)*V + b*(mode - s))
+    Mult(temp1, a_flag, temp1, size, threadID, net, ss);
+
+    // (1-a) * v
+    ss->modSub(temp2, 1, a_flag, size);               // 1 - a
+    Mult(temp2, temp2, A2[0], size, threadID, net, ss);   // (1-a) * v
+
+    // V = a*(...) + (1-a)*v
     ss->modAdd(V, temp1, temp2, size);
 
-    // line 9
-    Mult(temp1, mode, b, size, threadID, net, ss);
-    ss->modSub(temp1, 1, temp1, size);
-    Mult(result[3], A[3], temp1, size, threadID, net, ss);
+    // Line 8: s' = (1 - b*mode) * s
+    Mult(temp1, b_flag, mode, size, threadID, net, ss);   // b * mode
+    ss->modSub(temp1, 1, temp1, size);                // 1 - b*mode
+    Mult(result[3], temp1, A2[3], size, threadID, net, ss);
 
-    // line 10
-    doOperation_EQZ(V, temp2, L, size, threadID, net, ss);
-    Mult(temp1, temp2, A[2], size, threadID, net, ss);
-    ss->modAdd(temp2, temp2, A[2], size);
-    ss->modSub(result[2], temp2, temp1, size);
+    // Line 9: z' = OR(EQZ(V), z) = EQZ(V) + z - EQZ(V)*z
+    doOperation_EQZ(V, temp1, L, size, threadID, net, ss);
+    Mult(temp2, temp1, A2[2], size, threadID, net, ss);   // EQZ(V) * z
+    ss->modAdd(temp1, temp1, A2[2], size);            // EQZ(V) + z
+    ss->modSub(result[2], temp1, temp2, size);        // EQZ(V) + z - EQZ(V)*z
 
-    // line 11
+    // Line 10: v' = V * (1 - z')
     ss->modSub(temp1, 1, result[2], size);
     Mult(result[0], V, temp1, size, threadID, net, ss);
 
-    // line 12
-    ss->modSub(temp1, 1, b, size);
-    Mult(temp1, temp1, a, size, threadID, net, ss);
-    Mult(temp1, temp1, d, size, threadID, net, ss);
-    ss->modAdd(temp1, temp1, A[1], size);
-    ss->modSub(temp2, 1, result[2], size);
+    // Line 11: p' = (p + d*a*(1-b)) * (1 - z')
+    // First: d*a*(1-b)
+    ss->modSub(temp1, 1, b_flag, size);               // 1 - b
+    Mult(temp1, d_flag, temp1, size, threadID, net, ss);  // d*(1-b)
+    Mult(temp1, temp1, a_flag, size, threadID, net, ss);  // d*a*(1-b)
+
+    // p + d*a*(1-b)
+    ss->modAdd(temp1, A2[1], temp1, size);
+
+    // (p + d*a*(1-b)) * (1 - z')
+    ss->modSub(temp2, 1, result[2], size);            // 1 - z'
     Mult(result[1], temp1, temp2, size, threadID, net, ss);
 
-    // free memory for temporary arrays
+    // Free memory
     mpz_clear(constPower2L);
     mpz_clear(constPower2L1);
     mpz_clear(const2);
     mpz_clear(constL);
     mpz_clear(constL1);
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < size; j++)
-            mpz_clear(A[i][j]);
-        free(A[i]);
-    }
-    free(A);
-
     for (int i = 0; i < size; i++) {
-        mpz_clear(a[i]);
-        mpz_clear(b[i]);
-        mpz_clear(c[i]);
-        mpz_clear(d[i]);
+        mpz_clear(a_flag[i]);
+        mpz_clear(b_flag[i]);
+        mpz_clear(c_flag[i]);
+        mpz_clear(d_flag[i]);
         mpz_clear(V[i]);
         mpz_clear(V2[i]);
+        mpz_clear(powM[i]);
         mpz_clear(temp1[i]);
         mpz_clear(temp2[i]);
-        mpz_clear(powM[i]);
+        mpz_clear(m[i]);
     }
 
-    free(a);
-    free(b);
-    free(c);
-    free(d);
+    free(a_flag);
+    free(b_flag);
+    free(c_flag);
+    free(d_flag);
     free(V);
     free(V2);
+    free(powM);
     free(temp1);
     free(temp2);
-    free(powM);
+    free(m);
 }
