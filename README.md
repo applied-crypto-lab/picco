@@ -86,7 +86,7 @@ The arguments are as follows:
 1. the execution mode (`-d` for deployment, `-t` for testing or `-m` for measurement)
 2. `<user program>` is the name of the file corresponding to the user program to be translated;
 3. `<SMC config>` is the name of the config config with the content described above;
-4. `<translated program>` is the name of a file (with an extension) that will store user's translated program (as a C++ program);
+4. `<translated program>` is the name of a file (without an extension) that will store user's translated program (as a C++ program);
 5. `<utility config>` is the name of a file that the compiler generates for storing additional information about the program which will be needed at other stages.
 
 The executable takes two files as its input and produces two files as its output.
