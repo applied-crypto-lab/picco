@@ -5404,6 +5404,12 @@ void ast_decl_memory_assign_int(astdecl tree, char *prefix) {
             str_printf(global_string, "}\n");
         } else
             fprintf(output, "}\n");
+        indent();
+        if (is_priv == 1 && gf == 1 && is_init_decl == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "}\n");
+        } else
+            fprintf(output, "}\n");
         str_free(arg_str);
     }
     indlev--;
@@ -5453,9 +5459,6 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
             indlev--;
             indent();
             fprintf(output, "}\n");
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
             str_free(arg_str);
         }
         indlev--;
@@ -5464,6 +5467,10 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
         if (tree->decl->type == DIDENT) {
             indent();
             fprintf(output, "free(%s%s);\n", prefix, tree->decl->u.id->name);
+        }
+        if (tree->decl->type == DARRAY) {
+            indent();
+            fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
         }
     } else if (technique_var == REPLICATED_SS) {
         indent();
@@ -5500,9 +5507,6 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
             indlev--;
             indent();
             fprintf(output, "}\n");
-            indlev--;
-            indent();
-            fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
             str_free(arg_str);
         }
         indlev--;
@@ -5511,6 +5515,10 @@ void ast_decl_memory_free_int(astdecl tree, char *prefix) {
         if (tree->decl->type == DIDENT) {
             indent();
             fprintf(output, "free(%s%s);\n", prefix, tree->decl->u.id->name);
+        }
+        if (tree->decl->type == DARRAY) {
+            indent();
+            fprintf(output, "free(%s%s);\n", prefix, tree->decl->decl->u.id->name);
         }
     }
 }
@@ -5612,7 +5620,7 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
         if (gf == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "{\n");
-        } else 
+        } else
             fprintf(output, "{\n");
         indlev++;
         indent();
@@ -5708,7 +5716,13 @@ void ast_decl_memory_assign_float(astdecl tree, char *prefix) {
         if (gf == 1) {
             indent_global_string(global_string);
             str_printf(global_string, "}\n");
-        } else 
+        } else
+            fprintf(output, "}\n");
+        indent();
+        if (gf == 1) {
+            indent_global_string(global_string);
+            str_printf(global_string, "}\n");
+        } else
             fprintf(output, "}\n");
         str_free(arg_str);
     }
