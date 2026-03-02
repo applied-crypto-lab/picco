@@ -855,15 +855,16 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             FILE *prikeyfp = fopen(privatekeyfile.c_str(), "r");
             if (prikeyfp == NULL)
                 throw std::runtime_error("Can't open private key " + privatekeyfile);
-            RSA *priRkey = PEM_read_RSAPrivateKey(prikeyfp, NULL, NULL, NULL);
-            if (priRkey == NULL)
+            EVP_PKEY *priPkey = PEM_read_PrivateKey(prikeyfp, NULL, NULL, NULL);
+            if (priPkey == NULL)
                 throw std::runtime_error("Read Private Key for RSA");
-            char *buffer = (char *)malloc(RSA_size(priRkey));
+            int rsa_key_size = EVP_PKEY_get_size(priPkey);
+            char *buffer = (char *)malloc(rsa_key_size);
             // int num_tries = 0;
 
             int n;
             while (true) {
-                n = read(sockfd[i], buffer, RSA_size(priRkey));
+                n = read(sockfd[i], buffer, rsa_key_size);
 
                 if (n < 0) {
                     if (num_tries < MAX_RETRIES) {
@@ -889,11 +890,19 @@ void NodeNetwork::requestConnection(int numOfPeers) {
             // int n = read(sockfd[i], buffer, RSA_size(priRkey));
             // if (n < 0)
             //     throw std::runtime_error("reading from socket 1");
-            char *decrypt = (char *)malloc(n);
-            memset(decrypt, 0x00, n);
-            int dec_len = RSA_private_decrypt(n, (unsigned char *)buffer, (unsigned char *)decrypt, priRkey, RSA_PKCS1_OAEP_PADDING);
-            if (dec_len < 1)
+            EVP_PKEY_CTX *dec_ctx = EVP_PKEY_CTX_new(priPkey, NULL);
+            if (!dec_ctx || EVP_PKEY_decrypt_init(dec_ctx) <= 0 ||
+                EVP_PKEY_CTX_set_rsa_padding(dec_ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
+                throw std::runtime_error("RSA decrypt init");
+            size_t dec_len = 0;
+            if (EVP_PKEY_decrypt(dec_ctx, NULL, &dec_len, (unsigned char *)buffer, n) <= 0)
+                throw std::runtime_error("RSA decrypt size query");
+            char *decrypt = (char *)malloc(dec_len);
+            memset(decrypt, 0x00, dec_len);
+            if (EVP_PKEY_decrypt(dec_ctx, (unsigned char *)decrypt, &dec_len, (unsigned char *)buffer, n) <= 0)
                 throw std::runtime_error("RSA private decrypt");
+            EVP_PKEY_CTX_free(dec_ctx);
+            EVP_PKEY_free(priPkey);
             free(buffer);
             fclose(prikeyfp);
 
@@ -974,16 +983,24 @@ void NodeNetwork::acceptPeers(int numOfPeers) {
                 FILE *pubkeyfp = fopen((config->getPeerPubKey(peer)).c_str(), "r");
                 if (pubkeyfp == NULL)
                     throw std::runtime_error("Can't open public key " + config->getPeerPubKey(peer));
-                RSA *publicRkey = PEM_read_RSA_PUBKEY(pubkeyfp, NULL, NULL, NULL);
-                if (publicRkey == NULL)
+                EVP_PKEY *pubPkey = PEM_read_PUBKEY(pubkeyfp, NULL, NULL, NULL);
+                if (pubPkey == NULL)
                     throw std::runtime_error("Read public Key for RSA");
-                char *encrypt = (char *)malloc(RSA_size(publicRkey));
-                memset(encrypt, 0x00, RSA_size(publicRkey));
-                int enc_len = RSA_public_encrypt(2 * KEYSIZE + AES_BLOCK_SIZE, KeyIV, (unsigned char *)encrypt, publicRkey, RSA_PKCS1_OAEP_PADDING);
-                if (enc_len < 1)
+                EVP_PKEY_CTX *enc_ctx = EVP_PKEY_CTX_new(pubPkey, NULL);
+                if (!enc_ctx || EVP_PKEY_encrypt_init(enc_ctx) <= 0 ||
+                    EVP_PKEY_CTX_set_rsa_padding(enc_ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
+                    throw std::runtime_error("RSA encrypt init");
+                size_t enc_len = 0;
+                if (EVP_PKEY_encrypt(enc_ctx, NULL, &enc_len, KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE) <= 0)
+                    throw std::runtime_error("RSA encrypt size query");
+                char *encrypt = (char *)malloc(enc_len);
+                memset(encrypt, 0x00, enc_len);
+                if (EVP_PKEY_encrypt(enc_ctx, (unsigned char *)encrypt, &enc_len, KeyIV, 2 * KEYSIZE + AES_BLOCK_SIZE) <= 0)
                     throw std::runtime_error("RSA public encrypt error");
                 if (write(newsockfd[i], encrypt, enc_len) < 0) // sending to peer
                     throw std::runtime_error("ERROR writing to socket");
+                EVP_PKEY_CTX_free(enc_ctx);
+                EVP_PKEY_free(pubPkey);
                 free(encrypt);
                 fclose(pubkeyfp);
 #else

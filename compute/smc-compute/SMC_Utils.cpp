@@ -145,17 +145,10 @@ std::vector<unsigned char> rsa_oaep_decrypt(const std::string& private_key_pem,
     BIO* mem_bio = BIO_new_mem_buf(private_key_pem.data(), private_key_pem.length());
     if (!mem_bio) handle_openssl_error();
 
-    // Read RSA private key from BIO
-    RSA* rsa_key_raw = PEM_read_bio_RSAPrivateKey(mem_bio, NULL, NULL, NULL);
+    // Read private key directly into EVP_PKEY
+    EVP_PKEY* pkey = PEM_read_bio_PrivateKey(mem_bio, NULL, NULL, NULL);
     BIO_free(mem_bio);
-    if (!rsa_key_raw) handle_openssl_error();
-
-    // Wrap raw RSA key into EVP_PKEY
-    EVP_PKEY* pkey = EVP_PKEY_new();
-    if (!pkey) { RSA_free(rsa_key_raw); handle_openssl_error(); }
-    if (1 != EVP_PKEY_assign_RSA(pkey, rsa_key_raw)) { // Assign RSA key to EVP_PKEY
-        RSA_free(rsa_key_raw); EVP_PKEY_free(pkey); handle_openssl_error();
-    }
+    if (!pkey) handle_openssl_error();
 
     // Create decryption context
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, NULL);
