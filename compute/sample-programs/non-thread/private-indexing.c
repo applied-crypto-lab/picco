@@ -9,7 +9,6 @@ public int main()
 	public int i, j;
 	private int<32> ind[K], A[K], B[K], C[M][N], D[K];
 	private float<32, 9> FA[K], FB[K], FC[K];
-	public float<32, 9> FD[K];  
 	private float<32, 9> FE[M][N];
 	
 	smcinput(A, 1, K); 
