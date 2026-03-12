@@ -4770,7 +4770,7 @@ void compute_modulus_for_BOP(astexpr e1, astexpr e2, int opid){
                 else if(opid == BOP_div)
                     modulus = fmax(modulus, 2*len + rss_overhead + DIVISION_ACCURACY);
                 else if(opid == BOP_shr)
-                    modulus = fmax(modulus, e1->size + rss_overhead);
+                    modulus = fmax(modulus, 2 * e1->size + rss_overhead); // TruncS needs 2*ℓ+1
                 else if(opid == BOP_shl && e2->flag == PRI)
                     modulus = fmax(modulus, e2->size);
             } else { // SHAMIR_SS
@@ -4870,9 +4870,9 @@ void compute_modulus_for_UOP(astexpr target, astexpr source){
 
     if(technique_var == REPLICATED_SS){
         // FL2INT: float -> int
-        // max(q+1, k+(1)) where (1) is rss_overhead
+        // max(2*q+1, k+(1)) — TruncS needs 2*q+1 for intermediate product A*2^(q-m)
         if(target->ftype == 0 && source->ftype == 1)
-            modulus = fmax(modulus, fmax(source->size + 1, source->sizeexp + rss_overhead));
+            modulus = fmax(modulus, fmax(2 * source->size + rss_overhead, source->sizeexp + rss_overhead));
 
         // FL2FL: float -> float (precision reduction)
         // q1 + (1) when q1 > q2
