@@ -3181,6 +3181,7 @@ std::vector<int> SMC_Utils::extract_share_WITH_ACCESS(int binary_rep, int peers,
 }
 // older version, gives incorrect results for some binary representations for >=7 parties
 // replaced by "naive" approach in "new" function
+// NOTE: Still used for T-set keying (rss_share_seeds, Shamir coefficients). Use _new for communication.
 std::vector<int> SMC_Utils::extract_share_WITHOUT_ACCESS(int binary_rep, int peers, int id) {
     // iterate through bits from left to right
     std::vector<int> result;
