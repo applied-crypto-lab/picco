@@ -46,17 +46,5 @@ shares/
 .cache/
 # share directories
 
-compute/Error-Limitations/
 compute/running_files
 compute/Testing
-
-# Backup files
-backup_files/
-*.bak*
-*.backup
-*~
-*.orig
-PICCO_RSS_Modulus_Analysis*
-*.pdf
-*.md
-/refactoring
