@@ -85,7 +85,6 @@ void Rss_CarryOut(T **res, T *a, T **b, uint size, uint ring_size, NodeNetwork n
     uint numShares = ss->getNumShares();
 
     // d is shared
-    // printf("inits\n");
     T **d = new T *[size];
     for (i = 0; i < size; i++) {
         d[i] = new T[numShares * 2];

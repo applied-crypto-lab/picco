@@ -66,7 +66,6 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
     }
 
     if (id <= threshold + 1) {
-        // std::cout << "id " << id << " is an input party" << std::endl;
         uint8_t *buffer = new uint8_t[size * bytes];
         ss->prg_getrandom(bytes, size, buffer);
         T *r_val = new T[size];
@@ -91,11 +90,8 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
         delete[] buffer; // not needed anymore
         delete[] r_val;  // not needed anymore
     } else {
-        // std::cout << "id " << id << " is NOT an input party" << std::endl;
         Rss_Input_edaBit(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
-
-    // printf("input_eda_done\n");
 
     // first (size) elements of result are the shares over Z_2k
     // summing all the random values shared in Z_2k
@@ -225,7 +221,6 @@ void edaBit(T **r, T **b_2, uint bitlength, uint size, uint ring_size, NodeNetwo
         // the exact number of carries introduced by BitAdd : ceil(log2(t+1))
         // the difference between k and the bitlength
         uint numCarry = std::min(uint(ceil(log2(threshold + 1))), ring_size - bitlength);
-        // cout << "numCarry : " << numCarry << endl;
         // buffer and res use interface format [numCarry * size][numShares]
         T **buffer = new T *[numCarry * size];
         T **res = new T *[numCarry * size];
@@ -341,7 +336,6 @@ void edaBit_Trunc(T **r, T **r_hat, T **b_2, T **b_km1, uint m, uint size, uint 
         delete[] buffer; // not needed anymore
         delete[] r_val;  // not needed anymore
     } else {
-        // std::cout << "id " << id << " is NOT an input party" << std::endl;
         Rss_Input_edaBit_Trunc(result, static_cast<T *>(nullptr), input_parties, m, size, ring_size, nodeNet, ss);
     }
 
@@ -656,7 +650,6 @@ void edaBit_RNTE(T **r, T **r_hat, T **r_hat_hat, T **b_2, T **b_km1, uint m, ui
         delete[] buffer; // not needed anymore
         delete[] r_val;  // not needed anymore
     } else {
-        // std::cout << "id " << id << " is NOT an input party" << std::endl;
         Rss_Input_edaBit_RNTE(result, static_cast<T *>(nullptr), input_parties, m, size, ring_size, nodeNet, ss);
     }
 

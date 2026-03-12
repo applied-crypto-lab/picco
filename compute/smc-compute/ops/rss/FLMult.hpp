@@ -30,13 +30,7 @@
 
 template <typename T>
 void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
-   fflush(stderr);
    uint numShares = ss->getNumShares();
-
-   // Debug: Print input values for first element
-   if (size > 0) {
-      fflush(stderr);
-   }
 
    // Allocate in interface format [size][numShares]
    T **m = new T *[size];
@@ -170,11 +164,6 @@ void doOperation_FLMult(T ***a, T ***b, T ***result, int K, int size, int thread
          result[2][i][s] = c_z[i][s];        // [c.z]
          result[3][i][s] = c_s[i][s];        // [c.s]
       }
-   }
-
-   // Debug: Print result values for first element
-   if (size > 0) {
-      fflush(stderr);
    }
 
    // Cleanup

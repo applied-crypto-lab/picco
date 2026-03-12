@@ -59,11 +59,6 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     // n = 5 -> {1,2}
     // n = 7 -> {1,2,3}
     const int T_star_index = ss->generateT_star_index(0);
-    // std::cout << "T_star_index = "<<T_star_index << std::endl;
-    // std::vector<std::vector<int>> send_recv_map = ss->generateB2A_map();
-
-    // this map is written such that the workload is distributed as evenly as possible across the input parties (perfectly even distribution is mathematically impossible)
-    // std::vector<std::vector<int>> xi_map = ;
 
     // first t parties are the "input parties"
     // (3,1): p1
@@ -71,7 +66,6 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     // (7,3): p1, p2, p3
     std::vector<int> input_parties(threshold);
     std::iota(input_parties.begin(), input_parties.end(), 1);
-    // std::cout << "input_parties = "<< input_parties << std::endl;
     // result uses interface format [threshold][size][numShares] as expected by Rss_Input_p_star
     T ***result = new T **[threshold];
     for (size_t s = 0; s < (size_t)threshold; s++) {
@@ -127,9 +121,7 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
     delete[] a_sparse_internal;
 
     if (id < threshold + 1) {
-        // std::cout << id << " is an input party" << std::endl;
         std::vector<int> xi_map = ss->generateXi_map();
-        // std::cout << "xi_map : " << xi_map << std::endl;
         T *xors = new T[size];
         memset(xors, 0, sizeof(T) * size);
         for (auto idx : xi_map) {
@@ -143,7 +135,6 @@ void Rss_B2A(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
 
         delete[] xors; // not needed anymore
     } else {
-        // std::cout << id << " is NOT an input party" << std::endl;
         Rss_Input_p_star(result, static_cast<T *>(nullptr), input_parties, size, ring_size, nodeNet, ss);
     }
 
