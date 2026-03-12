@@ -202,22 +202,16 @@ void Rss_Mod2MS(T **result, T **A, T **M, T **powM, int L, int size, uint ring_s
     // Temp arrays
     T **R1 = new T*[size];
     T **R2 = new T*[size];
-    T **S = new T*[size];
-    T **T1 = new T*[size];
     T **CC = new T*[size];
     T **temp = new T*[size];
     T *temp_open = new T[size];  // Flat array for Open results
     for (int i = 0; i < size; i++) {
         R1[i] = new T[numShares];
         R2[i] = new T[numShares];
-        S[i] = new T[numShares];
-        T1[i] = new T[numShares];
         CC[i] = new T[numShares];
         temp[i] = new T[numShares];
         memset(R1[i], 0, sizeof(T) * numShares);
         memset(R2[i], 0, sizeof(T) * numShares);
-        memset(S[i], 0, sizeof(T) * numShares);
-        memset(T1[i], 0, sizeof(T) * numShares);
         memset(CC[i], 0, sizeof(T) * numShares);
         memset(temp[i], 0, sizeof(T) * numShares);
     }
@@ -347,15 +341,11 @@ void Rss_Mod2MS(T **result, T **A, T **M, T **powM, int L, int size, uint ring_s
     for (int i = 0; i < size; i++) {
         delete[] R1[i];
         delete[] R2[i];
-        delete[] S[i];
-        delete[] T1[i];
         delete[] CC[i];
         delete[] temp[i];
     }
     delete[] R1;
     delete[] R2;
-    delete[] S;
-    delete[] T1;
     delete[] CC;
     delete[] temp;
     delete[] temp_open;

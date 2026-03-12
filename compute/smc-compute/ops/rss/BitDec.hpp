@@ -50,10 +50,6 @@ void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeN
         memset(edaBit_b_2[i], 0, sizeof(T) * numShares);
     }
 
-    T *ai = new T[numShares];
-    memset(ai, 0, sizeof(T) * numShares);
-    ss->sparsify_public(ai, 1);
-
     // only need ring_size bit-length values for both parts of computation
     // first protection and b2a
     edaBit(edaBit_r, edaBit_b_2, bitlength, size, ring_size, nodeNet, ss);
@@ -79,7 +75,6 @@ void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeN
     // edaBit_b_2 is already in interface format [size][numShares], use directly
     Rss_BitAdd(res, c, edaBit_b_2, size, ring_size, nodeNet, ss);
 
-    delete[] ai;
     delete[] c;
 
     for (size_t i = 0; i < size; i++) {

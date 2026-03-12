@@ -24,12 +24,8 @@
 #include "FLRound.hpp"
 #include "MSB.hpp"
 #include "Mult.hpp"
-#include "Open.hpp"
 #include "Pow2.hpp"
 #include "TruncS.hpp"
-
-// Enable debug output for FL2Int
-#define FL2INT_DEBUG 0
 
 // ============================================================================
 // FL2Int - Convert floating point to integer for RSS
@@ -89,11 +85,10 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     T **c_flag = new T*[size];  // c = LTZ(p')
     T **m = new T*[size];       // shift amount for Mod2MS
     T **u = new T*[size];       // result of Mod2MS
-    T **pow2m = new T*[size];   // 2^m from Mod2MS
+    T **pow2m_unused = new T*[size]; // required output param for Mod2MS, not used by FL2Int
     T **t = new T*[size];       // truncation result
     T **m_prime = new T*[size]; // m' for second Mod2MS
     T **u_prime = new T*[size]; // u' from second Mod2MS
-    T **pow2m_prime = new T*[size]; // 2^{m'}
     T **pow2p = new T*[size];   // 2^{p'}
     T **bc = new T*[size];      // b * c
 
@@ -121,11 +116,10 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
         c_flag[i] = new T[numShares];
         m[i] = new T[numShares];
         u[i] = new T[numShares];
-        pow2m[i] = new T[numShares];
+        pow2m_unused[i] = new T[numShares];
         t[i] = new T[numShares];
         m_prime[i] = new T[numShares];
         u_prime[i] = new T[numShares];
-        pow2m_prime[i] = new T[numShares];
         pow2p[i] = new T[numShares];
         bc[i] = new T[numShares];
         neg_p[i] = new T[numShares];
@@ -145,11 +139,10 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
         memset(c_flag[i], 0, sizeof(T) * numShares);
         memset(m[i], 0, sizeof(T) * numShares);
         memset(u[i], 0, sizeof(T) * numShares);
-        memset(pow2m[i], 0, sizeof(T) * numShares);
+        memset(pow2m_unused[i], 0, sizeof(T) * numShares);
         memset(t[i], 0, sizeof(T) * numShares);
         memset(m_prime[i], 0, sizeof(T) * numShares);
         memset(u_prime[i], 0, sizeof(T) * numShares);
-        memset(pow2m_prime[i], 0, sizeof(T) * numShares);
         memset(pow2p[i], 0, sizeof(T) * numShares);
         memset(bc[i], 0, sizeof(T) * numShares);
         memset(neg_p[i], 0, sizeof(T) * numShares);
@@ -185,42 +178,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
             s[i][sh] = valuesP[3][i][sh];
         }
     }
-
-#if FL2INT_DEBUG
-    // Debug: Print input float components after FLRound
-    // IMPORTANT: Open must be called by ALL parties, not just Party 1
-    T *debug_v = new T[size];
-    T *debug_p = new T[size];
-    T *debug_z = new T[size];
-    T *debug_s = new T[size];
-    Open(debug_v, v, size, threadID, net, ss);
-    Open(debug_p, p, size, threadID, net, ss);
-    Open(debug_z, z, size, threadID, net, ss);
-    Open(debug_s, s, size, threadID, net, ss);
-    if (ss->getID() == 1) {
-        printf("\n=== FL2INT DEBUG (Party 1) ===\n");
-        printf("Parameters: L(mantissa)=%d, K(exponent)=%d, gamma(int_bits)=%d\n", L, K, gamma);
-        for (int i = 0; i < size; i++) {
-            // Handle signed exponent - if MSB is set, it's negative
-            long long p_signed = (long long)debug_p[i];
-            if (debug_p[i] > (T(1) << (ring_size - 1))) {
-                // Negative value in two's complement
-                p_signed = (long long)debug_p[i] - ((long long)1 << ring_size);
-            }
-            printf("Input[%d] after FLRound: v=%lld, p=%lld, z=%lld, s=%lld\n",
-                   i, (long long)debug_v[i], p_signed, (long long)debug_z[i], (long long)debug_s[i]);
-            // Compute expected value
-            double expected = (double)debug_v[i] * pow(2.0, p_signed);
-            if (debug_s[i]) expected = -expected;
-            if (debug_z[i]) expected = 0;
-            printf("  -> Expected float value: %f\n", expected);
-        }
-    }
-    delete[] debug_v;
-    delete[] debug_p;
-    delete[] debug_z;
-    delete[] debug_s;
-#endif
 
     // ========================================================================
     // Lines 2-4: Compute flags a, b, c using batched MSB
@@ -258,28 +215,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     }
     delete[] msb_input;
     delete[] msb_output;
-
-#if FL2INT_DEBUG
-    // Debug: Print flags a, b, c
-    if (ss->getID() == 1) {
-        T *debug_a = new T[size];
-        T *debug_b = new T[size];
-        T *debug_c = new T[size];
-        Open(debug_a, a_flag, size, threadID, net, ss);
-        Open(debug_b, b_flag, size, threadID, net, ss);
-        Open(debug_c, c_flag, size, threadID, net, ss);
-        printf("\nFlags after MSB:\n");
-        for (int i = 0; i < size; i++) {
-            printf("  [%d] a=%lld (p<gamma-1=%d), b=%lld (p>gamma-L-1=%d), c=%lld (p<0)\n",
-                   i, (long long)debug_a[i], gamma-1,
-                   (long long)debug_b[i], gamma-L-1,
-                   (long long)debug_c[i]);
-        }
-        delete[] debug_a;
-        delete[] debug_b;
-        delete[] debug_c;
-    }
-#endif
 
     // ========================================================================
     // MULT ROUND 1 (6 batched): Precompute many products
@@ -332,23 +267,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
         }
     }
 
-#if FL2INT_DEBUG
-    // Debug: Print neg_p and bc
-    if (ss->getID() == 1) {
-        T *debug_negp = new T[size];
-        T *debug_bc = new T[size];
-        Open(debug_negp, neg_p, size, threadID, net, ss);
-        Open(debug_bc, bc, size, threadID, net, ss);
-        printf("\nAfter Round 1:\n");
-        for (int i = 0; i < size; i++) {
-            printf("  [%d] neg_p=%lld (should be |p| when c=1), bc=%lld\n",
-                   i, (long long)debug_negp[i], (long long)debug_bc[i]);
-        }
-        delete[] debug_negp;
-        delete[] debug_bc;
-    }
-#endif
-
     // ========================================================================
     // MULT ROUND 2 (4 batched):
     // 0: line5_step1 * b -> line5_step2
@@ -390,20 +308,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
         }
     }
 
-#if FL2INT_DEBUG
-    // Debug: Print pow2_input = (1-c)*a*p
-    if (ss->getID() == 1) {
-        T *debug_pow2in = new T[size];
-        Open(debug_pow2in, pow2_input, size, threadID, net, ss);
-        printf("\nAfter Round 2:\n");
-        for (int i = 0; i < size; i++) {
-            printf("  [%d] pow2_input=(1-c)*a*p=%lld (for Pow2, should be 0 when c=1)\n",
-                   i, (long long)debug_pow2in[i]);
-        }
-        delete[] debug_pow2in;
-    }
-#endif
-
     // ========================================================================
     // MULT ROUND 3: Complete line 5
     // m = line5_step2 * a = (gamma-1-p')*(1-c)*b*a
@@ -421,25 +325,8 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     // ========================================================================
     // Line 6: Mod2MS and start Pow2 (pow2_input is ready)
     // ========================================================================
-    Rss_Mod2MS(u, v, m, pow2m, L, size, ring_size, net, ss);
+    Rss_Mod2MS(u, v, m, pow2m_unused, L, size, ring_size, net, ss);
     doOperation_Pow2(pow2p, pow2_input, gamma - 1, size, threadID, net, ss);
-
-#if FL2INT_DEBUG
-    // Debug: Print pow2p = 2^pow2_input
-    if (ss->getID() == 1) {
-        T *debug_pow2p = new T[size];
-        T *debug_m = new T[size];
-        Open(debug_pow2p, pow2p, size, threadID, net, ss);
-        Open(debug_m, m, size, threadID, net, ss);
-        printf("\nAfter Pow2 and Mod2MS:\n");
-        for (int i = 0; i < size; i++) {
-            printf("  [%d] pow2p=2^pow2_input=%lld, m=%lld\n",
-                   i, (long long)debug_pow2p[i], (long long)debug_m[i]);
-        }
-        delete[] debug_pow2p;
-        delete[] debug_m;
-    }
-#endif
 
     // ========================================================================
     // MULT ROUND 4: Complete line 7
@@ -459,23 +346,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     // ========================================================================
     doOperation_TruncS(t, v, L, neg_p, size, threadID, net, ss);
 
-#if FL2INT_DEBUG
-    // Debug: Print TruncS result
-    if (ss->getID() == 1) {
-        T *debug_t = new T[size];
-        T *debug_v_before = new T[size];
-        Open(debug_t, t, size, threadID, net, ss);
-        Open(debug_v_before, v, size, threadID, net, ss);
-        printf("\nAfter TruncS:\n");
-        for (int i = 0; i < size; i++) {
-            printf("  [%d] t=TruncS(v,L,neg_p)=%lld, v_before_line10=%lld\n",
-                   i, (long long)debug_t[i], (long long)debug_v_before[i]);
-        }
-        delete[] debug_t;
-        delete[] debug_v_before;
-    }
-#endif
-
     // ========================================================================
     // MULT ROUND 5: Line 10 optimized
     // v' = c*t + (1-c)*v' = v' + c*(t - v')
@@ -494,19 +364,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
         }
     }
 
-#if FL2INT_DEBUG
-    // Debug: Print v' after line 10
-    if (ss->getID() == 1) {
-        T *debug_v10 = new T[size];
-        Open(debug_v10, v, size, threadID, net, ss);
-        printf("\nAfter Line 10 (v' = c*t + (1-c)*v'):\n");
-        for (int i = 0; i < size; i++) {
-            printf("  [%d] v'=%lld\n", i, (long long)debug_v10[i]);
-        }
-        delete[] debug_v10;
-    }
-#endif
-
     // ========================================================================
     // Line 11: m' = bc * (gamma - 1) (local computation)
     // ========================================================================
@@ -519,7 +376,7 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     // ========================================================================
     // Line 12: Second Mod2MS
     // ========================================================================
-    Rss_Mod2MS(u_prime, v, m_prime, pow2m_prime, L, size, ring_size, net, ss);
+    Rss_Mod2MS(u_prime, v, m_prime, pow2m_unused, L, size, ring_size, net, ss);
 
     // ========================================================================
     // MULT ROUND 6 (2 batched):
@@ -561,33 +418,6 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     // ========================================================================
     Mult(results, temp_r6, v, size, threadID, net, ss);
 
-#if FL2INT_DEBUG
-    // Debug: Print final v' and result
-    if (ss->getID() == 1) {
-        T *debug_vfinal = new T[size];
-        T *debug_result = new T[size];
-        T *debug_temp_r6 = new T[size];
-        Open(debug_vfinal, v, size, threadID, net, ss);
-        Open(debug_result, results, size, threadID, net, ss);
-        Open(debug_temp_r6, temp_r6, size, threadID, net, ss);
-        printf("\nFinal computation:\n");
-        for (int i = 0; i < size; i++) {
-            // Handle signed result
-            long long result_signed = (long long)debug_result[i];
-            if (debug_result[i] > (T(1) << (ring_size - 1))) {
-                result_signed = (long long)debug_result[i] - ((long long)1 << ring_size);
-            }
-            printf("  [%d] v'_final=%lld, temp_r6=(1-2s)*(1-z)*a*pow2p=%lld\n",
-                   i, (long long)debug_vfinal[i], (long long)debug_temp_r6[i]);
-            printf("  [%d] RESULT g = temp_r6 * v' = %lld\n", i, result_signed);
-        }
-        printf("\n=== END FL2INT DEBUG ===\n\n");
-        delete[] debug_vfinal;
-        delete[] debug_result;
-        delete[] debug_temp_r6;
-    }
-#endif
-
     // Cleanup temp_r6
     for (int i = 0; i < size; i++) {
         delete[] temp_r6[i];
@@ -618,11 +448,10 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
         delete[] c_flag[i];
         delete[] m[i];
         delete[] u[i];
-        delete[] pow2m[i];
+        delete[] pow2m_unused[i];
         delete[] t[i];
         delete[] m_prime[i];
         delete[] u_prime[i];
-        delete[] pow2m_prime[i];
         delete[] pow2p[i];
         delete[] bc[i];
         delete[] neg_p[i];
@@ -643,11 +472,10 @@ void doOperation_FL2Int(T ***values1, T **results, int L, int K, int gamma, int 
     delete[] c_flag;
     delete[] m;
     delete[] u;
-    delete[] pow2m;
+    delete[] pow2m_unused;
     delete[] t;
     delete[] m_prime;
     delete[] u_prime;
-    delete[] pow2m_prime;
     delete[] pow2p;
     delete[] bc;
     delete[] neg_p;

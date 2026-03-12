@@ -80,7 +80,6 @@ void doOperation_FLDiv(T ***a, T ***b, T ***result, T **error, int K, int size, 
    // Arrays in [size][numShares] format
    T **Y = new T *[size];         // Result mantissa
    T **temp1 = new T *[size];
-   T **temp2 = new T *[size];
    T **b_bit = new T *[size];     // b flag for normalization
    T **lt_input = new T *[size];
 
@@ -94,8 +93,6 @@ void doOperation_FLDiv(T ***a, T ***b, T ***result, T **error, int K, int size, 
       memset(Y[i], 0, sizeof(T) * numShares);
       temp1[i] = new T[numShares];
       memset(temp1[i], 0, sizeof(T) * numShares);
-      temp2[i] = new T[numShares];
-      memset(temp2[i], 0, sizeof(T) * numShares);
       b_bit[i] = new T[numShares];
       memset(b_bit[i], 0, sizeof(T) * numShares);
       lt_input[i] = new T[numShares];
@@ -199,7 +196,6 @@ void doOperation_FLDiv(T ***a, T ***b, T ***result, T **error, int K, int size, 
    for (int i = 0; i < size; i++) {
       delete[] Y[i];
       delete[] temp1[i];
-      delete[] temp2[i];
       delete[] b_bit[i];
       delete[] lt_input[i];
    }
@@ -210,7 +206,6 @@ void doOperation_FLDiv(T ***a, T ***b, T ***result, T **error, int K, int size, 
    }
    delete[] Y;
    delete[] temp1;
-   delete[] temp2;
    delete[] b_bit;
    delete[] lt_input;
    delete[] A_buff;
