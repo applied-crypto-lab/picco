@@ -168,36 +168,38 @@ for (i = 0; i < size; ++i) {
     // res[1][i] = e_bit * a2 + b[1][i] - (e_bit * b_prime[1][i] << T(1));
 }
     // cleanup
-//     delete[] ai;
-//     delete[] c;
-//     delete[] e;
+    delete[] ai;
+    delete[] c;
+    delete[] e;
 
-//     for (i = 0; i < numShares; i++) {
-//         delete[] edaBit_r[i];
-//         delete[] edaBit_b_2[i];
-//         delete[] b_prime;
-//         delete[] sum[i];
-//         delete[] u_2[i];
-//         delete[] rprime[i];
-//     }
-//     delete[] edaBit_r;
-//     delete[] edaBit_b_2;
-//     delete[] sum;
-//     delete[] u_2;
-//     delete[] rprime;
-// // Clean up the temporary buffers
-// for (size_t s = 0; s < numShares; s++) {
-//     delete[] buffer[s];
-//     delete[] resultBuffer[s];
-// }
-// delete[] buffer;
-// delete[] resultBuffer;
+    for (i = 0; i < size; i++) {
+        delete[] b_prime[i];
+        delete[] sum[i];
+        delete[] u_2[i];
+        delete[] edaBit_r[i];
+        delete[] edaBit_b_2[i];
+        delete[] rprime[i];
+        delete[] r_prime[i];
+        delete[] v[i];
+        delete[] u[i];
+    }
+    delete[] b_prime;
+    delete[] sum;
+    delete[] u_2;
+    delete[] edaBit_r;
+    delete[] edaBit_b_2;
+    delete[] rprime;
+    delete[] r_prime;
+    delete[] v;
+    delete[] u;
 
+    for (i = 0; i < 2 * size; i++) {
+        delete[] buffer[i];
+        delete[] resultBuffer[i];
+    }
+    delete[] buffer;
+    delete[] resultBuffer;
 }
-
-
-
-
 
 
 
