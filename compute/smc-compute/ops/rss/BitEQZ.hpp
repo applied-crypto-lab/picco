@@ -37,9 +37,6 @@ void BitEQ_fixed(T **output, T **v_fixed, T **v_array, int size, int ring_size, 
     memset(ai, 0, sizeof(T) * numShares);
     ss->sparsify_public(ai, -1);
 
-    // Open_Bitwise_print(v_fixed, "v_fixed", 1, -1, nodeNet, ss);
-    // Open_Bitwise_print(v_array, "v_array", size, -1, nodeNet, ss);
-
     for (size_t s = 0; s < numShares; s++) {
         for (size_t i = 0; i < size; i++) {
             xor_res[s][i] = v_array[s][i] ^ v_fixed[s][0];

@@ -49,7 +49,6 @@ void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, Node
         sum[i] = new T[numShares];
         rprime[i] = new T[numShares];
     }
-    T *res_check = new T[size];
 
     T *c = new T[size];
 
@@ -87,7 +86,6 @@ void doOperation_EQZ(T **shares, T **result, int K, int size, int threadID, Node
 
     delete[] c;
     delete[] ai;
-    delete[] res_check;
 
     for (i = 0; i < (uint)size; i++) {
         delete[] edaBit_r[i];

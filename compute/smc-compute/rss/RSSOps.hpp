@@ -72,6 +72,20 @@
 template <typename T>
 void rss_convertFloat(float value, int K, int L, T *elements);
 
+// Forward declare batch helper functions (defined at end of file in RSSBatch section)
+template <typename T>
+inline void ss_batch_free_operator(T ***op, int size);
+template <typename T>
+inline void ss_batch_free_operator(T ****op, int size);
+template <typename T>
+inline void ss_convert_operator(T ***result, T ***op, int *index_array, int dim, int size, int flag, uint numShares);
+template <typename T>
+inline void ss_convert_operator(T ***result, T **op, int *index_array, int dim, int size, int flag, uint numShares);
+template <typename T>
+inline void ss_convert_operator(T ****result, T ***op, int *index_array, int dim, int size, int flag, uint numShares);
+template <typename T>
+inline void ss_convert_operator(T ****result, T ****op, int *index_array, int dim, int size, int flag, uint numShares);
+
 template <typename T>
 void ss_init_set(T *x, T *x_val) {
     return;
@@ -1096,8 +1110,18 @@ void ss_fl2int(float *value, T **result, int size, int K, int L, int gamma, int 
 
 template <typename T>
 void ss_fl2int(T ***value, T **result, int size, int K, int L, int gamma, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    // Create component-first view [4][size] aliasing into value[size][4]
+    T ***value_comp = (T ***)malloc(sizeof(T **) * 4);
+    for (int c = 0; c < 4; c++) {
+        value_comp[c] = (T **)malloc(sizeof(T *) * size);
+        for (int i = 0; i < size; i++)
+            value_comp[c][i] = value[i][c];
+    }
     // Same fix as scalar version: PICCO swaps K and L
-    doOperation_FL2Int(value, result, K, L, gamma, size, threadID, net, ss);
+    doOperation_FL2Int(value_comp, result, K, L, gamma, size, threadID, net, ss);
+    for (int c = 0; c < 4; c++)
+        free(value_comp[c]);
+    free(value_comp);
 }
 
 // Convert single public float to private (secret-shared) float
@@ -1227,372 +1251,1467 @@ void ss_fl2fl(T ***value, T ***result, int size, int K1, int L1, int K2, int L2,
 
 template <typename T>
 void ss_batch_BOP_float_arithmetic(T ***result, T ***a, T ***b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    op.erase(std::remove(op.begin(), op.end(), ' '), op.end());
+    uint numShares = ss->getNumShares();
+
+    // Save original result for conditional assignment
+    T ***result_org = (T ***)malloc(sizeof(T **) * size);
+    for (int i = 0; i < size; i++) {
+        result_org[i] = (T **)malloc(sizeof(T *) * 4);
+        for (int j = 0; j < 4; j++) {
+            result_org[i][j] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++)
+                result_org[i][j][s] = result[i][j][s];
+        }
+    }
+
+    if (op == "*") {
+        ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "*", threadID, net, ss);
+    } else if (op == "-") {
+        ss_sub(a, b, alen_sig, alen_exp, blen_sig, blen_exp, result, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
+    } else if (op == "+") {
+        ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "+", threadID, net, ss);
+    } else if (op == "/") {
+        ss_batch_fop_arithmetic(result, a, b, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, size, "/", threadID, net, ss);
+    } else if (op == "=") {
+        ss_set(a, result, alen_sig, alen_exp, resultlen_sig, resultlen_exp, size, type, threadID, net, ss);
+    } else {
+        std::cout << "[ss_batch_BOP_float_arithmetic] Unrecognized op: " << op << "\n";
+    }
+
+    // Flatten for conditional assignment: result[size][4][numShares] -> flat[4*size][numShares]
+    T **result_flat = (T **)malloc(sizeof(T *) * 4 * size);
+    T **result_org_flat = (T **)malloc(sizeof(T *) * 4 * size);
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            result_flat[4 * i + j] = (T *)malloc(sizeof(T) * numShares);
+            result_org_flat[4 * i + j] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++) {
+                result_flat[4 * i + j][s] = result[i][j][s];
+                result_org_flat[4 * i + j][s] = result_org[i][j][s];
+            }
+        }
+    }
+
+    ss_batch_handle_priv_cond(result_flat, result_org_flat, out_cond, priv_cond, counter, 4 * size, threadID, net, ss);
+
+    // Copy back
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[i][j][s] = result_flat[4 * i + j][s];
+
+    // Cleanup
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++)
+            free(result_org[i][j]);
+        free(result_org[i]);
+    }
+    free(result_org);
+    ss_batch_free_operator(&result_flat, 4 * size);
+    ss_batch_free_operator(&result_org_flat, 4 * size);
 }
 
 template <typename T>
 void ss_batch_BOP_float_comparison(T **result, T ***a, T ***b, int resultlen_sig, int resultlen_exp, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+
+    T **result_org = (T **)malloc(sizeof(T *) * size);
+    T **result_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        result_org[i] = (T *)malloc(sizeof(T) * numShares);
+        result_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        for (uint s = 0; s < numShares; s++) {
+            result_org[i][s] = result[index_array[3 * i + 2]][s];
+            result_tmp[i][s] = 0;
+        }
+    }
+
+    if (op == "==") {
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
+    } else if (op == "!=") {
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "==", threadID, net, ss);
+        ss->modSub(result_tmp, 1, result_tmp, size);
+    } else if (op == ">") {
+        ss_batch_fop_comparison(result_tmp, b, a, resultlen_sig, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
+    } else if (op == ">=") {
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
+        ss->modSub(result_tmp, 1, result_tmp, size);
+    } else if (op == "<") {
+        ss_batch_fop_comparison(result_tmp, a, b, resultlen_sig, -1, alen_sig, alen_exp, blen_sig, blen_exp, size, "<0", threadID, net, ss);
+    } else if (op == "<=") {
+        ss_batch_fop_comparison(result_tmp, b, a, resultlen_sig, -1, blen_sig, blen_exp, alen_sig, alen_exp, size, "<0", threadID, net, ss);
+        ss->modSub(result_tmp, 1, result_tmp, size);
+    }
+
+    ss_batch_handle_priv_cond(result_tmp, result_org, out_cond, priv_cond, counter, size, threadID, net, ss);
+
+    for (int i = 0; i < size; ++i)
+        for (uint s = 0; s < numShares; s++)
+            result[index_array[3 * i + 2]][s] = result_tmp[i][s];
+
+    ss_batch_free_operator(&result_org, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
-// Integer batch stubs for 2D array (T***) operations
-// These are called from SMC_Utils.cpp for batch operations involving priv_int** (T***) parameters.
-// The 1D versions (T**) are handled by the unified Batch.hpp, but these 2D mixed variants
-// need explicit overloads here.
+// ============================================================================
+// Integer batch operations for 2D arrays (T***) — RSS implementations
+// Pattern: extract indexed elements via ss_convert_operator, call ss_batch_BOP_int, write back
+// ============================================================================
+
+// Helper: write back 1D result_tmp into 2D result using dim decomposition
+template <typename T>
+static inline void rss_batch_writeback_2d(T ***result, T **result_tmp, int *index_array, int resultdim, int size, uint numShares) {
+    if (resultdim != 0) {
+        for (int i = 0; i < size; ++i) {
+            int dim1 = index_array[3 * i + 2] / resultdim;
+            int dim2 = index_array[3 * i + 2] % resultdim;
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][s] = result_tmp[i][s];
+        }
+    }
+}
+
+// Helper: write back 1D result_tmp into 1D result
+template <typename T>
+static inline void rss_batch_writeback_1d(T **result, T **result_tmp, int *index_array, int size, uint numShares) {
+    for (int i = 0; i < size; ++i)
+        for (uint s = 0; s < numShares; s++)
+            result[index_array[3 * i + 2]][s] = result_tmp[i][s];
+}
+
+// int*, int* -> T** (public, public -> 1D private)
+template <typename T>
+void ss_batch(int *a, int *b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    T **b_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        b_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        memset(b_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], a[i]);
+        ss->sparsify_public(b_tmp[i], b[i]);
+    }
+    ss_batch(a_tmp, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+}
+
+// int*, T** -> T** (public, 1D private -> 1D private)
+template <typename T>
+void ss_batch(int *a, T **b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], a[i]);
+    }
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+}
+
+// T**, int* -> T** (1D private, public -> 1D private)
+template <typename T>
+void ss_batch(T **a, int *b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    uint numShares = ss->getNumShares();
+    std::string op_trimmed = op;
+    op_trimmed.erase(std::remove(op_trimmed.begin(), op_trimmed.end(), ' '), op_trimmed.end());
+    bool is_raw = (op_trimmed == ">>" || op_trimmed == "<<" || op_trimmed == "/");
+    T **b_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        b_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(b_tmp[i], 0, sizeof(T) * numShares);
+        if (is_raw)
+            b_tmp[i][0] = (T)b[i];
+        else
+            ss->sparsify_public(b_tmp[i], b[i]);
+    }
+    if (op_trimmed == "/") op = "/P";
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&b_tmp, size);
+}
 
 // int*, int* -> T*** (public, public -> 2D private)
 template <typename T>
 void ss_batch(int *a, int *b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    T **b_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        b_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        memset(b_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], a[i]);
+        ss->sparsify_public(b_tmp[i], b[i]);
+    }
+    ss_batch(a_tmp, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
 // int*, T** -> T*** (public, 1D private -> 2D private)
 template <typename T>
 void ss_batch(int *a, T **b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], a[i]);
+    }
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
 // T**, int* -> T*** (1D private, public -> 2D private)
 template <typename T>
 void ss_batch(T **a, int *b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **b_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        b_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(b_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(b_tmp[i], b[i]);
+    }
+    op = (op == "/") ? "/P" : op;
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
 // int*, T*** -> T** (public, 2D private -> 1D private)
 template <typename T>
 void ss_batch(int *a, T ***b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], a[i]);
+    }
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
 // int*, T*** -> T*** (public, 2D private -> 2D private)
 template <typename T>
 void ss_batch(int *a, T ***b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], a[i]);
+    }
+    ss_batch(a_tmp, b, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
 // T***, int* -> T** (2D private, public -> 1D private)
 template <typename T>
 void ss_batch(T ***a, int *b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    std::string op_trimmed = op;
+    op_trimmed.erase(std::remove(op_trimmed.begin(), op_trimmed.end(), ' '), op_trimmed.end());
+    bool is_raw = (op_trimmed == ">>" || op_trimmed == "<<" || op_trimmed == "/");
+    T **b_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        b_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(b_tmp[i], 0, sizeof(T) * numShares);
+        if (is_raw)
+            b_tmp[i][0] = (T)b[i];
+        else
+            ss->sparsify_public(b_tmp[i], b[i]);
+    }
+    if (op_trimmed == "/") op = "/P";
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
 // T***, int* -> T*** (2D private, public -> 2D private)
 template <typename T>
 void ss_batch(T ***a, int *b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    std::string op_trimmed = op;
+    op_trimmed.erase(std::remove(op_trimmed.begin(), op_trimmed.end(), ' '), op_trimmed.end());
+    bool is_raw = (op_trimmed == ">>" || op_trimmed == "<<" || op_trimmed == "/");
+    T **b_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        b_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(b_tmp[i], 0, sizeof(T) * numShares);
+        if (is_raw)
+            b_tmp[i][0] = (T)b[i];
+        else
+            ss->sparsify_public(b_tmp[i], b[i]);
+    }
+    if (op_trimmed == "/") op = "/P";
+    ss_batch(a, b_tmp, result, alen, blen, resultlen, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
 // T**, T*** -> T*** (1D private, 2D private -> 2D private)
 template <typename T>
 void ss_batch(T **a, T ***b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // T***, T** -> T*** (2D private, 1D private -> 2D private)
 template <typename T>
 void ss_batch(T ***a, T **b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // T***, T*** -> T** (2D private, 2D private -> 1D private)
 template <typename T>
 void ss_batch(T ***a, T ***b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    if (op == "@") {
+        T **result_tmp = (T **)malloc(sizeof(T *) * size);
+        T **result_org = (T **)malloc(sizeof(T *) * size);
+        for (int i = 0; i < size; i++) {
+            result_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+            result_org[i] = (T *)malloc(sizeof(T) * numShares);
+            memset(result_tmp[i], 0, sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++)
+                result_org[i][s] = result[index_array[3 * i + 2]][s];
+        }
+        ss_batch_dot(a, b, size, adim, index_array, result_tmp, threadID, net, ss);
+        ss_batch_handle_priv_cond(result_tmp, result_org, out_cond, priv_cond, counter, size, threadID, net, ss);
+        rss_batch_writeback_1d(result, result_tmp, index_array, size, numShares);
+        ss_batch_free_operator(&result_org, size);
+        ss_batch_free_operator(&result_tmp, size);
+        return;
+    }
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // T**, T** -> T*** (1D private, 1D private -> 2D private)
 template <typename T>
 void ss_batch(T **a, T **b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // T**, T*** -> T** (1D private, 2D private -> 1D private)
 template <typename T>
 void ss_batch(T **a, T ***b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // T***, T** -> T** (2D private, 1D private -> 1D private)
 template <typename T>
 void ss_batch(T ***a, T **b, T **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
 // T***, T*** -> T*** (2D private, 2D private -> 2D private)
 template <typename T>
 void ss_batch(T ***a, T ***b, T ***result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    if (op == "@") {
+        T **result_tmp = (T **)malloc(sizeof(T *) * size);
+        T **result_org = (T **)malloc(sizeof(T *) * size);
+        for (int i = 0; i < size; i++) {
+            result_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+            result_org[i] = (T *)malloc(sizeof(T) * numShares);
+            memset(result_tmp[i], 0, sizeof(T) * numShares);
+            if (resultdim != 0) {
+                int dim1 = index_array[3 * i + 2] / resultdim;
+                int dim2 = index_array[3 * i + 2] % resultdim;
+                for (uint s = 0; s < numShares; s++)
+                    result_org[i][s] = result[dim1][dim2][s];
+            }
+        }
+        ss_batch_dot(a, b, size, adim, index_array, result_tmp, threadID, net, ss);
+        ss_batch_handle_priv_cond(result_tmp, result_org, out_cond, priv_cond, counter, size, threadID, net, ss);
+        rss_batch_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+        ss_batch_free_operator(&result_org, size);
+        ss_batch_free_operator(&result_tmp, size);
+        return;
+    }
+    T **a_tmp, **b_tmp, **result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_int(result_tmp, a_tmp, b_tmp, resultlen, alen, blen, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// Batch dot product
 template <typename T>
 void ss_batch_dot(T ***a, T ***b, int size, int array_size, int *index_array, T **result, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    int a_dim = 0, b_dim = 0;
+    // Extract indexed rows: a_tmp[size][array_size][numShares], b_tmp[size][array_size][numShares]
+    T ***a_tmp = (T ***)malloc(sizeof(T **) * size);
+    T ***b_tmp = (T ***)malloc(sizeof(T **) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T **)malloc(sizeof(T *) * array_size);
+        b_tmp[i] = (T **)malloc(sizeof(T *) * array_size);
+        a_dim = index_array[3 * i];
+        b_dim = index_array[3 * i + 1];
+        for (int j = 0; j < array_size; j++) {
+            a_tmp[i][j] = (T *)malloc(sizeof(T) * numShares);
+            b_tmp[i][j] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++) {
+                a_tmp[i][j][s] = a[a_dim][j][s];
+                b_tmp[i][j][s] = b[b_dim][j][s];
+            }
+        }
+    }
+
+    doOperation_DotProduct(a_tmp, b_tmp, result, size, array_size, threadID, net, ss);
+
+    // Cleanup
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < array_size; j++) {
+            free(a_tmp[i][j]);
+            free(b_tmp[i][j]);
+        }
+        free(a_tmp[i]);
+        free(b_tmp[i]);
+    }
+    free(a_tmp);
+    free(b_tmp);
 }
 
+// ============================================================================
+// Float batch operations — RSS implementations
+// Public-constant variants: convert to private, delegate to private-private version
+// Private-private variants: extract via ss_convert_operator, call BOP dispatch, write back
+// RSS type mapping: T*** = 1D float [size][4][numShares], T**** = 2D float [d1][d2][4][numShares]
+// ============================================================================
+
+// Helper: write back float result_tmp T*** into 2D float result T**** using dim decomposition
+template <typename T>
+static inline void rss_batch_float_writeback_2d(T ****result, T ***result_tmp, int *index_array, int resultdim, int size, uint numShares) {
+    for (int i = 0; i < size; ++i) {
+        int dim1 = index_array[3 * i + 2] / resultdim;
+        int dim2 = index_array[3 * i + 2] % resultdim;
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][j][s] = result_tmp[i][j][s];
+    }
+}
+
+// Helper: write back float result_tmp T*** into 1D float result T***
+template <typename T>
+static inline void rss_batch_float_writeback_1d(T ***result, T ***result_tmp, int *index_array, int size, uint numShares) {
+    for (int i = 0; i < size; ++i)
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[index_array[3 * i + 2]][j][s] = result_tmp[i][j][s];
+}
+
+// --- Public + 1D private float arithmetic ---
+
+// float*, T*** -> T**** (public + 1D private -> 2D private)
 template <typename T>
 void ss_batch(float *a, T ***b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// T***, float* -> T**** (1D private + public -> 2D private)
 template <typename T>
 void ss_batch(T ***a, float *b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***btmp;
+    ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
+    op = (op == "/") ? "/P" : op;
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&btmp, size);
 }
 
+// float*, T*** -> T*** (public + 1D private -> 1D private)
 template <typename T>
 void ss_batch(float *a, T ***b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// T***, float* -> T*** (1D private + public -> 1D private)
 template <typename T>
 void ss_batch(T ***a, float *b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***btmp;
+    ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
+    op = (op == "/") ? "/P" : op;
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&btmp, size);
 }
 
+// --- Public-to-private float assignments ---
+
+// float*, float* -> T**** (public assignment to 2D private float)
 template <typename T>
 void ss_batch(float *a, float *b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, resultlen_sig, resultlen_exp, size, ss);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// int*, int* -> T**** (public int assignment to 2D private float)
 template <typename T>
 void ss_batch(int *a, int *b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    float *a1 = (float *)malloc(sizeof(float) * size);
+    for (int i = 0; i < size; i++) a1[i] = a[i];
+    T ***atmp;
+    ss_batch_convert_to_private_float(a1, &atmp, resultlen_sig, resultlen_exp, size, ss);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
+    free(a1);
 }
 
+// float*, float* -> T*** (public assignment to 1D private float)
 template <typename T>
 void ss_batch(float *a, float *b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, resultlen_sig, resultlen_exp, size, ss);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// int*, int* -> T*** (public int assignment to 1D private float)
 template <typename T>
 void ss_batch(int *a, int *b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    float *a1 = (float *)malloc(sizeof(float) * size);
+    for (int i = 0; i < size; i++) a1[i] = a[i];
+    T ***atmp;
+    ss_batch_convert_to_private_float(a1, &atmp, resultlen_sig, resultlen_exp, size, ss);
+    ss_batch(atmp, atmp, result, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
+    free(a1);
 }
 
+// --- Public + 2D private float arithmetic ---
+
+// float*, T**** -> T**** (public + 2D private -> 2D private)
 template <typename T>
 void ss_batch(float *a, T ****b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// T****, float* -> T**** (2D private + public -> 2D private)
 template <typename T>
 void ss_batch(T ****a, float *b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***btmp;
+    ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
+    op = (op == "/") ? "/P" : op;
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&btmp, size);
 }
 
+// float*, T**** -> T*** (public + 2D private -> 1D private)
 template <typename T>
 void ss_batch(float *a, T ****b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// T****, float* -> T*** (2D private + public -> 1D private)
 template <typename T>
 void ss_batch(T ****a, float *b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***btmp;
+    ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
+    op = (op == "/") ? "/P" : op;
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&btmp, size);
 }
 
+// --- Public + private float comparison ---
+
+// float*, T*** -> T** (public + 1D private -> comparison)
 template <typename T>
 void ss_batch(float *a, T ***b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// T***, float* -> T** (1D private + public -> comparison)
 template <typename T>
 void ss_batch(T ***a, float *b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***btmp;
+    ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&btmp, size);
 }
 
+// float*, T**** -> T** (public + 2D private -> comparison)
 template <typename T>
 void ss_batch(float *a, T ****b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***atmp;
+    ss_batch_convert_to_private_float(a, &atmp, blen_sig, blen_exp, size, ss);
+    ss_batch(atmp, b, result, blen_sig, blen_exp, blen_sig, blen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&atmp, size);
 }
 
+// T****, float* -> T** (2D private + public -> comparison)
 template <typename T>
 void ss_batch(T ****a, float *b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***btmp;
+    ss_batch_convert_to_private_float(b, &btmp, alen_sig, alen_exp, size, ss);
+    ss_batch(a, btmp, result, alen_sig, alen_exp, alen_sig, alen_exp, resultlen_sig, resultlen_exp, adim, bdim, resultdim, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&btmp, size);
 }
 
+// --- Private-private float arithmetic (core dispatch) ---
+
+// T***, T*** -> T*** (1D float, 1D float -> 1D float arithmetic)
 template <typename T>
 void ss_batch(T ***a, T ***b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T***, T**** -> T**** (1D float, 2D float -> 2D float)
 template <typename T>
 void ss_batch(T ***a, T ****b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T****, T*** -> T**** (2D float, 1D float -> 2D float)
 template <typename T>
 void ss_batch(T ****a, T ***b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T****, T**** -> T*** (2D float, 2D float -> 1D float)
 template <typename T>
 void ss_batch(T ****a, T ****b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T****, T*** -> T*** (2D float, 1D float -> 1D float)
 template <typename T>
 void ss_batch(T ****a, T ***b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T***, T**** -> T*** (1D float, 2D float -> 1D float)
 template <typename T>
 void ss_batch(T ***a, T ****b, T ***result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_1d(result, result_tmp, index_array, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T***, T*** -> T**** (1D float, 1D float -> 2D float)
 template <typename T>
 void ss_batch(T ***a, T ***b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// T****, T**** -> T**** (2D float, 2D float -> 2D float)
 template <typename T>
 void ss_batch(T ****a, T ****b, T ****result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp, ***result_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    ss_batch_BOP_float_arithmetic(result_tmp, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, size, op, type, threadID, net, ss);
+    rss_batch_float_writeback_2d(result, result_tmp, index_array, resultdim, size, numShares);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// --- Private-private float comparison ---
+
+// T****, T**** -> T** (2D float, 2D float -> comparison)
 template <typename T>
 void ss_batch(T ****a, T ****b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_batch_BOP_float_comparison(result, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
+// T***, T**** -> T** (1D float, 2D float -> comparison)
 template <typename T>
 void ss_batch(T ***a, T ****b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_batch_BOP_float_comparison(result, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
+// T****, T*** -> T** (2D float, 1D float -> comparison)
 template <typename T>
 void ss_batch(T ****a, T ***b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_batch_BOP_float_comparison(result, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
+// T***, T*** -> T** (1D float, 1D float -> comparison)
 template <typename T>
 void ss_batch(T ***a, T ***b, T **result, int alen_sig, int alen_exp, int blen_sig, int blen_exp, int resultlen_sig, int resultlen_exp, int adim, int bdim, int resultdim, T *out_cond, T **priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp, ***b_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&b_tmp, b, index_array, bdim, size, 2, numShares);
+    ss_batch_BOP_float_comparison(result, a_tmp, b_tmp, resultlen_sig, resultlen_exp, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, op, type, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&b_tmp, size);
 }
 
+// INT2FL: public int array -> 1D private float (T***)
+// Non-interactive: convert each public int to float components, apply priv_cond
 template <typename T>
 void ss_batch_int2fl(int *a, T ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+
+    // Allocate result_tmp[size][4][numShares]
+    T ***result_tmp = (T ***)malloc(sizeof(T **) * size);
+    for (int i = 0; i < size; i++) {
+        result_tmp[i] = (T **)malloc(sizeof(T *) * 4);
+        for (int j = 0; j < 4; j++) {
+            result_tmp[i][j] = (T *)malloc(sizeof(T) * numShares);
+            memset(result_tmp[i][j], 0, sizeof(T) * numShares);
+        }
+    }
+
+    // Convert each public int -> float components -> sparsify
+    for (int i = 0; i < size; i++) {
+        int idx = index_array[3 * i];
+        T components[4];
+        rss_convertFloat((float)a[idx], 32, 9, components);
+        for (int c = 0; c < 4; c++)
+            ss->sparsify_public(result_tmp[i][c], components[c]);
+    }
+
+    // Flatten for priv_cond handling
+    T **result_flat = (T **)malloc(sizeof(T *) * 4 * size);
+    T **result_org = (T **)malloc(sizeof(T *) * 4 * size);
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            result_flat[4 * i + j] = (T *)malloc(sizeof(T) * numShares);
+            result_org[4 * i + j] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++) {
+                result_flat[4 * i + j][s] = result_tmp[i][j][s];
+                result_org[4 * i + j][s] = result[index_array[3 * i + 2]][j][s];
+            }
+        }
+    }
+
+    ss_batch_handle_priv_cond(result_flat, result_org, out_cond, priv_cond, counter, 4 * size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[index_array[3 * i + 2]][j][s] = result_flat[4 * i + j][s];
+
+    ss_batch_free_operator(&result_flat, 4 * size);
+    ss_batch_free_operator(&result_org, 4 * size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// INT2FL: 1D private int (T**) -> 1D private float (T***)
 template <typename T>
 void ss_batch_int2fl(T **a, T ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+
+    // Extract indexed input elements
+    T **a_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+
+    // Allocate result_tmp[size][4][numShares]
+    T ***result_tmp = (T ***)malloc(sizeof(T **) * size);
+    for (int i = 0; i < size; i++) {
+        result_tmp[i] = (T **)malloc(sizeof(T *) * 4);
+        for (int j = 0; j < 4; j++) {
+            result_tmp[i][j] = (T *)malloc(sizeof(T) * numShares);
+            memset(result_tmp[i][j], 0, sizeof(T) * numShares);
+        }
+    }
+
+    // Create component-first view [4][size] aliasing into result_tmp[size][4]
+    T ***result_comp = (T ***)malloc(sizeof(T **) * 4);
+    for (int c = 0; c < 4; c++) {
+        result_comp[c] = (T **)malloc(sizeof(T *) * size);
+        for (int i = 0; i < size; i++)
+            result_comp[c][i] = result_tmp[i][c];
+    }
+
+    doOperation_Int2FL(a_tmp, result_comp, alen, resultlen_sig, size, threadID, net, ss);
+
+    for (int c = 0; c < 4; c++)
+        free(result_comp[c]);
+    free(result_comp);
+
+    // Flatten for priv_cond handling
+    T **result_flat = (T **)malloc(sizeof(T *) * 4 * size);
+    T **result_org = (T **)malloc(sizeof(T *) * 4 * size);
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 4; j++) {
+            result_flat[4 * i + j] = (T *)malloc(sizeof(T) * numShares);
+            result_org[4 * i + j] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++) {
+                result_flat[4 * i + j][s] = result_tmp[i][j][s];
+                result_org[4 * i + j][s] = result[index_array[3 * i + 2]][j][s];
+            }
+        }
+    }
+
+    ss_batch_handle_priv_cond(result_flat, result_org, out_cond, priv_cond, counter, 4 * size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[index_array[3 * i + 2]][j][s] = result_flat[4 * i + j][s];
+
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_flat, 4 * size);
+    ss_batch_free_operator(&result_org, 4 * size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// INT2FL: public int array -> 2D private float (T****)
 template <typename T>
 void ss_batch_int2fl(int *a, T ****result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    // Extract 1D float result_tmp from 2D result
+    T ***result_tmp;
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i + 2] = i;
+    }
+    // Delegate to 1D version
+    ss_batch_int2fl(a, result_tmp, adim, size, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    // Write back to 2D
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][j][s] = result_tmp[i][j][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// INT2FL: 1D private int (T**) -> 2D private float (T****)
 template <typename T>
 void ss_batch_int2fl(T **a, T ****result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***result_tmp;
+    T **a_tmp;
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i] = i;
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_int2fl(a_tmp, result_tmp, size, size, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][j][s] = result_tmp[i][j][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// INT2FL: 2D private int (T***) -> 1D private float (T***)
 template <typename T>
 void ss_batch_int2fl(T ***a, T ***result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    for (int i = 0; i < size; i++)
+        index_array[3 * i] = i;
+    ss_batch_int2fl(a_tmp, result, size, resultdim, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// INT2FL: 2D private int (T***) -> 2D private float (T****)
 template <typename T>
 void ss_batch_int2fl(T ***a, T ****result, int adim, int resultdim, int alen, int resultlen_sig, int resultlen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***result_tmp;
+    T **a_tmp;
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i] = i;
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_int2fl(a_tmp, result_tmp, size, size, alen, resultlen_sig, resultlen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (int j = 0; j < 4; j++)
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][j][s] = result_tmp[i][j][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// FL2INT: public float array -> 1D private int (T**)
+// Non-interactive: just truncate each float to int and sparsify
 template <typename T>
 void ss_batch_fl2int(float *a, T **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    for (int i = 0; i < size; i++) {
+        for (uint s = 0; s < numShares; s++)
+            result[index_array[3 * i + 2]][s] = 0;
+        ss->sparsify_public(result[index_array[3 * i + 2]], (T)((int)a[i]));
+    }
 }
 
+// FL2INT: public float array -> 2D private int (T***)
 template <typename T>
 void ss_batch_fl2int(float *a, T ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    for (int i = 0; i < size; i++) {
+        int dim1 = index_array[3 * i + 2] / resultdim;
+        int dim2 = index_array[3 * i + 2] % resultdim;
+        for (uint s = 0; s < numShares; s++)
+            result[dim1][dim2][s] = 0;
+        ss->sparsify_public(result[dim1][dim2], (T)((int)a[i]));
+    }
 }
 
+// FL2INT: 1D private float (T***) -> 1D private int (T**)
 template <typename T>
 void ss_batch_fl2int(T ***a, T **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+
+    T **result_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        result_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(result_tmp[i], 0, sizeof(T) * numShares);
+    }
+
+    // Create component-first view [4][size] aliasing into a_tmp[size][4]
+    T ***a_comp = (T ***)malloc(sizeof(T **) * 4);
+    for (int c = 0; c < 4; c++) {
+        a_comp[c] = (T **)malloc(sizeof(T *) * size);
+        for (int i = 0; i < size; i++)
+            a_comp[c][i] = a_tmp[i][c];
+    }
+
+    doOperation_FL2Int(a_comp, result_tmp, alen_sig, alen_exp, blen, size, threadID, net, ss);
+
+    for (int c = 0; c < 4; c++)
+        free(a_comp[c]);
+    free(a_comp);
+
+    // Handle private conditions
+    T **result_org = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        result_org[i] = (T *)malloc(sizeof(T) * numShares);
+        for (uint s = 0; s < numShares; s++)
+            result_org[i][s] = result[index_array[3 * i + 2]][s];
+    }
+    ss_batch_handle_priv_cond(result_tmp, result_org, out_cond, priv_cond, counter, size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++)
+        for (uint s = 0; s < numShares; s++)
+            result[index_array[3 * i + 2]][s] = result_tmp[i][s];
+
+    ss_batch_free_operator(&result_tmp, size);
+    ss_batch_free_operator(&result_org, size);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// FL2INT: 1D private float (T***) -> 2D private int (T***)
 template <typename T>
 void ss_batch_fl2int(T ***a, T ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **result_tmp;
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_fl2int(a, result_tmp, adim, size, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (uint s = 0; s < numShares; s++)
+            result[dim1][dim2][s] = result_tmp[i][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// FL2INT: 2D private float (T****) -> 1D private int (T**)
 template <typename T>
 void ss_batch_fl2int(T ****a, T **result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    for (int i = 0; i < size; i++)
+        index_array[3 * i] = i;
+    ss_batch_fl2int(a_tmp, result, size, resultdim, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// FL2INT: 2D private float (T****) -> 2D private int (T***)
 template <typename T>
 void ss_batch_fl2int(T ****a, T ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp;
+    T **result_tmp;
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i] = i;
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_fl2int(a_tmp, result_tmp, size, size, alen_sig, alen_exp, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (uint s = 0; s < numShares; s++)
+            result[dim1][dim2][s] = result_tmp[i][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// INT2INT: public int array -> 1D private int (T**)
+// Convert public ints to shares, then delegate
 template <typename T>
 void ss_batch_int2int(int *a, T **result, int adim, int resultdim, int alen, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], (T)a[i]);
+    }
+    ss_batch_int2int(a_tmp, result, size, resultdim, 32, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// INT2INT: public int array -> 2D private int (T***)
 template <typename T>
 void ss_batch_int2int(int *a, T ***result, int adim, int resultdim, int alen, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        a_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        memset(a_tmp[i], 0, sizeof(T) * numShares);
+        ss->sparsify_public(a_tmp[i], (T)a[i]);
+    }
+    ss_batch_int2int(a_tmp, result, size, resultdim, 32, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// INT2INT: 1D private int (T**) -> 1D private int (T**)
+// Core: copy indexed elements with priv_cond handling
 template <typename T>
 void ss_batch_int2int(T **a, T **result, int adim, int resultdim, int alen, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **result_tmp = (T **)malloc(sizeof(T *) * size);
+    T **result_org = (T **)malloc(sizeof(T *) * size);
+    for (int i = 0; i < size; i++) {
+        result_tmp[i] = (T *)malloc(sizeof(T) * numShares);
+        result_org[i] = (T *)malloc(sizeof(T) * numShares);
+        for (uint s = 0; s < numShares; s++) {
+            result_tmp[i][s] = a[index_array[3 * i]][s];
+            result_org[i][s] = result[index_array[3 * i + 2]][s];
+        }
+    }
+    ss_batch_handle_priv_cond(result_tmp, result_org, out_cond, priv_cond, counter, size, threadID, net, ss);
+    for (int i = 0; i < size; i++)
+        for (uint s = 0; s < numShares; s++)
+            result[index_array[3 * i + 2]][s] = result_tmp[i][s];
+    ss_batch_free_operator(&result_tmp, size);
+    ss_batch_free_operator(&result_org, size);
 }
 
+// INT2INT: 2D private int (T***) -> 1D private int (T**)
 template <typename T>
 void ss_batch_int2int(T ***a, T **result, int adim, int resultdim, int alen, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **a_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    for (int i = 0; i < size; i++)
+        index_array[3 * i] = i;
+    ss_batch_int2int(a_tmp, result, size, resultdim, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// INT2INT: 1D private int (T**) -> 2D private int (T***)
 template <typename T>
 void ss_batch_int2int(T **a, T ***result, int adim, int resultdim, int alen, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **result_tmp;
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_int2int(a, result_tmp, adim, size, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (uint s = 0; s < numShares; s++)
+            result[dim1][dim2][s] = result_tmp[i][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// INT2INT: 2D private int (T***) -> 2D private int (T***)
 template <typename T>
 void ss_batch_int2int(T ***a, T ***result, int adim, int resultdim, int alen, int blen, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T **result_tmp, **a_tmp;
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i] = i;
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_int2int(a_tmp, result_tmp, size, size, alen, blen, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (uint s = 0; s < numShares; s++)
+            result[dim1][dim2][s] = result_tmp[i][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// FL2FL: public float array -> 1D private float (T***)
+// Convert public floats to private, then delegate
 template <typename T>
 void ss_batch_fl2fl(float *a, T ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***a_tmp;
+    ss_batch_convert_to_private_float(a, &a_tmp, 32, 9, size, ss);
+    ss_batch_fl2fl(a_tmp, result, size, resultdim, 32, 9, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// FL2FL: public float array -> 2D private float (T****)
 template <typename T>
 void ss_batch_fl2fl(float *a, T ****result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    T ***a_tmp;
+    ss_batch_convert_to_private_float(a, &a_tmp, 32, 9, size, ss);
+    ss_batch_fl2fl(a_tmp, result, size, resultdim, 32, 9, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// FL2FL: 1D private float (T***) -> 1D private float (T***)
+// Core: truncate/extend significand, adjust exponent, copy z and s
 template <typename T>
 void ss_batch_fl2fl(T ***a, T ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+
+    // Extract a[index][component][share] -> component-major a_comp[4][size][numShares]
+    T **a_comp[4];
+    T **result_comp[4];
+    for (int c = 0; c < 4; c++) {
+        a_comp[c] = (T **)malloc(sizeof(T *) * size);
+        result_comp[c] = (T **)malloc(sizeof(T *) * size);
+        for (int i = 0; i < size; i++) {
+            a_comp[c][i] = (T *)malloc(sizeof(T) * numShares);
+            result_comp[c][i] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++) {
+                a_comp[c][i][s] = a[index_array[3 * i]][c][s];
+                result_comp[c][i][s] = 0;
+            }
+        }
+    }
+
+    // Significand: truncate or extend
+    if (alen_sig >= blen_sig)
+        doOperation_Trunc(result_comp[0], a_comp[0], alen_sig, alen_sig - blen_sig, size, threadID, net, ss);
+    else {
+        // Extend: multiply by 2^(blen_sig - alen_sig)
+        T power = T(1) << (blen_sig - alen_sig);
+        for (int i = 0; i < size; i++)
+            for (uint s = 0; s < numShares; s++)
+                result_comp[0][i][s] = a_comp[0][i][s] * power;
+    }
+
+    // Exponent: add (alen_sig - blen_sig) to adjust for significand change
+    ss->modAdd(result_comp[1], a_comp[1], (long)(alen_sig - blen_sig), size);
+
+    // z and s: copy directly
+    for (int i = 0; i < size; i++)
+        for (uint s = 0; s < numShares; s++) {
+            result_comp[2][i][s] = a_comp[2][i][s];
+            result_comp[3][i][s] = a_comp[3][i][s];
+        }
+
+    // Flatten for priv_cond handling
+    T **result_flat = (T **)malloc(sizeof(T *) * 4 * size);
+    T **result_org = (T **)malloc(sizeof(T *) * 4 * size);
+    for (int i = 0; i < size; i++) {
+        for (int c = 0; c < 4; c++) {
+            result_flat[4 * i + c] = (T *)malloc(sizeof(T) * numShares);
+            result_org[4 * i + c] = (T *)malloc(sizeof(T) * numShares);
+            for (uint s = 0; s < numShares; s++) {
+                result_flat[4 * i + c][s] = result_comp[c][i][s];
+                result_org[4 * i + c][s] = result[index_array[3 * i + 2]][c][s];
+            }
+        }
+    }
+
+    ss_batch_handle_priv_cond(result_flat, result_org, out_cond, priv_cond, counter, 4 * size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++)
+        for (int c = 0; c < 4; c++)
+            for (uint s = 0; s < numShares; s++)
+                result[index_array[3 * i + 2]][c][s] = result_flat[4 * i + c][s];
+
+    // Free memory
+    for (int c = 0; c < 4; c++) {
+        ss_batch_free_operator(&a_comp[c], size);
+        ss_batch_free_operator(&result_comp[c], size);
+    }
+    ss_batch_free_operator(&result_flat, 4 * size);
+    ss_batch_free_operator(&result_org, 4 * size);
 }
 
+// FL2FL: 1D private float (T***) -> 2D private float (T****)
 template <typename T>
 void ss_batch_fl2fl(T ***a, T ****result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***result_tmp;
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_fl2fl(a, result_tmp, adim, size, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (int c = 0; c < 4; c++)
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][c][s] = result_tmp[i][c][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
+// FL2FL: 2D private float (T****) -> 1D private float (T***)
 template <typename T>
 void ss_batch_fl2fl(T ****a, T ***result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***a_tmp;
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    for (int i = 0; i < size; i++)
+        index_array[3 * i] = i;
+    ss_batch_fl2fl(a_tmp, result, size, resultdim, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+    ss_batch_free_operator(&a_tmp, size);
 }
 
+// FL2FL: 2D private float (T****) -> 2D private float (T****)
 template <typename T>
 void ss_batch_fl2fl(T ****a, T ****result, int adim, int resultdim, int alen_sig, int alen_exp, int blen_sig, int blen_exp, T *out_cond, T **priv_cond, int counter, int *index_array, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    return;
+    uint numShares = ss->getNumShares();
+    T ***result_tmp, ***a_tmp;
+    int *result_index_array = (int *)malloc(sizeof(int) * size);
+    ss_convert_operator(&a_tmp, a, index_array, adim, size, 1, numShares);
+    ss_convert_operator(&result_tmp, result, index_array, resultdim, size, 3, numShares);
+
+    for (int i = 0; i < size; i++) {
+        result_index_array[i] = index_array[3 * i + 2];
+        index_array[3 * i] = i;
+        index_array[3 * i + 2] = i;
+    }
+    ss_batch_fl2fl(a_tmp, result_tmp, size, size, alen_sig, alen_exp, blen_sig, blen_exp, out_cond, priv_cond, counter, index_array, size, threadID, net, ss);
+
+    for (int i = 0; i < size; i++) {
+        int dim1 = result_index_array[i] / resultdim;
+        int dim2 = result_index_array[i] % resultdim;
+        for (int c = 0; c < 4; c++)
+            for (uint s = 0; s < numShares; s++)
+                result[dim1][dim2][c][s] = result_tmp[i][c][s];
+    }
+    free(result_index_array);
+    ss_batch_free_operator(&a_tmp, size);
+    ss_batch_free_operator(&result_tmp, size);
 }
 
-// Stub implementations for batch operations not yet supported in RSS
+// IntDiv_Pub overload for T** divisor (b holds raw public values at index 0)
+// Called from ss_batch_BOP_int as: doOperation_IntDiv_Pub(result, a, b, resultlen, size, threadID, net, ss)
+// The raw int values are stored at b[i][0] by the batch overload (same convention as shifts)
 template <typename T>
-void doOperation_IntDiv_Pub(T **a, T **b, T **result, int alen, int blen, int resultlen, NodeNetwork net, replicatedSecretShare<T> *ss) {
-    std::cout << "[RSS] doOperation_IntDiv_Pub not yet implemented\n";
+void doOperation_IntDiv_Pub(T **result, T **a, T **b, int bitlength, int size, int threadID, NodeNetwork net, replicatedSecretShare<T> *ss) {
+    int *b_int = new int[size];
+    for (int i = 0; i < size; i++)
+        b_int[i] = (int)b[i][0];
+    doOperation_IntDiv_Pub(result, a, b_int, bitlength, size, threadID, net, ss);
+    delete[] b_int;
 }
 
 // Right shift: result = a >> b (division by 2^b)

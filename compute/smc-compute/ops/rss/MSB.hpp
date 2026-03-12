@@ -87,10 +87,6 @@ void Rss_MSB(T **res, T **a, uint size, uint ring_size, NodeNetwork nodeNet, rep
         c[i] = c[i] & ss->SHIFT[ring_size - 1];
     }
 
-    // Rss_Open_Bitwise(r_2_open, edaBit_b_2, size, ring_size, nodeNet, ss);
-    // // this part is still correct
-    // however, the edaBit_b_2 shares do get modified
-    // which may not be desierable
     Rss_BitLT(u_2, c, edaBit_b_2, size, ring_size, nodeNet, ss);
 
     for (i = 0; i < size; ++i) {
@@ -191,10 +187,6 @@ void Rss_lth_bit(T **res, T **a, uint bitlength, uint size, uint ring_size, Node
         c[i] = c[i] & ss->SHIFT[ring_size - 1];
     }
 
-    // Rss_Open_Bitwise(r_2_open, edaBit_b_2, size, ring_size, nodeNet, ss);
-    // // this part is still correct
-    // however, the edaBit_b_2 shares do get modified
-    // which may not be desierable
     Rss_BitLT(u_2, c, edaBit_b_2_interface, size, ring_size, nodeNet, ss);
 
     for (i = 0; i < size; ++i) {

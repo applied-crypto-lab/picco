@@ -440,8 +440,14 @@ std::vector<long long> RSS<T>::reconstructSecret(std::vector<std::vector<std::st
             accumulator += s;
         }
         accumulator = accumulator & SHIFT; // masking
-        // **** ANB: what is the protocol if the result is negative?
-        result.push_back((long long)(accumulator));
+        // Signed interpretation: values >= 2^(ring_size-1) are negative in 2's complement
+        T half = T(1) << (ring_size - 1);
+        if (accumulator >= half) {
+            // accumulator - 2^ring_size = accumulator - (SHIFT + 1)
+            result.push_back((long long)(accumulator) - (long long)(SHIFT) - 1LL);
+        } else {
+            result.push_back((long long)(accumulator));
+        }
     }
     return result;
 }

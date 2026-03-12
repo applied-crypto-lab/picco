@@ -191,32 +191,4 @@ void ss_batch(PRIV_TYPE *a, PRIV_TYPE *b, PRIV_TYPE *result, COND_TYPE out_cond,
     }
 }
 
-// Overload for PRIV_TYPE*, int*, PRIV_TYPE* (secret op public = secret)
-template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
-void ss_batch(PRIV_TYPE *a, int *b, PRIV_TYPE *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork &net, SS_TYPE *ss) {
-    // Not yet fully implemented for scalar operations
-    std::cout << "[Batch] PRIV_TYPE*, int*, PRIV_TYPE* operations not yet implemented\n";
-}
-
-// Overload for int*, PRIV_TYPE*, PRIV_TYPE* (public op secret = secret)
-template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
-void ss_batch(int *a, PRIV_TYPE *b, PRIV_TYPE *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork &net, SS_TYPE *ss) {
-    // Not yet fully implemented for scalar operations
-    std::cout << "[Batch] int*, PRIV_TYPE*, PRIV_TYPE* operations not yet implemented\n";
-}
-
-// Overload for int*, int*, PRIV_TYPE* (public op public = secret assignment)
-template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
-void ss_batch(int *a, int *b, PRIV_TYPE *result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork &net, SS_TYPE *ss) {
-    // Not yet fully implemented for scalar operations
-    std::cout << "[Batch] int*, int*, PRIV_TYPE* operations not yet implemented\n";
-}
-
-// Overload for 2D arrays (used by float operations)
-template <typename PRIV_TYPE, typename COND_TYPE, typename SS_TYPE>
-void ss_batch(PRIV_TYPE **a, PRIV_TYPE **b, PRIV_TYPE **result, int alen, int blen, int resultlen, int adim, int bdim, int resultdim, int dim1_len, int dim2_len, int dim3_len, COND_TYPE out_cond, PRIV_TYPE *priv_cond, int counter, int *index_array, int size, std::string op, std::string type, int threadID, NodeNetwork &net, SS_TYPE *ss) {
-    // For float arrays - stub for now
-    std::cout << "[Batch] PRIV_TYPE** batch operations (2D arrays) not yet fully implemented\n";
-}
-
 #endif // _BATCH_HPP_

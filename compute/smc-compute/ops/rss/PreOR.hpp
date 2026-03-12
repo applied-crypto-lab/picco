@@ -130,7 +130,6 @@ void Rss_PreOR(  T **result, T **input, uint size, uint ring_size, NodeNetwork n
                     }
                 }
             }
-            // break;
             // bitwise multiplication
             Mult_Byte(u, a, b, num, nodeNet, ss);
 

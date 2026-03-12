@@ -85,8 +85,6 @@ void doOperation_FLAdd(T ***a, T ***b, T ***result, int K, int L, int size, int 
    T **mult_buffer2 = new T *[7 * size];
    T **mult_result = new T *[7 * size];
 
-   T **tmp = new T *[size];
-
    // Memory allocation in interface format [size][numShares]
    for (int i = 0; i < size; i++) {
       cLT[i] = new T[numShares];
@@ -167,8 +165,6 @@ void doOperation_FLAdd(T ***a, T ***b, T ***result, int K, int L, int size, int 
       d_two_qp1_delta[i] = new T[numShares];
       memset(d_two_qp1_delta[i], 0, sizeof(T) * numShares);
 
-      tmp[i] = new T[numShares];
-      memset(tmp[i], 0, sizeof(T) * numShares);
    }
 
    // Mult buffers in [7*size][numShares] format
@@ -576,7 +572,6 @@ void doOperation_FLAdd(T ***a, T ***b, T ***result, int K, int L, int size, int 
       delete[] two_e0_m[i];
       delete[] e_bit[i];
       delete[] k1[i];
-      delete[] tmp[i];
    }
    delete[] cLT;
    delete[] cEQ;
@@ -612,7 +607,6 @@ void doOperation_FLAdd(T ***a, T ***b, T ***result, int K, int L, int size, int 
    delete[] two_e0_m;
    delete[] e_bit;
    delete[] k1;
-   delete[] tmp;
 
    for (int i = 0; i < 7 * size; i++) {
       delete[] mult_buffer1[i];

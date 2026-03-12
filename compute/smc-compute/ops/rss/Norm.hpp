@@ -34,20 +34,9 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
 
     uint numShares = ss->getNumShares();
 
-    T **b_bits = new T *[size];
-    for (size_t i = 0; i < (size_t)size; i++) {
-        b_bits[i] = new T[numShares];
-        memset(b_bits[i], 0, sizeof(T) * numShares);
-    }
-
-    T **b_msb = new T *[size];
-    T **x = new T *[size];
     T **x_bits = new T *[size];
     T **prod = new T *[size];
     for (size_t i = 0; i < (size_t)size; i++) {
-        b_msb[i] = new T[numShares];
-        x[i] = new T[numShares];
-
         x_bits[i] = new T[numShares];
         memset(x_bits[i], 0, sizeof(T) * numShares);
 
@@ -120,19 +109,13 @@ void doOperation_Norm(T **c, T **v, T **b, int bitlength, int size, uint ring_si
 
     delete[] ai;
     for (size_t i = 0; i < (size_t)size; i++) {
-        delete[] b_bits[i];
         delete[] prod[i];
-        delete[] x[i];
         delete[] x_bits[i];
-        delete[] b_msb[i];
     }
     for (size_t i = 0; i < (size_t)(size * bitlength); i++) {
         delete[] z[i];
         delete[] z_res[i];
     }
-    delete[] b_bits;
-    delete[] b_msb;
-    delete[] x;
     delete[] prod;
     delete[] x_bits;
     delete[] z;

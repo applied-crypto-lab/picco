@@ -52,7 +52,6 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     T **b_2 = new T *[size];
     T **u_2 = new T *[size];
     T **v_2 = new T *[size];
-    T **w = new T *[size];
     T **b2a_buff = new T *[4 * size];
 
     T *c = new T[size];
@@ -81,8 +80,6 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
         memset(u_2[i], 0, sizeof(T) * numShares);
         v_2[i] = new T[numShares];
         memset(v_2[i], 0, sizeof(T) * numShares);
-        w[i] = new T[numShares];
-        memset(w[i], 0, sizeof(T) * numShares);
     }
     for (int i = 0; i < 4 * size; i++) {
         b2a_buff[i] = new T[numShares];
@@ -176,7 +173,6 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
         delete[] b_2[i];
         delete[] u_2[i];
         delete[] v_2[i];
-        delete[] w[i];
     }
     for (int i = 0; i < 4 * size; i++) {
         delete[] b2a_buff[i];
@@ -184,7 +180,6 @@ void doOperation_Trunc_RNTE(T **result, T **result_prime, T **input, int K, int 
     delete[] b2a_buff;
     delete[] u_2;
     delete[] v_2;
-    delete[] w;
     delete[] edaBit_r;
     delete[] b;
     delete[] sum;
