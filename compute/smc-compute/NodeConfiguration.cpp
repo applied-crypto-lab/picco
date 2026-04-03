@@ -140,9 +140,17 @@ void NodeConfiguration::loadConfig(std::string configFile) {
         }
         free(tok);
 
+        // Deployment/testing mode needs 4 tokens (id,host,port,pubkey)
+        // Measurement mode only needs 3 tokens (id,host,port) since keys are not used
+#if __DEPLOYMENT__
         if (tokens.size() != 4) {
-            throw std::runtime_error("Malformed line in runtime-config file: " + line + " exiting...");
+            throw std::runtime_error("Malformed line in runtime-config file: " + line + " (expected: id,host,port,pubkey) exiting...");
         }
+#else
+        if (tokens.size() != 3 && tokens.size() != 4) {
+            throw std::runtime_error("Malformed line in runtime-config file: " + line + " (expected: id,host,port[,pubkey]) exiting...");
+        }
+#endif
 
         // Check for empty tokens
         for (const auto &t : tokens) {
@@ -163,12 +171,9 @@ void NodeConfiguration::loadConfig(std::string configFile) {
 
         // Validate port number (should be an integer)
         if (!std::regex_match(tokens[2], std::regex(R"(\d+)"))) {
-            throw std::runtime_error("Invalid port number in runtime-config file: " + line + " exiting...");
-        }
-
-        // Ensure public key is provided
-        if (tokens[3].empty()) {
-            throw std::runtime_error("Missing public key in runtime-config file: " + line + " exiting...");
+            throw std::runtime_error("Invalid port number '" + tokens[2] + "' in runtime-config file.\n"
+                "Expected format: id,host,port,pubkey (for -t/-d) or id,host,port (for -m)\n"
+                "Line: " + line);
         }
 
         // Validate ID sequence

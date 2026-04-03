@@ -595,6 +595,8 @@ public:
 
     // For batch operations: copy priv_int shares (available for both Shamir and RSS)
     void smc_set_ptr(priv_int dest, priv_int src, std::string type, int threadID);
+    // For batch operations on floats: copy all 4 float components (v, p, z, s)
+    void smc_set_ptr(priv_int *dest, priv_int *src, std::string type, int threadID);
 
     /************************************************/
     // private float = private int

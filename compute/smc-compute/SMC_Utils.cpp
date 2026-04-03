@@ -2593,6 +2593,20 @@ void SMC_Utils::smc_set_ptr(priv_int dest, priv_int src, std::string type, int t
 #endif
 }
 
+// For batch operations on floats: copy all 4 float components (v, p, z, s)
+void SMC_Utils::smc_set_ptr(priv_int *dest, priv_int *src, std::string type, int threadID) {
+    for (int i = 0; i < 4; i++) {
+#if __RSS__
+        uint nShares = ss->getNumShares();
+        for (uint j = 0; j < nShares; j++) {
+            dest[i][j] = src[i][j];
+        }
+#else
+        mpz_set(dest[i], src[i]);
+#endif
+    }
+}
+
 // private float = private int
 void SMC_Utils::smc_int2fl(priv_int value, priv_int *result, int gamma, int K, int L, int threadID) {
     ss_int2fl(value, result, gamma, K, L, threadID, net, ss);
