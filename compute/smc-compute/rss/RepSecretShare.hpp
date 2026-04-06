@@ -877,68 +877,67 @@ void replicatedSecretShare<T>::ss_input(int id, float *var, int size, std::strin
 }
 
 // input randomly generated private int
+// Measurement mode: randomly generated single private int
+// Layout: var[share] = [numShares]
 template <typename T>
 void replicatedSecretShare<T>::ss_input(T *var, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
     uint8_t *buffer = new uint8_t[bytes * numShares];
     prg_getrandom(bytes, numShares, buffer);
-    memcpy(var, buffer, bytes * numShares); // check
+    memcpy(var, buffer, bytes * numShares);
+    delete[] buffer;
 }
 
-// input randomly generated private float
+// Measurement mode: randomly generated single private float
+// Layout: var[component][share] = [4][numShares]
 template <typename T>
 void replicatedSecretShare<T>::ss_input(T **var, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
-    uint8_t *buffer = new uint8_t[bytes * 4 * numShares];
-    prg_getrandom(bytes, 4 * numShares, buffer);
-    for (uint i = 0; i < numShares; i++)
-        memcpy(var[i], buffer + i * 4 * bytes, 4 * bytes); // check
-
-    // this memcpy cant be done in a single line, i..e
-    // memcpy(var, buffer, bytes*numShares);
-    // reason: each "row" of var is contiguous, but the ENTIRE 2D array is NOT CONTIGUOUS
+    uint8_t *buffer = new uint8_t[bytes * numShares];
+    for (uint c = 0; c < 4; c++) {
+        prg_getrandom(bytes, numShares, buffer);
+        memcpy(var[c], buffer, bytes * numShares);
+    }
+    delete[] buffer;
 }
 
-// input randomly generated private int arr
+// Measurement mode: randomly generated private int array
+// Layout: var[element][share] = [size][numShares]
 template <typename T>
 void replicatedSecretShare<T>::ss_input(T **var, int size, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
-    uint8_t *buffer = new uint8_t[bytes * size * numShares];
-    prg_getrandom(bytes, size * numShares, buffer);
-    for (uint i = 0; i < numShares; i++)
-        memcpy(var[i], buffer + i * size * bytes, size * bytes); // check
+    uint8_t *buffer = new uint8_t[bytes * numShares];
+    for (int i = 0; i < size; i++) {
+        prg_getrandom(bytes, numShares, buffer);
+        memcpy(var[i], buffer, bytes * numShares);
+    }
+    delete[] buffer;
 }
 
-// input randomly generated private float arr
+// Measurement mode: randomly generated private float array
 // Layout: var[element][component][share] = [size][4][numShares]
 template <typename T>
 void replicatedSecretShare<T>::ss_input(T ***var, uint size, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
-    uint8_t *buffer = new uint8_t[bytes * size * 4 * numShares];
-    prg_getrandom(bytes, size * 4 * numShares, buffer);
-    uint offset = 0;
-    for (uint s = 0; s < numShares; s++)
-        for (uint i = 0; i < size; i++)
-            for (uint c = 0; c < 4; c++) {
-                memcpy(&var[i][c][s], buffer + offset, bytes);
-                offset += bytes;
-            }
+    uint8_t *buffer = new uint8_t[bytes * numShares];
+    for (uint i = 0; i < size; i++)
+        for (uint c = 0; c < 4; c++) {
+            prg_getrandom(bytes, numShares, buffer);
+            memcpy(var[i][c], buffer, bytes * numShares);
+        }
     delete[] buffer;
 }
 
-// input randomly generated single private float
+// Measurement mode: randomly generated single private float (pointer version)
 // Layout: (*var)[component][share] = [4][numShares]
 template <typename T>
 void replicatedSecretShare<T>::ss_input(T ***var, std::string type) {
     uint bytes = (ring_size + 7) >> 3;
-    uint8_t *buffer = new uint8_t[bytes * 4 * numShares];
-    prg_getrandom(bytes, 4 * numShares, buffer);
-    uint offset = 0;
-    for (uint s = 0; s < numShares; s++)
-        for (uint c = 0; c < 4; c++) {
-            memcpy(&(*var)[c][s], buffer + offset, bytes);
-            offset += bytes;
-        }
+    uint8_t *buffer = new uint8_t[bytes * numShares];
+    for (uint c = 0; c < 4; c++) {
+        prg_getrandom(bytes, numShares, buffer);
+        memcpy((*var)[c], buffer, bytes * numShares);
+    }
     delete[] buffer;
 }
 
