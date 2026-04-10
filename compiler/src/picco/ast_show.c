@@ -23,6 +23,7 @@
 /* ast_show.c -- prints out the tree; makes it look good, too. */
 
 #include "ast_show.h"
+#include "ast_copy.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,7 +233,389 @@ void ast_stmt_jump_show(aststmt tree, branchnode current) {
     fprintf(output, "\n");
 }
 
+/* --- Batch multi-op pre-decomposition ---
+ * These functions transform multi-operation batch expressions into sequences
+ * of simple single-BOP statements BEFORE the 3-phase batch pipeline runs.
+ *
+ * For example: E[i] = A[i]*B[i] + C[i]*D[i]
+ * becomes:     _picco_decomp_tmp1[i] = A[i] * B[i]
+ *              _picco_decomp_tmp2[i] = C[i] * D[i]
+ *              E[i] = _picco_decomp_tmp1[i] + _picco_decomp_tmp2[i]
+ *
+ * Each simple statement then generates its own smc_batch call.
+ */
+
+static int decomp_tmp_counter = 0; /* global counter for decomp temp array names */
+static int decomp_tmp_ftype[100];  /* ftype for each decomp temp (0=int, 1=float) */
+static int decomp_tmp_flag[100];   /* flag for each decomp temp (PRI/PUB) */
+static int decomp_tmp_size[100];   /* size for each decomp temp */
+static int decomp_tmp_sizeexp[100]; /* sizeexp for each decomp temp */
+
+/* Check if an expression tree contains any private variable.
+ * Returns 1 if any leaf node has flag == PRI, 0 otherwise. */
+static int has_private_operand(astexpr tree) {
+    if (tree == NULL) return 0;
+    if (tree->flag == PRI) return 1;
+    return has_private_operand(tree->left) || has_private_operand(tree->right);
+}
+
+/* Count private BOP operations in an expression tree.
+ * A BOP is "private" if it has at least one private operand (leaf-level check).
+ * Returns the count of private BOPs. */
+static int count_private_bops(astexpr tree) {
+    if (tree == NULL) return 0;
+    switch (tree->type) {
+    case BOP: {
+        int lpriv = has_private_operand(tree->left);
+        int rpriv = has_private_operand(tree->right);
+        if (lpriv || rpriv) {
+            return 1 + count_private_bops(tree->left) + count_private_bops(tree->right);
+        } else {
+            return 0;
+        }
+    }
+    case UOP:
+        return count_private_bops(tree->left);
+    case ASS:
+        return count_private_bops(tree->right);
+    case CASTEXPR:
+        return count_private_bops(tree->left);
+    default:
+        return 0;
+    }
+}
+
+/* Get the loop variable expression from a BATCH node's init.
+ * For `for(i = 0; ...)`, returns the `i` expression node.
+ * Returns NULL if the loop var can't be determined.
+ */
+static astexpr get_batch_loop_var(aststmt batch_tree) {
+    if (!batch_tree || batch_tree->type != BATCH) return NULL;
+    aststmt init = batch_tree->u.iteration.init;
+    if (init && init->type == EXPRESSION && init->u.expr &&
+        init->u.expr->type == ASS) {
+        return init->u.expr->left; /* the `i` in `i = 0` */
+    }
+    return NULL;
+}
+
+/* Create an ARRAYIDX node: tmp_name[loop_var]
+ * This looks like a regular array access to the batch pipeline.
+ */
+static astexpr make_decomp_arrayidx(const char *tmp_name, astexpr loop_var,
+                                     int flag, int ftype, int size, int sizeexp) {
+    astexpr ident = Identifier(Symbol(strdup(tmp_name)));
+    ident->flag = flag;
+    ident->ftype = ftype;
+    ident->size = size;
+    ident->sizeexp = sizeexp;
+    ident->arraytype = 1;
+
+    astexpr idx = ast_expr_copy(loop_var); /* copy the loop variable expr */
+
+    astexpr arr = ArrayIndex(ident, idx);
+    arr->flag = flag;
+    arr->ftype = ftype;
+    arr->size = size;
+    arr->sizeexp = sizeexp;
+    arr->arraytype = 1;
+
+    return arr;
+}
+
+/* Recursively decompose nested BOPs in a batch expression (post-order).
+ * For each BOP node, creates a temp array and a simple assignment statement.
+ * Replaces the BOP with an ARRAYIDX reference to the temp array.
+ *
+ * stmt_list: built-up list of decomposed statements
+ * expr: the expression node (mutated in-place)
+ * loop_var: the batch loop variable (e.g., `i`)
+ */
+/* Unwrap UOP_paren nodes to get to the inner expression */
+static astexpr unwrap_paren(astexpr e) {
+    while (e && e->type == UOP && e->opid == UOP_paren)
+        e = e->left;
+    return e;
+}
+
+static void decompose_bop_recursive(aststmt *stmt_list, astexpr expr, astexpr loop_var) {
+    if (!expr) return;
+    /* Unwrap parentheses: recurse into UOP_paren, then propagate replacement up */
+    if (expr->type == UOP && expr->opid == UOP_paren) {
+        decompose_bop_recursive(stmt_list, expr->left, loop_var);
+        /* If the inner expression was replaced with ARRAYIDX, propagate to this node */
+        if (expr->left && expr->left->type == ARRAYIDX) {
+            astexpr inner = expr->left;
+            expr->type = inner->type;
+            expr->opid = inner->opid;
+            expr->left = inner->left;
+            expr->right = inner->right;
+            expr->u = inner->u;
+            expr->flag = inner->flag;
+            expr->ftype = inner->ftype;
+            expr->size = inner->size;
+            expr->sizeexp = inner->sizeexp;
+            expr->arraytype = inner->arraytype;
+        }
+        return;
+    }
+    if (expr->type != BOP) return;
+    /* Skip pure public BOPs — no private operands means no batch needed */
+    if (!has_private_operand(expr)) return;
+
+    /* post-order: process children first */
+    if (expr->left) {
+        astexpr inner_left = unwrap_paren(expr->left);
+        if (inner_left && inner_left->type == BOP)
+            decompose_bop_recursive(stmt_list, inner_left, loop_var);
+    }
+    if (expr->right) {
+        astexpr inner_right = unwrap_paren(expr->right);
+        if (inner_right && inner_right->type == BOP)
+            decompose_bop_recursive(stmt_list, inner_right, loop_var);
+    }
+
+    /* Now this BOP's children are simple (ARRAYIDX or leaf nodes).
+     * Create a temp array and statement for this operation. */
+
+    decomp_tmp_counter++;
+    char tmp_name[80];
+    snprintf(tmp_name, sizeof(tmp_name), "_picco_decomp_tmp%d", decomp_tmp_counter);
+
+    /* Track metadata for later declaration */
+    decomp_tmp_ftype[decomp_tmp_counter] = expr->ftype;
+    decomp_tmp_flag[decomp_tmp_counter] = expr->flag;
+    decomp_tmp_size[decomp_tmp_counter] = expr->size;
+    decomp_tmp_sizeexp[decomp_tmp_counter] = expr->sizeexp;
+
+    /* Create: tmp[i] = left OP right */
+    astexpr bin = BinaryOperator(expr->opid, expr->left, expr->right);
+    bin->flag = expr->flag;
+    bin->ftype = expr->ftype;
+    bin->size = expr->size;
+    bin->sizeexp = expr->sizeexp;
+
+    astexpr lhs = make_decomp_arrayidx(tmp_name, loop_var,
+                                        expr->flag, expr->ftype, expr->size, expr->sizeexp);
+
+    astexpr assign = Assignment(lhs, ASS_eq, bin);
+    assign->flag = expr->flag;
+    assign->ftype = expr->ftype;
+    assign->size = expr->size;
+    assign->sizeexp = expr->sizeexp;
+    assign->thread_id = expr->thread_id;
+
+    aststmt new_stmt = Expression(assign);
+
+    /* Append to the statement list */
+    if (*stmt_list == NULL)
+        *stmt_list = new_stmt;
+    else
+        *stmt_list = BlockList(*stmt_list, new_stmt);
+
+    /* Replace this BOP node in-place with an ARRAYIDX ref: tmp[i] */
+    astexpr temp_ref = make_decomp_arrayidx(tmp_name, loop_var,
+                                             expr->flag, expr->ftype, expr->size, expr->sizeexp);
+
+    expr->type = temp_ref->type;
+    expr->opid = temp_ref->opid;
+    expr->left = temp_ref->left;
+    expr->right = temp_ref->right;
+    expr->u = temp_ref->u;
+    expr->arraytype = temp_ref->arraytype;
+    /* flag, ftype, size, sizeexp already match */
+}
+
+/* Walk the batch body and decompose multi-op expressions.
+ * For each EXPRESSION/ASS statement with >1 private BOP on the RHS,
+ * decompose into multiple simple statements and splice them in.
+ */
+static void preprocess_batch_multi_op(aststmt tree, aststmt batch_tree) {
+    if (!tree) return;
+    switch (tree->type) {
+    case COMPOUND:
+        preprocess_batch_multi_op(tree->body, batch_tree);
+        break;
+    case STATEMENTLIST:
+        preprocess_batch_multi_op(tree->u.next, batch_tree);
+        preprocess_batch_multi_op(tree->body, batch_tree);
+        break;
+    case BATCH:
+        preprocess_batch_multi_op(tree->body, tree);
+        break;
+    case ITERATION:
+        preprocess_batch_multi_op(tree->body, batch_tree);
+        break;
+    case SELECTION:
+        if (tree->u.selection.cond->flag == PRI) {
+            /* Private conditional — decomposed intermediates must go OUTSIDE
+             * the selection so they execute unconditionally. Only the final
+             * simple assignment stays inside the conditional.
+             *
+             * Strategy: decompose multi-op expressions in body/elsebody,
+             * collect the intermediate statements, and wrap:
+             *   SELECTION(body, else) → COMPOUND(intermediates, SELECTION(simple_body, simple_else))
+             */
+            astexpr loop_var = get_batch_loop_var(batch_tree);
+            aststmt all_intermediates = NULL;
+
+            /* Process the if-body */
+            if (tree->body && tree->body->type == EXPRESSION &&
+                tree->body->u.expr && tree->body->u.expr->type == ASS && loop_var) {
+                astexpr rhs = tree->body->u.expr->right;
+                int bop_count = count_private_bops(rhs);
+                astexpr rl = rhs->left ? unwrap_paren(rhs->left) : NULL;
+                astexpr rr = rhs->right ? unwrap_paren(rhs->right) : NULL;
+                int has_nested = (rhs->type == BOP && ((rl && rl->type == BOP) || (rr && rr->type == BOP)));
+                if ((bop_count > 1 || has_nested) && rhs->type == BOP) {
+                    aststmt decomposed = NULL;
+                    if (rhs->left) {
+                        astexpr dl = unwrap_paren(rhs->left);
+                        if (dl && dl->type == BOP)
+                            decompose_bop_recursive(&decomposed, rhs->left, loop_var);
+                    }
+                    if (rhs->right) {
+                        astexpr dr = unwrap_paren(rhs->right);
+                        if (dr && dr->type == BOP)
+                            decompose_bop_recursive(&decomposed, rhs->right, loop_var);
+                    }
+                    if (decomposed) {
+                        if (all_intermediates == NULL)
+                            all_intermediates = decomposed;
+                        else
+                            all_intermediates = BlockList(all_intermediates, decomposed);
+                    }
+                    /* tree->body expression is now simplified (RHS has ARRAYIDX temps) */
+                }
+            } else {
+                /* Complex body — recurse normally (may not be optimal but safe) */
+                preprocess_batch_multi_op(tree->body, batch_tree);
+            }
+
+            /* Process the else-body */
+            if (tree->u.selection.elsebody && tree->u.selection.elsebody->type == EXPRESSION &&
+                tree->u.selection.elsebody->u.expr && tree->u.selection.elsebody->u.expr->type == ASS && loop_var) {
+                astexpr rhs = tree->u.selection.elsebody->u.expr->right;
+                int bop_count = count_private_bops(rhs);
+                astexpr rl = rhs->left ? unwrap_paren(rhs->left) : NULL;
+                astexpr rr = rhs->right ? unwrap_paren(rhs->right) : NULL;
+                int has_nested = (rhs->type == BOP && ((rl && rl->type == BOP) || (rr && rr->type == BOP)));
+                if ((bop_count > 1 || has_nested) && rhs->type == BOP) {
+                    aststmt decomposed = NULL;
+                    if (rhs->left) {
+                        astexpr dl = unwrap_paren(rhs->left);
+                        if (dl && dl->type == BOP)
+                            decompose_bop_recursive(&decomposed, rhs->left, loop_var);
+                    }
+                    if (rhs->right) {
+                        astexpr dr = unwrap_paren(rhs->right);
+                        if (dr && dr->type == BOP)
+                            decompose_bop_recursive(&decomposed, rhs->right, loop_var);
+                    }
+                    if (decomposed) {
+                        if (all_intermediates == NULL)
+                            all_intermediates = decomposed;
+                        else
+                            all_intermediates = BlockList(all_intermediates, decomposed);
+                    }
+                }
+            } else if (tree->u.selection.elsebody) {
+                preprocess_batch_multi_op(tree->u.selection.elsebody, batch_tree);
+            }
+
+            /* If we extracted intermediates, wrap: COMPOUND(intermediates, SELECTION) */
+            if (all_intermediates != NULL) {
+                /* Save the current SELECTION content */
+                aststmt sel_copy = Statement(SELECTION, tree->subtype, tree->body);
+                sel_copy->u.selection.cond = tree->u.selection.cond;
+                sel_copy->u.selection.elsebody = tree->u.selection.elsebody;
+
+                /* Replace tree in-place with COMPOUND(intermediates, selection) */
+                aststmt combined = BlockList(all_intermediates, sel_copy);
+                tree->type = COMPOUND;
+                tree->body = combined;
+                tree->subtype = 0;
+                /* Clear selection-specific fields */
+            }
+        } else {
+            /* Public conditional — recurse normally */
+            preprocess_batch_multi_op(tree->body, batch_tree);
+            if (tree->u.selection.elsebody)
+                preprocess_batch_multi_op(tree->u.selection.elsebody, batch_tree);
+        }
+        break;
+    case EXPRESSION:
+        if (tree->u.expr && tree->u.expr->type == ASS) {
+            astexpr rhs = tree->u.expr->right;
+            int bop_count = count_private_bops(rhs);
+            /* Also check structurally: if RHS is BOP with any BOP child (possibly wrapped in parens) */
+            astexpr rl = unwrap_paren(rhs->left);
+            astexpr rr = unwrap_paren(rhs->right);
+            int has_nested_bop = (rhs->type == BOP &&
+                ((rl && rl->type == BOP) || (rr && rr->type == BOP)));
+            if ((bop_count > 1 || has_nested_bop) && rhs->type == BOP) {
+                /* Multi-op expression — decompose nested BOPs but keep the top-level one.
+                 * Only decompose children of the top-level BOP, not the BOP itself.
+                 * This way the final statement stays as: E[i] = tmp1[i] + tmp2[i]
+                 * instead of: E[i] = tmp3[i] (with an extra assignment).
+                 */
+                astexpr loop_var = get_batch_loop_var(batch_tree);
+                if (!loop_var) break; /* can't decompose without loop var */
+                aststmt decomposed = NULL;
+                /* Decompose left and right children separately, not the top-level BOP.
+                 * This keeps the top-level BOP in the original statement.
+                 * Pass the actual child nodes (may be UOP_paren wrapped). */
+                if (rhs->left) {
+                    astexpr dl = unwrap_paren(rhs->left);
+                    if (dl && dl->type == BOP)
+                        decompose_bop_recursive(&decomposed, rhs->left, loop_var);
+                }
+                if (rhs->right) {
+                    astexpr dr = unwrap_paren(rhs->right);
+                    if (dr && dr->type == BOP)
+                        decompose_bop_recursive(&decomposed, rhs->right, loop_var);
+                }
+
+                if (decomposed != NULL) {
+                    /* The RHS has been mutated: nested BOPs replaced with STRING temp refs.
+                     * Now the original statement just does: E[i] = _picco_decomp_tmpN
+                     * (a simple assignment).
+                     *
+                     * We need to splice the decomposed statements BEFORE this one.
+                     * We do this by replacing this statement's content:
+                     *   original: EXPRESSION(ASS(E[i] = simplified_expr))
+                     *   becomes:  STATEMENTLIST(decomposed, original)
+                     *
+                     * We can't change the tree->type of a STATEMENTLIST parent easily,
+                     * but we CAN replace the expression in-place by wrapping.
+                     * Simplest: change this node to a COMPOUND containing a STATEMENTLIST.
+                     */
+                    aststmt original = Expression(tree->u.expr);
+                    aststmt combined = BlockList(decomposed, original);
+                    aststmt wrapper = Statement(COMPOUND, 0, combined);
+
+                    /* Replace the current tree node in-place */
+                    tree->type = wrapper->type;
+                    tree->subtype = wrapper->subtype;
+                    tree->body = wrapper->body;
+                    tree->u.expr = NULL; /* no longer an EXPRESSION */
+                }
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 void ast_stmt_batch_show(aststmt tree, branchnode current) {
+    decomp_tmp_counter = 0; /* reset for each batch block */
+    int decomp_total = 0;
+
+    /* Pre-decompose multi-op expressions BEFORE the 3-phase pipeline */
+    preprocess_batch_multi_op(tree, tree);
+    decomp_total = decomp_tmp_counter; /* save how many temps were created */
+
     int batch_index = 0;
     int statement_index = 0;
     int narray_element_index = 0;
@@ -249,6 +632,53 @@ void ast_stmt_batch_show(aststmt tree, branchnode current) {
     batch_index = 0;
     ast_batch_compute_counter(tree, &batch_index, current);
     ast_batch_allocate_counter();
+
+    /* Declare decomposition temp arrays (sized to batch counter) */
+    for (int _dt = 1; _dt <= decomp_total; _dt++) {
+        indent();
+        if (decomp_tmp_ftype[_dt] == 0) {
+            /* int temp array */
+            fprintf(output, "priv_int* _picco_decomp_tmp%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter1);\n", _dt);
+            indent();
+            fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter1; _picco_i++)\n");
+            indent();
+            fprintf(output, "{\n");
+            indlev++;
+            indent();
+            if (technique_var == SHAMIR_SS)
+                fprintf(output, "ss_init(_picco_decomp_tmp%d[_picco_i]);\n", _dt);
+            else if (technique_var == REPLICATED_SS)
+                fprintf(output, "ss_init(_picco_decomp_tmp%d[_picco_i], __s->getNumShares());\n", _dt);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+        } else if (decomp_tmp_ftype[_dt] == 1) {
+            /* float temp array */
+            fprintf(output, "priv_int** _picco_decomp_tmp%d = (priv_int**)malloc(sizeof(priv_int*) * _picco_batch_counter1);\n", _dt);
+            indent();
+            fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter1; _picco_i++)\n");
+            indent();
+            fprintf(output, "{\n");
+            indlev++;
+            indent();
+            fprintf(output, "_picco_decomp_tmp%d[_picco_i] = (priv_int*)malloc(sizeof(priv_int) * 4);\n", _dt);
+            indent();
+            fprintf(output, "for (int _picco_j = 0; _picco_j < 4; _picco_j++) {\n");
+            indlev++;
+            indent();
+            if (technique_var == SHAMIR_SS)
+                fprintf(output, "ss_init(_picco_decomp_tmp%d[_picco_i][_picco_j]);\n", _dt);
+            else if (technique_var == REPLICATED_SS)
+                fprintf(output, "ss_init(_picco_decomp_tmp%d[_picco_i][_picco_j], __s->getNumShares());\n", _dt);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+        }
+    }
+
     // create an array for holding the variables in the expression
     batch_index = 0;
     ast_batch_declare_array_for_narrayelement(tree, &narray_element_index, &private_index, &batch_index);
@@ -267,6 +697,42 @@ void ast_stmt_batch_show(aststmt tree, branchnode current) {
     private_index = 0;
     ast_batch_compute_stmt(tree, &batch_index, &statement_index, &private_selection_index, &narray_element_index, &private_index, current);
     ast_batch_clear_counter(private_selection_index, narray_element_index, delete_tmp_array);
+
+    /* Free decomposition temp arrays */
+    for (int _dt = 1; _dt <= decomp_total; _dt++) {
+        if (decomp_tmp_ftype[_dt] == 0) {
+            indent();
+            fprintf(output, "for (int _picco_j = 0; _picco_j < _picco_batch_counter1; _picco_j++) {\n");
+            indlev++;
+            indent();
+            fprintf(output, "ss_clear(_picco_decomp_tmp%d[_picco_j]);\n", _dt);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+            indent();
+            fprintf(output, "free(_picco_decomp_tmp%d);\n", _dt);
+        } else if (decomp_tmp_ftype[_dt] == 1) {
+            indent();
+            fprintf(output, "for (int _picco_j = 0; _picco_j < _picco_batch_counter1; _picco_j++) {\n");
+            indlev++;
+            indent();
+            fprintf(output, "for (int _picco_k = 0; _picco_k < 4; _picco_k++) {\n");
+            indlev++;
+            indent();
+            fprintf(output, "ss_clear(_picco_decomp_tmp%d[_picco_j][_picco_k]);\n", _dt);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+            indent();
+            fprintf(output, "free(_picco_decomp_tmp%d[_picco_j]);\n", _dt);
+            indlev--;
+            indent();
+            fprintf(output, "}\n");
+            indent();
+            fprintf(output, "free(_picco_decomp_tmp%d);\n", _dt);
+        }
+    }
+
     indlev--;
     indent();
     fprintf(output, "}\n");
@@ -706,9 +1172,12 @@ void ast_batch_print_stmt(aststmt tree, int batch_index, int statement_index, in
         }
     }
     // for if condition result
-    if (tree->u.expr->type == BOP)
+    if (tree->u.expr->type == BOP && tree->u.expr->opid != ASS_eq && tree->u.expr->left->flag == PRI)
         ast_batch_print_private_condition(tree, narray_element_index, private_index, batch_index, statement_index, length, op, leftop, rightop, leftdim, rightdim, current);
     else {
+        /* NOTE: Boolean variable conditions (if(cond[i]) where cond is int<1>) inside
+         * batch loops are not supported. Use comparison conditions instead:
+         * if(cond[i] > 0) which goes through the BOP/comparison path and works. */
         indent();
         if (!strcmp(str_string(rightop), "") && strcmp(str_string(leftop), "")) {
             if (tree->u.expr->right->type != CASTEXPR)
@@ -1204,6 +1673,7 @@ void ast_batch_compute_index(aststmt tree, int *batch_index, int *statement_inde
                 ast_batch_compute_index(tree->u.selection.elsebody, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
             }
         }
+        break;
     }
     case EXPRESSION:
         if (tree->u.expr->type == ASS) {
@@ -1672,8 +2142,17 @@ void ast_batch_declare_array_for_narrayelement(aststmt tree, int *narray_element
                             ast_batch_declare_array_for_narrayelement_BOP(e, batch_stack->head->index, narray_element_index, private_index);
                         }
                     }
-                } else
-                    ast_batch_declare_array_for_narrayelement_BOP(tree->u.expr->right, batch_stack->head->index, narray_element_index, private_index);
+                } else {
+                    if (tree->u.expr->opid != ASS_eq) {
+                        /* Compound assignment with BOP RHS (e.g., A[i] += B[i]*C[i]).
+                         * Create the same synthetic BOP that the statement phase creates,
+                         * so the tmp array is properly allocated. */
+                        astexpr e = BinaryOperator(BOP_add, tree->u.expr->left, tree->u.expr->right);
+                        ast_batch_declare_array_for_narrayelement_BOP(e, batch_stack->head->index, narray_element_index, private_index);
+                    } else {
+                        ast_batch_declare_array_for_narrayelement_BOP(tree->u.expr->right, batch_stack->head->index, narray_element_index, private_index);
+                    }
+                }
             }
         }
         break;
