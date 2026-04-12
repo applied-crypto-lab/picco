@@ -1115,7 +1115,8 @@ void ss_convert_operator(mpz_t **result, mpz_t **op, int *index_array, int dim, 
                 dim1 = index_array[3 * i + 2] / dim;
                 dim2 = index_array[3 * i + 2] % dim;
                 mpz_set((*result)[i], op[dim1][dim2]);
-            }
+            } else
+                mpz_set((*result)[i], op[0][index_array[3 * i + 2]]);
         }
     }
 }

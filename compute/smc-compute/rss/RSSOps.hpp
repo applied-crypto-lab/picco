@@ -1362,12 +1362,15 @@ void ss_batch_BOP_float_comparison(T **result, T ***a, T ***b, int resultlen_sig
 // Helper: write back 1D result_tmp into 2D result using dim decomposition
 template <typename T>
 static inline void rss_batch_writeback_2d(T ***result, T **result_tmp, int *index_array, int resultdim, int size, uint numShares) {
-    if (resultdim != 0) {
-        for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i) {
+        if (resultdim != 0) {
             int dim1 = index_array[3 * i + 2] / resultdim;
             int dim2 = index_array[3 * i + 2] % resultdim;
             for (uint s = 0; s < numShares; s++)
                 result[dim1][dim2][s] = result_tmp[i][s];
+        } else {
+            for (uint s = 0; s < numShares; s++)
+                result[0][index_array[3 * i + 2]][s] = result_tmp[i][s];
         }
     }
 }
