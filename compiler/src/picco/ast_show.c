@@ -252,6 +252,7 @@ static int decomp_tmp_flag[100];   /* flag for each decomp temp (PRI/PUB) */
 static int decomp_tmp_size[100];   /* size for each decomp temp */
 static int decomp_tmp_sizeexp[100]; /* sizeexp for each decomp temp */
 static int decomp_tmp_is_2d[100]; /* 1 if this decomp temp is 2D array, 0 if 1D */
+static aststmt decomp_tmp_batch[100]; /* BATCH tree that owns this temp (for computing temp size from loop bounds) */
 
 /* Check if an expression tree contains any private variable.
  * Returns 1 if any leaf node has flag == PRI, 0 otherwise. */
@@ -285,6 +286,48 @@ static int count_private_bops(astexpr tree) {
     default:
         return 0;
     }
+}
+
+/* Emit a C expression for the 1D decomp temp size for a specific batch.
+ * Temp is indexed by the loop variable, so size must bound max(loop_var)+1.
+ * Looks at init (start value) and cond (bound + comparison op) to compute:
+ *   i < N      → N
+ *   i <= N     → N+1
+ *   i > N / i >= N (reverse) → start+1
+ * Falls back to the batch iteration counter if the shape is unrecognized. */
+static void emit_decomp_temp_size(aststmt batch_tree, int fallback_counter_idx) {
+    if (!batch_tree || batch_tree->type != BATCH) {
+        fprintf(output, "_picco_batch_counter%d", fallback_counter_idx);
+        return;
+    }
+    aststmt init = batch_tree->u.iteration.init;
+    astexpr cond = batch_tree->u.iteration.cond;
+    astexpr init_rhs = NULL;
+    if (init && init->type == EXPRESSION && init->u.expr &&
+        init->u.expr->type == ASS)
+        init_rhs = init->u.expr->right;
+
+    if (cond && cond->type == BOP && cond->right) {
+        astexpr bound = cond->right;
+        int op = cond->opid;
+        if (op == BOP_lt) {
+            fprintf(output, "(");
+            ast_expr_show(bound);
+            fprintf(output, ")");
+            return;
+        } else if (op == BOP_leq) {
+            fprintf(output, "((");
+            ast_expr_show(bound);
+            fprintf(output, ") + 1)");
+            return;
+        } else if ((op == BOP_gt || op == BOP_geq) && init_rhs) {
+            fprintf(output, "((");
+            ast_expr_show(init_rhs);
+            fprintf(output, ") + 1)");
+            return;
+        }
+    }
+    fprintf(output, "_picco_batch_counter%d", fallback_counter_idx);
 }
 
 /* Get the loop variable expression from a BATCH node's init.
@@ -384,11 +427,11 @@ static astexpr unwrap_paren(astexpr e) {
     return e;
 }
 
-static void decompose_bop_recursive(aststmt *stmt_list, astexpr expr, astexpr loop_var) {
+static void decompose_bop_recursive(aststmt *stmt_list, astexpr expr, astexpr loop_var, aststmt batch_tree) {
     if (!expr) return;
     /* Unwrap parentheses: recurse into UOP_paren, then propagate replacement up */
     if (expr->type == UOP && expr->opid == UOP_paren) {
-        decompose_bop_recursive(stmt_list, expr->left, loop_var);
+        decompose_bop_recursive(stmt_list, expr->left, loop_var, batch_tree);
         /* If the inner expression was replaced with ARRAYIDX, propagate to this node */
         if (expr->left && expr->left->type == ARRAYIDX) {
             astexpr inner = expr->left;
@@ -413,11 +456,11 @@ static void decompose_bop_recursive(aststmt *stmt_list, astexpr expr, astexpr lo
      * so the function can propagate ARRAYIDX replacement up through the paren wrapper. */
     if (expr->left && (expr->left->type == BOP ||
                        (expr->left->type == UOP && expr->left->opid == UOP_paren))) {
-        decompose_bop_recursive(stmt_list, expr->left, loop_var);
+        decompose_bop_recursive(stmt_list, expr->left, loop_var, batch_tree);
     }
     if (expr->right && (expr->right->type == BOP ||
                         (expr->right->type == UOP && expr->right->opid == UOP_paren))) {
-        decompose_bop_recursive(stmt_list, expr->right, loop_var);
+        decompose_bop_recursive(stmt_list, expr->right, loop_var, batch_tree);
     }
 
     /* Now this BOP's children are simple (ARRAYIDX or leaf nodes).
@@ -437,6 +480,7 @@ static void decompose_bop_recursive(aststmt *stmt_list, astexpr expr, astexpr lo
     decomp_tmp_size[decomp_tmp_counter] = expr->size;
     decomp_tmp_sizeexp[decomp_tmp_counter] = expr->sizeexp;
     decomp_tmp_is_2d[decomp_tmp_counter] = is_2d;
+    decomp_tmp_batch[decomp_tmp_counter] = batch_tree;
 
     /* Create: tmp[idx] = left OP right */
     astexpr bin = BinaryOperator(expr->opid, expr->left, expr->right);
@@ -524,12 +568,12 @@ static void preprocess_batch_multi_op(aststmt tree, aststmt batch_tree) {
                     if (rhs->left) {
                         astexpr dl = unwrap_paren(rhs->left);
                         if (dl && dl->type == BOP)
-                            decompose_bop_recursive(&decomposed, rhs->left, sel_loop_var);
+                            decompose_bop_recursive(&decomposed, rhs->left, sel_loop_var, batch_tree);
                     }
                     if (rhs->right) {
                         astexpr dr = unwrap_paren(rhs->right);
                         if (dr && dr->type == BOP)
-                            decompose_bop_recursive(&decomposed, rhs->right, sel_loop_var);
+                            decompose_bop_recursive(&decomposed, rhs->right, sel_loop_var, batch_tree);
                     }
                     if (decomposed) {
                         if (all_intermediates == NULL)
@@ -557,12 +601,12 @@ static void preprocess_batch_multi_op(aststmt tree, aststmt batch_tree) {
                     if (rhs->left) {
                         astexpr dl = unwrap_paren(rhs->left);
                         if (dl && dl->type == BOP)
-                            decompose_bop_recursive(&decomposed, rhs->left, sel_loop_var);
+                            decompose_bop_recursive(&decomposed, rhs->left, sel_loop_var, batch_tree);
                     }
                     if (rhs->right) {
                         astexpr dr = unwrap_paren(rhs->right);
                         if (dr && dr->type == BOP)
-                            decompose_bop_recursive(&decomposed, rhs->right, sel_loop_var);
+                            decompose_bop_recursive(&decomposed, rhs->right, sel_loop_var, batch_tree);
                     }
                     if (decomposed) {
                         if (all_intermediates == NULL)
@@ -620,12 +664,12 @@ static void preprocess_batch_multi_op(aststmt tree, aststmt batch_tree) {
                 if (rhs->left) {
                     astexpr dl = unwrap_paren(rhs->left);
                     if (dl && dl->type == BOP)
-                        decompose_bop_recursive(&decomposed, rhs->left, loop_var);
+                        decompose_bop_recursive(&decomposed, rhs->left, loop_var, batch_tree);
                 }
                 if (rhs->right) {
                     astexpr dr = unwrap_paren(rhs->right);
                     if (dr && dr->type == BOP)
-                        decompose_bop_recursive(&decomposed, rhs->right, loop_var);
+                        decompose_bop_recursive(&decomposed, rhs->right, loop_var, batch_tree);
                 }
 
                 if (decomposed != NULL) {
@@ -691,10 +735,15 @@ void ast_stmt_batch_show(aststmt tree, branchnode current) {
     for (int _dt = 1; _dt <= decomp_total; _dt++) {
         indent();
         if (decomp_tmp_ftype[_dt] == 0 && !decomp_tmp_is_2d[_dt]) {
-            /* 1D int temp array */
-            fprintf(output, "priv_int* _picco_decomp_tmp%d = (priv_int*)malloc(sizeof(priv_int) * _picco_batch_counter%d);\n", _dt, max_batch_index);
+            /* 1D int temp array — sized to bound the loop variable, not iteration count.
+             * Needed for loops with step!=1, non-zero start, or reverse direction. */
+            fprintf(output, "int _decomp_sz%d = ", _dt);
+            emit_decomp_temp_size(decomp_tmp_batch[_dt], max_batch_index);
+            fprintf(output, ";\n");
             indent();
-            fprintf(output, "for (int _picco_i = 0; _picco_i < _picco_batch_counter%d; _picco_i++)\n", max_batch_index);
+            fprintf(output, "priv_int* _picco_decomp_tmp%d = (priv_int*)malloc(sizeof(priv_int) * _decomp_sz%d);\n", _dt, _dt);
+            indent();
+            fprintf(output, "for (int _picco_i = 0; _picco_i < _decomp_sz%d; _picco_i++)\n", _dt);
             indent();
             fprintf(output, "{\n");
             indlev++;
@@ -785,7 +834,7 @@ void ast_stmt_batch_show(aststmt tree, branchnode current) {
         if (decomp_tmp_ftype[_dt] == 0 && !decomp_tmp_is_2d[_dt]) {
             /* 1D int cleanup */
             indent();
-            fprintf(output, "for (int _picco_j = 0; _picco_j < _picco_batch_counter%d; _picco_j++) {\n", max_batch_index);
+            fprintf(output, "for (int _picco_j = 0; _picco_j < _decomp_sz%d; _picco_j++) {\n", _dt);
             indlev++;
             indent();
             fprintf(output, "ss_clear(_picco_decomp_tmp%d[_picco_j]);\n", _dt);
