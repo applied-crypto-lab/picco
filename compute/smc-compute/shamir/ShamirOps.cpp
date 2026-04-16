@@ -428,7 +428,7 @@ void ss_set(float a, mpz_t *result, int alen_sig, int alen_exp, int resultlen_si
 }
 
 void ss_set(mpz_t a, mpz_t result, int alen, int resultlen, std::string type, int threadID, NodeNetwork net, SecretShare *ss) {
-    mpz_init_set(result, a);
+    mpz_set(result, a);
 }
 
 // void ss_set(mpz_t **a, mpz_t **result, int alen_sig, int alen_exp, int resultlen_sig, int resultlen_exp, int size, std::string type, int threadID, NodeNetwork net,  SecretShare *ss) {

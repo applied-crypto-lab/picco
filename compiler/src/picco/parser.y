@@ -478,7 +478,56 @@ postfix_expression:
       if($3->flag == PRI && $1->ftype == 0)
 		is_priv_int_index_appear = 1;
       if($3->flag == PRI && $1->ftype == 1)
-		is_priv_float_index_appear = 1;  
+		is_priv_float_index_appear = 1;
+      /* Private indexing needs a wider modulus for correctness. The Shamir lookup protocol
+       * masks the revealed value with a (SECURITY_PARAMETER + logm)-bit random shifted by
+       * 2^logm, where m is the array dimension being indexed. If p < 2^(SECURITY_PARAMETER + logm),
+       * the mask wraps mod p and the low logm bits of the revealed value get corrupted.
+       * Try to determine logm from the declared array size; fall back to the private index's
+       * bit width (which upper-bounds the addressable range). */
+      if($3->flag == PRI) {
+        int logm = 0;
+        /* Walk down to the IDENT (leftmost) to find the symbol of the base array. */
+        astexpr __base = $1;
+        while (__base && __base->type == ARRAYIDX) __base = __base->left;
+        if (__base && __base->type == IDENT) {
+          stentry __e = symtab_get(stab, __base->u.sym, IDNAME);
+          if (__e && __e->decl) {
+            /* For A[i][priv_idx] the inner dim governs logm; for A[priv_idx] the outer dim.
+             * Walk the declarator chain, collecting the innermost DARRAY's size expr. */
+            astdecl __d = __e->decl->decl;
+            astdecl __last_darray = NULL;
+            while (__d) {
+              if (__d->type == DARRAY) __last_darray = __d;
+              __d = __d->decl;
+            }
+            if (__last_darray && __last_darray->u.expr) {
+              astexpr __sz = __last_darray->u.expr;
+              long __n = 0;
+              if (__sz->type == CONSTVAL && __sz->u.str) __n = atol(__sz->u.str);
+              else if (__sz->type == IDENT && __sz->u.sym) {
+                /* Size is a public-int symbol (e.g. public int K=5; A[K]).
+                 * The init_declarator rule stored the literal value on ival. */
+                stentry __sze = symtab_get(stab, __sz->u.sym, IDNAME);
+                if (__sze && __sze->ival > 0) __n = __sze->ival;
+              }
+              if (__n > 0) {
+                /* logm = ceil(log2(n)) */
+                long __v = __n - 1;
+                while (__v > 0) { logm++; __v >>= 1; }
+              }
+            }
+          }
+        }
+        /* Fallback when the size can't be resolved statically: cap at the index's own bit width. */
+        if (logm == 0) {
+          int __iw = ($3->size > 0) ? $3->size : 32;
+          logm = (__iw < 32) ? __iw : 32;
+        }
+        /* +2 extra margin: empirically the shamir protocol needs p > 2^(SECURITY_PARAMETER+logm+2)
+         * (the extra bits cover poly-evaluation summation in PRandInt plus a safety margin). */
+        modulus = fmax(modulus, SECURITY_PARAMETER + logm + 2);
+      }
     }
   /* The following 2 rules were added so that calling undeclared functions
    * does not result in "unknown identifier" messages (it was matched by
@@ -1308,8 +1357,20 @@ init_declarator:
     }
     initializer
     {
-      // This is where DINIT or variables in a program that are either init in one line or not gets handles 
+      // This is where DINIT or variables in a program that are either init in one line or not gets handles
       $$ = InitDecl($1, $4);
+      /* Record public-int compile-time constants on the symbol's ival so later code
+       * (e.g. private-index modulus sizing) can look up dimensions like A[K]. */
+      if (checkDecls && $4 && $4->type == CONSTVAL && $4->u.str) {
+        astdecl __sid = decl_getidentifier($1);
+        if (__sid && __sid->u.id) {
+          stentry __se = symtab_get(stab, __sid->u.id, IDNAME);
+          if (__se) {
+            long __v = atol($4->u.str);
+            if (__v > 0) __se->ival = (int)__v;
+          }
+        }
+      }
     }
 ;
 
@@ -4143,9 +4204,47 @@ int contains_constant(astexpr e) {
 //     VarEntry_var_list = new_entry;
 // }
 
+/* Promote a public-constant integer operand to a float when the other operand is a float.
+ * Matches standard C semantics: 'float + int' is a float. Without this, the compiler
+ * emitted a private-float + int-const BOP whose runtime produced 0 or inf.
+ * Returns 1 if a promotion was done. */
+static int promote_int_const_to_float(astexpr a, astexpr b) {
+    if (!a || !b) return 0;
+    if (a->type != CONSTVAL) return 0;
+    if (a->ftype != 0) return 0;
+    if (b->ftype != 1) return 0;
+    if (a->flag != PUB) return 0;
+    /* Convert a's literal string by appending ".0" so is_float_literal() treats it as float. */
+    if (a->u.str && strchr(a->u.str, '.') == NULL &&
+        strchr(a->u.str, 'e') == NULL && strchr(a->u.str, 'E') == NULL) {
+        size_t __n = strlen(a->u.str);
+        char *__new = (char *)malloc(__n + 4);
+        snprintf(__new, __n + 4, "%s.0", a->u.str);
+        a->u.str = __new;
+    }
+    a->ftype = 1;
+    /* Inherit float size/exp metadata from the typed operand so downstream sizing is right. */
+    a->size = b->size;
+    a->sizeexp = b->sizeexp;
+    return 1;
+}
+
 void set_security_flag_expr(astexpr e, astexpr e1, astexpr e2, int opid){
     //BOP
     if(e2 != NULL && e1 != NULL){
+        /* C-style int->float promotion for const-int vs float: keep BOP operands homogeneous.
+         * Only re-sync e->ftype when we actually promoted — pre-existing float-float BOPs
+         * (including comparisons whose result is int) must not be touched. */
+        int __promoted = 0;
+        __promoted += promote_int_const_to_float(e1, e2);
+        __promoted += promote_int_const_to_float(e2, e1);
+        if (__promoted) {
+            /* For arithmetic ops the result is float. For comparisons it stays int.
+             * Arithmetic opids: add/sub/mul/div/mod. */
+            if (opid == BOP_add || opid == BOP_sub || opid == BOP_mul ||
+                opid == BOP_div || opid == BOP_mod)
+                e->ftype = 1;
+        }
         if(e1->flag == PUB && e2->flag == PUB){
             e->flag = PUB;
             e->index = -1;
@@ -4417,8 +4516,16 @@ void set_size_symbol(astexpr e1, astexpr e2, astexpr e3){
             // for two dimension array
         else if (e2->type == ARRAYIDX){
             global_variables_c_restrict_flag = 0;
-            //e1->arraysize = decl->decl->u.expr; 
-            //e2->arraysize = decl->decl->decl->u.expr; 
+            /* Guard: the source declaration must have two DARRAY levels for A[i][j].
+             * If the user wrote A[i][j] but A was declared 1D, decl->decl->decl is
+             * a DIDENT (not DARRAY) and the old code crashed dereferencing its u.expr.
+             * Emit a clear error instead. */
+            if (decl->decl == NULL || decl->decl->type != DARRAY ||
+                decl->decl->decl == NULL || decl->decl->decl->type != DARRAY) {
+                parse_error(-1, "'%s' was declared as a 1-dimensional array but is indexed with 2 dimensions.\n", e->u.sym->name);
+            }
+            //e1->arraysize = decl->decl->u.expr;
+            //e2->arraysize = decl->decl->decl->u.expr;
             e1->arraysize = ast_expr_copy(decl->decl->u.expr);
             e2->arraysize = ast_expr_copy(decl->decl->decl->u.expr);
         }
