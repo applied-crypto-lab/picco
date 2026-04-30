@@ -247,6 +247,10 @@ void ast_stmt_jump_show(aststmt tree, branchnode current) {
 
 static int decomp_tmp_counter = 0; /* global counter for decomp temp array names */
 static int decomp_nest_level = 0; /* track batch nesting depth for decomposition */
+static int decomp_free_list[100]; /* freed temp indices available for reuse */
+static int decomp_free_count = 0; /* number of freed temps */
+static int batch_emit_target_stmt = 0; /* when > 0, only emit for this statement_index */
+static int batch_level_has_stmts[50]; /* tracks which batch nesting levels have direct statements */
 static int decomp_tmp_ftype[100];  /* ftype for each decomp temp (0=int, 1=float) */
 static int decomp_tmp_flag[100];   /* flag for each decomp temp (PRI/PUB) */
 static int decomp_tmp_size[100];   /* size for each decomp temp */
@@ -464,23 +468,66 @@ static void decompose_bop_recursive(aststmt *stmt_list, astexpr expr, astexpr lo
     }
 
     /* Now this BOP's children are simple (ARRAYIDX or leaf nodes).
-     * Create a temp array and statement for this operation. */
+     * Create a temp array and statement for this operation.
+     * Optimization: if a child is already a decomp temp, reuse it as the result
+     * instead of allocating a new temp. This reduces peak memory (2 temps suffice
+     * for any expression depth). The child's value is consumed here and overwritten. */
 
-    decomp_tmp_counter++;
+    /* Check if left or right child is a reusable decomp temp (named _picco_decomp_tmpN).
+     * If both children are temps, reuse one and free the other. */
+    int left_tmp = 0, right_tmp = 0;
+    if (expr->left && expr->left->type == ARRAYIDX) {
+        astexpr base = expr->left;
+        while (base && base->type == ARRAYIDX) base = base->left;
+        if (base && base->type == IDENT && base->u.sym &&
+            strncmp(base->u.sym->name, "_picco_decomp_tmp", 17) == 0)
+            left_tmp = atoi(base->u.sym->name + 17);
+    }
+    if (expr->right && expr->right->type == ARRAYIDX) {
+        astexpr base = expr->right;
+        while (base && base->type == ARRAYIDX) base = base->left;
+        if (base && base->type == IDENT && base->u.sym &&
+            strncmp(base->u.sym->name, "_picco_decomp_tmp", 17) == 0)
+            right_tmp = atoi(base->u.sym->name + 17);
+    }
+
+    int reuse_idx = 0;
+    if (left_tmp > 0) {
+        reuse_idx = left_tmp;
+        /* If right is also a temp, free it for later reuse */
+        if (right_tmp > 0)
+            decomp_free_list[decomp_free_count++] = right_tmp;
+    } else if (right_tmp > 0) {
+        reuse_idx = right_tmp;
+    }
+
     char tmp_name[80];
-    snprintf(tmp_name, sizeof(tmp_name), "_picco_decomp_tmp%d", decomp_tmp_counter);
+    if (reuse_idx > 0) {
+        /* Reuse existing temp — no new allocation needed */
+        snprintf(tmp_name, sizeof(tmp_name), "_picco_decomp_tmp%d", reuse_idx);
+    } else if (decomp_free_count > 0) {
+        /* Reuse a freed temp from the pool */
+        reuse_idx = decomp_free_list[--decomp_free_count];
+        snprintf(tmp_name, sizeof(tmp_name), "_picco_decomp_tmp%d", reuse_idx);
+    } else {
+        /* Allocate a new temp */
+        decomp_tmp_counter++;
+        snprintf(tmp_name, sizeof(tmp_name), "_picco_decomp_tmp%d", decomp_tmp_counter);
+    }
 
     /* Find a reference ARRAYIDX from children for 1D vs 2D index structure */
     astexpr ref = find_arrayidx_ref(expr);
     int is_2d = (ref && ref->type == ARRAYIDX && ref->left && ref->left->type == ARRAYIDX);
 
-    /* Track metadata for later declaration */
-    decomp_tmp_ftype[decomp_tmp_counter] = expr->ftype;
-    decomp_tmp_flag[decomp_tmp_counter] = expr->flag;
-    decomp_tmp_size[decomp_tmp_counter] = expr->size;
-    decomp_tmp_sizeexp[decomp_tmp_counter] = expr->sizeexp;
-    decomp_tmp_is_2d[decomp_tmp_counter] = is_2d;
-    decomp_tmp_batch[decomp_tmp_counter] = batch_tree;
+    /* Track metadata for later declaration (only for newly allocated temps) */
+    if (reuse_idx == 0) {
+        decomp_tmp_ftype[decomp_tmp_counter] = expr->ftype;
+        decomp_tmp_flag[decomp_tmp_counter] = expr->flag;
+        decomp_tmp_size[decomp_tmp_counter] = expr->size;
+        decomp_tmp_sizeexp[decomp_tmp_counter] = expr->sizeexp;
+        decomp_tmp_is_2d[decomp_tmp_counter] = is_2d;
+        decomp_tmp_batch[decomp_tmp_counter] = batch_tree;
+    }
 
     /* Create: tmp[idx] = left OP right */
     astexpr bin = BinaryOperator(expr->opid, expr->left, expr->right);
@@ -706,6 +753,7 @@ static void preprocess_batch_multi_op(aststmt tree, aststmt batch_tree) {
 
 void ast_stmt_batch_show(aststmt tree, branchnode current) {
     decomp_tmp_counter = 0; /* reset for each batch block */
+    decomp_free_count = 0;
     decomp_nest_level = 0;
     int decomp_total = 0;
 
@@ -720,6 +768,7 @@ void ast_stmt_batch_show(aststmt tree, branchnode current) {
     int private_selection_index = 0;
     batch_stack = control_sequence_stack_new();
     private_selection_stack = control_sequence_stack_new();
+    memset(batch_level_has_stmts, 0, sizeof(batch_level_has_stmts));
     ast_batch_iter_tree(tree, &batch_index, &statement_index, &private_selection_index);
     int max_batch_index = batch_index; /* save for decomp temp sizing */
     fprintf(output, "{\n");
@@ -932,6 +981,8 @@ void ast_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index
             branchnode left = NULL;
             left = if_branchnode_insert(current, NULL, 0, *private_selection_index, -1, 0, 0);
             ast_batch_print_stmt(Expression(tree->u.selection.cond), batch_stack->head->index, *statement_index, narray_element_index, private_index, left);
+            indent();
+            fprintf(output, "free(_picco_batch_index_array%d);\n", *statement_index);
             ast_batch_compute_stmt(tree->body, batch_index, statement_index, private_selection_index, narray_element_index, private_index, left);
             if_branchtree_remove(current, left);
             control_sequence_pop(private_selection_stack);
@@ -944,6 +995,8 @@ void ast_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index
                 branchnode right = NULL;
                 right = if_branchnode_insert(current, NULL, 1, *private_selection_index, tmp_index, 0, 0);
                 ast_batch_print_stmt(Expression(tree->u.selection.cond), batch_stack->head->index, *statement_index, narray_element_index, private_index, right);
+                indent();
+                fprintf(output, "free(_picco_batch_index_array%d);\n", *statement_index);
                 ast_batch_compute_stmt(tree->u.selection.elsebody, batch_index, statement_index, private_selection_index, narray_element_index, private_index, right);
                 if_branchtree_remove(current, right);
                 control_sequence_pop(private_selection_stack);
@@ -954,6 +1007,9 @@ void ast_batch_compute_stmt(aststmt tree, int *batch_index, int *statement_index
         if (tree->u.expr->type == ASS) {
             (*statement_index)++;
             ast_batch_print_stmt(tree, batch_stack->head->index, *statement_index, narray_element_index, private_index, current);
+            /* Free index array right after its smc_batch call instead of at the end */
+            indent();
+            fprintf(output, "free(_picco_batch_index_array%d);\n", *statement_index);
         }
         break;
     default:
@@ -1774,8 +1830,11 @@ void ast_batch_print_prefix_index(aststmt tree, int *batch_index, int *statement
     fprintf(output, "{\n");
     indlev++;
     ast_batch_compute_index(tree, batch_index, statement_index, narray_element_index, delete_tmp_array, private_index);
-    indent();
-    fprintf(output, "_picco_ind%d++;\n", batch_stack->head->index);
+    /* Only emit _picco_ind increment for levels that have direct statements */
+    if (batch_level_has_stmts[batch_stack->head->index]) {
+        indent();
+        fprintf(output, "_picco_ind%d++;\n", batch_stack->head->index);
+    }
     indlev--;
     indent();
     fprintf(output, "}\n");
@@ -1876,9 +1935,9 @@ void ast_batch_clear_counter(int private_selection_index, int narray_element_ind
     fprintf(output, "\n");
     batch_statement tmp = bss->head;
     int size = 0, index = 0;
+    /* Index arrays are freed per-statement in ast_batch_compute_stmt.
+     * Only count batch_arrays here. */
     while (tmp != NULL) {
-        indent();
-        fprintf(output, "free(_picco_batch_index_array%d);\n", tmp->statement_index);
         if (tmp->flag == 1)
             size++;
         tmp = tmp->next;
@@ -1948,8 +2007,10 @@ void ast_batch_clear_counter(int private_selection_index, int narray_element_ind
 
 void ast_batch_declare_counter(aststmt tree, char *name, int batch_index, branchnode current) {
     // declare the counter variables.
+    // Skip _picco_ind for levels that have no direct statements (dead code).
     char *buf = (char *)malloc(sizeof(char) * buffer_size);
     for (ind = 1; ind <= batch_index; ind++) {
+        if (!batch_level_has_stmts[ind] && strncmp(name, "_picco_ind", 10) == 0) continue;
         sprintf(buf, "%s%d", name, ind);
         astspec qualifier = Declspec(SPEC_public, 0);
         astspec specifier = Declspec(SPEC_int, 0);
@@ -2534,6 +2595,7 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
             (*private_selection_index)++;
             (*statement_index)++;
             batch_statement_push(Expression(tree->u.selection.cond), *statement_index, batch_stack->head->index, 1, bss);
+            if (batch_stack->head) batch_level_has_stmts[batch_stack->head->index] = 1;
             ast_batch_iter_tree(tree->body, batch_index, statement_index, private_selection_index);
             if (tree->u.selection.elsebody) {
                 (*private_selection_index)++;
@@ -2550,6 +2612,9 @@ void ast_batch_iter_tree(aststmt tree, int *batch_index, int *statement_index, i
         if (tree->u.expr->type == ASS) {
             (*statement_index)++;
             batch_statement_push(tree, *statement_index, batch_stack->head->index, 0, bss);
+            /* Mark this batch level as having direct statements */
+            if (batch_stack->head)
+                batch_level_has_stmts[batch_stack->head->index] = 1;
         }
         break;
     default:
