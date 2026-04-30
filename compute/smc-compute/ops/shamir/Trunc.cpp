@@ -22,6 +22,12 @@
 #include <iostream>
 
 void doOperation_Trunc(mpz_t *result, mpz_t *input, int K, int M, int size, int threadID, NodeNetwork net, SecretShare *ss) {
+    // shift by 0 is identity
+    if (M == 0) {
+        for (int i = 0; i < size; i++)
+            mpz_set(result[i], input[i]);
+        return;
+    }
 
     mpz_t *temp = (mpz_t *)malloc(sizeof(mpz_t) * size);
     for (int i = 0; i < size; i++) {

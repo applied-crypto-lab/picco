@@ -30,7 +30,7 @@ template <typename T>
 void doOperation_Pow2(T **result, T **a, int L, int size, int threadID, NodeNetwork nodeNet, replicatedSecretShare<T> *ss) {
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
-    uint m = ceil(log2(L)); // rounding up to the nearest integer
+    uint m = ceil(log2(L + 1)); // +1 so the value L itself is representable (not just 0..L-1)
     uint numPows = size * m;
 
     // Allocate a_bits in [size][numShares] format for BitDec

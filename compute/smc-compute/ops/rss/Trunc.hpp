@@ -67,6 +67,14 @@ void doOperation_Trunc(T **result, T **input, int K, int m, int size, int thread
     uint numShares = ss->getNumShares();
     uint ring_size = ss->ring_size;
 
+    // shift by 0 is identity
+    if (m == 0) {
+        for (int i = 0; i < size; i++)
+            for (uint s = 0; s < numShares; s++)
+                result[i][s] = input[i][s];
+        return;
+    }
+
     // All arrays use interface format [size][numShares]
     T **edaBit_r = new T *[size];
     T **sum = new T *[size];
