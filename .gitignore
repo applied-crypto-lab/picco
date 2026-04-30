@@ -47,4 +47,7 @@ shares/
 # share directories
 
 compute/running_files
-compute/Testing
+compute/Testing.DS_Store
+
+# macOS metadata
+.DS_Store
