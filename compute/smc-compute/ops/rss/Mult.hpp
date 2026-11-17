@@ -59,38 +59,31 @@ void Rss_Mult_Bitwise_3pc(T **c, T **a, T **b, uint size, uint ring_size, NodeNe
     uint bytes = (ring_size + 7) >> 3;
     uint i;
     T *v = new T[size];
-    T *prg0_vals = new T[size];  // PRG(0) values for masking
+    T *prg1_vals = new T[size];  // PRG(1) values for masking
     T *c_share1 = new T[size];   // buffer for receiving
 
     uint8_t *buffer = new uint8_t[bytes * size];
 
-    // FIX: The communication pattern is P1←P2, P2←P3, P3←P1
-    // PRG relationships: P1.PRG(1)=P2.PRG(0), P2.PRG(1)=P3.PRG(0), P3.PRG(1)=P1.PRG(0)
-    // For sender's mask to match receiver's unmask:
-    //   - Each party masks with PRG(0), receiver unmasks with PRG(1)
-    ss->prg_getrandom(0, bytes, size, buffer);
+    // masks as in Rss_Mult_3pc
+    ss->prg_getrandom(1, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
-        memcpy(&prg0_vals[i], buffer + i * bytes, bytes);
-        // v = local_and XOR PRG(0)
-        v[i] = ((a[i][0] & b[i][0]) ^ (a[i][0] & b[i][1]) ^ (a[i][1] & b[i][0])) ^ prg0_vals[i];
+        memcpy(&prg1_vals[i], buffer + i * bytes, bytes);
+        v[i] = ((a[i][0] & b[i][0]) ^ (a[i][0] & b[i][1]) ^ (a[i][1] & b[i][0])) ^ prg1_vals[i];
     }
 
     nodeNet.SendAndGetDataFromPeer(v, c_share1, size, ring_size, ss->general_map);
 
-    // Get PRG(1) for unmasking (sender's PRG(0) = our PRG(1))
-    ss->prg_getrandom(1, bytes, size, buffer);
+    ss->prg_getrandom(0, bytes, size, buffer);
 
     for (i = 0; i < size; i++) {
-        // c[1] = recv XOR PRG(1) (sender's PRG(0) = our PRG(1), so this unmasks correctly)
-        T prg1_val;
-        memcpy(&prg1_val, buffer + i * bytes, bytes);
-        c[i][1] = c_share1[i] ^ prg1_val;
-        // c[0] = v XOR PRG(0) = (local XOR PRG(0)) XOR PRG(0) = local
-        c[i][0] = prg0_vals[i] ^ v[i];
+        T prg0_val;
+        memcpy(&prg0_val, buffer + i * bytes, bytes);
+        c[i][1] = c_share1[i] ^ prg1_vals[i];
+        c[i][0] = prg0_val ^ v[i];
     }
 
-    delete[] prg0_vals;
+    delete[] prg1_vals;
 
     // free
     delete[] v;
