@@ -52,7 +52,7 @@ void Rss_BitDec(T **res, T **a, uint bitlength, uint size, uint ring_size, NodeN
 
     // only need ring_size bit-length values for both parts of computation
     // first protection and b2a
-    edaBit(edaBit_r, edaBit_b_2, bitlength, size, ring_size, nodeNet, ss);
+    edaBit(edaBit_r, edaBit_b_2, ring_size, size, ring_size, nodeNet, ss);
 
     // Compute sum = a - edaBit_r and store in interface format [size][numShares] for Open
     // Note: both a and edaBit_r are now in interface format [size][numShares]
