@@ -519,6 +519,20 @@ void doOperation_PrivIndex_Read(T **index, T **array, T **result, int m, int siz
         }
     }
 
+    // index + r is below 2^(logm + 1), so opening it alone shows the index. add a random multiple
+    // of 2^logm from the shared streams (no messages); c mod 2^logm below does not change
+    uint high_bytes = (ring_size + 7) >> 3;
+    uint8_t *high = new uint8_t[size * high_bytes];
+    for (size_t s = 0; s < numShares; s++) {
+        ss->prg_getrandom(s, high_bytes, size, high);
+        for (int i = 0; i < size; i++) {
+            T h = 0;
+            memcpy(&h, high + i * high_bytes, high_bytes);
+            sum[i][s] += h << logm;
+        }
+    }
+    delete[] high;
+
     Open(c, sum, size, -1, nodeNet, ss);
 
     // obtaining the lower (log m) bits: c mod 2^{log m}
@@ -811,6 +825,20 @@ void doOperation_PrivIndex_Write(T **index, T **array, T **value, int m, int siz
             sum[i][s] = (index[i][s] + edaBit_r[i][s]);
         }
     }
+
+    // index + r is below 2^(logm + 1), so opening it alone shows the index. add a random multiple
+    // of 2^logm from the shared streams (no messages); c mod 2^logm below does not change
+    uint high_bytes = (ring_size + 7) >> 3;
+    uint8_t *high = new uint8_t[size * high_bytes];
+    for (size_t s = 0; s < numShares; s++) {
+        ss->prg_getrandom(s, high_bytes, size, high);
+        for (int i = 0; i < size; i++) {
+            T h = 0;
+            memcpy(&h, high + i * high_bytes, high_bytes);
+            sum[i][s] += h << logm;
+        }
+    }
+    delete[] high;
 
     Open(c, sum, size, -1, nodeNet, ss);
 
